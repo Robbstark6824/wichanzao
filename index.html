@@ -827,10 +827,9 @@ function capturePhoto() {
 
   if (cameraMode === 'foto') {
     capturedSingleImage = dataUrl;
-    // Show preview briefly then go to naming
+    // Auto-upload in background, stay in camera
     showCapturePreview(dataUrl, function() {
-      stopCamera();
-      goToNaming();
+      autoUploadFoto(dataUrl);
     });
   } else {
     // PDF mode
@@ -987,8 +986,7 @@ function handleGalleryFile(event) {
 
     if (cameraMode === 'foto') {
       capturedSingleImage = dataUrl;
-      stopCamera();
-      goToNaming();
+      autoUploadFoto(dataUrl);
     } else {
       if (pdfPages.length >= 5) {
         toast('Maximo 5 paginas', 'error');
@@ -1012,7 +1010,92 @@ function finalizePdf() {
     return;
   }
   stopCamera();
-  goToNaming();
+  autoUploadPdf(pdfPages.slice());
+  pdfPages = [];
+  showView('vMain');
+  populateMain();
+}
+
+/* ===== AUTO UPLOAD ===== */
+function generateAutoName() {
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2,'0');
+  var m = String(now.getMinutes()).padStart(2,'0');
+  var s = String(now.getSeconds()).padStart(2,'0');
+  var d = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  return 'doc-' + d + '-' + h + m + s;
+}
+
+function autoUploadFoto(dataUrl) {
+  var filename = generateAutoName();
+  toast('Subiendo foto...', 'info');
+
+  optimizeImage(dataUrl).then(function(optimized) {
+    var blob = dataUrlToBlob(optimized);
+    var now = new Date();
+    var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    var ts = now.getTime();
+    var path = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
+    return uploadToSupabase(path, blob, 'image/jpeg');
+  }).then(function() {
+    addTodayFile(filename + '.jpg', 'foto');
+    toast('Foto subida', 'success');
+    haptic(30);
+    updateTodayCount();
+  }).catch(function(err) {
+    console.error('Auto upload error:', err);
+    queueOfflineUpload(filename, 'foto', [dataUrl]);
+    toast('Sin conexion, se subira despues', 'info');
+    addTodayFile(filename + '.jpg (pendiente)', 'foto');
+    updateTodayCount();
+  });
+}
+
+function autoUploadPdf(pages) {
+  var filename = generateAutoName();
+  var totalPages = pages.length;
+  toast('Procesando PDF (' + totalPages + ' pag.)...', 'info');
+
+  var optimizedPages = [];
+  var currentPage = 0;
+
+  function optimizeNext() {
+    if (currentPage >= totalPages) {
+      generatePdf(optimizedPages).then(function(pdfBlob) {
+        var now = new Date();
+        var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+        var ts = now.getTime();
+        var pdfPath = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
+
+        uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
+          return uploadIndividualImages(filename, optimizedPages);
+        }).then(function() {
+          addTodayFile(filename + '.pdf', 'pdf');
+          toast('PDF subido (' + totalPages + ' pag.)', 'success');
+          haptic(30);
+          updateTodayCount();
+        }).catch(function(err) {
+          console.error('PDF upload error:', err);
+          queueOfflineUpload(filename, 'pdf', pages);
+          toast('Sin conexion, se subira despues', 'info');
+          addTodayFile(filename + '.pdf (pendiente)', 'pdf');
+          updateTodayCount();
+        });
+      }).catch(function(err) {
+        console.error('PDF generation error:', err);
+        toast('Error al generar PDF', 'error');
+      });
+      return;
+    }
+
+    optimizeImage(pages[currentPage]).then(function(optimized) {
+      optimizedPages.push(optimized);
+      currentPage++;
+      optimizeNext();
+    });
+  }
+
+  optimizeNext();
 }
 
 /* ===== NAMING VIEW ===== */
