@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wichanzao · Panel PC</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--n1:#0C1F3D;--n2:#142952;--tl:#4ECDC4;--tl2:#3BB8B0;--bg:#F5F7FA;--s1:#FFF;--s2:#EEF1F6;--t1:#0D1B2A;--t2:#4A5568;--t3:#A0AEC0;--bd:#D8DFE9;--danger:#E53E3E;--success:#38A169;--r1:16px;--r2:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+
+/* Header */
+.hd{background:linear-gradient(135deg,var(--n1),var(--n2));color:#fff;padding:28px 32px;position:relative;overflow:hidden}
+.hd::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(78,205,196,.1),transparent 50%);pointer-events:none}
+.hd-inner{max-width:1000px;margin:0 auto;position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.hd h1{font-family:'Playfair Display',serif;font-size:24px;font-weight:800;display:flex;align-items:center;gap:10px}
+.hd h1 svg{width:32px;height:32px;flex-shrink:0}
+.hd p{font-size:12px;opacity:.6;margin-top:3px}
+.hd-status{display:flex;align-items:center;gap:8px;font-size:11px;opacity:.7}
+.hd-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Main */
+.mn{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+
+/* Toolbar */
+.toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.searchBar{flex:1;min-width:220px;position:relative}
+.searchBar input{width:100%;padding:11px 14px 11px 38px;border-radius:var(--r2);border:2px solid var(--bd);font-size:13px;font-family:inherit;font-weight:500;color:var(--t1);outline:none;background:var(--s1);transition:border-color .2s,box-shadow .2s}
+.searchBar input:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.12)}
+.searchBar input::placeholder{color:var(--t3)}
+.searchBar .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--t3);pointer-events:none}
+.tbBtn{padding:10px 18px;border-radius:var(--r2);border:2px solid var(--bd);background:var(--s1);color:var(--t1);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.tbBtn:hover{border-color:var(--tl);background:rgba(78,205,196,.06)}
+.tbBtn:active{transform:scale(.97)}
+.tbBtn.primary{background:var(--n1);color:#fff;border-color:var(--n1)}
+.tbBtn.primary:hover{background:var(--n2)}
+.tbBtn.danger{color:var(--danger);border-color:var(--danger)}
+.tbBtn.danger:hover{background:rgba(229,62,62,.06)}
+
+/* Info */
+.info{background:#E8F8F5;border:1px solid #B2F5EA;border-radius:var(--r2);padding:14px 16px;margin-bottom:18px;font-size:12px;color:#234E52;line-height:1.6;display:flex;align-items:flex-start;gap:10px}
+.info-icon{font-size:20px;flex-shrink:0}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--s1);border-radius:var(--r2);padding:14px 16px;border:1px solid var(--bd);text-align:center}
+.stat-val{font-size:22px;font-weight:800;color:var(--n1)}
+.stat-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-top:2px}
+
+/* Folder */
+.folder{background:var(--s1);border-radius:var(--r1);border:1px solid var(--bd);margin-bottom:14px;overflow:hidden;transition:box-shadow .2s}
+.folder:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.fh{padding:14px 18px;border-bottom:1px solid var(--bd);background:#FAFBFC;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;user-select:none}
+.fh:hover{background:#F0F2F5}
+.fh-arrow{font-size:10px;color:var(--t3);transition:transform .2s}
+.fh-arrow.open{transform:rotate(90deg)}
+.fh h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1}
+.fh .mt{font-size:11px;color:var(--t3)}
+.fh-actions{display:flex;gap:6px}
+.fh-btn{padding:6px 12px;border-radius:8px;border:1.5px solid var(--bd);background:var(--s1);color:var(--t1);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.fh-btn:hover{border-color:var(--tl);background:rgba(78,205,196,.06)}
+.fh-btn:active{transform:scale(.95)}
+.fh-btn.danger:hover{border-color:var(--danger);background:rgba(229,62,62,.06);color:var(--danger)}
+.folder-body{display:none}
+.folder-body.open{display:block}
+
+/* Document card */
+.doc{padding:14px 18px;border-bottom:1px solid #F0F2F5;display:flex;align-items:flex-start;gap:14px;transition:background .15s}
+.doc:hover{background:#FAFBFC}
+.doc:last-child{border-bottom:none}
+.doc-thumb{width:56px;height:72px;border-radius:8px;object-fit:cover;border:1px solid var(--bd);cursor:pointer;flex-shrink:0;transition:transform .2s}
+.doc-thumb:hover{transform:scale(1.05)}
+.doc-content{flex:1;min-width:0}
+.doc-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.docIc{font-size:18px}
+.docNm{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.docMeta{font-size:11px;color:var(--t3);margin-bottom:6px}
+.doc-actions{display:flex;gap:6px;flex-wrap:wrap}
+.docDl{padding:7px 14px;border-radius:8px;border:none;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.docDl:hover{opacity:.85}
+.docDl:active{transform:scale(.95)}
+.docDl.primary{background:var(--n1);color:#fff}
+.docDl.secondary{background:var(--s2);color:var(--t1)}
+.docDl.pdf{background:var(--danger);color:#fff}
+
+/* Page thumbnails */
+.docPages{display:flex;gap:8px;overflow-x:auto;padding:8px 0;margin-top:6px}
+.docPages::-webkit-scrollbar{height:4px}
+.docPages::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+.pgThumb{flex-shrink:0;text-align:center}
+.pgThumb img{width:64px;height:82px;object-fit:cover;border-radius:6px;border:1px solid var(--bd);display:block;margin-bottom:3px;cursor:pointer;transition:transform .15s}
+.pgThumb img:hover{transform:scale(1.06)}
+.pgThumb span{font-size:9px;color:var(--t3)}
+.pgThumb button{font-size:10px;color:var(--tl);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;padding:2px 0}
+.pgThumb button:hover{text-decoration:underline}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--t3)}
+.empty .icon{font-size:52px;margin-bottom:12px}
+.empty h3{font-size:18px;color:var(--t2);margin-bottom:4px;font-weight:800}
+.empty p{font-size:13px;line-height:1.5}
+
+/* Loading */
+.ld{text-align:center;padding:40px;color:var(--t3);font-size:13px}
+.ld .spinner{width:24px;height:24px;border:3px solid var(--bd);border-top-color:var(--tl);border-radius:50%;animation:spin .7s linear infinite;display:block;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Lightbox */
+#pcLb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column;cursor:pointer}
+#pcLb.on{display:flex}
+#pcLb img{max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain;cursor:default}
+.pcLbClose{position:absolute;top:16px;right:16px;width:42px;height:42px;background:rgba(255,255,255,.15);border:none;border-radius:50%;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800}
+.pcLbCap{color:#fff;text-align:center;margin-top:10px;font-size:13px;opacity:.6}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);padding:12px 22px;border-radius:var(--r2);font-size:13px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.2);z-index:600;transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--success);color:#fff}
+.toast.error{background:var(--danger);color:#fff}
+.toast.info{background:var(--n1);color:#fff}
+
+/* Responsive */
+@media(max-width:600px){
+  .hd{padding:20px 16px}
+  .hd h1{font-size:18px}
+  .mn{padding:14px 10px 30px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .doc{flex-direction:column}
+  .doc-thumb{width:100%;height:160px}
+}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-inner">
+    <div>
+      <h1>
+        <svg viewBox="0 0 48 48" fill="none"><rect x="18" y="8" width="12" height="32" rx="2" fill="#4ECDC4"/><rect x="8" y="18" width="32" height="12" rx="2" fill="#4ECDC4"/></svg>
+        C.S. Materno Infantil Wichanzao
+      </h1>
+      <p>Panel de descarga · Computadora del centro</p>
+    </div>
+    <div class="hd-status">
+      <span class="hd-dot"></span>
+      Actualizacion automatica cada 15s
+    </div>
+  </div>
+</div>
+
+<div class="mn">
+  <div class="info">
+    <span class="info-icon">📋</span>
+    <div><strong>Instrucciones:</strong> Los documentos enviados desde los celulares aparecen aqui organizados por carpeta. Puedes descargar archivos individuales, PDFs completos o carpetas enteras como ZIP. La pagina se actualiza automaticamente.</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="stat-val" id="statFolders">0</div><div class="stat-label">Carpetas</div></div>
+    <div class="stat"><div class="stat-val" id="statDocs">0</div><div class="stat-label">Documentos</div></div>
+    <div class="stat"><div class="stat-val" id="statPhotos">0</div><div class="stat-label">Fotos</div></div>
+    <div class="stat"><div class="stat-val" id="statPdfs">0</div><div class="stat-label">PDFs</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="searchBar">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInp" placeholder="Buscar carpeta o documento..." oninput="filterResults()">
+    </div>
+    <button class="tbBtn primary" onclick="loadData()">🔄 Actualizar</button>
+  </div>
+
+  <div id="out"><div class="ld"><div class="spinner"></div>Cargando documentos...</div></div>
+</div>
+
+<!-- Lightbox -->
+<div id="pcLb" onclick="closePcLb(event)">
+  <button class="pcLbClose" onclick="event.stopPropagation();closePcLb()">✕</button>
+  <img id="pcLbImg" src="">
+  <div class="pcLbCap" id="pcLbCap"></div>
+</div>
+
+<div class="toast info" id="toast"></div>
+
+<script>
+var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
+var BUCKET = 'documentos';
+var hdrs = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+
+var allFolders = [];
+
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function fmtSize(b) {
+  if (!b) return '';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function pubUrl(folder, name) {
+  return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + folder + '/' + name;
+}
+
+async function listBucket(prefix) {
+  var res = await fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
+    method: 'POST', headers: hdrs,
+    body: JSON.stringify({ prefix: prefix, limit: 500, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+  });
+  var data = await res.json();
+  if (!Array.isArray(data)) return [];
+  return data;
+}
+
+function groupFiles(rawFiles, folderName) {
+  var groups = {};
+  for (var i = 0; i < rawFiles.length; i++) {
+    var f = rawFiles[i];
+    if (!f.id || !f.name) continue;
+
+    // Check if it's a real PDF file
+    if (f.name.match(/\.pdf$/i)) {
+      var pdfClean = f.name.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+      var pdfKey = '_pdf_' + f.name;
+      groups[pdfKey] = {
+        name: pdfClean,
+        type: 'pdf-file',
+        pdfUrl: pubUrl(folderName, f.name),
+        pages: [],
+        totalSize: (f.metadata && f.metadata.size) || 0
+      };
+      continue;
+    }
+
+    // Skip thumbnails
+    if (f.name.match(/_thumb\.(jpg|jpeg|png)$/i)) continue;
+
+    var clean = f.name.replace(/^\d+_/, '');
+    var m = clean.match(/^(.+)_pag(\d+)\.(jpg|jpeg|png)$/i);
+    if (m) {
+      var base = m[1];
+      if (!groups[base]) groups[base] = { name: base, type: 'pdf', pages: [], totalSize: 0 };
+      groups[base].pages.push({ file: f, num: parseInt(m[2]), url: pubUrl(folderName, f.name) });
+      groups[base].totalSize += (f.metadata && f.metadata.size) || 0;
+    } else {
+      var dname = clean.replace(/\.(jpg|jpeg|png)$/i, '');
+      var key = '_s_' + f.name;
+      groups[key] = {
+        name: dname,
+        type: 'foto',
+        pages: [{ file: f, num: 1, url: pubUrl(folderName, f.name) }],
+        totalSize: (f.metadata && f.metadata.size) || 0
+      };
+    }
+  }
+
+  // Link PDF files with their image pages (same name)
+  var keys = Object.keys(groups);
+  for (var k = 0; k < keys.length; k++) {
+    var g = groups[keys[k]];
+    if (g.type === 'pdf' && groups['_pdf_' + g.name]) {
+      // Merge: keep image pages but add PDF URL
+      g.pdfUrl = groups['_pdf_' + g.name].pdfUrl;
+      delete groups['_pdf_' + g.name];
+    }
+  }
+
+  var result = [];
+  keys = Object.keys(groups);
+  for (var j = 0; j < keys.length; j++) {
+    var gr = groups[keys[j]];
+    gr.pages.sort(function(a, b) { return a.num - b.num; });
+    result.push(gr);
+  }
+  return result;
+}
+
+function renderAllFolders(folders) {
+  var out = document.getElementById('out');
+  if (!folders.length) {
+    out.innerHTML = '<div class="empty"><div class="icon">📭</div><h3>Sin carpetas</h3><p>Cuando el personal sincronice documentos desde la app, apareceran aqui.</p></div>';
+    return;
+  }
+
+  var html = '';
+  for (var fi = 0; fi < folders.length; fi++) {
+    var folder = folders[fi];
+    html += renderFolderCard(folder, fi);
+  }
+  out.innerHTML = html;
+}
+
+function renderFolderCard(folder, idx) {
+  var fname = folder.name;
+  var docs = folder.docs;
+  var displayName = fname.replace(/_/g, ' ');
+  var photoCount = 0, pdfCount = 0;
+  for (var x = 0; x < docs.length; x++) {
+    if (docs[x].type === 'foto') photoCount++;
+    else pdfCount++;
+  }
+
+  var html = '<div class="folder" id="folder_' + idx + '">';
+  html += '<div class="fh" onclick="toggleFolder(' + idx + ')">';
+  html += '<span class="fh-arrow" id="arrow_' + idx + '">▶</span>';
+  html += '<div><h3>📂 ' + escHtml(displayName) + '</h3>';
+  html += '<div class="mt">' + docs.length + ' documento(s) · ';
+  if (photoCount) html += photoCount + ' foto(s) ';
+  if (pdfCount) html += pdfCount + ' PDF(s)';
+  html += '</div></div>';
+  html += '<div class="fh-actions">';
+  html += '<button class="fh-btn" onclick="event.stopPropagation();dlFolderZip(\'' + fname + '\',' + idx + ')">📦 ZIP</button>';
+  html += '<button class="fh-btn danger" onclick="event.stopPropagation();deleteFolder(\'' + fname + '\')">🗑</button>';
+  html += '</div></div>';
+
+  html += '<div class="folder-body" id="fbody_' + idx + '">';
+  for (var di = 0; di < docs.length; di++) {
+    html += renderDocCard(docs[di], fname);
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function renderDocCard(doc, folderName) {
+  var icon = doc.type === 'foto' ? '📷' : '📑';
+  var meta = '';
+  if (doc.type === 'pdf-file') {
+    meta = 'PDF · ' + fmtSize(doc.totalSize);
+  } else if (doc.type === 'pdf') {
+    meta = 'PDF · ' + doc.pages.length + ' pags · ' + fmtSize(doc.totalSize);
+  } else {
+    meta = 'Foto · ' + fmtSize(doc.totalSize);
+  }
+
+  var thumbSrc = '';
+  if (doc.pages.length > 0) {
+    thumbSrc = doc.pages[0].url;
+  }
+
+  var html = '<div class="doc">';
+
+  if (thumbSrc) {
+    html += '<img class="doc-thumb" src="' + thumbSrc + '" onclick="openPcLb(\'' + thumbSrc + '\',\'' + escHtml(doc.name) + '\')" onerror="this.style.background=\'#eee\'">';
+  }
+
+  html += '<div class="doc-content">';
+  html += '<div class="doc-head"><span class="docIc">' + icon + '</span><div class="docNm">' + escHtml(doc.name) + '</div></div>';
+  html += '<div class="docMeta">' + meta + '</div>';
+  html += '<div class="doc-actions">';
+
+  if (doc.type === 'pdf-file') {
+    // Real PDF file
+    html += '<button class="docDl pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">📄 Descargar PDF</button>';
+  } else if (doc.type === 'pdf') {
+    // Multi-page images
+    if (doc.pdfUrl) {
+      html += '<button class="docDl pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">📄 Descargar PDF</button>';
+    } else {
+      html += '<button class="docDl pdf" onclick="dlAsPdf(this)" data-doc=\'' + JSON.stringify({ name: doc.name, pages: doc.pages.map(function(p) { return { url: p.url }; }) }).replace(/'/g, '&#39;') + '\'>📄 Generar PDF</button>';
+    }
+    html += '<button class="docDl secondary" onclick="dlAllImages(this)" data-pages=\'' + JSON.stringify(doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; })).replace(/'/g, '&#39;') + '\'>🖼 Imagenes</button>';
+  } else {
+    // Single photo
+    html += '<button class="docDl primary" onclick="forceDl(\'' + doc.pages[0].url + '\',\'' + escHtml(doc.name) + '.jpg\')">💾 Descargar</button>';
+  }
+
+  html += '</div>';
+
+  // Page thumbnails for multi-page
+  if (doc.pages.length > 1) {
+    html += '<div class="docPages">';
+    for (var pi = 0; pi < doc.pages.length; pi++) {
+      html += '<div class="pgThumb">';
+      html += '<img src="' + doc.pages[pi].url + '" onclick="openPcLb(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + ' - Pag ' + doc.pages[pi].num + '\')" onerror="this.style.background=\'#eee\'">';
+      html += '<span>Pag ' + doc.pages[pi].num + '</span>';
+      html += '<button onclick="forceDl(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + '_pag' + doc.pages[pi].num + '.jpg\')">💾</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function toggleFolder(idx) {
+  var body = document.getElementById('fbody_' + idx);
+  var arrow = document.getElementById('arrow_' + idx);
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    arrow.classList.remove('open');
+  } else {
+    body.classList.add('open');
+    arrow.classList.add('open');
+  }
+}
+
+/* =========================================================
+   LOAD DATA
+   ========================================================= */
+async function loadData() {
+  var out = document.getElementById('out');
+  out.innerHTML = '<div class="ld"><div class="spinner"></div>Cargando documentos...</div>';
+
+  try {
+    var rootItems = await listBucket('');
+    var folders = [];
+    for (var i = 0; i < rootItems.length; i++) {
+      if (rootItems[i].id === null && rootItems[i].name) folders.push(rootItems[i].name);
+    }
+
+    if (!folders.length) {
+      document.getElementById('stats').style.display = 'none';
+      allFolders = [];
+      renderAllFolders([]);
+      return;
+    }
+
+    allFolders = [];
+    var totalDocs = 0, totalPhotos = 0, totalPdfs = 0;
+
+    for (var fi = 0; fi < folders.length; fi++) {
+      var fname = folders[fi];
+      var rawFiles = await listBucket(fname + '/');
+      var docs = groupFiles(rawFiles, fname);
+      if (!docs.length) continue;
+
+      for (var d = 0; d < docs.length; d++) {
+        totalDocs++;
+        if (docs[d].type === 'foto') totalPhotos++;
+        else totalPdfs++;
+      }
+
+      allFolders.push({ name: fname, docs: docs });
+    }
+
+    // Update stats
+    document.getElementById('stats').style.display = 'grid';
+    document.getElementById('statFolders').textContent = allFolders.length;
+    document.getElementById('statDocs').textContent = totalDocs;
+    document.getElementById('statPhotos').textContent = totalPhotos;
+    document.getElementById('statPdfs').textContent = totalPdfs;
+
+    renderAllFolders(allFolders);
+
+    // Auto-expand first folder
+    if (allFolders.length > 0) {
+      toggleFolder(0);
+    }
+  } catch (err) {
+    console.error(err);
+    out.innerHTML = '<div class="empty"><div class="icon">⚠️</div><h3>Error de conexion</h3><p>' + err.message + '</p></div>';
+  }
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+function filterResults() {
+  var query = document.getElementById('searchInp').value.toLowerCase().trim();
+  if (!query) {
+    renderAllFolders(allFolders);
+    if (allFolders.length > 0) toggleFolder(0);
+    return;
+  }
+  var filtered = allFolders.filter(function(f) {
+    if (f.name.toLowerCase().replace(/_/g, ' ').includes(query)) return true;
+    for (var i = 0; i < f.docs.length; i++) {
+      if (f.docs[i].name.toLowerCase().includes(query)) return true;
+    }
+    return false;
+  });
+  renderAllFolders(filtered);
+  // Auto-expand all results
+  for (var i = 0; i < filtered.length; i++) {
+    toggleFolder(i);
+  }
+}
+
+// Ctrl+F shortcut
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    document.getElementById('searchInp').focus();
+  }
+});
+
+/* =========================================================
+   DOWNLOADS
+   ========================================================= */
+async function forceDl(url, filename) {
+  try {
+    var res = await fetch(url);
+    var blob = await res.blob();
+    var blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+    pcToast('Descargando: ' + filename, 'success');
+  } catch(e) {
+    window.open(url, '_blank');
+  }
+}
+
+function dlAllImages(btn) {
+  try {
+    var pages = JSON.parse(btn.getAttribute('data-pages'));
+    pcToast('Descargando ' + pages.length + ' imagenes...', 'info');
+    for (var i = 0; i < pages.length; i++) {
+      (function(pg, delay) {
+        setTimeout(function() { forceDl(pg.url, pg.name); }, delay);
+      })(pages[i], i * 800);
+    }
+  } catch (e) {
+    pcToast('Error descargando', 'error');
+  }
+}
+
+/* =========================================================
+   PDF GENERATION (client-side)
+   ========================================================= */
+async function dlAsPdf(btn) {
+  if (!window.jspdf) { pcToast('jsPDF no cargado', 'error'); return; }
+  var doc;
+  try { doc = JSON.parse(btn.getAttribute('data-doc')); } catch(e) { return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Generando...';
+
+  try {
+    var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    for (var i = 0; i < doc.pages.length; i++) {
+      if (i > 0) pdf.addPage();
+      var img = await loadImage(doc.pages[i].url);
+      var pw = pdf.internal.pageSize.getWidth();
+      var ph = pdf.internal.pageSize.getHeight();
+      var ratio = Math.min(pw / img.width, ph / img.height);
+      var w = img.width * ratio;
+      var h = img.height * ratio;
+      pdf.addImage(img.src, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
+    }
+    pdf.save(doc.name + '.pdf');
+    pcToast('PDF descargado: ' + doc.name, 'success');
+  } catch (e) {
+    pcToast('Error generando PDF', 'error');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📄 Generar PDF';
+}
+
+function loadImage(url) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() { resolve(img); };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+/* =========================================================
+   ZIP DOWNLOAD
+   ========================================================= */
+async function dlFolderZip(folderName, idx) {
+  if (!window.JSZip) { pcToast('JSZip no cargado', 'error'); return; }
+
+  var folder = allFolders[idx];
+  if (!folder) return;
+
+  pcToast('Preparando ZIP...', 'info');
+
+  try {
+    var zip = new JSZip();
+    var zipFolder = zip.folder(folderName.replace(/_/g, ' '));
+
+    for (var di = 0; di < folder.docs.length; di++) {
+      var doc = folder.docs[di];
+      for (var pi = 0; pi < doc.pages.length; pi++) {
+        var pageSuffix = doc.pages.length > 1 ? '_pag' + doc.pages[pi].num : '';
+        var fileName = doc.name + pageSuffix + '.jpg';
+        try {
+          var res = await fetch(doc.pages[pi].url);
+          var blob = await res.blob();
+          zipFolder.file(fileName, blob);
+        } catch (e) {
+          console.warn('Failed to fetch:', fileName);
+        }
+      }
+      // Also include PDF if available
+      if (doc.pdfUrl) {
+        try {
+          var pdfRes = await fetch(doc.pdfUrl);
+          var pdfBlob = await pdfRes.blob();
+          zipFolder.file(doc.name + '.pdf', pdfBlob);
+        } catch(e) {}
+      }
+    }
+
+    var content = await zip.generateAsync({ type: 'blob' });
+    var url = URL.createObjectURL(content);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = folderName.replace(/_/g, ' ') + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    pcToast('ZIP descargado!', 'success');
+  } catch (e) {
+    pcToast('Error creando ZIP: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+/* =========================================================
+   DELETE FOLDER
+   ========================================================= */
+async function deleteFolder(folderName) {
+  if (!confirm('¿Eliminar la carpeta "' + folderName.replace(/_/g, ' ') + '" y todos sus archivos?')) return;
+
+  pcToast('Eliminando carpeta...', 'info');
+
+  try {
+    var files = await listBucket(folderName + '/');
+    var paths = files.filter(function(f) { return f.name; }).map(function(f) { return folderName + '/' + f.name; });
+
+    if (paths.length > 0) {
+      var res = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
+        method: 'DELETE',
+        headers: hdrs,
+        body: JSON.stringify({ prefixes: paths })
+      });
+      if (!res.ok) throw new Error('Error del servidor');
+    }
+
+    pcToast('Carpeta eliminada', 'success');
+    loadData();
+  } catch (e) {
+    pcToast('Error eliminando: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+/* =========================================================
+   LIGHTBOX
+   ========================================================= */
+function openPcLb(url, caption) {
+  document.getElementById('pcLbImg').src = url;
+  document.getElementById('pcLbCap').textContent = caption || '';
+  document.getElementById('pcLb').classList.add('on');
+}
+
+function closePcLb(e) {
+  if (e && e.target && e.target.tagName === 'IMG') return;
+  document.getElementById('pcLb').classList.remove('on');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePcLb();
+});
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+function pcToast(m, type) {
+  var t = document.getElementById('toast');
+  t.textContent = m;
+  t.className = 'toast ' + (type || 'info');
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+loadData();
+setInterval(loadData, 15000);
+</script>
+</body>
+</html>

@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0C1F3D">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<title>C.S. Wichanzao</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B;
+  --tl:#4ECDC4;--tl2:#3BB8B0;
+  --gd:#D4A853;
+  --bg:#F5F7FA;--s1:#FFF;--s2:#EEF1F6;
+  --t1:#0D1B2A;--t2:#4A5568;--t3:#A0AEC0;
+  --bd:#D8DFE9;
+  --r1:18px;--r2:14px;--r3:10px;
+  --st:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+  --danger:#E53E3E;--success:#38A169;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased}
+
+/* === VIEWS === */
+.V{position:fixed;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .32s ease,transform .32s ease;z-index:1;will-change:opacity,transform}
+.V.on{opacity:1;pointer-events:auto;z-index:10;transform:translateY(0)}
+
+/* === OFFLINE BANNER === */
+.offline-bar{position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;text-align:center;padding:6px;font-size:11px;font-weight:700;z-index:500;transform:translateY(-100%);transition:transform .3s}
+.offline-bar.on{transform:translateY(0)}
+
+/* === HOME === */
+#vHome{background:linear-gradient(160deg,var(--n1),var(--n2) 40%,var(--n3));justify-content:center;align-items:center;text-align:center;padding:40px 20px;overflow:hidden}
+#vHome::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 80%,rgba(78,205,196,.08) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(212,168,83,.06) 0%,transparent 50%);pointer-events:none}
+.hShield{width:82px;height:82px;margin:0 auto 16px;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.12);border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.hShield svg{width:44px;height:44px}
+.hShield::after{content:'';position:absolute;inset:-50%;background:linear-gradient(45deg,transparent 40%,rgba(255,255,255,.05) 50%,transparent 60%);animation:shimmer 3s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.hTitle{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:#fff;line-height:1.15}
+.hSub{font-size:13px;color:rgba(255,255,255,.5);margin:2px 0 0}
+.hLine{width:50px;height:3px;background:var(--tl);margin:14px auto 26px;border-radius:2px}
+.hLbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:var(--tl);margin-bottom:14px}
+.hOpts{display:flex;gap:14px;justify-content:center}
+.hO{width:138px;padding:26px 12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:var(--r1);cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all .25s cubic-bezier(.34,1.56,.64,1)}
+.hO:active{transform:scale(.9);background:rgba(255,255,255,.12)}
+.hO .i{font-size:40px}
+.hO .l{font-size:15px;font-weight:700;color:#fff}
+.hO .d{font-size:10px;color:rgba(255,255,255,.4)}
+.hFolder{margin-top:26px;padding:12px 22px;background:rgba(78,205,196,.12);border:1.5px solid var(--tl);border-radius:26px;color:var(--tl);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;display:none;align-items:center;gap:8px;transition:all .25s}
+.hFolder:active{transform:scale(.93)}
+.hFolder .c{background:var(--tl);color:var(--n1);padding:2px 8px;border-radius:9px;font-size:10px;font-weight:800}
+.hLastSync{margin-top:10px;font-size:10px;color:rgba(255,255,255,.3);display:none}
+
+/* === CAMERA === */
+#vCam{background:#000;justify-content:center;align-items:center}
+.cTop{position:absolute;top:0;left:0;right:0;padding:12px 16px;padding-top:max(12px,var(--st));display:flex;justify-content:space-between;align-items:center;z-index:5}
+.cBack{width:40px;height:40px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.cBack:active{transform:scale(.85)}
+.cTopRight{display:flex;gap:8px;align-items:center}
+.cBadge{background:rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:6px 14px;border-radius:12px;color:#fff;font-size:11px;font-weight:700}
+.cSwitch{width:40px;height:40px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:none;border-radius:50%;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .3s}
+.cSwitch:active{transform:rotate(180deg) scale(.85)}
+.cFlash{width:40px;height:40px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:none;border-radius:50%;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cFlash.active{background:rgba(255,204,0,.3);color:#FFCC00}
+.cBody{flex:1;display:flex;align-items:center;justify-content:center;width:100%;position:relative;overflow:hidden}
+.cBody input{display:none}
+#cVideo{width:100%;height:100%;object-fit:cover;display:none}
+.cPh{text-align:center;color:rgba(255,255,255,.3)}
+.cPh .big{font-size:56px;margin-bottom:8px}
+.cPh p{font-size:12px}
+.cPdfCnt{position:absolute;bottom:106px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);backdrop-filter:blur(8px);color:#fff;padding:6px 16px;border-radius:16px;font-size:12px;font-weight:700;display:none}
+.cBottom{position:absolute;bottom:0;left:0;right:0;padding:20px;padding-bottom:max(24px,calc(var(--sb) + 16px));display:flex;justify-content:center;align-items:center;gap:24px}
+.cShutter{width:70px;height:70px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.3);cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .1s}
+.cShutter:active{transform:scale(.82)}
+.cShutter.flash{animation:shutterFlash .2s ease}
+@keyframes shutterFlash{0%{transform:scale(1)}50%{transform:scale(.7);background:var(--tl)}100%{transform:scale(1)}}
+.cGallery{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* === PREVIEW === */
+#vPrev{background:#000;flex-direction:column}
+.pvTop{position:absolute;top:0;left:0;right:0;padding:12px 16px;padding-top:max(12px,var(--st));z-index:5}
+.pvBadge{background:rgba(255,255,255,.15);backdrop-filter:blur(8px);padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;display:inline-block}
+.pvWrap{flex:1;display:flex;align-items:center;justify-content:center;padding:10px}
+.pvWrap img{max-width:100%;max-height:100%;border-radius:8px;object-fit:contain;animation:imgIn .3s ease}
+@keyframes imgIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.pvActs{padding:16px 18px;padding-bottom:max(16px,calc(var(--sb)+10px));display:flex;gap:10px;background:linear-gradient(to top,rgba(0,0,0,.8),rgba(0,0,0,.4))}
+.pvBtn{flex:1;padding:14px;border-radius:var(--r2);border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .15s}
+.pvBtn:active{transform:scale(.93)}
+.pvBtn.ret{background:rgba(255,255,255,.15);color:#fff}
+.pvBtn.nxt{background:var(--tl);color:var(--n1)}
+.pvBtn.fin{background:var(--gd);color:var(--n1)}
+
+/* === RENAME === */
+#vName{background:var(--bg);justify-content:center;align-items:center;padding:28px 20px}
+.nmCard{background:var(--s1);border-radius:var(--r1);padding:28px 22px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.1);text-align:center;animation:cardUp .35s ease}
+@keyframes cardUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.nmCard .ic{font-size:44px;margin-bottom:12px}
+.nmCard h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;margin-bottom:3px}
+.nmCard p{font-size:12px;color:var(--t2);margin-bottom:18px}
+.nmInp{width:100%;padding:15px;border-radius:var(--r2);border:2px solid var(--bd);font-size:16px;font-family:inherit;font-weight:600;color:var(--t1);outline:none;text-align:center;transition:border-color .2s,box-shadow .2s}
+.nmInp:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.15)}
+.nmProg{margin-top:12px;display:none}
+.nmProg.on{display:block}
+.nmBar{height:5px;background:var(--s2);border-radius:3px;overflow:hidden}
+.nmFill{height:100%;background:linear-gradient(90deg,var(--tl),var(--tl2));width:0%;transition:width .3s;border-radius:3px;box-shadow:0 0 8px rgba(78,205,196,.4)}
+.nmTxt{font-size:11px;color:var(--t2);margin-top:5px}
+.nmSave{width:100%;padding:15px;border-radius:var(--r2);border:none;background:linear-gradient(135deg,var(--n1),var(--n2));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:14px;transition:transform .15s,opacity .2s}
+.nmSave:active{transform:scale(.97)}
+.nmSave:disabled{opacity:.4;transform:none}
+
+/* === FOLDER === */
+#vFolder{background:var(--bg);flex-direction:column}
+.fHead{background:linear-gradient(135deg,var(--n1),var(--n2));color:#fff;padding:14px 16px;padding-top:max(14px,calc(var(--st) + 2px));display:flex;align-items:center;gap:10px}
+.fHead h2{font-size:15px;font-weight:800;flex:1}
+.fHb{width:38px;height:38px;background:rgba(255,255,255,.1);border:none;border-radius:10px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fHb:active{transform:scale(.85)}
+.fBody{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.fBody::-webkit-scrollbar{display:none}
+.fCard{background:var(--s1);border-radius:var(--r2);padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;border:1px solid var(--bd);animation:cardIn .3s ease both;transition:transform .15s}
+.fCard:active{transform:scale(.98)}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fTh{width:52px;height:52px;border-radius:var(--r3);object-fit:cover;flex-shrink:0;cursor:pointer;border:1px solid var(--bd)}
+.fInfo{flex:1;min-width:0}
+.fNm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fMeta{font-size:10px;color:var(--t3);margin-top:1px}
+.fTag{padding:3px 8px;border-radius:6px;font-size:9px;font-weight:700;text-transform:uppercase;flex-shrink:0;letter-spacing:.3px}
+.fTagF{background:#DCFCE7;color:#15803D}
+.fTagP{background:#FEE2E2;color:#B91C1C}
+.fUploaded{background:#DBEAFE;color:#1D4ED8}
+.fActs{display:flex;gap:4px;flex-shrink:0}
+.fABtn{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--bd);background:var(--s1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:transform .15s}
+.fABtn:active{transform:scale(.8)}
+.fEmpty{text-align:center;padding:50px 16px;color:var(--t3)}
+.fBar{padding:12px;padding-bottom:max(12px,calc(var(--sb)+8px));background:var(--s1);border-top:1px solid var(--bd);display:flex;gap:8px}
+.fBtn{flex:1;padding:14px;border-radius:var(--r2);border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .15s}
+.fBtn:active{transform:scale(.95)}
+.fBtn.pr{background:linear-gradient(135deg,var(--n1),var(--n2));color:#fff}
+.fBtn.sc{background:var(--s2);color:var(--t1)}
+
+/* === SYNC === */
+#vSync{background:var(--bg);flex-direction:column}
+.syHead{background:linear-gradient(135deg,var(--n1),var(--n2));color:#fff;padding:14px 16px;padding-top:max(14px,calc(var(--st) + 2px));display:flex;align-items:center;gap:10px}
+.syHead h2{font-size:15px;font-weight:800;flex:1}
+.syBody{flex:1;overflow-y:auto;padding:18px 14px}
+.syCard{background:var(--s1);border-radius:var(--r1);padding:22px;box-shadow:0 4px 24px rgba(0,0,0,.06);margin-bottom:12px;text-align:center}
+.syCard h3{font-size:15px;font-weight:800;margin-bottom:4px}
+.syCard p{font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5}
+.syInp{width:100%;padding:14px;border-radius:var(--r2);border:2px solid var(--bd);font-size:15px;font-family:inherit;font-weight:600;color:var(--t1);outline:none;text-align:center;margin-bottom:10px;transition:border-color .2s,box-shadow .2s}
+.syInp:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.15)}
+.syFiles{text-align:left;margin:10px 0}
+.syFi{padding:8px 0;border-bottom:1px solid var(--s2);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+.syProg{margin:12px 0;display:none}
+.syProg.on{display:block}
+.syBar{height:6px;background:var(--s2);border-radius:3px;overflow:hidden}
+.syFill{height:100%;background:linear-gradient(90deg,var(--tl),var(--tl2));width:0%;transition:width .3s;border-radius:3px;box-shadow:0 0 8px rgba(78,205,196,.4)}
+.syTxt{font-size:11px;color:var(--t2);margin-top:5px}
+.syGo{width:100%;padding:15px;border-radius:var(--r2);border:none;background:linear-gradient(135deg,var(--tl),var(--tl2));color:var(--n1);font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;transition:transform .15s,opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.syGo:active{transform:scale(.97)}
+.syGo:disabled{opacity:.4;transform:none}
+.syDone{margin-top:14px;padding:14px;background:var(--n1);color:var(--tl);border-radius:var(--r2);font-size:13px;font-weight:600;text-align:center;display:none;animation:cardUp .3s ease}
+
+/* === LIGHTBOX === */
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#lb.on{display:flex}
+#lb img{max-width:95vw;max-height:70vh;border-radius:8px;object-fit:contain}
+.lbClose{position:absolute;top:max(14px,var(--st));right:14px;width:46px;height:46px;background:rgba(255,0,0,.5);border:2px solid #fff;border-radius:50%;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;font-weight:800;transition:transform .15s}
+.lbClose:active{transform:scale(.85)}
+.lbCap{color:#fff;text-align:center;margin-top:12px;font-size:13px;opacity:.65}
+.lbNav{display:flex;gap:10px;margin-top:12px}
+.lbNavBtn{padding:10px 20px;border-radius:10px;background:rgba(255,255,255,.12);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .15s}
+.lbNavBtn:active{transform:scale(.88)}
+
+/* === TOAST === */
+.toast{position:fixed;bottom:max(24px,calc(var(--sb)+10px));left:50%;transform:translateX(-50%) translateY(70px);padding:12px 22px;border-radius:var(--r2);font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:500;transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:88vw;display:flex;align-items:center;gap:8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--success);color:#fff}
+.toast.error{background:var(--danger);color:#fff}
+.toast.info{background:var(--n1);color:#fff}
+
+/* === SPINNER === */
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner.dark{border-color:rgba(0,0,0,.15);border-top-color:var(--n1)}
+
+/* === INSTALL PROMPT === */
+.install-banner{position:fixed;bottom:max(20px,calc(var(--sb)+10px));left:12px;right:12px;background:var(--s1);border-radius:var(--r1);padding:16px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:400;display:none;animation:cardUp .4s ease}
+.install-banner h4{font-size:14px;font-weight:800;margin-bottom:3px}
+.install-banner p{font-size:11px;color:var(--t2);margin-bottom:10px}
+.install-banner .btns{display:flex;gap:8px}
+.install-banner .btn-install{flex:1;padding:11px;border-radius:10px;border:none;background:var(--tl);color:var(--n1);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.install-banner .btn-later{padding:11px 16px;border-radius:10px;border:1.5px solid var(--bd);background:none;color:var(--t2);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BANNER -->
+<div class="offline-bar" id="offlineBar">Sin conexion a internet</div>
+
+<!-- HOME -->
+<div class="V on" id="vHome">
+  <div style="position:relative;z-index:2">
+    <div class="hShield">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="18" y="8" width="12" height="32" rx="2" fill="#4ECDC4"/>
+        <rect x="8" y="18" width="32" height="12" rx="2" fill="#4ECDC4"/>
+      </svg>
+    </div>
+    <div class="hTitle">Centro de Salud<br>Materno Infantil</div>
+    <div class="hSub">Wichanzao</div>
+    <div class="hLine"></div>
+    <div class="hLbl">Nuevo documento</div>
+    <div class="hOpts">
+      <button class="hO" onclick="startCapture('foto')"><div class="i">📷</div><div class="l">Foto</div><div class="d">Imagen individual</div></button>
+      <button class="hO" onclick="startCapture('pdf')"><div class="i">📑</div><div class="l">PDF</div><div class="d">Varias paginas</div></button>
+    </div>
+    <button class="hFolder" id="hFolder" onclick="go('vFolder')">📂 Mi carpeta <span class="c" id="hCnt">0</span></button>
+    <div class="hLastSync" id="hLastSync"></div>
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div class="V" id="vCam">
+  <div class="cTop">
+    <button class="cBack" onclick="goBackFromCam()">←</button>
+    <div class="cTopRight">
+      <div class="cBadge" id="cBadge">FOTO</div>
+      <button class="cFlash" id="cFlash" onclick="toggleFlash()" style="display:none">⚡</button>
+      <button class="cSwitch" onclick="switchCamera()">🔄</button>
+    </div>
+  </div>
+  <div class="cBody">
+    <video id="cVideo" autoplay playsinline muted></video>
+    <canvas id="cCanvas" style="display:none"></canvas>
+    <input type="file" id="cInput" accept="image/*" capture="environment">
+    <div class="cPh" id="cPh"><div class="big">📷</div><p>Iniciando camara...</p></div>
+  </div>
+  <div class="cPdfCnt" id="cPdfCnt">Pagina: <span id="cPdfNum">1</span></div>
+  <div class="cBottom">
+    <button class="cGallery" onclick="openGallery()">🖼</button>
+    <button class="cShutter" id="cShutter" onclick="captureFrame()"></button>
+    <div style="width:44px"></div>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="V" id="vPrev">
+  <div class="pvTop"><span class="pvBadge" id="pvBadge">FOTO</span></div>
+  <div class="pvWrap"><img id="pvImg" src=""></div>
+  <div class="pvActs" id="pvActs"></div>
+</div>
+
+<!-- RENAME -->
+<div class="V" id="vName">
+  <div class="nmCard">
+    <div class="ic" id="nmIc">📷</div>
+    <h2>Nombrar archivo</h2>
+    <p id="nmDesc">Escribe un nombre para este documento</p>
+    <input type="text" class="nmInp" id="nmInp" placeholder="Ej: Referencia Juan Perez" autocomplete="off">
+    <div class="nmProg" id="nmProg"><div class="nmBar"><div class="nmFill" id="nmFill"></div></div><div class="nmTxt" id="nmTxt"></div></div>
+    <button class="nmSave" id="nmSave" onclick="saveFile()">Guardar en mi carpeta</button>
+  </div>
+</div>
+
+<!-- FOLDER -->
+<div class="V" id="vFolder">
+  <div class="fHead">
+    <button class="fHb" onclick="go('vHome')">←</button>
+    <h2>📂 Mi Carpeta del Turno</h2>
+    <button class="fHb" onclick="clearAll()" title="Limpiar todo">🗑</button>
+  </div>
+  <div class="fBody" id="fBody"></div>
+  <div class="fBar">
+    <button class="fBtn sc" onclick="go('vHome')">+ Nuevo</button>
+    <button class="fBtn pr" onclick="goSync()">📤 Enviar a PC</button>
+  </div>
+</div>
+
+<!-- SYNC -->
+<div class="V" id="vSync">
+  <div class="syHead">
+    <button class="fHb" onclick="go('vFolder')">←</button>
+    <h2>📤 Enviar a la PC</h2>
+  </div>
+  <div class="syBody">
+    <div class="syCard">
+      <h3>Nombre de la carpeta</h3>
+      <p>Este nombre aparecera en la PC del centro.</p>
+      <input type="text" class="syInp" id="syInp" placeholder="Ej: Dr. Robb - Turno Manana">
+      <div class="syFiles" id="syFiles"></div>
+      <div class="syProg" id="syProg"><div class="syBar"><div class="syFill" id="syFill"></div></div><div class="syTxt" id="syTxt"></div></div>
+      <button class="syGo" id="syGo" onclick="doSync()">📤 Sincronizar ahora</button>
+      <div class="syDone" id="syDone"></div>
+    </div>
+    <div class="syCard" style="background:var(--s2);border:1px dashed var(--bd)">
+      <h3 style="font-size:13px">💻 En la PC del centro</h3>
+      <p>Abre este link en la PC para descargar:</p>
+      <p style="font-weight:700;color:var(--tl);font-size:13px;word-break:break-all" id="pcUrl"></p>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="closeLb(event)">
+  <button class="lbClose" onclick="event.stopPropagation();closeLb()">✕</button>
+  <img id="lbImg" src="">
+  <div class="lbCap" id="lbCap"></div>
+  <div class="lbNav" id="lbNav" style="display:none">
+    <button class="lbNavBtn" onclick="event.stopPropagation();lbPrev()">← Anterior</button>
+    <button class="lbNavBtn" id="lbPageInfo"></button>
+    <button class="lbNavBtn" onclick="event.stopPropagation();lbNext()">Siguiente →</button>
+  </div>
+  <button onclick="event.stopPropagation();closeLb()" style="margin-top:14px;padding:12px 32px;border-radius:10px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">✕ Cerrar</button>
+</div>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="installBanner">
+  <h4>Instalar Wichanzao</h4>
+  <p>Instala la app para acceso rapido desde tu pantalla de inicio.</p>
+  <div class="btns">
+    <button class="btn-later" onclick="dismissInstall()">Despues</button>
+    <button class="btn-install" onclick="installApp()">Instalar</button>
+  </div>
+</div>
+
+<div class="toast info" id="toast"></div>
+
+<script>
+/* =========================================================
+   SUPABASE CONFIG
+   ========================================================= */
+var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
+var SB_BUCKET = 'documentos';
+var SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+
+/* =========================================================
+   STATE
+   ========================================================= */
+var mode = 'foto';
+var pdfPages = [];
+var captured = null;
+var capturedUrl = '';
+var files = [];
+var lbIdx = 0;
+var lbFile = null;
+var cameraStream = null;
+var facingMode = 'environment';
+var flashOn = false;
+var deferredInstallPrompt = null;
+
+/* =========================================================
+   INDEXEDDB PERSISTENCE
+   ========================================================= */
+var DB_NAME = 'wichanzao_docs';
+var DB_VER = 1;
+
+function openDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('files')) {
+        db.createObjectStore('files', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = function(e) { resolve(e.target.result); };
+    req.onerror = function(e) { reject(e.target.error); };
+  });
+}
+
+async function saveFilesToDB() {
+  try {
+    var db = await openDB();
+    var tx = db.transaction('files', 'readwrite');
+    var store = tx.objectStore('files');
+    store.clear();
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      store.put({
+        id: i,
+        name: f.name,
+        type: f.type,
+        uploaded: f.uploaded,
+        pdfBlob: f.pdfBlob || null,
+        pages: f.pages.map(function(p) { return { blob: p.blob }; })
+      });
+    }
+    return new Promise(function(resolve) {
+      tx.oncomplete = resolve;
+    });
+  } catch (e) {
+    console.warn('DB save error:', e);
+  }
+}
+
+async function loadFilesFromDB() {
+  try {
+    var db = await openDB();
+    var tx = db.transaction('files', 'readonly');
+    var store = tx.objectStore('files');
+    return new Promise(function(resolve) {
+      var req = store.getAll();
+      req.onsuccess = function() {
+        var items = req.result || [];
+        files = [];
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var pages = [];
+          for (var j = 0; j < item.pages.length; j++) {
+            var b = item.pages[j].blob;
+            pages.push({ blob: b, url: URL.createObjectURL(b) });
+          }
+          files.push({
+            name: item.name,
+            type: item.type,
+            pages: pages,
+            pdfBlob: item.pdfBlob,
+            thumbUrl: pages.length ? URL.createObjectURL(pages[0].blob) : '',
+            uploaded: item.uploaded
+          });
+        }
+        resolve();
+      };
+      req.onerror = function() { resolve(); };
+    });
+  } catch (e) {
+    console.warn('DB load error:', e);
+  }
+}
+
+/* =========================================================
+   HAPTIC FEEDBACK
+   ========================================================= */
+function haptic(style) {
+  if (!navigator.vibrate) return;
+  switch(style) {
+    case 'light': navigator.vibrate(10); break;
+    case 'medium': navigator.vibrate(25); break;
+    case 'success': navigator.vibrate([10, 50, 10]); break;
+    case 'error': navigator.vibrate([50, 30, 50]); break;
+  }
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+function go(id) {
+  document.querySelectorAll('.V').forEach(function(v) { v.classList.remove('on'); });
+  document.getElementById(id).classList.add('on');
+  if (id === 'vHome') updateBadge();
+  if (id === 'vFolder') renderFolder();
+  if (id !== 'vCam') stopCamera();
+  haptic('light');
+}
+
+function goBackFromCam() {
+  stopCamera();
+  go('vHome');
+}
+
+/* =========================================================
+   LIVE CAMERA
+   ========================================================= */
+async function startLiveCamera() {
+  var video = document.getElementById('cVideo');
+  var ph = document.getElementById('cPh');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    ph.innerHTML = '<div class="big">📷</div><p>Toca el boton de galeria para seleccionar</p>';
+    return;
+  }
+
+  ph.innerHTML = '<div class="big">📷</div><p>Iniciando camara...</p>';
+
+  try {
+    if (cameraStream) stopCamera();
+    var constraints = {
+      video: {
+        facingMode: facingMode,
+        width: { ideal: 2400 },
+        height: { ideal: 3200 }
+      },
+      audio: false
+    };
+    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = cameraStream;
+    video.style.display = 'block';
+    ph.style.display = 'none';
+
+    // Check flash support
+    var track = cameraStream.getVideoTracks()[0];
+    if (track) {
+      var caps = track.getCapabilities ? track.getCapabilities() : {};
+      var flashBtn = document.getElementById('cFlash');
+      if (caps.torch) {
+        flashBtn.style.display = 'flex';
+      } else {
+        flashBtn.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    console.warn('Camera error:', err);
+    video.style.display = 'none';
+    ph.style.display = 'block';
+    if (err.name === 'NotAllowedError') {
+      ph.innerHTML = '<div class="big">🚫</div><p>Permiso de camara denegado.<br>Usa la galeria para seleccionar fotos.</p>';
+    } else {
+      ph.innerHTML = '<div class="big">📷</div><p>No se pudo abrir la camara.<br>Usa la galeria para seleccionar.</p>';
+    }
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    cameraStream = null;
+  }
+  var video = document.getElementById('cVideo');
+  video.srcObject = null;
+  video.style.display = 'none';
+  document.getElementById('cPh').style.display = 'block';
+  flashOn = false;
+  var flashBtn = document.getElementById('cFlash');
+  flashBtn.classList.remove('active');
+  flashBtn.style.display = 'none';
+}
+
+function switchCamera() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  haptic('light');
+  startLiveCamera();
+}
+
+function toggleFlash() {
+  if (!cameraStream) return;
+  var track = cameraStream.getVideoTracks()[0];
+  if (!track) return;
+  flashOn = !flashOn;
+  track.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(function() {});
+  var btn = document.getElementById('cFlash');
+  if (flashOn) btn.classList.add('active');
+  else btn.classList.remove('active');
+  haptic('light');
+}
+
+function captureFrame() {
+  var video = document.getElementById('cVideo');
+  var shutter = document.getElementById('cShutter');
+
+  // Animate shutter
+  shutter.classList.remove('flash');
+  void shutter.offsetWidth;
+  shutter.classList.add('flash');
+  haptic('medium');
+
+  if (cameraStream && video.videoWidth > 0) {
+    var canvas = document.getElementById('cCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(function(blob) {
+      if (!blob) { toast('Error al capturar', 'error'); return; }
+      captured = blob;
+      capturedUrl = URL.createObjectURL(blob);
+      showPreview();
+    }, 'image/jpeg', 0.92);
+  } else {
+    openGallery();
+  }
+}
+
+function openGallery() {
+  document.getElementById('cInput').value = '';
+  document.getElementById('cInput').click();
+}
+
+/* =========================================================
+   CAPTURE
+   ========================================================= */
+function startCapture(m) {
+  mode = m;
+  pdfPages = [];
+  document.getElementById('cBadge').textContent = m === 'pdf' ? 'PDF - Pagina 1' : 'FOTO';
+  document.getElementById('cPdfCnt').style.display = m === 'pdf' ? 'block' : 'none';
+  document.getElementById('cPdfNum').textContent = '1';
+  go('vCam');
+  haptic('light');
+  startLiveCamera();
+}
+
+document.getElementById('cInput').addEventListener('change', function(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  captured = f;
+  capturedUrl = URL.createObjectURL(f);
+  showPreview();
+});
+
+/* =========================================================
+   PREVIEW
+   ========================================================= */
+function showPreview() {
+  stopCamera();
+  document.getElementById('pvImg').src = capturedUrl;
+  var badge = mode === 'pdf' ? 'PDF - Pagina ' + (pdfPages.length + 1) : 'FOTO';
+  document.getElementById('pvBadge').textContent = badge;
+
+  var html = '<button class="pvBtn ret" onclick="retry()">🔄 Repetir</button>';
+  if (mode === 'pdf') {
+    html += '<button class="pvBtn nxt" onclick="pdfNext()">📄 Siguiente</button>';
+  }
+  html += '<button class="pvBtn fin" onclick="finish()">✓ Finalizar</button>';
+  document.getElementById('pvActs').innerHTML = html;
+  go('vPrev');
+}
+
+function retry() {
+  captured = null;
+  capturedUrl = '';
+  go('vCam');
+  startLiveCamera();
+}
+
+function pdfNext() {
+  pdfPages.push(captured);
+  captured = null;
+  capturedUrl = '';
+  var n = pdfPages.length + 1;
+  document.getElementById('cBadge').textContent = 'PDF - Pagina ' + n;
+  document.getElementById('cPdfNum').textContent = String(n);
+  go('vCam');
+  startLiveCamera();
+}
+
+function finish() {
+  if (mode === 'pdf' && captured) pdfPages.push(captured);
+  var numPages = mode === 'pdf' ? pdfPages.length : 1;
+  document.getElementById('nmIc').textContent = mode === 'pdf' ? '📑' : '📷';
+  document.getElementById('nmDesc').textContent = mode === 'pdf'
+    ? 'PDF de ' + numPages + ' pagina(s). Ponle un nombre.'
+    : 'Ponle un nombre a este documento.';
+  document.getElementById('nmInp').value = '';
+  document.getElementById('nmProg').classList.remove('on');
+  document.getElementById('nmSave').disabled = false;
+  document.getElementById('nmSave').textContent = 'Guardar en mi carpeta';
+  go('vName');
+  setTimeout(function() { document.getElementById('nmInp').focus(); }, 300);
+}
+
+/* =========================================================
+   OPTIMIZE IMAGE (max 2MB)
+   ========================================================= */
+function optimizeImg(file) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    img.onload = function() {
+      var maxW = 2400, maxH = 2400, q = 0.85;
+      if (file.size > 4000000) { maxW = 1800; maxH = 1800; q = 0.75; }
+      if (file.size > 8000000) { maxW = 1400; maxH = 1400; q = 0.65; }
+      var scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+
+      function tryQ(quality) {
+        c.toBlob(function(blob) {
+          if (blob.size > 2000000 && quality > 0.3) {
+            tryQ(quality - 0.1);
+          } else {
+            resolve(blob);
+          }
+        }, 'image/jpeg', quality);
+      }
+      tryQ(q);
+    };
+    img.onerror = function() { resolve(file); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function makeThumb(blob) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    img.onload = function() {
+      var c = document.createElement('canvas');
+      var s = Math.min(200 / img.width, 200 / img.height, 1);
+      c.width = Math.round(img.width * s);
+      c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(function(b) { resolve(b); }, 'image/jpeg', 0.65);
+    };
+    img.onerror = function() { resolve(blob); };
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+/* =========================================================
+   PDF GENERATION (jsPDF)
+   ========================================================= */
+function blobToDataUrl(blob) {
+  return new Promise(function(resolve) {
+    var reader = new FileReader();
+    reader.onloadend = function() { resolve(reader.result); };
+    reader.readAsDataURL(blob);
+  });
+}
+
+function loadImgDims(blob) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    img.onload = function() {
+      blobToDataUrl(blob).then(function(dataUrl) {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight, dataUrl: dataUrl });
+      });
+    };
+    img.onerror = function() { resolve(null); };
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+async function generatePDF(pages) {
+  if (!window.jspdf) return null;
+  try {
+    var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    for (var i = 0; i < pages.length; i++) {
+      if (i > 0) pdf.addPage();
+      var info = await loadImgDims(pages[i].blob);
+      if (!info) continue;
+      var pw = pdf.internal.pageSize.getWidth();
+      var ph = pdf.internal.pageSize.getHeight();
+      var ratio = Math.min(pw / info.width, ph / info.height);
+      var w = info.width * ratio;
+      var h = info.height * ratio;
+      var x = (pw - w) / 2;
+      var y = (ph - h) / 2;
+      pdf.addImage(info.dataUrl, 'JPEG', x, y, w, h);
+    }
+    return pdf.output('blob');
+  } catch (e) {
+    console.error('PDF gen error:', e);
+    return null;
+  }
+}
+
+/* =========================================================
+   SAVE FILE
+   ========================================================= */
+async function saveFile() {
+  var name = document.getElementById('nmInp').value.trim();
+  if (!name) { toast('Escribe un nombre', 'error'); haptic('error'); return; }
+
+  var btn = document.getElementById('nmSave');
+  var prog = document.getElementById('nmProg');
+  var fill = document.getElementById('nmFill');
+  var txt = document.getElementById('nmTxt');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Procesando...';
+  prog.classList.add('on');
+
+  try {
+    if (mode === 'foto') {
+      txt.textContent = 'Optimizando imagen...';
+      fill.style.width = '50%';
+      var opt = await optimizeImg(captured);
+      var th = await makeThumb(opt);
+      fill.style.width = '100%';
+      files.push({
+        name: name,
+        type: 'foto',
+        pages: [{ blob: opt, url: URL.createObjectURL(opt) }],
+        pdfBlob: null,
+        thumbUrl: URL.createObjectURL(th),
+        uploaded: false
+      });
+    } else {
+      var pages = [];
+      for (var i = 0; i < pdfPages.length; i++) {
+        txt.textContent = 'Optimizando pag ' + (i + 1) + '/' + pdfPages.length;
+        fill.style.width = Math.round(((i + 1) / pdfPages.length) * 60) + '%';
+        var optP = await optimizeImg(pdfPages[i]);
+        pages.push({ blob: optP, url: URL.createObjectURL(optP) });
+      }
+      var th2 = await makeThumb(pages[0].blob);
+
+      // Generate real PDF
+      txt.textContent = 'Generando PDF...';
+      fill.style.width = '80%';
+      var pdfBlob = await generatePDF(pages);
+
+      fill.style.width = '100%';
+      files.push({
+        name: name,
+        type: 'pdf',
+        pages: pages,
+        pdfBlob: pdfBlob,
+        thumbUrl: URL.createObjectURL(th2),
+        uploaded: false
+      });
+    }
+
+    captured = null;
+    capturedUrl = '';
+    pdfPages = [];
+
+    await saveFilesToDB();
+    haptic('success');
+    toast('✓ ' + name + ' guardado', 'success');
+    go('vFolder');
+  } catch (err) {
+    haptic('error');
+    toast('Error: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Guardar en mi carpeta';
+  }
+}
+
+/* =========================================================
+   FOLDER VIEW
+   ========================================================= */
+function renderFolder() {
+  var body = document.getElementById('fBody');
+  if (!files.length) {
+    body.innerHTML = '<div class="fEmpty"><div style="font-size:44px;margin-bottom:10px">📂</div><div style="font-size:15px;font-weight:700;color:var(--t2)">Carpeta vacia</div><div style="font-size:11px;margin-top:3px">Tus documentos apareceran aqui</div></div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    var meta = f.type.toUpperCase();
+    if (f.pages.length > 1) meta += ' · ' + f.pages.length + ' pags';
+    var tagClass = f.type === 'pdf' ? 'fTagP' : 'fTagF';
+    var uploadTag = f.uploaded ? '<span class="fTag fUploaded">✓</span>' : '';
+
+    html += '<div class="fCard" style="animation-delay:' + (i * 0.05) + 's">' +
+      '<img class="fTh" src="' + f.thumbUrl + '" onclick="viewFile(' + i + ')">' +
+      '<div class="fInfo"><div class="fNm">' + escHtml(f.name) + '</div><div class="fMeta">' + meta + '</div></div>' +
+      uploadTag +
+      '<span class="fTag ' + tagClass + '">' + f.type + '</span>' +
+      '<div class="fActs">' +
+      '<button class="fABtn" onclick="renameF(' + i + ')">✏️</button>' +
+      '<button class="fABtn" onclick="deleteF(' + i + ')">🗑</button>' +
+      '</div></div>';
+  }
+  body.innerHTML = html;
+}
+
+function renameF(i) {
+  var n = prompt('Nuevo nombre:', files[i].name);
+  if (n && n.trim()) {
+    files[i].name = n.trim();
+    renderFolder();
+    saveFilesToDB();
+    haptic('light');
+    toast('✓ Renombrado', 'success');
+  }
+}
+
+function deleteF(i) {
+  if (confirm('Eliminar ' + files[i].name + '?')) {
+    files.splice(i, 1);
+    renderFolder();
+    updateBadge();
+    saveFilesToDB();
+    haptic('medium');
+    toast('Eliminado', 'info');
+  }
+}
+
+function clearAll() {
+  if (!files.length) return;
+  if (confirm('Eliminar TODOS los archivos de la carpeta?')) {
+    files = [];
+    renderFolder();
+    updateBadge();
+    saveFilesToDB();
+    haptic('medium');
+    toast('Carpeta vaciada', 'info');
+  }
+}
+
+function updateBadge() {
+  var btn = document.getElementById('hFolder');
+  var cnt = document.getElementById('hCnt');
+  if (files.length > 0) { btn.style.display = 'flex'; cnt.textContent = files.length; }
+  else { btn.style.display = 'none'; }
+}
+
+/* =========================================================
+   LIGHTBOX
+   ========================================================= */
+function viewFile(i) {
+  lbFile = files[i];
+  lbIdx = 0;
+  showLb();
+}
+
+function showLb() {
+  var lb = document.getElementById('lb');
+  document.getElementById('lbImg').src = lbFile.pages[lbIdx].url;
+  var cap = lbFile.name;
+  if (lbFile.pages.length > 1) cap += ' (pag ' + (lbIdx + 1) + '/' + lbFile.pages.length + ')';
+  document.getElementById('lbCap').textContent = cap;
+
+  var nav = document.getElementById('lbNav');
+  if (lbFile.pages.length > 1) {
+    nav.style.display = 'flex';
+    document.getElementById('lbPageInfo').textContent = (lbIdx + 1) + ' / ' + lbFile.pages.length;
+  } else {
+    nav.style.display = 'none';
+  }
+  lb.classList.add('on');
+}
+
+function closeLb(e) {
+  if (e && e.target && e.target.tagName === 'IMG') return;
+  document.getElementById('lb').classList.remove('on');
+}
+
+function lbPrev() {
+  if (lbIdx > 0) { lbIdx--; showLb(); haptic('light'); }
+}
+
+function lbNext() {
+  if (lbIdx < lbFile.pages.length - 1) { lbIdx++; showLb(); haptic('light'); }
+}
+
+/* =========================================================
+   SYNC TO SUPABASE
+   ========================================================= */
+function goSync() {
+  if (!files.length) { toast('No hay archivos para enviar', 'error'); return; }
+  go('vSync');
+  var list = document.getElementById('syFiles');
+  var html = '';
+  var pending = 0;
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    var icon = f.type === 'pdf' ? '📑' : '📷';
+    var extra = f.pages.length > 1 ? ' (' + f.pages.length + ' pags)' : '';
+    var status = f.uploaded ? ' <span style="color:var(--success)">✓</span>' : '';
+    html += '<div class="syFi">' + icon + ' ' + escHtml(f.name) + extra + status + '</div>';
+    if (!f.uploaded) pending++;
+  }
+  list.innerHTML = html;
+  var base = location.href.substring(0, location.href.lastIndexOf('/') + 1);
+  document.getElementById('pcUrl').textContent = base + 'pc.html';
+  document.getElementById('syGo').disabled = false;
+  document.getElementById('syGo').innerHTML = '📤 Sincronizar ' + pending + ' archivo(s)';
+  document.getElementById('syDone').style.display = 'none';
+  document.getElementById('syProg').classList.remove('on');
+}
+
+async function doSync() {
+  var folderName = document.getElementById('syInp').value.trim();
+  if (!folderName) { toast('Escribe un nombre para la carpeta', 'error'); haptic('error'); return; }
+
+  if (!navigator.onLine) {
+    toast('Sin conexion a internet', 'error');
+    haptic('error');
+    return;
+  }
+
+  var btn = document.getElementById('syGo');
+  var prog = document.getElementById('syProg');
+  var fill = document.getElementById('syFill');
+  var txt = document.getElementById('syTxt');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Subiendo...';
+  prog.classList.add('on');
+  fill.style.width = '0%';
+
+  var safeName = folderName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  var pending = [];
+  for (var i = 0; i < files.length; i++) {
+    if (!files[i].uploaded) pending.push(files[i]);
+  }
+
+  var totalSteps = 0;
+  for (var j = 0; j < pending.length; j++) {
+    totalSteps += pending[j].pages.length;
+    if (pending[j].pdfBlob) totalSteps++;
+  }
+
+  var done = 0;
+  var allOk = true;
+
+  for (var k = 0; k < pending.length; k++) {
+    var f = pending[k];
+    var safeFName = f.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    var fileOk = true;
+    var ts = Date.now();
+
+    // Upload individual page images
+    for (var p = 0; p < f.pages.length; p++) {
+      var pageSuffix = f.pages.length > 1 ? '_pag' + (p + 1) : '';
+      var path = safeName + '/' + ts + '_' + safeFName + pageSuffix + '.jpg';
+
+      txt.textContent = 'Subiendo ' + f.name + (f.pages.length > 1 ? ' (pag ' + (p + 1) + ')' : '') + '...';
+
+      try {
+        var res = await fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + path, {
+          method: 'POST',
+          headers: Object.assign({}, SB_HEADERS, { 'Content-Type': 'image/jpeg' }),
+          body: f.pages[p].blob
+        });
+        if (res.ok) {
+          done++;
+        } else {
+          fileOk = false;
+          allOk = false;
+          console.error('Upload error:', await res.text());
+        }
+      } catch (err) {
+        fileOk = false;
+        allOk = false;
+        console.error('Network error:', err);
+      }
+      fill.style.width = Math.round((done / totalSteps) * 100) + '%';
+    }
+
+    // Upload PDF blob if available
+    if (f.pdfBlob && fileOk) {
+      var pdfPath = safeName + '/' + ts + '_' + safeFName + '.pdf';
+      txt.textContent = 'Subiendo PDF de ' + f.name + '...';
+      try {
+        var pdfRes = await fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + pdfPath, {
+          method: 'POST',
+          headers: Object.assign({}, SB_HEADERS, { 'Content-Type': 'application/pdf' }),
+          body: f.pdfBlob
+        });
+        if (pdfRes.ok) {
+          done++;
+        } else {
+          console.warn('PDF upload failed:', await pdfRes.text());
+        }
+      } catch (e) {
+        console.warn('PDF upload network error:', e);
+      }
+      fill.style.width = Math.round((done / totalSteps) * 100) + '%';
+    }
+
+    if (fileOk) f.uploaded = true;
+  }
+
+  if (allOk) {
+    fill.style.width = '100%';
+    txt.textContent = '✓ Todo subido correctamente!';
+    btn.innerHTML = '✓ Sincronizado';
+    var doneDiv = document.getElementById('syDone');
+    doneDiv.style.display = 'block';
+    doneDiv.textContent = '✓ Carpeta: ' + folderName + ' — ' + done + ' archivos subidos';
+    localStorage.setItem('wichanzao_lastSync', new Date().toISOString());
+    updateLastSync();
+    haptic('success');
+    toast('✓ Sincronizado!', 'success');
+  } else {
+    txt.textContent = done + '/' + totalSteps + ' subidos. Algunos fallaron.';
+    btn.innerHTML = '🔄 Reintentar';
+    btn.disabled = false;
+    haptic('error');
+    toast('Algunos archivos no se subieron', 'error');
+  }
+
+  await saveFilesToDB();
+  renderFolder();
+}
+
+/* =========================================================
+   UTILS
+   ========================================================= */
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function toast(m, type) {
+  var t = document.getElementById('toast');
+  t.textContent = m;
+  t.className = 'toast ' + (type || 'info');
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+function updateLastSync() {
+  var el = document.getElementById('hLastSync');
+  var last = localStorage.getItem('wichanzao_lastSync');
+  if (last) {
+    var d = new Date(last);
+    el.textContent = 'Ultima sincronizacion: ' + d.toLocaleDateString('es-PE') + ' ' + d.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+    el.style.display = 'block';
+  }
+}
+
+/* =========================================================
+   OFFLINE DETECTION
+   ========================================================= */
+function updateOnlineStatus() {
+  var bar = document.getElementById('offlineBar');
+  if (navigator.onLine) {
+    bar.classList.remove('on');
+  } else {
+    bar.classList.add('on');
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+/* =========================================================
+   PWA INSTALL
+   ========================================================= */
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  var dismissed = localStorage.getItem('wichanzao_installDismissed');
+  if (!dismissed) {
+    setTimeout(function() {
+      document.getElementById('installBanner').style.display = 'block';
+    }, 3000);
+  }
+});
+
+function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function(result) {
+    if (result.outcome === 'accepted') {
+      toast('App instalada!', 'success');
+    }
+    deferredInstallPrompt = null;
+    document.getElementById('installBanner').style.display = 'none';
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').style.display = 'none';
+  localStorage.setItem('wichanzao_installDismissed', '1');
+}
+
+/* =========================================================
+   SERVICE WORKER
+   ========================================================= */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function(err) {
+    console.warn('SW registration failed:', err);
+  });
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+(async function init() {
+  await loadFilesFromDB();
+  updateBadge();
+  updateLastSync();
+  updateOnlineStatus();
+})();
+</script>
+</body>
+</html>
