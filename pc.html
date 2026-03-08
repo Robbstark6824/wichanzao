@@ -246,15 +246,36 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .detail-activity { font-size:12px; color:var(--t3); }
 .detail-actions { display:flex; gap:8px; flex-wrap:wrap; }
 
+/* Month group */
+.month-group { margin-bottom:20px; }
+.month-header {
+  display:flex; align-items:center; gap:10px; margin-bottom:10px;
+  padding:0 4px; cursor:pointer; user-select:none;
+}
+.month-header h2 {
+  font-family:'Playfair Display',serif; font-size:18px; font-weight:800;
+  color:var(--n1); flex:1;
+}
+.month-header .month-count {
+  font-size:11px; color:var(--t3); font-weight:600;
+  background:var(--s2); padding:3px 10px; border-radius:12px;
+}
+.month-header .month-arrow {
+  font-size:10px; color:var(--t3); transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.month-header .month-arrow.open { transform:rotate(90deg); }
+.month-body { display:none; }
+.month-body.open { display:block; }
+
 /* Date section */
 .date-section {
   background:var(--s1); border-radius:var(--r1);
-  border:1px solid var(--bd); margin-bottom:14px;
+  border:1px solid var(--bd); margin-bottom:10px;
   overflow:hidden; transition:box-shadow .2s;
 }
 .date-section:hover { box-shadow:0 4px 16px rgba(0,0,0,.05); }
 .date-header {
-  padding:16px 20px; display:flex; align-items:center; gap:12px;
+  padding:14px 18px; display:flex; align-items:center; gap:12px;
   cursor:pointer; user-select:none; transition:background .15s;
   border-bottom:1px solid transparent;
 }
@@ -266,7 +287,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 .date-arrow.open { transform:rotate(90deg); }
 .date-title { flex:1; }
-.date-title h3 { font-size:15px; font-weight:800; display:flex; align-items:center; gap:8px; }
+.date-title h3 { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
 .date-title .today-badge {
   padding:2px 8px; border-radius:4px; font-size:9px; font-weight:700;
   background:var(--tl); color:var(--n1); text-transform:uppercase;
@@ -1032,6 +1053,25 @@ function closeDetail() {
 /* =========================================================
    RENDER DETAIL VIEW
    ========================================================= */
+function groupDatesByMonth(dates) {
+  var monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var groups = [];
+  var map = {};
+
+  for (var i = 0; i < dates.length; i++) {
+    var d = dates[i];
+    var parts = d.split('-');
+    var key = parts[0] + '-' + parts[1]; // YYYY-MM
+    if (!map[key]) {
+      map[key] = { key: key, label: monthNames[parseInt(parts[1]) - 1] + ' ' + parts[0], dates: [] };
+      groups.push(map[key]);
+    }
+    map[key].dates.push(d);
+  }
+
+  return groups;
+}
+
 function renderDetailView(wId) {
   var detailEl = document.getElementById('viewDetail');
   var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
@@ -1068,45 +1108,69 @@ function renderDetailView(wId) {
   html += '</div>';
   html += '</div>';
 
-  // Date sections
+  // Group dates by month
   if (!filteredDates.length) {
     html += '<div class="empty-state"><div class="icon">&#128196;</div><h3>Sin archivos</h3><p>No hay archivos en el rango seleccionado.</p></div>';
   } else {
-    for (var i = 0; i < filteredDates.length; i++) {
-      var date = filteredDates[i];
-      var isToday = date === todayStr();
-      var dateKey = wId + '_' + date;
-      var isOpen = expandedDates[dateKey] !== undefined ? expandedDates[dateKey] : isToday;
-      var loaded = fileInfo && fileInfo.loaded[date];
+    var monthGroups = groupDatesByMonth(filteredDates);
+    var todayS = todayStr();
+    var currentMonth = todayS.substring(0, 7); // YYYY-MM
 
-      html += '<div class="date-section" id="dsec_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
-      html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="toggleDateSection(\'' + escHtml(wId) + '\',\'' + date + '\')">';
-      html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
-      html += '<div class="date-title"><h3>' + formatDate(date);
-      if (isToday) html += ' <span class="today-badge">Hoy</span>';
-      html += '</h3>';
-      if (loaded) {
-        html += '<div class="count">' + loaded.length + ' archivo(s)</div>';
-      }
-      html += '</div>';
-      html += '<div class="date-actions">';
-      html += '<button class="date-btn" onclick="event.stopPropagation();dlDateZip(\'' + escHtml(wId) + '\',\'' + date + '\')">&#128230; ZIP</button>';
-      html += '</div>';
-      html += '</div>';
+    for (var mi = 0; mi < monthGroups.length; mi++) {
+      var mg = monthGroups[mi];
+      var isCurrentMonth = mg.key === currentMonth;
+      var monthKey = wId + '_month_' + mg.key;
+      var monthOpen = expandedDates[monthKey] !== undefined ? expandedDates[monthKey] : (mi === 0); // First month always open
 
-      html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
-      if (isOpen && loaded) {
-        for (var fi = 0; fi < loaded.length; fi++) {
-          html += renderFileCard(loaded[fi], 'workers/' + wId + '/' + date);
+      html += '<div class="month-group">';
+      html += '<div class="month-header" onclick="toggleMonth(\'' + escHtml(wId) + '\',\'' + mg.key + '\')">';
+      html += '<span class="month-arrow' + (monthOpen ? ' open' : '') + '">&#9654;</span>';
+      html += '<h2>' + mg.label + (isCurrentMonth ? ' <span style="font-family:Manrope;font-size:11px;font-weight:700;background:var(--tl);color:var(--n1);padding:2px 8px;border-radius:4px;vertical-align:middle;margin-left:6px">MES ACTUAL</span>' : '') + '</h2>';
+      html += '<span class="month-count">' + mg.dates.length + ' dia(s)</span>';
+      html += '</div>';
+      html += '<div class="month-body' + (monthOpen ? ' open' : '') + '">';
+
+      if (monthOpen) {
+        for (var i = 0; i < mg.dates.length; i++) {
+          var date = mg.dates[i];
+          var isToday = date === todayS;
+          var dateKey = wId + '_' + date;
+          var isOpen = expandedDates[dateKey] !== undefined ? expandedDates[dateKey] : isToday;
+          var loaded = fileInfo && fileInfo.loaded[date];
+
+          html += '<div class="date-section">';
+          html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="event.stopPropagation();toggleDateSection(\'' + escHtml(wId) + '\',\'' + date + '\')">';
+          html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
+          html += '<div class="date-title"><h3>' + formatDate(date);
+          if (isToday) html += ' <span class="today-badge">Hoy</span>';
+          html += '</h3>';
+          if (loaded) {
+            html += '<div class="count">' + loaded.length + ' archivo(s)</div>';
+          }
+          html += '</div>';
+          html += '<div class="date-actions">';
+          html += '<button class="date-btn" onclick="event.stopPropagation();dlDateZip(\'' + escHtml(wId) + '\',\'' + date + '\')">&#128230; ZIP</button>';
+          html += '</div>';
+          html += '</div>';
+
+          html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
+          if (isOpen && loaded) {
+            for (var fi = 0; fi < loaded.length; fi++) {
+              html += renderFileCard(loaded[fi], 'workers/' + wId + '/' + date);
+            }
+            if (!loaded.length) {
+              html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+            }
+          } else if (isOpen) {
+            html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
+          }
+          html += '</div>';
+          html += '</div>';
         }
-        if (!loaded.length) {
-          html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
-        }
-      } else if (isOpen) {
-        html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
       }
-      html += '</div>';
-      html += '</div>';
+
+      html += '</div>'; // month-body
+      html += '</div>'; // month-group
     }
   }
 
@@ -1116,8 +1180,11 @@ function renderDetailView(wId) {
   for (var d = 0; d < filteredDates.length; d++) {
     var dd = filteredDates[d];
     var dk = wId + '_' + dd;
+    var ddMonth = dd.substring(0, 7);
+    var monthK = wId + '_month_' + ddMonth;
+    var monthIsOpen = expandedDates[monthK] !== undefined ? expandedDates[monthK] : (filteredDates.indexOf(dd) < groupDatesByMonth(filteredDates)[0].dates.length);
     var isExp = expandedDates[dk] !== undefined ? expandedDates[dk] : (dd === todayStr());
-    if (isExp && !(fileInfo && fileInfo.loaded[dd])) {
+    if (monthIsOpen && isExp && !(fileInfo && fileInfo.loaded[dd])) {
       loadDateFiles(wId, dd);
     }
   }
@@ -1159,6 +1226,13 @@ function applyFilters() {
 /* =========================================================
    DATE SECTION TOGGLE & FILE LOADING
    ========================================================= */
+function toggleMonth(wId, monthKey) {
+  var mk = wId + '_month_' + monthKey;
+  var wasOpen = expandedDates[mk] !== undefined ? expandedDates[mk] : true;
+  expandedDates[mk] = !wasOpen;
+  renderDetailView(wId);
+}
+
 function toggleDateSection(wId, date) {
   var dk = wId + '_' + date;
   var wasOpen = expandedDates[dk] !== undefined ? expandedDates[dk] : (date === todayStr());
