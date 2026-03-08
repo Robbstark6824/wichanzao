@@ -222,6 +222,19 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .upload-progress .up-status{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:6px}
 .upload-progress .up-detail{font-size:11px;color:var(--t3);margin-top:4px}
 
+/* ===== QUICK NAME BAR ===== */
+.quick-name{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(12,31,61,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:14px 16px;padding-bottom:calc(14px + var(--sb));transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:10px;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
+.quick-name.on{transform:translateY(0)}
+.quick-name input{flex:1;padding:12px 14px;border:1.5px solid rgba(255,255,255,.2);border-radius:var(--r2);font-family:inherit;font-size:14px;font-weight:600;background:rgba(255,255,255,.1);color:#fff;transition:border-color .2s;min-width:0}
+.quick-name input::placeholder{color:rgba(255,255,255,.4)}
+.quick-name input:focus{outline:none;border-color:var(--tl);background:rgba(255,255,255,.15)}
+.quick-name .qn-send{width:48px;height:48px;border-radius:50%;background:var(--tl);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .15s;box-shadow:0 4px 12px rgba(78,205,196,.4)}
+.quick-name .qn-send:active{transform:scale(.9)}
+.quick-name .qn-send svg{width:22px;height:22px;fill:var(--n1)}
+.quick-name .qn-send.uploading{background:var(--n3);pointer-events:none}
+.quick-name .qn-send.uploading svg{display:none}
+.quick-name .qn-send.uploading::after{content:'';width:22px;height:22px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+
 /* ===== MISC HELPERS ===== */
 .gap-8{gap:8px}.gap-12{gap:12px}
 .hidden{display:none!important}
@@ -243,6 +256,14 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Quick Name Bar -->
+<div class="quick-name" id="quickName">
+  <input type="text" id="quickNameInput" placeholder="Nombre del archivo..." autocomplete="off">
+  <button class="qn-send" id="quickNameSend" onclick="confirmQuickName()">
+    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+  </button>
+</div>
 
 <!-- Install Banner -->
 <div class="install-banner" id="installBanner">
@@ -474,6 +495,11 @@ document.addEventListener('DOMContentLoaded', function() {
   processOfflineQueue();
   setupOnlineOffline();
   registerSW();
+
+  // Enter key on quick name input
+  document.getElementById('quickNameInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); confirmQuickName(); }
+  });
 
   if (worker) {
     showView('vMain');
@@ -827,9 +853,9 @@ function capturePhoto() {
 
   if (cameraMode === 'foto') {
     capturedSingleImage = dataUrl;
-    // Auto-upload in background, stay in camera
+    // Show quick name bar for fast rename + upload
     showCapturePreview(dataUrl, function() {
-      autoUploadFoto(dataUrl);
+      showQuickName('foto', dataUrl);
     });
   } else {
     // PDF mode
@@ -986,7 +1012,7 @@ function handleGalleryFile(event) {
 
     if (cameraMode === 'foto') {
       capturedSingleImage = dataUrl;
-      autoUploadFoto(dataUrl);
+      showQuickName('foto', dataUrl);
     } else {
       if (pdfPages.length >= 5) {
         toast('Maximo 5 paginas', 'error');
@@ -1009,14 +1035,20 @@ function finalizePdf() {
     toast('Captura al menos una pagina', 'error');
     return;
   }
-  stopCamera();
-  autoUploadPdf(pdfPages.slice());
+  var pagesToUpload = pdfPages.slice();
   pdfPages = [];
+  stopCamera();
   showView('vMain');
   populateMain();
+  // Show quick name bar over main view
+  setTimeout(function() {
+    showQuickName('pdf', pagesToUpload);
+  }, 350);
 }
 
-/* ===== AUTO UPLOAD ===== */
+/* ===== QUICK NAME + AUTO UPLOAD ===== */
+var pendingUploadData = null; // {type:'foto'|'pdf', data: dataUrl|pages[]}
+
 function generateAutoName() {
   var now = new Date();
   var h = String(now.getHours()).padStart(2,'0');
@@ -1026,10 +1058,49 @@ function generateAutoName() {
   return 'doc-' + d + '-' + h + m + s;
 }
 
-function autoUploadFoto(dataUrl) {
-  var filename = generateAutoName();
-  toast('Subiendo foto...', 'info');
+function showQuickName(type, data) {
+  pendingUploadData = { type: type, data: data };
+  var input = document.getElementById('quickNameInput');
+  var bar = document.getElementById('quickName');
+  var btn = document.getElementById('quickNameSend');
 
+  input.value = generateAutoName();
+  btn.classList.remove('uploading');
+  bar.classList.add('on');
+
+  // Select text so user can type over it instantly
+  setTimeout(function() { input.focus(); input.select(); }, 100);
+}
+
+function hideQuickName() {
+  document.getElementById('quickName').classList.remove('on');
+  pendingUploadData = null;
+}
+
+function confirmQuickName() {
+  if (!pendingUploadData) return;
+
+  var input = document.getElementById('quickNameInput');
+  var filename = input.value.trim();
+  if (!filename) filename = generateAutoName();
+
+  // Sanitize
+  filename = filename.replace(/[^a-zA-Z0-9\-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!filename) filename = 'documento';
+
+  // Show uploading state
+  document.getElementById('quickNameSend').classList.add('uploading');
+  input.disabled = true;
+  haptic(25);
+
+  if (pendingUploadData.type === 'foto') {
+    doUploadFoto(filename, pendingUploadData.data);
+  } else {
+    doUploadPdf(filename, pendingUploadData.data);
+  }
+}
+
+function doUploadFoto(filename, dataUrl) {
   optimizeImage(dataUrl).then(function(optimized) {
     var blob = dataUrlToBlob(optimized);
     var now = new Date();
@@ -1042,20 +1113,21 @@ function autoUploadFoto(dataUrl) {
     toast('Foto subida', 'success');
     haptic(30);
     updateTodayCount();
+    hideQuickName();
+    document.getElementById('quickNameInput').disabled = false;
   }).catch(function(err) {
-    console.error('Auto upload error:', err);
+    console.error('Upload error:', err);
     queueOfflineUpload(filename, 'foto', [dataUrl]);
     toast('Sin conexion, se subira despues', 'info');
     addTodayFile(filename + '.jpg (pendiente)', 'foto');
     updateTodayCount();
+    hideQuickName();
+    document.getElementById('quickNameInput').disabled = false;
   });
 }
 
-function autoUploadPdf(pages) {
-  var filename = generateAutoName();
+function doUploadPdf(filename, pages) {
   var totalPages = pages.length;
-  toast('Procesando PDF (' + totalPages + ' pag.)...', 'info');
-
   var optimizedPages = [];
   var currentPage = 0;
 
@@ -1074,16 +1146,22 @@ function autoUploadPdf(pages) {
           toast('PDF subido (' + totalPages + ' pag.)', 'success');
           haptic(30);
           updateTodayCount();
+          hideQuickName();
+          document.getElementById('quickNameInput').disabled = false;
         }).catch(function(err) {
           console.error('PDF upload error:', err);
           queueOfflineUpload(filename, 'pdf', pages);
           toast('Sin conexion, se subira despues', 'info');
           addTodayFile(filename + '.pdf (pendiente)', 'pdf');
           updateTodayCount();
+          hideQuickName();
+          document.getElementById('quickNameInput').disabled = false;
         });
       }).catch(function(err) {
         console.error('PDF generation error:', err);
         toast('Error al generar PDF', 'error');
+        hideQuickName();
+        document.getElementById('quickNameInput').disabled = false;
       });
       return;
     }
