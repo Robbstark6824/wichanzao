@@ -298,6 +298,11 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <input type="text" id="regName" placeholder="Ej: Maria Garcia" autocomplete="name">
     </div>
     <div class="field">
+      <label>Nombre de carpeta</label>
+      <input type="text" id="regFolder" placeholder="Ej: maria-garcia" autocomplete="off" style="text-transform:lowercase">
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">Este nombre se usa una sola vez. Todos tus archivos se guardaran aqui.</div>
+    </div>
+    <div class="field">
       <label>Area</label>
       <select id="regArea">
         <option value="">Seleccionar area...</option>
@@ -501,6 +506,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Enter') { e.preventDefault(); confirmQuickName(); }
   });
 
+  // Auto-suggest folder name from full name
+  document.getElementById('regName').addEventListener('input', function() {
+    var folderInput = document.getElementById('regFolder');
+    if (!folderInput.dataset.edited) {
+      var val = this.value.trim().toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      folderInput.value = val;
+    }
+  });
+  document.getElementById('regFolder').addEventListener('input', function() {
+    this.dataset.edited = '1';
+  });
+
   // Pre-warm camera after profile is loaded
   if (worker) {
     setTimeout(prewarmCamera, 500);
@@ -613,18 +634,25 @@ function avatarColor(name) {
 /* ===== REGISTRATION ===== */
 function doRegister() {
   var name = document.getElementById('regName').value.trim();
+  var folder = document.getElementById('regFolder').value.trim().toLowerCase();
   var area = document.getElementById('regArea').value;
   var turno = document.getElementById('regTurno').value;
 
   if (!name) { toast('Ingresa tu nombre', 'error'); return; }
   if (name.length < 3) { toast('Nombre muy corto', 'error'); return; }
+  if (!folder) { toast('Ingresa un nombre de carpeta', 'error'); return; }
+  if (folder.length < 3) { toast('Nombre de carpeta muy corto', 'error'); return; }
   if (!area) { toast('Selecciona un area', 'error'); return; }
   if (!turno) { toast('Selecciona un turno', 'error'); return; }
+
+  // Sanitize folder name — this IS the worker ID, fixed forever
+  var folderId = folder.replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!folderId || folderId.length < 2) { toast('Nombre de carpeta invalido', 'error'); return; }
 
   haptic(25);
 
   var w = {
-    id: generateWorkerId(name),
+    id: folderId,
     name: name,
     area: area,
     turno: turno,
