@@ -3,209 +3,626 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wichanzao · Panel PC</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Wichanzao · Panel de Referencias</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-:root{--n1:#0C1F3D;--n2:#142952;--tl:#4ECDC4;--tl2:#3BB8B0;--bg:#F5F7FA;--s1:#FFF;--s2:#EEF1F6;--t1:#0D1B2A;--t2:#4A5568;--t3:#A0AEC0;--bd:#D8DFE9;--danger:#E53E3E;--success:#38A169;--r1:16px;--r2:12px}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+:root {
+  --n1:#0C1F3D; --n2:#142952; --n3:#1B3A6B;
+  --tl:#4ECDC4; --tl2:#3BB8B0;
+  --gd:#D4A853; --gd2:#C4983F;
+  --bg:#F5F7FA; --s1:#FFF; --s2:#EEF1F6;
+  --t1:#0D1B2A; --t2:#4A5568; --t3:#A0AEC0;
+  --bd:#D8DFE9;
+  --danger:#E53E3E; --success:#38A169; --warn:#D69E2E;
+  --r1:16px; --r2:12px; --r3:8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
 
-/* Header */
-.hd{background:linear-gradient(135deg,var(--n1),var(--n2));color:#fff;padding:28px 32px;position:relative;overflow:hidden}
-.hd::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(78,205,196,.1),transparent 50%);pointer-events:none}
-.hd-inner{max-width:1000px;margin:0 auto;position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.hd h1{font-family:'Playfair Display',serif;font-size:24px;font-weight:800;display:flex;align-items:center;gap:10px}
-.hd h1 svg{width:32px;height:32px;flex-shrink:0}
-.hd p{font-size:12px;opacity:.6;margin-top:3px}
-.hd-status{display:flex;align-items:center;gap:8px;font-size:11px;opacity:.7}
-.hd-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ===== HEADER ===== */
+.header {
+  background:linear-gradient(135deg,var(--n1) 0%,var(--n2) 60%,var(--n3) 100%);
+  color:#fff; padding:0; position:sticky; top:0; z-index:100;
+  box-shadow:0 4px 24px rgba(0,0,0,.2);
+}
+.header-inner {
+  max-width:1400px; margin:0 auto; padding:24px 32px;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
+  position:relative;
+}
+.header-inner::after {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 90% 20%,rgba(78,205,196,.1),transparent 50%);
+  pointer-events:none;
+}
+.header-left { position:relative; z-index:1; }
+.header-left h1 {
+  font-family:'Playfair Display',serif; font-size:22px; font-weight:900;
+  display:flex; align-items:center; gap:10px; line-height:1.2;
+}
+.header-left h1 svg { width:30px; height:30px; flex-shrink:0; }
+.header-left .subtitle { font-size:12px; opacity:.5; margin-top:4px; font-weight:500; }
+.header-right { display:flex; align-items:center; gap:16px; position:relative; z-index:1; }
+.header-status {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,.08); border-radius:var(--r3);
+  padding:8px 14px; font-size:11px; font-weight:600;
+}
+.status-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--success);
+  animation:pulse 2s infinite;
+}
+.status-dot.paused { background:var(--warn); animation:none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.refresh-countdown { font-variant-numeric:tabular-nums; min-width:24px; text-align:center; }
 
-/* Main */
-.mn{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+/* ===== MAIN LAYOUT ===== */
+.main { max-width:1400px; margin:0 auto; padding:24px 24px 60px; }
 
-/* Toolbar */
-.toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
-.searchBar{flex:1;min-width:220px;position:relative}
-.searchBar input{width:100%;padding:11px 14px 11px 38px;border-radius:var(--r2);border:2px solid var(--bd);font-size:13px;font-family:inherit;font-weight:500;color:var(--t1);outline:none;background:var(--s1);transition:border-color .2s,box-shadow .2s}
-.searchBar input:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.12)}
-.searchBar input::placeholder{color:var(--t3)}
-.searchBar .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--t3);pointer-events:none}
-.tbBtn{padding:10px 18px;border-radius:var(--r2);border:2px solid var(--bd);background:var(--s1);color:var(--t1);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
-.tbBtn:hover{border-color:var(--tl);background:rgba(78,205,196,.06)}
-.tbBtn:active{transform:scale(.97)}
-.tbBtn.primary{background:var(--n1);color:#fff;border-color:var(--n1)}
-.tbBtn.primary:hover{background:var(--n2)}
-.tbBtn.danger{color:var(--danger);border-color:var(--danger)}
-.tbBtn.danger:hover{background:rgba(229,62,62,.06)}
+/* ===== STATS BAR ===== */
+.stats-bar {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px; margin-bottom:24px;
+}
+.stat-card {
+  background:var(--s1); border-radius:var(--r2); padding:18px 20px;
+  border:1px solid var(--bd); text-align:center;
+  transition:transform .2s, box-shadow .2s;
+}
+.stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.06); }
+.stat-val { font-size:28px; font-weight:800; color:var(--n1); line-height:1; }
+.stat-val.teal { color:var(--tl); }
+.stat-val.gold { color:var(--gd); }
+.stat-label {
+  font-size:10px; color:var(--t3); text-transform:uppercase;
+  letter-spacing:1px; font-weight:700; margin-top:4px;
+}
 
-/* Info */
-.info{background:#E8F8F5;border:1px solid #B2F5EA;border-radius:var(--r2);padding:14px 16px;margin-bottom:18px;font-size:12px;color:#234E52;line-height:1.6;display:flex;align-items:flex-start;gap:10px}
-.info-icon{font-size:20px;flex-shrink:0}
+/* ===== TOOLBAR ===== */
+.toolbar {
+  display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center;
+}
+.search-wrap { flex:1; min-width:260px; position:relative; }
+.search-wrap input {
+  width:100%; padding:12px 16px 12px 42px;
+  border-radius:var(--r2); border:2px solid var(--bd);
+  font-size:14px; font-family:inherit; font-weight:500;
+  color:var(--t1); outline:none; background:var(--s1);
+  transition:border-color .2s, box-shadow .2s;
+}
+.search-wrap input:focus { border-color:var(--tl); box-shadow:0 0 0 3px rgba(78,205,196,.12); }
+.search-wrap input::placeholder { color:var(--t3); }
+.search-wrap .search-icon {
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  color:var(--t3); pointer-events:none; display:flex;
+}
+.search-wrap .search-hint {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  font-size:10px; color:var(--t3); background:var(--s2);
+  padding:2px 6px; border-radius:4px; font-weight:600;
+  pointer-events:none;
+}
+.toolbar select {
+  padding:12px 14px; border-radius:var(--r2); border:2px solid var(--bd);
+  font-size:13px; font-weight:600; font-family:inherit;
+  background:var(--s1); color:var(--t1); cursor:pointer; outline:none;
+  transition:border-color .2s;
+}
+.toolbar select:focus { border-color:var(--tl); }
+.tb-btn {
+  padding:11px 20px; border-radius:var(--r2); border:2px solid var(--bd);
+  background:var(--s1); color:var(--t1); font-size:12px; font-weight:700;
+  font-family:inherit; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px;
+  transition:all .2s; white-space:nowrap;
+}
+.tb-btn:hover { border-color:var(--tl); background:rgba(78,205,196,.06); }
+.tb-btn:active { transform:scale(.97); }
+.tb-btn.primary { background:var(--n1); color:#fff; border-color:var(--n1); }
+.tb-btn.primary:hover { background:var(--n2); }
+.tb-btn.danger { color:var(--danger); border-color:rgba(229,62,62,.3); }
+.tb-btn.danger:hover { background:rgba(229,62,62,.06); border-color:var(--danger); }
 
-/* Stats */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
-.stat{background:var(--s1);border-radius:var(--r2);padding:14px 16px;border:1px solid var(--bd);text-align:center}
-.stat-val{font-size:22px;font-weight:800;color:var(--n1)}
-.stat-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-top:2px}
+/* ===== VIEW MODES ===== */
+.view-directory { display:block; }
+.view-detail { display:none; }
+.view-directory.hidden { display:none; }
+.view-detail.visible { display:block; }
 
-/* Folder */
-.folder{background:var(--s1);border-radius:var(--r1);border:1px solid var(--bd);margin-bottom:14px;overflow:hidden;transition:box-shadow .2s}
-.folder:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
-.fh{padding:14px 18px;border-bottom:1px solid var(--bd);background:#FAFBFC;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;user-select:none}
-.fh:hover{background:#F0F2F5}
-.fh-arrow{font-size:10px;color:var(--t3);transition:transform .2s}
-.fh-arrow.open{transform:rotate(90deg)}
-.fh h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1}
-.fh .mt{font-size:11px;color:var(--t3)}
-.fh-actions{display:flex;gap:6px}
-.fh-btn{padding:6px 12px;border-radius:8px;border:1.5px solid var(--bd);background:var(--s1);color:var(--t1);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
-.fh-btn:hover{border-color:var(--tl);background:rgba(78,205,196,.06)}
-.fh-btn:active{transform:scale(.95)}
-.fh-btn.danger:hover{border-color:var(--danger);background:rgba(229,62,62,.06);color:var(--danger)}
-.folder-body{display:none}
-.folder-body.open{display:block}
+/* ===== WORKER GRID ===== */
+.workers-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+}
+@media(max-width:1024px) { .workers-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:600px) { .workers-grid { grid-template-columns:1fr; } }
 
-/* Document card */
-.doc{padding:14px 18px;border-bottom:1px solid #F0F2F5;display:flex;align-items:flex-start;gap:14px;transition:background .15s}
-.doc:hover{background:#FAFBFC}
-.doc:last-child{border-bottom:none}
-.doc-thumb{width:56px;height:72px;border-radius:8px;object-fit:cover;border:1px solid var(--bd);cursor:pointer;flex-shrink:0;transition:transform .2s}
-.doc-thumb:hover{transform:scale(1.05)}
-.doc-content{flex:1;min-width:0}
-.doc-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.docIc{font-size:18px}
-.docNm{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.docMeta{font-size:11px;color:var(--t3);margin-bottom:6px}
-.doc-actions{display:flex;gap:6px;flex-wrap:wrap}
-.docDl{padding:7px 14px;border-radius:8px;border:none;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
-.docDl:hover{opacity:.85}
-.docDl:active{transform:scale(.95)}
-.docDl.primary{background:var(--n1);color:#fff}
-.docDl.secondary{background:var(--s2);color:var(--t1)}
-.docDl.pdf{background:var(--danger);color:#fff}
+.worker-card {
+  background:var(--s1); border-radius:var(--r1); padding:20px;
+  border:1px solid var(--bd); cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  display:flex; align-items:center; gap:14px;
+  position:relative; overflow:hidden;
+}
+.worker-card::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,transparent 60%,rgba(78,205,196,.03));
+  pointer-events:none;
+}
+.worker-card:hover {
+  transform:translateY(-3px);
+  box-shadow:0 12px 32px rgba(0,0,0,.08);
+  border-color:var(--tl);
+}
+.worker-card:active { transform:translateY(-1px); }
 
-/* Page thumbnails */
-.docPages{display:flex;gap:8px;overflow-x:auto;padding:8px 0;margin-top:6px}
-.docPages::-webkit-scrollbar{height:4px}
-.docPages::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
-.pgThumb{flex-shrink:0;text-align:center}
-.pgThumb img{width:64px;height:82px;object-fit:cover;border-radius:6px;border:1px solid var(--bd);display:block;margin-bottom:3px;cursor:pointer;transition:transform .15s}
-.pgThumb img:hover{transform:scale(1.06)}
-.pgThumb span{font-size:9px;color:var(--t3)}
-.pgThumb button{font-size:10px;color:var(--tl);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;padding:2px 0}
-.pgThumb button:hover{text-decoration:underline}
+/* Avatar */
+.avatar {
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%; font-weight:800; color:#fff; flex-shrink:0;
+  position:relative;
+}
+.avatar.sm { width:36px; height:36px; font-size:12px; }
+.avatar.md { width:48px; height:48px; font-size:16px; }
+.avatar.lg { width:64px; height:64px; font-size:22px; }
+.avatar.xl { width:80px; height:80px; font-size:28px; }
+.activity-dot {
+  position:absolute; bottom:1px; right:1px;
+  width:12px; height:12px; border-radius:50%;
+  border:2px solid var(--s1);
+}
+.activity-dot.green { background:var(--success); }
+.activity-dot.yellow { background:var(--warn); }
+.activity-dot.gray { background:var(--t3); }
 
-/* Empty state */
-.empty{text-align:center;padding:60px 20px;color:var(--t3)}
-.empty .icon{font-size:52px;margin-bottom:12px}
-.empty h3{font-size:18px;color:var(--t2);margin-bottom:4px;font-weight:800}
-.empty p{font-size:13px;line-height:1.5}
+.worker-info { flex:1; min-width:0; }
+.worker-name {
+  font-size:15px; font-weight:800;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.worker-area {
+  display:inline-block; margin-top:4px;
+  padding:3px 10px; border-radius:6px;
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.5px;
+  background:rgba(78,205,196,.1); color:var(--tl2);
+}
+.worker-time { font-size:11px; color:var(--t3); margin-top:4px; font-weight:500; }
+.worker-arrow { color:var(--t3); font-size:14px; flex-shrink:0; transition:transform .2s; }
+.worker-card:hover .worker-arrow { transform:translateX(3px); color:var(--tl); }
 
-/* Loading */
-.ld{text-align:center;padding:40px;color:var(--t3);font-size:13px}
-.ld .spinner{width:24px;height:24px;border:3px solid var(--bd);border-top-color:var(--tl);border-radius:50%;animation:spin .7s linear infinite;display:block;margin:0 auto 10px}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ===== SKELETON ===== */
+.skeleton { animation:shimmer 1.5s infinite; border-radius:var(--r2); }
+@keyframes shimmer {
+  0% { background-position:-200% 0; }
+  100% { background-position:200% 0; }
+}
+.skel-card {
+  background:var(--s1); border-radius:var(--r1); padding:20px;
+  border:1px solid var(--bd); display:flex; align-items:center; gap:14px;
+}
+.skel-circle {
+  width:48px; height:48px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(90deg,var(--s2) 25%,#e8ebf0 50%,var(--s2) 75%);
+  background-size:200% 100%; animation:shimmer 1.5s infinite;
+}
+.skel-lines { flex:1; }
+.skel-line {
+  height:12px; border-radius:6px; margin-bottom:8px;
+  background:linear-gradient(90deg,var(--s2) 25%,#e8ebf0 50%,var(--s2) 75%);
+  background-size:200% 100%; animation:shimmer 1.5s infinite;
+}
+.skel-line:last-child { margin-bottom:0; width:60%; }
+.skel-line.short { width:40%; }
 
-/* Lightbox */
-#pcLb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column;cursor:pointer}
-#pcLb.on{display:flex}
-#pcLb img{max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain;cursor:default}
-.pcLbClose{position:absolute;top:16px;right:16px;width:42px;height:42px;background:rgba(255,255,255,.15);border:none;border-radius:50%;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800}
-.pcLbCap{color:#fff;text-align:center;margin-top:10px;font-size:13px;opacity:.6}
+/* ===== DETAIL VIEW ===== */
+.detail-header {
+  background:var(--s1); border-radius:var(--r1); padding:24px;
+  border:1px solid var(--bd); margin-bottom:20px;
+  display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.detail-back {
+  width:42px; height:42px; border-radius:var(--r2);
+  background:var(--s2); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; color:var(--t1); transition:all .2s;
+}
+.detail-back:hover { background:var(--tl); color:var(--n1); }
+.detail-info { flex:1; min-width:0; }
+.detail-name {
+  font-family:'Playfair Display',serif;
+  font-size:22px; font-weight:800;
+}
+.detail-area-row { display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap; }
+.detail-area {
+  display:inline-block; padding:4px 12px; border-radius:6px;
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  background:rgba(78,205,196,.1); color:var(--tl2);
+}
+.detail-activity { font-size:12px; color:var(--t3); }
+.detail-actions { display:flex; gap:8px; flex-wrap:wrap; }
 
-/* Toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);padding:12px 22px;border-radius:var(--r2);font-size:13px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.2);z-index:600;transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:90vw}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.success{background:var(--success);color:#fff}
-.toast.error{background:var(--danger);color:#fff}
-.toast.info{background:var(--n1);color:#fff}
+/* Date section */
+.date-section {
+  background:var(--s1); border-radius:var(--r1);
+  border:1px solid var(--bd); margin-bottom:14px;
+  overflow:hidden; transition:box-shadow .2s;
+}
+.date-section:hover { box-shadow:0 4px 16px rgba(0,0,0,.05); }
+.date-header {
+  padding:16px 20px; display:flex; align-items:center; gap:12px;
+  cursor:pointer; user-select:none; transition:background .15s;
+  border-bottom:1px solid transparent;
+}
+.date-header:hover { background:#FAFBFC; }
+.date-header.open { border-bottom-color:var(--bd); background:#FAFBFC; }
+.date-arrow {
+  font-size:10px; color:var(--t3); transition:transform .25s cubic-bezier(.4,0,.2,1);
+  flex-shrink:0;
+}
+.date-arrow.open { transform:rotate(90deg); }
+.date-title { flex:1; }
+.date-title h3 { font-size:15px; font-weight:800; display:flex; align-items:center; gap:8px; }
+.date-title .today-badge {
+  padding:2px 8px; border-radius:4px; font-size:9px; font-weight:700;
+  background:var(--tl); color:var(--n1); text-transform:uppercase;
+  letter-spacing:.5px;
+}
+.date-title .count {
+  font-size:11px; color:var(--t3); font-weight:500; margin-top:2px;
+}
+.date-actions { display:flex; gap:6px; }
+.date-btn {
+  padding:7px 14px; border-radius:var(--r3); border:1.5px solid var(--bd);
+  background:var(--s1); color:var(--t1); font-size:11px; font-weight:600;
+  font-family:inherit; cursor:pointer;
+  display:inline-flex; align-items:center; gap:4px;
+  transition:all .15s;
+}
+.date-btn:hover { border-color:var(--tl); background:rgba(78,205,196,.06); }
+.date-btn:active { transform:scale(.95); }
 
-/* Responsive */
-@media(max-width:600px){
-  .hd{padding:20px 16px}
-  .hd h1{font-size:18px}
-  .mn{padding:14px 10px 30px}
-  .stats{grid-template-columns:repeat(2,1fr)}
-  .doc{flex-direction:column}
-  .doc-thumb{width:100%;height:160px}
+.date-body { display:none; padding:0; }
+.date-body.open { display:block; }
+
+/* File card */
+.file-card {
+  padding:16px 20px; border-bottom:1px solid #F0F2F5;
+  display:flex; align-items:flex-start; gap:14px;
+  transition:background .15s;
+}
+.file-card:last-child { border-bottom:none; }
+.file-card:hover { background:#FAFBFC; }
+.file-thumb {
+  width:60px; height:76px; border-radius:var(--r3);
+  object-fit:cover; border:1px solid var(--bd);
+  cursor:pointer; flex-shrink:0;
+  transition:transform .2s, box-shadow .2s;
+  background:var(--s2);
+}
+.file-thumb:hover { transform:scale(1.06); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+.file-content { flex:1; min-width:0; }
+.file-head { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.file-icon { font-size:18px; }
+.file-name {
+  font-size:14px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.file-type-badge {
+  padding:2px 8px; border-radius:4px; font-size:9px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.5px; flex-shrink:0;
+}
+.badge-foto { background:#DCFCE7; color:#15803D; }
+.badge-pdf { background:#FEE2E2; color:#B91C1C; }
+.file-meta { font-size:11px; color:var(--t3); margin-bottom:8px; }
+.file-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.dl-btn {
+  padding:8px 16px; border-radius:var(--r3); border:none;
+  font-size:11px; font-weight:700; font-family:inherit;
+  cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+  transition:all .15s;
+}
+.dl-btn:hover { opacity:.88; }
+.dl-btn:active { transform:scale(.95); }
+.dl-btn.primary { background:var(--n1); color:#fff; }
+.dl-btn.secondary { background:var(--s2); color:var(--t1); }
+.dl-btn.pdf { background:var(--danger); color:#fff; }
+.dl-btn.gold { background:var(--gd); color:var(--n1); }
+.dl-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* Page thumbnails row */
+.pages-row {
+  display:flex; gap:8px; overflow-x:auto; padding:8px 0; margin-top:6px;
+}
+.pages-row::-webkit-scrollbar { height:4px; }
+.pages-row::-webkit-scrollbar-thumb { background:var(--bd); border-radius:4px; }
+.page-thumb { flex-shrink:0; text-align:center; }
+.page-thumb img {
+  width:60px; height:78px; object-fit:cover; border-radius:6px;
+  border:1px solid var(--bd); display:block; margin-bottom:3px;
+  cursor:pointer; transition:transform .15s;
+}
+.page-thumb img:hover { transform:scale(1.06); }
+.page-thumb span { font-size:9px; color:var(--t3); display:block; }
+.page-thumb button {
+  font-size:10px; color:var(--tl); font-weight:700;
+  background:none; border:none; cursor:pointer; font-family:inherit; padding:2px 0;
+}
+.page-thumb button:hover { text-decoration:underline; }
+
+/* ===== LEGACY SECTION ===== */
+.legacy-section { margin-top:32px; }
+.legacy-title {
+  font-family:'Playfair Display',serif; font-size:18px; font-weight:800;
+  margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  color:var(--t2);
+}
+.legacy-title .badge {
+  padding:3px 8px; border-radius:4px; font-family:'Manrope',sans-serif;
+  font-size:10px; font-weight:700; background:rgba(212,168,83,.15);
+  color:var(--gd2); text-transform:uppercase;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state { text-align:center; padding:60px 20px; color:var(--t3); }
+.empty-state .icon { font-size:52px; margin-bottom:12px; }
+.empty-state h3 { font-size:18px; color:var(--t2); margin-bottom:4px; font-weight:800; }
+.empty-state p { font-size:13px; line-height:1.6; }
+
+/* ===== LIGHTBOX ===== */
+#lightbox {
+  position:fixed; inset:0; background:rgba(0,0,0,.94);
+  z-index:500; display:none; align-items:center; justify-content:center;
+  flex-direction:column; cursor:pointer;
+}
+#lightbox.on { display:flex; }
+#lightbox img {
+  max-width:92vw; max-height:82vh; border-radius:8px;
+  object-fit:contain; cursor:default;
+  animation:lbIn .2s ease;
+}
+@keyframes lbIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+.lb-close {
+  position:absolute; top:16px; right:16px;
+  width:44px; height:44px; background:rgba(255,255,255,.12);
+  border:none; border-radius:50%; color:#fff; font-size:22px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-weight:800; transition:background .2s;
+}
+.lb-close:hover { background:rgba(255,255,255,.25); }
+.lb-caption {
+  color:#fff; text-align:center; margin-top:12px;
+  font-size:13px; opacity:.6; max-width:80vw;
+}
+.lb-nav {
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:44px; height:44px; background:rgba(255,255,255,.1);
+  border:none; border-radius:50%; color:#fff; font-size:20px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background .2s;
+}
+.lb-nav:hover { background:rgba(255,255,255,.25); }
+.lb-prev { left:16px; }
+.lb-next { right:16px; }
+
+/* ===== TOAST ===== */
+.toast {
+  position:fixed; bottom:24px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  padding:14px 24px; border-radius:var(--r2);
+  font-size:13px; font-weight:600;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  z-index:600; transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  max-width:90vw; pointer-events:none;
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.success { background:var(--success); color:#fff; }
+.toast.error { background:var(--danger); color:#fff; }
+.toast.info { background:var(--n1); color:#fff; }
+
+/* ===== PROGRESS OVERLAY ===== */
+.progress-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.6);
+  z-index:450; display:none; align-items:center; justify-content:center;
+}
+.progress-overlay.on { display:flex; }
+.progress-box {
+  background:var(--s1); border-radius:var(--r1); padding:32px;
+  width:90%; max-width:360px; text-align:center;
+  box-shadow:0 16px 48px rgba(0,0,0,.2);
+}
+.progress-box h3 { font-size:16px; font-weight:800; margin-bottom:12px; }
+.progress-bar { height:6px; background:var(--s2); border-radius:3px; overflow:hidden; margin-bottom:8px; }
+.progress-fill {
+  height:100%; background:linear-gradient(90deg,var(--tl),var(--tl2));
+  width:0%; transition:width .3s; border-radius:3px;
+}
+.progress-text { font-size:12px; color:var(--t2); }
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px) {
+  .header-inner { padding:18px 16px; }
+  .header-left h1 { font-size:17px; }
+  .main { padding:16px 12px 40px; }
+  .stats-bar { grid-template-columns:repeat(2,1fr); }
+  .detail-header { padding:16px; flex-direction:column; align-items:flex-start; }
+  .detail-name { font-size:18px; }
+  .file-card { flex-direction:column; }
+  .file-thumb { width:100%; height:180px; }
+  .toolbar { gap:8px; }
+  .search-wrap .search-hint { display:none; }
+}
+@media(max-width:480px) {
+  .stats-bar { grid-template-columns:1fr 1fr; gap:8px; }
+  .stat-card { padding:12px; }
+  .stat-val { font-size:22px; }
+  .detail-actions { width:100%; }
+  .detail-actions .dl-btn { flex:1; justify-content:center; }
 }
 </style>
 </head>
 <body>
 
-<div class="hd">
-  <div class="hd-inner">
-    <div>
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
       <h1>
         <svg viewBox="0 0 48 48" fill="none"><rect x="18" y="8" width="12" height="32" rx="2" fill="#4ECDC4"/><rect x="8" y="18" width="32" height="12" rx="2" fill="#4ECDC4"/></svg>
-        C.S. Materno Infantil Wichanzao
+        C.S. Materno Infantil Wichanzao <span style="font-family:Manrope;font-weight:400;font-size:14px;opacity:.5">&middot;</span> <span style="font-family:Manrope;font-weight:500;font-size:14px;opacity:.7">Panel de Referencias</span>
       </h1>
-      <p>Panel de descarga · Computadora del centro</p>
+      <div class="subtitle">Computadora del centro &mdash; Descarga de documentos para MINSA</div>
     </div>
-    <div class="hd-status">
-      <span class="hd-dot"></span>
-      Actualizacion automatica cada 15s
+    <div class="header-right">
+      <div class="header-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span>Auto-refresh: <span class="refresh-countdown" id="countdown">30</span>s</span>
+      </div>
     </div>
   </div>
-</div>
+</header>
 
-<div class="mn">
-  <div class="info">
-    <span class="info-icon">📋</span>
-    <div><strong>Instrucciones:</strong> Los documentos enviados desde los celulares aparecen aqui organizados por carpeta. Puedes descargar archivos individuales, PDFs completos o carpetas enteras como ZIP. La pagina se actualiza automaticamente.</div>
-  </div>
+<!-- MAIN -->
+<div class="main">
 
-  <!-- Stats -->
-  <div class="stats" id="stats" style="display:none">
-    <div class="stat"><div class="stat-val" id="statFolders">0</div><div class="stat-label">Carpetas</div></div>
-    <div class="stat"><div class="stat-val" id="statDocs">0</div><div class="stat-label">Documentos</div></div>
-    <div class="stat"><div class="stat-val" id="statPhotos">0</div><div class="stat-label">Fotos</div></div>
-    <div class="stat"><div class="stat-val" id="statPdfs">0</div><div class="stat-label">PDFs</div></div>
+  <!-- Stats Bar -->
+  <div class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat-card">
+      <div class="stat-val teal" id="statWorkers">0</div>
+      <div class="stat-label">Trabajadores activos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statDocsToday">0</div>
+      <div class="stat-label">Documentos hoy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val gold" id="statTotalDocs">0</div>
+      <div class="stat-label">Total documentos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statTotalWorkers">0</div>
+      <div class="stat-label">Trabajadores registrados</div>
+    </div>
   </div>
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <div class="searchBar">
-      <span class="icon">🔍</span>
-      <input type="text" id="searchInp" placeholder="Buscar carpeta o documento..." oninput="filterResults()">
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+      <input type="text" id="searchInput" placeholder="Buscar por nombre o area..." oninput="applyFilters()">
+      <span class="search-hint">Ctrl+F</span>
     </div>
-    <select id="dateFilter" onchange="filterResults()" style="padding:10px 12px;border-radius:var(--r2);border:2px solid var(--bd);font-size:12px;font-weight:600;font-family:inherit;background:var(--s1);color:var(--t1);cursor:pointer">
+    <select id="dateFilter" onchange="applyFilters()">
       <option value="all">Todas las fechas</option>
       <option value="today">Hoy</option>
       <option value="week">Esta semana</option>
       <option value="month">Este mes</option>
     </select>
-    <button class="tbBtn primary" onclick="loadData()">🔄 Actualizar</button>
-    <button class="tbBtn danger" onclick="deleteOldFolders()">🗑 Limpiar antiguas</button>
+    <button class="tb-btn primary" onclick="loadAllData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.74"/><polyline points="21 3 21 9 15 9"/></svg>
+      Actualizar
+    </button>
+    <button class="tb-btn danger" id="btnCleanup" onclick="cleanupOldFiles()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+      Limpiar antiguos
+    </button>
   </div>
 
-  <div id="out"><div class="ld"><div class="spinner"></div>Cargando documentos...</div></div>
+  <!-- DIRECTORY VIEW -->
+  <div class="view-directory" id="viewDirectory">
+    <div id="workersContainer">
+      <!-- Loading skeletons -->
+      <div class="workers-grid" id="skeletonGrid">
+        <div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+        <div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+      </div>
+    </div>
+
+    <!-- Legacy section -->
+    <div id="legacySection" style="display:none"></div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div class="view-detail" id="viewDetail"></div>
+
 </div>
 
-<!-- Lightbox -->
-<div id="pcLb" onclick="closePcLb(event)">
-  <button class="pcLbClose" onclick="event.stopPropagation();closePcLb()">✕</button>
-  <img id="pcLbImg" src="">
-  <div class="pcLbCap" id="pcLbCap"></div>
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="event.stopPropagation();closeLightbox()">&times;</button>
+  <button class="lb-nav lb-prev" id="lbPrev" onclick="event.stopPropagation();navLightbox(-1)">&lsaquo;</button>
+  <button class="lb-nav lb-next" id="lbNext" onclick="event.stopPropagation();navLightbox(1)">&rsaquo;</button>
+  <img id="lbImg" src="">
+  <div class="lb-caption" id="lbCaption"></div>
 </div>
 
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-box">
+    <h3 id="progressTitle">Preparando descarga...</h3>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0%</div>
+  </div>
+</div>
+
+<!-- TOAST -->
 <div class="toast info" id="toast"></div>
 
 <script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
-var hdrs = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+var HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+var REFRESH_INTERVAL = 30;
 
-var allFolders = [];
+/* =========================================================
+   STATE
+   ========================================================= */
+var allWorkers = [];
+var allWorkerFiles = {};
+var legacyFolders = [];
+var currentWorkerId = null;
+var expandedDates = {};
+var expandedLegacy = {};
+var countdownTimer = null;
+var countdownValue = REFRESH_INTERVAL;
+var isLoading = false;
+var lightboxImages = [];
+var lightboxIndex = 0;
 
+/* =========================================================
+   HELPERS
+   ========================================================= */
 function escHtml(s) {
   var d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
+}
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(d) {
+  var months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var dt = new Date(d + 'T12:00:00');
+  return dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + dt.getFullYear();
 }
 
 function fmtSize(b) {
@@ -215,70 +632,104 @@ function fmtSize(b) {
   return (b / 1048576).toFixed(1) + ' MB';
 }
 
-function pubUrl(folder, name) {
-  return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + folder + '/' + name;
+function timeAgo(iso) {
+  if (!iso) return 'Desconocido';
+  var diff = Date.now() - new Date(iso).getTime();
+  var m = diff / 60000;
+  if (m < 1) return 'Ahora mismo';
+  if (m < 2) return 'Hace 1 min';
+  if (m < 60) return 'Hace ' + Math.round(m) + ' min';
+  var h = m / 60;
+  if (h < 2) return 'Hace 1 hora';
+  if (h < 24) return 'Hace ' + Math.round(h) + ' horas';
+  var d = h / 24;
+  if (d < 2) return 'Hace 1 dia';
+  return 'Hace ' + Math.round(d) + ' dias';
 }
 
-async function listBucket(prefix) {
+function activityInfo(iso) {
+  if (!iso) return { label: 'Desconocido', color: 'gray', minutes: Infinity };
+  var m = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (m < 15) return { label: 'Activo', color: 'green', minutes: m };
+  if (m < 60) return { label: timeAgo(iso), color: 'yellow', minutes: m };
+  return { label: timeAgo(iso), color: 'gray', minutes: m };
+}
+
+function pubUrl(path) {
+  return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
+}
+
+/* =========================================================
+   SUPABASE API
+   ========================================================= */
+async function sbList(prefix) {
   var res = await fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
-    method: 'POST', headers: hdrs,
-    body: JSON.stringify({ prefix: prefix, limit: 500, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+    method: 'POST', headers: HEADERS,
+    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
   });
   var data = await res.json();
-  if (!Array.isArray(data)) return [];
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
-function groupFiles(rawFiles, folderName) {
+async function sbDelete(paths) {
+  return fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
+    method: 'DELETE', headers: HEADERS,
+    body: JSON.stringify({ prefixes: paths })
+  });
+}
+
+/* =========================================================
+   FILE GROUPING
+   ========================================================= */
+function groupFiles(rawFiles, pathPrefix) {
   var groups = {};
   for (var i = 0; i < rawFiles.length; i++) {
     var f = rawFiles[i];
     if (!f.id || !f.name) continue;
+    if (f.name === 'profile.json') continue;
+    if (f.name.match(/_thumb\.(jpg|jpeg|png)$/i)) continue;
 
-    // Check if it's a real PDF file
+    // Real PDF file
     if (f.name.match(/\.pdf$/i)) {
       var pdfClean = f.name.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
-      var pdfKey = '_pdf_' + f.name;
-      groups[pdfKey] = {
-        name: pdfClean,
-        type: 'pdf-file',
-        pdfUrl: pubUrl(folderName, f.name),
-        pages: [],
-        totalSize: (f.metadata && f.metadata.size) || 0
-      };
+      var pdfKey = '_pdf_' + pdfClean;
+      if (!groups[pdfKey]) {
+        groups[pdfKey] = { name: pdfClean, type: 'pdf-file', pdfUrl: pubUrl(pathPrefix + '/' + f.name), pages: [], totalSize: 0, rawName: f.name };
+      }
+      groups[pdfKey].pdfUrl = pubUrl(pathPrefix + '/' + f.name);
+      groups[pdfKey].totalSize += (f.metadata && f.metadata.size) || 0;
       continue;
     }
-
-    // Skip thumbnails
-    if (f.name.match(/_thumb\.(jpg|jpeg|png)$/i)) continue;
 
     var clean = f.name.replace(/^\d+_/, '');
     var m = clean.match(/^(.+)_pag(\d+)\.(jpg|jpeg|png)$/i);
     if (m) {
       var base = m[1];
       if (!groups[base]) groups[base] = { name: base, type: 'pdf', pages: [], totalSize: 0 };
-      groups[base].pages.push({ file: f, num: parseInt(m[2]), url: pubUrl(folderName, f.name) });
+      groups[base].pages.push({ file: f, num: parseInt(m[2]), url: pubUrl(pathPrefix + '/' + f.name), rawName: f.name });
       groups[base].totalSize += (f.metadata && f.metadata.size) || 0;
     } else {
       var dname = clean.replace(/\.(jpg|jpeg|png)$/i, '');
       var key = '_s_' + f.name;
       groups[key] = {
-        name: dname,
-        type: 'foto',
-        pages: [{ file: f, num: 1, url: pubUrl(folderName, f.name) }],
+        name: dname, type: 'foto',
+        pages: [{ file: f, num: 1, url: pubUrl(pathPrefix + '/' + f.name), rawName: f.name }],
         totalSize: (f.metadata && f.metadata.size) || 0
       };
     }
   }
 
-  // Link PDF files with their image pages (same name)
+  // Link PDF files with their multi-page image groups
   var keys = Object.keys(groups);
   for (var k = 0; k < keys.length; k++) {
     var g = groups[keys[k]];
-    if (g.type === 'pdf' && groups['_pdf_' + g.name]) {
-      // Merge: keep image pages but add PDF URL
-      g.pdfUrl = groups['_pdf_' + g.name].pdfUrl;
-      delete groups['_pdf_' + g.name];
+    if (g.type === 'pdf') {
+      var pdfKey2 = '_pdf_' + g.name;
+      if (groups[pdfKey2]) {
+        g.pdfUrl = groups[pdfKey2].pdfUrl;
+        g.totalSize += groups[pdfKey2].totalSize;
+        delete groups[pdfKey2];
+      }
     }
   }
 
@@ -292,105 +743,509 @@ function groupFiles(rawFiles, folderName) {
   return result;
 }
 
-function renderAllFolders(folders) {
-  var out = document.getElementById('out');
-  if (!folders.length) {
-    out.innerHTML = '<div class="empty"><div class="icon">📭</div><h3>Sin carpetas</h3><p>Cuando el personal sincronice documentos desde la app, apareceran aqui.</p></div>';
+/* =========================================================
+   LOAD ALL DATA
+   ========================================================= */
+async function loadAllData() {
+  if (isLoading) return;
+  isLoading = true;
+  resetCountdown();
+
+  var container = document.getElementById('workersContainer');
+  var isFirstLoad = allWorkers.length === 0;
+
+  if (isFirstLoad) {
+    container.innerHTML = buildSkeletonGrid();
+  }
+
+  try {
+    // 1. List all items at bucket root
+    var rootItems = await sbList('');
+    var rootFolders = rootItems.filter(function(i) { return i.id === null && i.name; });
+
+    // 2. Separate workers/ from legacy folders
+    var hasWorkersDir = rootFolders.some(function(f) { return f.name === 'workers'; });
+    var legacyNames = rootFolders.filter(function(f) { return f.name !== 'workers' && f.name !== '.emptyFolderPlaceholder'; }).map(function(f) { return f.name; });
+
+    // 3. Load workers
+    var workers = [];
+    if (hasWorkersDir) {
+      var workerDirs = await sbList('workers/');
+      var wFolders = workerDirs.filter(function(i) { return i.id === null && i.name; });
+
+      // Fetch all profiles in parallel
+      var profilePromises = wFolders.map(function(wf) {
+        return fetch(pubUrl('workers/' + wf.name + '/profile.json'))
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .catch(function() { return null; });
+      });
+      var profiles = await Promise.all(profilePromises);
+
+      for (var i = 0; i < wFolders.length; i++) {
+        if (profiles[i]) {
+          profiles[i]._folder = wFolders[i].name;
+          workers.push(profiles[i]);
+        }
+      }
+    }
+
+    // Sort by most recently active
+    workers.sort(function(a, b) {
+      return (b.last_active || '').localeCompare(a.last_active || '');
+    });
+
+    allWorkers = workers;
+
+    // 4. Preload date folders for each worker (for stats)
+    var todayS = todayStr();
+    var totalDocs = 0;
+    var docsToday = 0;
+    var activeCount = 0;
+
+    var datePromises = workers.map(function(w) {
+      return sbList('workers/' + (w._folder || w.worker_id) + '/').catch(function() { return []; });
+    });
+    var dateResults = await Promise.all(datePromises);
+
+    for (var wi = 0; wi < workers.length; wi++) {
+      var wId = workers[wi]._folder || workers[wi].worker_id;
+      var dateItems = dateResults[wi].filter(function(i) {
+        return i.id === null && i.name && i.name.match(/^\d{4}-\d{2}-\d{2}$/);
+      });
+      dateItems.sort(function(a, b) { return b.name.localeCompare(a.name); });
+
+      allWorkerFiles[wId] = { dates: dateItems.map(function(d) { return d.name; }), loaded: {} };
+
+      // Count dates for total docs estimate
+      totalDocs += dateItems.length;
+      if (dateItems.some(function(d) { return d.name === todayS; })) docsToday++;
+
+      var act = activityInfo(workers[wi].last_active);
+      if (act.color === 'green') activeCount++;
+    }
+
+    // 5. Load legacy folders structure
+    legacyFolders = [];
+    for (var li = 0; li < legacyNames.length; li++) {
+      legacyFolders.push({ name: legacyNames[li] });
+    }
+
+    // 6. Update stats
+    document.getElementById('statsBar').style.display = 'grid';
+    document.getElementById('statWorkers').textContent = activeCount;
+    document.getElementById('statDocsToday').textContent = docsToday;
+    document.getElementById('statTotalDocs').textContent = totalDocs;
+    document.getElementById('statTotalWorkers').textContent = workers.length;
+
+    // 7. Render
+    if (currentWorkerId) {
+      renderDetailView(currentWorkerId);
+    } else {
+      renderDirectory();
+    }
+    renderLegacy();
+
+  } catch (err) {
+    console.error('Load error:', err);
+    container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p></div>';
+  }
+
+  isLoading = false;
+}
+
+/* =========================================================
+   RENDER WORKER DIRECTORY
+   ========================================================= */
+function renderDirectory() {
+  var container = document.getElementById('workersContainer');
+  var query = document.getElementById('searchInput').value.toLowerCase().trim();
+
+  var filtered = allWorkers;
+  if (query) {
+    filtered = allWorkers.filter(function(w) {
+      return w.name.toLowerCase().includes(query) || (w.area || '').toLowerCase().includes(query);
+    });
+  }
+
+  if (!filtered.length) {
+    if (allWorkers.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><h3>Sin trabajadores</h3><p>Cuando el personal se registre en la app movil, apareceran aqui.</p></div>';
+    } else {
+      container.innerHTML = '<div class="empty-state"><div class="icon">&#128269;</div><h3>Sin resultados</h3><p>No se encontraron trabajadores con "' + escHtml(query) + '"</p></div>';
+    }
     return;
   }
 
-  var html = '';
-  for (var fi = 0; fi < folders.length; fi++) {
-    var folder = folders[fi];
-    html += renderFolderCard(folder, fi);
+  var html = '<div class="workers-grid">';
+  for (var i = 0; i < filtered.length; i++) {
+    var w = filtered[i];
+    var act = activityInfo(w.last_active);
+    var wId = w._folder || w.worker_id;
+    var fileInfo = allWorkerFiles[wId];
+    var dateCount = fileInfo ? fileInfo.dates.length : 0;
+
+    html += '<div class="worker-card" onclick="openWorkerDetail(\'' + escHtml(wId) + '\')">';
+    html += '<div class="avatar md" style="background:' + (w.avatar_color || '#4ECDC4') + '">';
+    html += getInitials(w.name);
+    html += '<span class="activity-dot ' + act.color + '"></span>';
+    html += '</div>';
+    html += '<div class="worker-info">';
+    html += '<div class="worker-name">' + escHtml(w.name) + '</div>';
+    html += '<div class="worker-area">' + escHtml(w.area || 'Sin area') + '</div>';
+    html += '<div class="worker-time">' + act.label + (dateCount > 0 ? ' &middot; ' + dateCount + ' fecha(s)' : '') + '</div>';
+    html += '</div>';
+    html += '<span class="worker-arrow">&rsaquo;</span>';
+    html += '</div>';
   }
-  out.innerHTML = html;
+  html += '</div>';
+  container.innerHTML = html;
 }
 
-function renderFolderCard(folder, idx) {
-  var fname = folder.name;
-  var docs = folder.docs;
-  var displayName = fname.replace(/_/g, ' ');
-  var photoCount = 0, pdfCount = 0;
-  for (var x = 0; x < docs.length; x++) {
-    if (docs[x].type === 'foto') photoCount++;
-    else pdfCount++;
+function buildSkeletonGrid() {
+  var html = '<div class="workers-grid">';
+  for (var i = 0; i < 6; i++) {
+    html += '<div class="skel-card"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line"></div><div class="skel-line short"></div></div></div>';
   }
-
-  var html = '<div class="folder" id="folder_' + idx + '">';
-  html += '<div class="fh" onclick="toggleFolder(' + idx + ')">';
-  html += '<span class="fh-arrow" id="arrow_' + idx + '">▶</span>';
-  html += '<div><h3>📂 ' + escHtml(displayName) + '</h3>';
-  html += '<div class="mt">' + docs.length + ' documento(s) · ';
-  if (photoCount) html += photoCount + ' foto(s) ';
-  if (pdfCount) html += pdfCount + ' PDF(s)';
-  html += '</div></div>';
-  html += '<div class="fh-actions">';
-  html += '<button class="fh-btn" onclick="event.stopPropagation();dlFolderZip(\'' + fname + '\',' + idx + ')">📦 ZIP</button>';
-  html += '<button class="fh-btn danger" onclick="event.stopPropagation();deleteFolder(\'' + fname + '\')">🗑</button>';
-  html += '</div></div>';
-
-  html += '<div class="folder-body" id="fbody_' + idx + '">';
-  for (var di = 0; di < docs.length; di++) {
-    html += renderDocCard(docs[di], fname);
-  }
-  html += '</div></div>';
+  html += '</div>';
   return html;
 }
 
-function renderDocCard(doc, folderName) {
-  var icon = doc.type === 'foto' ? '📷' : '📑';
-  var meta = '';
-  if (doc.type === 'pdf-file') {
-    meta = 'PDF · ' + fmtSize(doc.totalSize);
-  } else if (doc.type === 'pdf') {
-    meta = 'PDF · ' + doc.pages.length + ' pags · ' + fmtSize(doc.totalSize);
+/* =========================================================
+   RENDER LEGACY SECTION
+   ========================================================= */
+function renderLegacy() {
+  var section = document.getElementById('legacySection');
+  if (!legacyFolders.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  var html = '<div class="legacy-title">';
+  html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+  html += 'Archivos anteriores';
+  html += '<span class="badge">Legacy</span>';
+  html += '</div>';
+
+  for (var i = 0; i < legacyFolders.length; i++) {
+    var lf = legacyFolders[i];
+    var fname = lf.name;
+    var isOpen = expandedLegacy[fname] || false;
+
+    html += '<div class="date-section">';
+    html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="toggleLegacyFolder(\'' + escHtml(fname) + '\')">';
+    html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
+    html += '<div class="date-title"><h3>';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+    html += escHtml(fname.replace(/_/g, ' '));
+    html += '</h3></div>';
+    html += '<div class="date-actions">';
+    html += '<button class="date-btn" onclick="event.stopPropagation();dlLegacyZip(\'' + escHtml(fname) + '\')">&#128230; ZIP</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="legacy_' + fname + '">';
+    if (isOpen && !lf._loaded) {
+      html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto"></div></div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+  section.innerHTML = html;
+
+  // Load content for expanded legacy folders
+  for (var j = 0; j < legacyFolders.length; j++) {
+    if (expandedLegacy[legacyFolders[j].name]) {
+      loadLegacyFolder(legacyFolders[j].name);
+    }
+  }
+}
+
+async function toggleLegacyFolder(fname) {
+  expandedLegacy[fname] = !expandedLegacy[fname];
+  renderLegacy();
+  if (expandedLegacy[fname]) {
+    loadLegacyFolder(fname);
+  }
+}
+
+async function loadLegacyFolder(fname) {
+  var el = document.getElementById('legacy_' + fname);
+  if (!el) return;
+  var lf = legacyFolders.find(function(f) { return f.name === fname; });
+  if (lf && lf._loaded && lf._docs) {
+    renderLegacyFiles(el, lf._docs, fname);
+    return;
+  }
+
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
+
+  try {
+    var items = await sbList(fname + '/');
+    var docs = groupFiles(items, fname);
+    if (lf) { lf._loaded = true; lf._docs = docs; }
+    renderLegacyFiles(el, docs, fname);
+  } catch (e) {
+    el.innerHTML = '<div style="padding:16px;color:var(--danger);font-size:12px">Error: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+function renderLegacyFiles(el, docs, folderName) {
+  if (!docs.length) {
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < docs.length; i++) {
+    html += renderFileCard(docs[i], folderName);
+  }
+  el.innerHTML = html;
+}
+
+async function dlLegacyZip(fname) {
+  if (!window.JSZip) { showToast('JSZip no cargado', 'error'); return; }
+  var lf = legacyFolders.find(function(f) { return f.name === fname; });
+  if (!lf || !lf._docs) {
+    showToast('Carga la carpeta primero', 'info');
+    return;
+  }
+  await downloadDocsAsZip(lf._docs, fname.replace(/_/g, ' '));
+}
+
+/* =========================================================
+   OPEN WORKER DETAIL
+   ========================================================= */
+function openWorkerDetail(wId) {
+  currentWorkerId = wId;
+  document.getElementById('viewDirectory').classList.add('hidden');
+  document.getElementById('viewDetail').classList.add('visible');
+  renderDetailView(wId);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeDetail() {
+  currentWorkerId = null;
+  document.getElementById('viewDetail').classList.remove('visible');
+  document.getElementById('viewDirectory').classList.remove('hidden');
+  renderDirectory();
+}
+
+/* =========================================================
+   RENDER DETAIL VIEW
+   ========================================================= */
+function renderDetailView(wId) {
+  var detailEl = document.getElementById('viewDetail');
+  var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
+  if (!w) {
+    detailEl.innerHTML = '<div class="empty-state"><h3>Trabajador no encontrado</h3></div>';
+    return;
+  }
+
+  var act = activityInfo(w.last_active);
+  var fileInfo = allWorkerFiles[wId];
+  var dates = fileInfo ? fileInfo.dates : [];
+
+  // Apply date filter
+  var dateFilter = document.getElementById('dateFilter').value;
+  var filteredDates = filterDates(dates, dateFilter);
+
+  var html = '';
+
+  // Header
+  html += '<div class="detail-header">';
+  html += '<button class="detail-back" onclick="closeDetail()" title="Volver">';
+  html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>';
+  html += '</button>';
+  html += '<div class="avatar lg" style="background:' + (w.avatar_color || '#4ECDC4') + '">' + getInitials(w.name) + '</div>';
+  html += '<div class="detail-info">';
+  html += '<div class="detail-name">' + escHtml(w.name) + '</div>';
+  html += '<div class="detail-area-row">';
+  html += '<span class="detail-area">' + escHtml(w.area || 'Sin area') + '</span>';
+  if (w.turno) html += '<span class="detail-area" style="background:rgba(212,168,83,.1);color:var(--gd2)">Turno ' + escHtml(w.turno) + '</span>';
+  html += '<span class="detail-activity"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--' + (act.color === 'green' ? 'success' : act.color === 'yellow' ? 'warn' : 't3') + ');vertical-align:middle;margin-right:4px"></span>' + act.label + '</span>';
+  html += '</div></div>';
+  html += '<div class="detail-actions">';
+  html += '<button class="dl-btn gold" onclick="dlWorkerZip(\'' + escHtml(wId) + '\')">&#128230; Descargar todo ZIP</button>';
+  html += '</div>';
+  html += '</div>';
+
+  // Date sections
+  if (!filteredDates.length) {
+    html += '<div class="empty-state"><div class="icon">&#128196;</div><h3>Sin archivos</h3><p>No hay archivos en el rango seleccionado.</p></div>';
   } else {
-    meta = 'Foto · ' + fmtSize(doc.totalSize);
+    for (var i = 0; i < filteredDates.length; i++) {
+      var date = filteredDates[i];
+      var isToday = date === todayStr();
+      var dateKey = wId + '_' + date;
+      var isOpen = expandedDates[dateKey] !== undefined ? expandedDates[dateKey] : isToday;
+      var loaded = fileInfo && fileInfo.loaded[date];
+
+      html += '<div class="date-section" id="dsec_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
+      html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="toggleDateSection(\'' + escHtml(wId) + '\',\'' + date + '\')">';
+      html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
+      html += '<div class="date-title"><h3>' + formatDate(date);
+      if (isToday) html += ' <span class="today-badge">Hoy</span>';
+      html += '</h3>';
+      if (loaded) {
+        html += '<div class="count">' + loaded.length + ' archivo(s)</div>';
+      }
+      html += '</div>';
+      html += '<div class="date-actions">';
+      html += '<button class="date-btn" onclick="event.stopPropagation();dlDateZip(\'' + escHtml(wId) + '\',\'' + date + '\')">&#128230; ZIP</button>';
+      html += '</div>';
+      html += '</div>';
+
+      html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
+      if (isOpen && loaded) {
+        for (var fi = 0; fi < loaded.length; fi++) {
+          html += renderFileCard(loaded[fi], 'workers/' + wId + '/' + date);
+        }
+        if (!loaded.length) {
+          html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+        }
+      } else if (isOpen) {
+        html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
+      }
+      html += '</div>';
+      html += '</div>';
+    }
   }
 
-  var thumbSrc = '';
-  if (doc.pages.length > 0) {
-    thumbSrc = doc.pages[0].url;
+  detailEl.innerHTML = html;
+
+  // Load files for expanded dates
+  for (var d = 0; d < filteredDates.length; d++) {
+    var dd = filteredDates[d];
+    var dk = wId + '_' + dd;
+    var isExp = expandedDates[dk] !== undefined ? expandedDates[dk] : (dd === todayStr());
+    if (isExp && !(fileInfo && fileInfo.loaded[dd])) {
+      loadDateFiles(wId, dd);
+    }
+  }
+}
+
+/* =========================================================
+   DATE FILTERING
+   ========================================================= */
+function filterDates(dates, filterVal) {
+  if (filterVal === 'all') return dates;
+  var now = new Date();
+  var todayS = todayStr();
+
+  return dates.filter(function(d) {
+    if (filterVal === 'today') return d === todayS;
+    var dt = new Date(d + 'T12:00:00');
+    if (filterVal === 'week') {
+      var weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return dt >= weekAgo;
+    }
+    if (filterVal === 'month') {
+      var monthAgo = new Date(now);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      return dt >= monthAgo;
+    }
+    return true;
+  });
+}
+
+function applyFilters() {
+  if (currentWorkerId) {
+    renderDetailView(currentWorkerId);
+  } else {
+    renderDirectory();
+  }
+}
+
+/* =========================================================
+   DATE SECTION TOGGLE & FILE LOADING
+   ========================================================= */
+function toggleDateSection(wId, date) {
+  var dk = wId + '_' + date;
+  var wasOpen = expandedDates[dk] !== undefined ? expandedDates[dk] : (date === todayStr());
+  expandedDates[dk] = !wasOpen;
+  renderDetailView(wId);
+}
+
+async function loadDateFiles(wId, date) {
+  var fileInfo = allWorkerFiles[wId];
+  if (!fileInfo) return;
+  if (fileInfo.loaded[date]) return;
+
+  try {
+    var items = await sbList('workers/' + wId + '/' + date + '/');
+    var docs = groupFiles(items, 'workers/' + wId + '/' + date);
+    fileInfo.loaded[date] = docs;
+    if (currentWorkerId === wId) {
+      renderDetailView(wId);
+    }
+  } catch (e) {
+    var dk = wId + '_' + date;
+    var bodyEl = document.getElementById('dbody_' + dk.replace(/[^a-zA-Z0-9_-]/g, '_'));
+    if (bodyEl) {
+      bodyEl.innerHTML = '<div style="padding:16px;color:var(--danger);font-size:12px">Error al cargar: ' + escHtml(e.message) + '</div>';
+    }
+  }
+}
+
+/* =========================================================
+   RENDER FILE CARD
+   ========================================================= */
+function renderFileCard(doc, pathPrefix) {
+  var thumbSrc = doc.pages.length > 0 ? doc.pages[0].url : '';
+  var typeBadge = '';
+  var typeClass = '';
+  var meta = '';
+
+  if (doc.type === 'foto') {
+    typeBadge = 'FOTO'; typeClass = 'badge-foto';
+    meta = 'Foto &middot; ' + fmtSize(doc.totalSize);
+  } else if (doc.type === 'pdf-file') {
+    typeBadge = 'PDF'; typeClass = 'badge-pdf';
+    meta = 'PDF &middot; ' + fmtSize(doc.totalSize);
+  } else {
+    typeBadge = 'PDF'; typeClass = 'badge-pdf';
+    meta = 'PDF &middot; ' + doc.pages.length + ' pags &middot; ' + fmtSize(doc.totalSize);
   }
 
-  var html = '<div class="doc">';
+  var html = '<div class="file-card">';
 
   if (thumbSrc) {
-    html += '<img class="doc-thumb" src="' + thumbSrc + '" onclick="openPcLb(\'' + thumbSrc + '\',\'' + escHtml(doc.name) + '\')" onerror="this.style.background=\'#eee\'">';
+    html += '<img class="file-thumb" src="' + thumbSrc + '" onclick="openLightboxFromDoc(this)" data-images="' + escHtml(JSON.stringify(doc.pages.map(function(p,idx) { return { url: p.url, caption: doc.name + (doc.pages.length > 1 ? ' - Pag ' + p.num : '') }; }))) + '" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
+  } else {
+    html += '<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3)">&#128196;</div>';
   }
 
-  html += '<div class="doc-content">';
-  html += '<div class="doc-head"><span class="docIc">' + icon + '</span><div class="docNm">' + escHtml(doc.name) + '</div></div>';
-  html += '<div class="docMeta">' + meta + '</div>';
-  html += '<div class="doc-actions">';
+  html += '<div class="file-content">';
+  html += '<div class="file-head">';
+  html += '<span class="file-name">' + escHtml(doc.name) + '</span>';
+  html += '<span class="file-type-badge ' + typeClass + '">' + typeBadge + '</span>';
+  html += '</div>';
+  html += '<div class="file-meta">' + meta + '</div>';
+  html += '<div class="file-actions">';
 
   if (doc.type === 'pdf-file') {
-    // Real PDF file
-    html += '<button class="docDl pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">📄 Descargar PDF</button>';
+    html += '<button class="dl-btn pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
   } else if (doc.type === 'pdf') {
-    // Multi-page images
     if (doc.pdfUrl) {
-      html += '<button class="docDl pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">📄 Descargar PDF</button>';
+      html += '<button class="dl-btn pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
     } else {
-      html += '<button class="docDl pdf" onclick="dlAsPdf(this)" data-doc=\'' + JSON.stringify({ name: doc.name, pages: doc.pages.map(function(p) { return { url: p.url }; }) }).replace(/'/g, '&#39;') + '\'>📄 Generar PDF</button>';
+      html += '<button class="dl-btn pdf" onclick="generatePdf(this)" data-doc="' + escHtml(JSON.stringify({ name: doc.name, pages: doc.pages.map(function(p) { return { url: p.url }; }) })) + '">&#128196; Generar PDF</button>';
     }
-    html += '<button class="docDl secondary" onclick="dlAllImages(this)" data-pages=\'' + JSON.stringify(doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; })).replace(/'/g, '&#39;') + '\'>🖼 Imagenes</button>';
+    html += '<button class="dl-btn secondary" onclick="dlMultipleImages(this)" data-pages="' + escHtml(JSON.stringify(doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; }))) + '">&#128444; Imagenes</button>';
   } else {
-    // Single photo
-    html += '<button class="docDl primary" onclick="forceDl(\'' + doc.pages[0].url + '\',\'' + escHtml(doc.name) + '.jpg\')">💾 Descargar</button>';
+    html += '<button class="dl-btn primary" onclick="forceDl(\'' + doc.pages[0].url + '\',\'' + escHtml(doc.name) + '.jpg\')">&#128190; Descargar JPG</button>';
   }
 
   html += '</div>';
 
-  // Page thumbnails for multi-page
+  // Page thumbnails for multi-page documents
   if (doc.pages.length > 1) {
-    html += '<div class="docPages">';
+    html += '<div class="pages-row">';
     for (var pi = 0; pi < doc.pages.length; pi++) {
-      html += '<div class="pgThumb">';
-      html += '<img src="' + doc.pages[pi].url + '" onclick="openPcLb(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + ' - Pag ' + doc.pages[pi].num + '\')" onerror="this.style.background=\'#eee\'">';
+      html += '<div class="page-thumb">';
+      html += '<img src="' + doc.pages[pi].url + '" onclick="openLightboxSingle(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name + ' - Pag ' + doc.pages[pi].num) + '\')" onerror="this.style.background=\'var(--s2)\'">';
       html += '<span>Pag ' + doc.pages[pi].num + '</span>';
-      html += '<button onclick="forceDl(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + '_pag' + doc.pages[pi].num + '.jpg\')">💾</button>';
+      html += '<button onclick="forceDl(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + '_pag' + doc.pages[pi].num + '.jpg\')">&#128190;</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -400,186 +1255,12 @@ function renderDocCard(doc, folderName) {
   return html;
 }
 
-function toggleFolder(idx) {
-  var body = document.getElementById('fbody_' + idx);
-  var arrow = document.getElementById('arrow_' + idx);
-  if (body.classList.contains('open')) {
-    body.classList.remove('open');
-    arrow.classList.remove('open');
-  } else {
-    body.classList.add('open');
-    arrow.classList.add('open');
-  }
-}
-
-/* =========================================================
-   LOAD DATA
-   ========================================================= */
-async function loadData() {
-  var out = document.getElementById('out');
-  out.innerHTML = '<div class="ld"><div class="spinner"></div>Cargando documentos...</div>';
-
-  try {
-    var rootItems = await listBucket('');
-    var folders = [];
-    for (var i = 0; i < rootItems.length; i++) {
-      if (rootItems[i].id === null && rootItems[i].name) folders.push(rootItems[i].name);
-    }
-
-    if (!folders.length) {
-      document.getElementById('stats').style.display = 'none';
-      allFolders = [];
-      renderAllFolders([]);
-      return;
-    }
-
-    allFolders = [];
-    var totalDocs = 0, totalPhotos = 0, totalPdfs = 0;
-
-    for (var fi = 0; fi < folders.length; fi++) {
-      var fname = folders[fi];
-      var rawFiles = await listBucket(fname + '/');
-      var docs = groupFiles(rawFiles, fname);
-      if (!docs.length) continue;
-
-      for (var d = 0; d < docs.length; d++) {
-        totalDocs++;
-        if (docs[d].type === 'foto') totalPhotos++;
-        else totalPdfs++;
-      }
-
-      allFolders.push({ name: fname, docs: docs });
-    }
-
-    // Update stats
-    document.getElementById('stats').style.display = 'grid';
-    document.getElementById('statFolders').textContent = allFolders.length;
-    document.getElementById('statDocs').textContent = totalDocs;
-    document.getElementById('statPhotos').textContent = totalPhotos;
-    document.getElementById('statPdfs').textContent = totalPdfs;
-
-    renderAllFolders(allFolders);
-
-    // Auto-expand first folder
-    if (allFolders.length > 0) {
-      toggleFolder(0);
-    }
-  } catch (err) {
-    console.error(err);
-    out.innerHTML = '<div class="empty"><div class="icon">⚠️</div><h3>Error de conexion</h3><p>' + err.message + '</p></div>';
-  }
-}
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-function parseFolderDate(name) {
-  // Try to extract date from folder name patterns like "8 Mar 2026" or timestamps
-  var m = name.match(/(\d{1,2})[\s_]+(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)[\s_]+(\d{4})/i);
-  if (m) {
-    var months = { ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11 };
-    return new Date(parseInt(m[3]), months[m[2].toLowerCase()] || 0, parseInt(m[1]));
-  }
-  // Try to get date from first file's timestamp in the name
-  return null;
-}
-
-function filterResults() {
-  var query = document.getElementById('searchInp').value.toLowerCase().trim();
-  var dateVal = document.getElementById('dateFilter').value;
-  var now = new Date();
-  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  var filtered = allFolders.filter(function(f) {
-    // Text filter
-    if (query) {
-      var matchText = false;
-      if (f.name.toLowerCase().replace(/_/g, ' ').includes(query)) matchText = true;
-      for (var i = 0; i < f.docs.length; i++) {
-        if (f.docs[i].name.toLowerCase().includes(query)) matchText = true;
-      }
-      if (!matchText) return false;
-    }
-
-    // Date filter
-    if (dateVal !== 'all') {
-      var fd = parseFolderDate(f.name);
-      if (!fd) return dateVal === 'all'; // If no date, only show in "all"
-      if (dateVal === 'today') {
-        return fd >= todayStart;
-      } else if (dateVal === 'week') {
-        var weekAgo = new Date(todayStart); weekAgo.setDate(weekAgo.getDate() - 7);
-        return fd >= weekAgo;
-      } else if (dateVal === 'month') {
-        var monthAgo = new Date(todayStart); monthAgo.setMonth(monthAgo.getMonth() - 1);
-        return fd >= monthAgo;
-      }
-    }
-    return true;
-  });
-
-  renderAllFolders(filtered);
-  for (var i = 0; i < filtered.length; i++) {
-    toggleFolder(i);
-  }
-}
-
-async function deleteOldFolders() {
-  var days = prompt('Eliminar carpetas con mas de cuantos dias? (ej: 7)', '7');
-  if (!days) return;
-  days = parseInt(days);
-  if (isNaN(days) || days < 1) { pcToast('Numero invalido', 'error'); return; }
-
-  var cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-
-  var toDelete = [];
-  for (var i = 0; i < allFolders.length; i++) {
-    var fd = parseFolderDate(allFolders[i].name);
-    if (fd && fd < cutoff) toDelete.push(allFolders[i].name);
-  }
-
-  if (!toDelete.length) {
-    pcToast('No hay carpetas con mas de ' + days + ' dias', 'info');
-    return;
-  }
-
-  if (!confirm('Se eliminaran ' + toDelete.length + ' carpeta(s) con mas de ' + days + ' dias:\n\n' + toDelete.map(function(n) { return n.replace(/_/g, ' '); }).join('\n') + '\n\n¿Continuar?')) return;
-
-  pcToast('Eliminando ' + toDelete.length + ' carpetas...', 'info');
-
-  for (var j = 0; j < toDelete.length; j++) {
-    try {
-      var files = await listBucket(toDelete[j] + '/');
-      var paths = files.filter(function(f) { return f.name; }).map(function(f) { return toDelete[j] + '/' + f.name; });
-      if (paths.length > 0) {
-        await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
-          method: 'DELETE', headers: hdrs,
-          body: JSON.stringify({ prefixes: paths })
-        });
-      }
-    } catch(e) {
-      console.warn('Error deleting folder:', toDelete[j], e);
-    }
-  }
-
-  pcToast(toDelete.length + ' carpetas eliminadas', 'success');
-  loadData();
-}
-
-// Ctrl+F shortcut
-document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-    e.preventDefault();
-    document.getElementById('searchInp').focus();
-  }
-});
-
 /* =========================================================
    DOWNLOADS
    ========================================================= */
 async function forceDl(url, filename) {
   try {
+    showToast('Descargando: ' + filename, 'info');
     var res = await fetch(url);
     var blob = await res.blob();
     var blobUrl = URL.createObjectURL(blob);
@@ -589,43 +1270,46 @@ async function forceDl(url, filename) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
-    pcToast('Descargando: ' + filename, 'success');
-  } catch(e) {
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 2000);
+    showToast('Descargado: ' + filename, 'success');
+  } catch (e) {
+    console.error('Download error:', e);
     window.open(url, '_blank');
   }
 }
 
-function dlAllImages(btn) {
+function dlMultipleImages(btn) {
   try {
     var pages = JSON.parse(btn.getAttribute('data-pages'));
-    pcToast('Descargando ' + pages.length + ' imagenes...', 'info');
+    showToast('Descargando ' + pages.length + ' imagenes...', 'info');
     for (var i = 0; i < pages.length; i++) {
       (function(pg, delay) {
         setTimeout(function() { forceDl(pg.url, pg.name); }, delay);
       })(pages[i], i * 800);
     }
   } catch (e) {
-    pcToast('Error descargando', 'error');
+    showToast('Error al descargar', 'error');
   }
 }
 
 /* =========================================================
-   PDF GENERATION (client-side)
+   PDF GENERATION
    ========================================================= */
-async function dlAsPdf(btn) {
-  if (!window.jspdf) { pcToast('jsPDF no cargado', 'error'); return; }
-  var doc;
-  try { doc = JSON.parse(btn.getAttribute('data-doc')); } catch(e) { return; }
+async function generatePdf(btn) {
+  if (!window.jspdf) { showToast('jsPDF no cargado aun', 'error'); return; }
+  var docData;
+  try { docData = JSON.parse(btn.getAttribute('data-doc')); } catch (e) { return; }
 
   btn.disabled = true;
-  btn.textContent = '⏳ Generando...';
+  var origText = btn.innerHTML;
+  btn.innerHTML = '&#9203; Generando...';
 
   try {
     var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    for (var i = 0; i < doc.pages.length; i++) {
+
+    for (var i = 0; i < docData.pages.length; i++) {
       if (i > 0) pdf.addPage();
-      var img = await loadImage(doc.pages[i].url);
+      var img = await loadImage(docData.pages[i].url);
       var pw = pdf.internal.pageSize.getWidth();
       var ph = pdf.internal.pageSize.getHeight();
       var ratio = Math.min(pw / img.width, ph / img.height);
@@ -633,15 +1317,16 @@ async function dlAsPdf(btn) {
       var h = img.height * ratio;
       pdf.addImage(img.src, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
     }
-    pdf.save(doc.name + '.pdf');
-    pcToast('PDF descargado: ' + doc.name, 'success');
+
+    pdf.save(docData.name + '.pdf');
+    showToast('PDF generado: ' + docData.name, 'success');
   } catch (e) {
-    pcToast('Error generando PDF', 'error');
+    showToast('Error generando PDF: ' + e.message, 'error');
     console.error(e);
   }
 
   btn.disabled = false;
-  btn.textContent = '📄 Generar PDF';
+  btn.innerHTML = origText;
 }
 
 function loadImage(url) {
@@ -649,118 +1334,301 @@ function loadImage(url) {
     var img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = function() { resolve(img); };
-    img.onerror = reject;
+    img.onerror = function() { reject(new Error('No se pudo cargar imagen')); };
     img.src = url;
   });
 }
 
 /* =========================================================
-   ZIP DOWNLOAD
+   ZIP DOWNLOADS
    ========================================================= */
-async function dlFolderZip(folderName, idx) {
-  if (!window.JSZip) { pcToast('JSZip no cargado', 'error'); return; }
+function showProgress(title) {
+  document.getElementById('progressTitle').textContent = title || 'Preparando descarga...';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressText').textContent = '0%';
+  document.getElementById('progressOverlay').classList.add('on');
+}
 
-  var folder = allFolders[idx];
-  if (!folder) return;
+function updateProgress(pct, text) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text || (Math.round(pct) + '%');
+}
 
-  pcToast('Preparando ZIP...', 'info');
+function hideProgress() {
+  document.getElementById('progressOverlay').classList.remove('on');
+}
+
+async function downloadDocsAsZip(docs, zipName) {
+  if (!window.JSZip) { showToast('JSZip no cargado', 'error'); return; }
+  showProgress('Preparando ZIP: ' + zipName);
 
   try {
     var zip = new JSZip();
-    var zipFolder = zip.folder(folderName.replace(/_/g, ' '));
+    var folder = zip.folder(zipName);
+    var total = 0;
+    for (var d = 0; d < docs.length; d++) {
+      total += docs[d].pages.length;
+      if (docs[d].pdfUrl) total++;
+    }
 
-    for (var di = 0; di < folder.docs.length; di++) {
-      var doc = folder.docs[di];
+    var done = 0;
+    for (var di = 0; di < docs.length; di++) {
+      var doc = docs[di];
       for (var pi = 0; pi < doc.pages.length; pi++) {
         var pageSuffix = doc.pages.length > 1 ? '_pag' + doc.pages[pi].num : '';
         var fileName = doc.name + pageSuffix + '.jpg';
         try {
           var res = await fetch(doc.pages[pi].url);
           var blob = await res.blob();
-          zipFolder.file(fileName, blob);
+          folder.file(fileName, blob);
         } catch (e) {
-          console.warn('Failed to fetch:', fileName);
+          console.warn('Skip:', fileName);
         }
+        done++;
+        updateProgress((done / total) * 90, 'Descargando archivos... ' + done + '/' + total);
       }
-      // Also include PDF if available
       if (doc.pdfUrl) {
         try {
           var pdfRes = await fetch(doc.pdfUrl);
           var pdfBlob = await pdfRes.blob();
-          zipFolder.file(doc.name + '.pdf', pdfBlob);
-        } catch(e) {}
+          folder.file(doc.name + '.pdf', pdfBlob);
+        } catch (e) {}
+        done++;
+        updateProgress((done / total) * 90);
       }
     }
 
+    updateProgress(95, 'Generando ZIP...');
     var content = await zip.generateAsync({ type: 'blob' });
     var url = URL.createObjectURL(content);
     var a = document.createElement('a');
     a.href = url;
-    a.download = folderName.replace(/_/g, ' ') + '.zip';
+    a.download = zipName + '.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-    pcToast('ZIP descargado!', 'success');
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+
+    updateProgress(100, 'Completado!');
+    setTimeout(hideProgress, 800);
+    showToast('ZIP descargado: ' + zipName, 'success');
   } catch (e) {
-    pcToast('Error creando ZIP: ' + e.message, 'error');
+    hideProgress();
+    showToast('Error creando ZIP: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function dlDateZip(wId, date) {
+  var fileInfo = allWorkerFiles[wId];
+  if (!fileInfo || !fileInfo.loaded[date]) {
+    showToast('Espera a que carguen los archivos', 'info');
+    await loadDateFiles(wId, date);
+    fileInfo = allWorkerFiles[wId];
+    if (!fileInfo || !fileInfo.loaded[date]) return;
+  }
+  var docs = fileInfo.loaded[date];
+  if (!docs.length) { showToast('Sin archivos en esta fecha', 'info'); return; }
+
+  var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
+  var wName = w ? w.name.replace(/\s+/g, '_') : wId;
+  await downloadDocsAsZip(docs, wName + '_' + date);
+}
+
+async function dlWorkerZip(wId) {
+  var fileInfo = allWorkerFiles[wId];
+  if (!fileInfo) return;
+
+  var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
+  var wName = w ? w.name.replace(/\s+/g, '_') : wId;
+
+  if (!window.JSZip) { showToast('JSZip no cargado', 'error'); return; }
+  showProgress('Preparando ZIP de ' + (w ? w.name : wId));
+
+  try {
+    var zip = new JSZip();
+    var rootFolder = zip.folder(wName);
+    var dates = fileInfo.dates;
+    var totalDates = dates.length;
+
+    for (var di = 0; di < dates.length; di++) {
+      var date = dates[di];
+      updateProgress((di / totalDates) * 80, 'Cargando ' + date + '...');
+
+      // Load files if not already loaded
+      if (!fileInfo.loaded[date]) {
+        try {
+          var items = await sbList('workers/' + wId + '/' + date + '/');
+          var docs = groupFiles(items, 'workers/' + wId + '/' + date);
+          fileInfo.loaded[date] = docs;
+        } catch (e) {
+          console.warn('Skip date:', date);
+          continue;
+        }
+      }
+
+      var dateDocs = fileInfo.loaded[date];
+      if (!dateDocs.length) continue;
+
+      var dateFolder = rootFolder.folder(date);
+
+      for (var fi = 0; fi < dateDocs.length; fi++) {
+        var doc = dateDocs[fi];
+        for (var pi = 0; pi < doc.pages.length; pi++) {
+          var pageSuffix = doc.pages.length > 1 ? '_pag' + doc.pages[pi].num : '';
+          var fileName = doc.name + pageSuffix + '.jpg';
+          try {
+            var res = await fetch(doc.pages[pi].url);
+            var blob = await res.blob();
+            dateFolder.file(fileName, blob);
+          } catch (e) {}
+        }
+        if (doc.pdfUrl) {
+          try {
+            var pdfRes = await fetch(doc.pdfUrl);
+            var pdfBlob = await pdfRes.blob();
+            dateFolder.file(doc.name + '.pdf', pdfBlob);
+          } catch (e) {}
+        }
+      }
+    }
+
+    updateProgress(90, 'Generando ZIP...');
+    var content = await zip.generateAsync({ type: 'blob' });
+    var url = URL.createObjectURL(content);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = wName + '_todos.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+
+    updateProgress(100, 'Completado!');
+    setTimeout(hideProgress, 800);
+    showToast('ZIP descargado: ' + wName, 'success');
+  } catch (e) {
+    hideProgress();
+    showToast('Error creando ZIP: ' + e.message, 'error');
     console.error(e);
   }
 }
 
 /* =========================================================
-   DELETE FOLDER
+   CLEANUP OLD FILES
    ========================================================= */
-async function deleteFolder(folderName) {
-  if (!confirm('¿Eliminar la carpeta "' + folderName.replace(/_/g, ' ') + '" y todos sus archivos?')) return;
+async function cleanupOldFiles() {
+  if (!confirm('¿Eliminar archivos de mas de 3 meses?\n\nEsta accion no se puede deshacer.')) return;
 
-  pcToast('Eliminando carpeta...', 'info');
+  var cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 3);
+  var cutoffStr = cutoff.toISOString().split('T')[0];
 
-  try {
-    var files = await listBucket(folderName + '/');
-    var paths = files.filter(function(f) { return f.name; }).map(function(f) { return folderName + '/' + f.name; });
+  var toDelete = [];
 
-    if (paths.length > 0) {
-      var res = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
-        method: 'DELETE',
-        headers: hdrs,
-        body: JSON.stringify({ prefixes: paths })
-      });
-      if (!res.ok) throw new Error('Error del servidor');
+  for (var i = 0; i < allWorkers.length; i++) {
+    var wId = allWorkers[i]._folder || allWorkers[i].worker_id;
+    var fileInfo = allWorkerFiles[wId];
+    if (!fileInfo) continue;
+
+    for (var d = 0; d < fileInfo.dates.length; d++) {
+      var date = fileInfo.dates[d];
+      if (date < cutoffStr) {
+        toDelete.push({ wId: wId, date: date });
+      }
     }
-
-    pcToast('Carpeta eliminada', 'success');
-    loadData();
-  } catch (e) {
-    pcToast('Error eliminando: ' + e.message, 'error');
-    console.error(e);
   }
+
+  if (!toDelete.length) {
+    showToast('No hay archivos de mas de 3 meses', 'info');
+    return;
+  }
+
+  if (!confirm('Se encontraron ' + toDelete.length + ' carpeta(s) de fecha antigua.\n\n¿Eliminar ' + toDelete.length + ' carpeta(s)?')) return;
+
+  showProgress('Eliminando archivos antiguos...');
+  var deleted = 0;
+
+  for (var j = 0; j < toDelete.length; j++) {
+    updateProgress((j / toDelete.length) * 100, 'Eliminando ' + (j + 1) + '/' + toDelete.length);
+
+    try {
+      var path = 'workers/' + toDelete[j].wId + '/' + toDelete[j].date + '/';
+      var files = await sbList(path);
+      var paths = files.filter(function(f) { return f.name; }).map(function(f) { return path + f.name; });
+
+      if (paths.length > 0) {
+        await sbDelete(paths);
+      }
+      deleted++;
+    } catch (e) {
+      console.warn('Error deleting:', toDelete[j], e);
+    }
+  }
+
+  hideProgress();
+  showToast(deleted + ' carpeta(s) eliminada(s)', 'success');
+  loadAllData();
 }
 
 /* =========================================================
    LIGHTBOX
    ========================================================= */
-function openPcLb(url, caption) {
-  document.getElementById('pcLbImg').src = url;
-  document.getElementById('pcLbCap').textContent = caption || '';
-  document.getElementById('pcLb').classList.add('on');
+function openLightboxFromDoc(imgEl) {
+  try {
+    lightboxImages = JSON.parse(imgEl.getAttribute('data-images'));
+    lightboxIndex = 0;
+  } catch (e) {
+    lightboxImages = [{ url: imgEl.src, caption: '' }];
+    lightboxIndex = 0;
+  }
+  showLightbox();
 }
 
-function closePcLb(e) {
-  if (e && e.target && e.target.tagName === 'IMG') return;
-  document.getElementById('pcLb').classList.remove('on');
+function openLightboxSingle(url, caption) {
+  lightboxImages = [{ url: url, caption: caption || '' }];
+  lightboxIndex = 0;
+  showLightbox();
 }
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closePcLb();
-});
+function showLightbox() {
+  var lb = document.getElementById('lightbox');
+  var img = document.getElementById('lbImg');
+  var cap = document.getElementById('lbCaption');
+
+  img.src = lightboxImages[lightboxIndex].url;
+  cap.textContent = lightboxImages[lightboxIndex].caption || '';
+
+  document.getElementById('lbPrev').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
+  document.getElementById('lbNext').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
+
+  lb.classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(e) {
+  if (e && e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'BUTTON')) return;
+  document.getElementById('lightbox').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function navLightbox(dir) {
+  lightboxIndex += dir;
+  if (lightboxIndex < 0) lightboxIndex = lightboxImages.length - 1;
+  if (lightboxIndex >= lightboxImages.length) lightboxIndex = 0;
+
+  var img = document.getElementById('lbImg');
+  var cap = document.getElementById('lbCaption');
+  img.src = lightboxImages[lightboxIndex].url;
+  cap.textContent = lightboxImages[lightboxIndex].caption || '';
+}
 
 /* =========================================================
    TOAST
    ========================================================= */
-function pcToast(m, type) {
+function showToast(msg, type) {
   var t = document.getElementById('toast');
-  t.textContent = m;
+  t.textContent = msg;
   t.className = 'toast ' + (type || 'info');
   t.classList.add('show');
   clearTimeout(t._timer);
@@ -768,10 +1636,62 @@ function pcToast(m, type) {
 }
 
 /* =========================================================
+   AUTO-REFRESH
+   ========================================================= */
+function resetCountdown() {
+  countdownValue = REFRESH_INTERVAL;
+  updateCountdownDisplay();
+}
+
+function updateCountdownDisplay() {
+  var el = document.getElementById('countdown');
+  if (el) el.textContent = countdownValue;
+}
+
+function startAutoRefresh() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(function() {
+    countdownValue--;
+    updateCountdownDisplay();
+    if (countdownValue <= 0) {
+      loadAllData();
+    }
+  }, 1000);
+}
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+   ========================================================= */
+document.addEventListener('keydown', function(e) {
+  // Ctrl+F -> focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+    document.getElementById('searchInput').select();
+  }
+
+  // Escape -> close lightbox or go back to directory
+  if (e.key === 'Escape') {
+    var lb = document.getElementById('lightbox');
+    if (lb.classList.contains('on')) {
+      closeLightbox();
+    } else if (currentWorkerId) {
+      closeDetail();
+    }
+  }
+
+  // Left/Right arrows in lightbox
+  if (document.getElementById('lightbox').classList.contains('on')) {
+    if (e.key === 'ArrowLeft') navLightbox(-1);
+    if (e.key === 'ArrowRight') navLightbox(1);
+  }
+});
+
+/* =========================================================
    INIT
    ========================================================= */
-loadData();
-setInterval(loadData, 15000);
+loadAllData();
+startAutoRefresh();
 </script>
 </body>
 </html>
