@@ -235,6 +235,34 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .quick-name .qn-send.uploading svg{display:none}
 .quick-name .qn-send.uploading::after{content:'';width:22px;height:22px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
 
+/* ===== PHOTO EDITOR ===== */
+.photo-editor{position:fixed;inset:0;z-index:70;background:#000;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
+.photo-editor.on{opacity:1;pointer-events:auto}
+.pe-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + var(--st));background:linear-gradient(180deg,rgba(0,0,0,.7),transparent);position:absolute;top:0;left:0;right:0;z-index:2}
+.pe-top-btn{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pe-top-btn:active{transform:scale(.9)}
+.pe-top-btn svg{width:20px;height:20px;fill:#fff}
+.pe-title{color:#fff;font-size:14px;font-weight:700}
+.pe-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
+.pe-canvas-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none}
+.pe-crop-box{position:absolute;border:2px solid var(--tl);box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move;touch-action:none;min-width:40px;min-height:40px}
+.pe-crop-box .pe-handle{position:absolute;width:28px;height:28px;background:var(--tl);border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);touch-action:none;z-index:1}
+.pe-handle.tl{top:-14px;left:-14px;cursor:nw-resize}
+.pe-handle.tr{top:-14px;right:-14px;cursor:ne-resize}
+.pe-handle.bl{bottom:-14px;left:-14px;cursor:sw-resize}
+.pe-handle.br{bottom:-14px;right:-14px;cursor:se-resize}
+.pe-bottom{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px 20px;padding-bottom:calc(16px + var(--sb));background:linear-gradient(0deg,rgba(0,0,0,.7),transparent);position:absolute;bottom:0;left:0;right:0;z-index:2}
+.pe-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;color:#fff;cursor:pointer;padding:8px 16px;border-radius:var(--r2);transition:background .15s;font-family:inherit}
+.pe-btn:active{background:rgba(255,255,255,.1)}
+.pe-btn svg{width:26px;height:26px}
+.pe-btn span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.pe-btn.danger svg{fill:var(--danger)}
+.pe-btn.danger span{color:var(--danger)}
+.pe-btn.primary{background:var(--tl);border-radius:50%;width:56px;height:56px;gap:0;padding:0}
+.pe-btn.primary svg{fill:var(--n1);width:28px;height:28px}
+.pe-btn.primary span{display:none}
+.pe-btn.primary:active{transform:scale(.9)}
+
 /* ===== MISC HELPERS ===== */
 .gap-8{gap:8px}.gap-12{gap:12px}
 .hidden{display:none!important}
@@ -256,6 +284,41 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Photo Editor -->
+<div class="photo-editor" id="photoEditor">
+  <div class="pe-top">
+    <button class="pe-top-btn" onclick="closePhotoEditor()">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
+    </button>
+    <span class="pe-title" id="peTitle">Editar foto</span>
+    <button class="pe-top-btn" onclick="resetCrop()">
+      <svg viewBox="0 0 24 24" fill="#fff"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+    </button>
+  </div>
+  <div class="pe-canvas-wrap" id="peCanvasWrap">
+    <img id="peImage" src="" alt="">
+    <div class="pe-crop-box" id="peCropBox">
+      <div class="pe-handle tl" data-handle="tl"></div>
+      <div class="pe-handle tr" data-handle="tr"></div>
+      <div class="pe-handle bl" data-handle="bl"></div>
+      <div class="pe-handle br" data-handle="br"></div>
+    </div>
+  </div>
+  <div class="pe-bottom">
+    <button class="pe-btn danger" onclick="deleteFromEditor()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      <span>Eliminar</span>
+    </button>
+    <button class="pe-btn primary" onclick="confirmCrop()">
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+    </button>
+    <button class="pe-btn" onclick="applyCrop()">
+      <svg viewBox="0 0 24 24" fill="#fff"><path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/></svg>
+      <span>Recortar</span>
+    </button>
+  </div>
+</div>
 
 <!-- Quick Name Bar -->
 <div class="quick-name" id="quickName">
@@ -932,9 +995,9 @@ function capturePhoto() {
 
   if (cameraMode === 'foto') {
     capturedSingleImage = dataUrl;
-    // Show quick name bar for fast rename + upload
+    // Show preview then open editor
     showCapturePreview(dataUrl, function() {
-      showQuickName('foto', dataUrl);
+      openPhotoEditor(dataUrl, 'foto');
     });
   } else {
     // PDF mode
@@ -1091,7 +1154,7 @@ function handleGalleryFile(event) {
 
     if (cameraMode === 'foto') {
       capturedSingleImage = dataUrl;
-      showQuickName('foto', dataUrl);
+      openPhotoEditor(dataUrl, 'foto');
     } else {
       if (pdfPages.length >= 5) {
         toast('Maximo 5 paginas', 'error');
@@ -1124,6 +1187,235 @@ function finalizePdf() {
     showQuickName('pdf', pagesToUpload);
   }, 350);
 }
+
+/* ===== PHOTO EDITOR ===== */
+var editorDataUrl = null;
+var editorSource = 'foto'; // 'foto' or 'pdf'
+var editorPageIndex = -1;
+var cropState = { dragging: false, handle: null, startX: 0, startY: 0, box: { x: 0, y: 0, w: 0, h: 0 }, imgRect: null };
+
+function openPhotoEditor(dataUrl, source, pageIndex) {
+  editorDataUrl = dataUrl;
+  editorSource = source || 'foto';
+  editorPageIndex = pageIndex !== undefined ? pageIndex : -1;
+
+  var img = document.getElementById('peImage');
+  img.src = dataUrl;
+
+  document.getElementById('peTitle').textContent = source === 'pdf' ? 'Editar pagina ' + (pageIndex + 1) : 'Editar foto';
+  document.getElementById('photoEditor').classList.add('on');
+
+  // Wait for image to load, then init crop box
+  img.onload = function() {
+    setTimeout(initCropBox, 50);
+  };
+}
+
+function closePhotoEditor() {
+  haptic();
+  document.getElementById('photoEditor').classList.remove('on');
+  editorDataUrl = null;
+}
+
+function initCropBox() {
+  var wrap = document.getElementById('peCanvasWrap');
+  var img = document.getElementById('peImage');
+  var box = document.getElementById('peCropBox');
+
+  var ir = img.getBoundingClientRect();
+  var wr = wrap.getBoundingClientRect();
+
+  // Crop box fills the image area
+  box.style.left = (ir.left - wr.left) + 'px';
+  box.style.top = (ir.top - wr.top) + 'px';
+  box.style.width = ir.width + 'px';
+  box.style.height = ir.height + 'px';
+
+  cropState.imgRect = { x: ir.left - wr.left, y: ir.top - wr.top, w: ir.width, h: ir.height };
+}
+
+function resetCrop() {
+  haptic();
+  initCropBox();
+}
+
+function deleteFromEditor() {
+  haptic(30);
+  if (editorSource === 'pdf' && editorPageIndex >= 0) {
+    pdfPages.splice(editorPageIndex, 1);
+    updateThumbStack();
+    toast('Pagina eliminada', 'info');
+  } else {
+    capturedSingleImage = null;
+    toast('Foto eliminada', 'info');
+  }
+  closePhotoEditor();
+}
+
+function applyCrop() {
+  haptic(20);
+  var wrap = document.getElementById('peCanvasWrap');
+  var img = document.getElementById('peImage');
+  var box = document.getElementById('peCropBox');
+  var wr = wrap.getBoundingClientRect();
+
+  // Get crop box position relative to wrap
+  var bx = parseInt(box.style.left) || 0;
+  var by = parseInt(box.style.top) || 0;
+  var bw = parseInt(box.style.width) || 0;
+  var bh = parseInt(box.style.height) || 0;
+
+  // Get image position relative to wrap
+  var ir = img.getBoundingClientRect();
+  var ix = ir.left - wr.left;
+  var iy = ir.top - wr.top;
+  var iw = ir.width;
+  var ih = ir.height;
+
+  if (bw < 20 || bh < 20) { toast('Area muy pequena', 'error'); return; }
+
+  // Calculate crop in original image coordinates
+  var srcImg = new Image();
+  srcImg.onload = function() {
+    var scaleX = srcImg.width / iw;
+    var scaleY = srcImg.height / ih;
+
+    var cx = Math.max(0, (bx - ix) * scaleX);
+    var cy = Math.max(0, (by - iy) * scaleY);
+    var cw = Math.min(srcImg.width - cx, bw * scaleX);
+    var ch = Math.min(srcImg.height - cy, bh * scaleY);
+
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.round(cw);
+    canvas.height = Math.round(ch);
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(srcImg, Math.round(cx), Math.round(cy), Math.round(cw), Math.round(ch), 0, 0, Math.round(cw), Math.round(ch));
+
+    var cropped = canvas.toDataURL('image/jpeg', 0.92);
+    editorDataUrl = cropped;
+    document.getElementById('peImage').src = cropped;
+    toast('Recortado', 'success');
+
+    setTimeout(initCropBox, 100);
+  };
+  srcImg.src = editorDataUrl;
+}
+
+function confirmCrop() {
+  haptic(25);
+
+  if (editorSource === 'pdf' && editorPageIndex >= 0) {
+    pdfPages[editorPageIndex] = editorDataUrl;
+    updateThumbStack();
+    closePhotoEditor();
+  } else {
+    capturedSingleImage = editorDataUrl;
+    closePhotoEditor();
+    showQuickName('foto', editorDataUrl);
+  }
+}
+
+// Touch/mouse handlers for crop box
+(function() {
+  var box, wrap, handle, startX, startY, startBox, imgBounds;
+
+  function getPos(e) {
+    var t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+  }
+
+  function onStart(e) {
+    var target = e.target;
+    box = document.getElementById('peCropBox');
+    wrap = document.getElementById('peCanvasWrap');
+    var wr = wrap.getBoundingClientRect();
+    var img = document.getElementById('peImage');
+    var ir = img.getBoundingClientRect();
+    imgBounds = { x: ir.left - wr.left, y: ir.top - wr.top, w: ir.width, h: ir.height };
+
+    handle = target.getAttribute('data-handle');
+    if (!handle && target === box) handle = 'move';
+    if (!handle) return;
+
+    e.preventDefault();
+    var pos = getPos(e);
+    startX = pos.x;
+    startY = pos.y;
+    startBox = {
+      x: parseInt(box.style.left) || 0,
+      y: parseInt(box.style.top) || 0,
+      w: parseInt(box.style.width) || 0,
+      h: parseInt(box.style.height) || 0
+    };
+
+    document.addEventListener('mousemove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  }
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function onMove(e) {
+    if (!handle) return;
+    e.preventDefault();
+    var pos = getPos(e);
+    var dx = pos.x - startX;
+    var dy = pos.y - startY;
+    var minSize = 40;
+
+    var nx = startBox.x, ny = startBox.y, nw = startBox.w, nh = startBox.h;
+
+    if (handle === 'move') {
+      nx = clamp(startBox.x + dx, imgBounds.x, imgBounds.x + imgBounds.w - nw);
+      ny = clamp(startBox.y + dy, imgBounds.y, imgBounds.y + imgBounds.h - nh);
+    } else if (handle === 'br') {
+      nw = clamp(startBox.w + dx, minSize, imgBounds.x + imgBounds.w - nx);
+      nh = clamp(startBox.h + dy, minSize, imgBounds.y + imgBounds.h - ny);
+    } else if (handle === 'bl') {
+      var newX = clamp(startBox.x + dx, imgBounds.x, startBox.x + startBox.w - minSize);
+      nw = startBox.w - (newX - startBox.x);
+      nx = newX;
+      nh = clamp(startBox.h + dy, minSize, imgBounds.y + imgBounds.h - ny);
+    } else if (handle === 'tr') {
+      nw = clamp(startBox.w + dx, minSize, imgBounds.x + imgBounds.w - nx);
+      var newY = clamp(startBox.y + dy, imgBounds.y, startBox.y + startBox.h - minSize);
+      nh = startBox.h - (newY - startBox.y);
+      ny = newY;
+    } else if (handle === 'tl') {
+      var newX2 = clamp(startBox.x + dx, imgBounds.x, startBox.x + startBox.w - minSize);
+      nw = startBox.w - (newX2 - startBox.x);
+      nx = newX2;
+      var newY2 = clamp(startBox.y + dy, imgBounds.y, startBox.y + startBox.h - minSize);
+      nh = startBox.h - (newY2 - startBox.y);
+      ny = newY2;
+    }
+
+    box.style.left = nx + 'px';
+    box.style.top = ny + 'px';
+    box.style.width = nw + 'px';
+    box.style.height = nh + 'px';
+  }
+
+  function onEnd() {
+    handle = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var cropBox = document.getElementById('peCropBox');
+    cropBox.addEventListener('mousedown', onStart);
+    cropBox.addEventListener('touchstart', onStart, { passive: false });
+    var handles = cropBox.querySelectorAll('.pe-handle');
+    for (var i = 0; i < handles.length; i++) {
+      handles[i].addEventListener('mousedown', onStart);
+      handles[i].addEventListener('touchstart', onStart, { passive: false });
+    }
+  });
+})();
 
 /* ===== QUICK NAME + AUTO UPLOAD ===== */
 var pendingUploadData = null; // {type:'foto'|'pdf', data: dataUrl|pages[]}
