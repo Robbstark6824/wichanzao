@@ -501,6 +501,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Enter') { e.preventDefault(); confirmQuickName(); }
   });
 
+  // Pre-warm camera after profile is loaded
+  if (worker) {
+    setTimeout(prewarmCamera, 500);
+  }
+
   if (worker) {
     showView('vMain');
     populateMain();
@@ -737,6 +742,12 @@ function openCamera(mode) {
   document.getElementById('thumbStack').classList.add('hidden');
   document.getElementById('camPreview').classList.remove('show');
 
+  // If camera is already warm, show immediately
+  if (currentStream && currentStream.active) {
+    showView('vCam');
+    return;
+  }
+
   showView('vCam');
   startCamera();
 }
@@ -745,8 +756,8 @@ function startCamera() {
   var constraints = {
     video: {
       facingMode: facingMode,
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
     },
     audio: false
   };
@@ -774,6 +785,24 @@ function startCamera() {
   });
 }
 
+// Pre-warm camera permission on app load
+function prewarmCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function(stream) {
+    currentStream = stream;
+    track = stream.getVideoTracks()[0];
+    if (track.getCapabilities) {
+      var caps = track.getCapabilities();
+      flashSupported = !!(caps.torch);
+    }
+    // Keep stream ready but don't attach to video yet
+    var video = document.getElementById('camVideo');
+    video.srcObject = stream;
+  }).catch(function() {
+    // Permission denied or no camera, will ask again when needed
+  });
+}
+
 function stopCamera() {
   if (currentStream) {
     var tracks = currentStream.getTracks();
@@ -790,9 +819,10 @@ function stopCamera() {
 
 function closeCamera() {
   haptic();
-  stopCamera();
+  hideQuickName();
   pdfPages = [];
   showView('vMain');
+  // Keep stream alive for fast re-open
 }
 
 function switchCamera() {
