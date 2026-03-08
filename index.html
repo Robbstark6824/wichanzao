@@ -369,25 +369,14 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <label>Area</label>
       <select id="regArea">
         <option value="">Seleccionar area...</option>
-        <option value="Medicina General">Medicina General</option>
-        <option value="Pediatria">Pediatria</option>
-        <option value="Ginecologia">Ginecologia</option>
-        <option value="Obstetricia">Obstetricia</option>
-        <option value="Enfermeria">Enfermeria</option>
-        <option value="Laboratorio">Laboratorio</option>
-        <option value="Farmacia">Farmacia</option>
-        <option value="Admision">Admision</option>
-        <option value="SIS">SIS</option>
-        <option value="Otro">Otro</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Turno</label>
-      <select id="regTurno">
-        <option value="">Seleccionar turno...</option>
-        <option value="Manana">Manana</option>
-        <option value="Tarde">Tarde</option>
-        <option value="Noche">Noche</option>
+        <option value="Medico General">Medico General</option>
+        <option value="Interno de Medicina">Interno de Medicina</option>
+        <option value="Obstetra">Obstetra</option>
+        <option value="Enfermero/a">Enfermero/a</option>
+        <option value="Odontologo">Odontologo</option>
+        <option value="Psicologo">Psicologo</option>
+        <option value="Nutricionista">Nutricionista</option>
+        <option value="Tecnico de Enfermeria">Tecnico de Enfermeria</option>
       </select>
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Comenzar</button>
@@ -403,8 +392,6 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <div class="sub">
         <span class="dot"></span>
         <span id="mainArea">---</span>
-        <span>&bull;</span>
-        <span id="mainTurno">---</span>
       </div>
     </div>
   </div>
@@ -699,14 +686,12 @@ function doRegister() {
   var name = document.getElementById('regName').value.trim();
   var folder = document.getElementById('regFolder').value.trim().toLowerCase();
   var area = document.getElementById('regArea').value;
-  var turno = document.getElementById('regTurno').value;
 
   if (!name) { toast('Ingresa tu nombre', 'error'); return; }
   if (name.length < 3) { toast('Nombre muy corto', 'error'); return; }
   if (!folder) { toast('Ingresa un nombre de carpeta', 'error'); return; }
   if (folder.length < 3) { toast('Nombre de carpeta muy corto', 'error'); return; }
   if (!area) { toast('Selecciona un area', 'error'); return; }
-  if (!turno) { toast('Selecciona un turno', 'error'); return; }
 
   // Sanitize folder name — this IS the worker ID, fixed forever
   var folderId = folder.replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -718,7 +703,6 @@ function doRegister() {
     id: folderId,
     name: name,
     area: area,
-    turno: turno,
     created: new Date().toISOString()
   };
 
@@ -755,7 +739,6 @@ function populateMain() {
   if (!worker) return;
   document.getElementById('mainName').textContent = worker.name;
   document.getElementById('mainArea').textContent = worker.area;
-  document.getElementById('mainTurno').textContent = worker.turno;
   var av = document.getElementById('mainAvatar');
   av.textContent = getInitials(worker.name);
   av.style.background = avatarColor(worker.name);
