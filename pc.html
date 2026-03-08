@@ -866,6 +866,9 @@ async function loadAllData() {
     }
     renderLegacy();
 
+    // 8. Auto-cleanup files older than 3 months (silent, in background)
+    autoCleanup();
+
   } catch (err) {
     console.error('Load error:', err);
     container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p></div>';
@@ -1589,11 +1592,9 @@ async function dlWorkerZip(wId) {
 }
 
 /* =========================================================
-   CLEANUP OLD FILES
+   AUTO-CLEANUP: delete files older than 3 months
    ========================================================= */
-async function cleanupOldFiles() {
-  if (!confirm('¿Eliminar archivos de mas de 3 meses?\n\nEsta accion no se puede deshacer.')) return;
-
+async function autoCleanup() {
   var cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - 3);
   var cutoffStr = cutoff.toISOString().split('T')[0];
@@ -1613,19 +1614,12 @@ async function cleanupOldFiles() {
     }
   }
 
-  if (!toDelete.length) {
-    showToast('No hay archivos de mas de 3 meses', 'info');
-    return;
-  }
+  if (!toDelete.length) return;
 
-  if (!confirm('Se encontraron ' + toDelete.length + ' carpeta(s) de fecha antigua.\n\n¿Eliminar ' + toDelete.length + ' carpeta(s)?')) return;
+  console.log('Auto-cleanup: eliminando ' + toDelete.length + ' carpeta(s) de mas de 3 meses');
 
-  showProgress('Eliminando archivos antiguos...');
   var deleted = 0;
-
   for (var j = 0; j < toDelete.length; j++) {
-    updateProgress((j / toDelete.length) * 100, 'Eliminando ' + (j + 1) + '/' + toDelete.length);
-
     try {
       var path = 'workers/' + toDelete[j].wId + '/' + toDelete[j].date + '/';
       var files = await sbList(path);
@@ -1635,13 +1629,35 @@ async function cleanupOldFiles() {
         await sbDelete(paths);
       }
       deleted++;
+
+      // Remove from local state
+      var fi = allWorkerFiles[toDelete[j].wId];
+      if (fi) {
+        fi.dates = fi.dates.filter(function(dd) { return dd !== toDelete[j].date; });
+        delete fi.loaded[toDelete[j].date];
+      }
     } catch (e) {
-      console.warn('Error deleting:', toDelete[j], e);
+      console.warn('Auto-cleanup error:', toDelete[j], e);
     }
   }
 
+  if (deleted > 0) {
+    showToast(deleted + ' carpeta(s) antigua(s) eliminada(s) automaticamente', 'info');
+    // Re-render without full reload
+    if (currentWorkerId) {
+      renderDetailView(currentWorkerId);
+    } else {
+      renderDirectory();
+    }
+  }
+}
+
+// Manual cleanup button (same behavior but with confirmation)
+async function cleanupOldFiles() {
+  if (!confirm('¿Eliminar archivos de mas de 3 meses?\n\nEsta accion no se puede deshacer.')) return;
+  showProgress('Eliminando archivos antiguos...');
+  await autoCleanup();
   hideProgress();
-  showToast(deleted + ' carpeta(s) eliminada(s)', 'success');
   loadAllData();
 }
 
