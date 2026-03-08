@@ -198,12 +198,76 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .install-banner .btns{display:flex;gap:8px}
 .install-banner .btn-install{flex:1;padding:11px;border-radius:10px;border:none;background:var(--tl);color:var(--n1);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
 .install-banner .btn-later{padding:11px 16px;border-radius:10px;border:1.5px solid var(--bd);background:none;color:var(--t2);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* === PROFILE SETUP === */
+#vProfile{background:var(--bg);justify-content:center;align-items:center;padding:28px 20px}
+.prCard{background:var(--s1);border-radius:var(--r1);padding:28px 22px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.1);text-align:center;animation:cardUp .35s ease}
+.prCard .ic{font-size:48px;margin-bottom:10px}
+.prCard h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;margin-bottom:3px}
+.prCard p{font-size:12px;color:var(--t2);margin-bottom:18px;line-height:1.5}
+.prField{text-align:left;margin-bottom:12px}
+.prField label{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+.prField input,.prField select{width:100%;padding:13px;border-radius:var(--r2);border:2px solid var(--bd);font-size:15px;font-family:inherit;font-weight:600;color:var(--t1);outline:none;transition:border-color .2s,box-shadow .2s;background:var(--s1)}
+.prField input:focus,.prField select:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.15)}
+.prSave{width:100%;padding:15px;border-radius:var(--r2);border:none;background:linear-gradient(135deg,var(--tl),var(--tl2));color:var(--n1);font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:6px;transition:transform .15s}
+.prSave:active{transform:scale(.97)}
+.prSave:disabled{opacity:.4}
+
+/* === HOME PROFILE INDICATOR === */
+.hProfile{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.hProfile .avatar{width:28px;height:28px;border-radius:50%;background:var(--tl);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--n1)}
+.hProfile .pname{font-size:11px;color:rgba(255,255,255,.5)}
+.hProfile .pedit{font-size:9px;color:var(--tl);text-decoration:underline}
+
+/* === SYNC AUTO FOLDER === */
+.syAutoFolder{background:rgba(78,205,196,.08);border:1.5px solid rgba(78,205,196,.3);border-radius:var(--r2);padding:14px;margin-bottom:12px;text-align:left}
+.syAutoFolder .label{font-size:10px;font-weight:700;color:var(--tl2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.syAutoFolder .fname{font-size:15px;font-weight:800;color:var(--t1)}
+.syAutoFolder .fdetail{font-size:11px;color:var(--t2);margin-top:2px}
 </style>
 </head>
 <body>
 
 <!-- OFFLINE BANNER -->
 <div class="offline-bar" id="offlineBar">Sin conexion a internet</div>
+
+<!-- PROFILE SETUP (first time only) -->
+<div class="V" id="vProfile">
+  <div class="prCard">
+    <div class="ic">👤</div>
+    <h2>Configurar perfil</h2>
+    <p>Solo la primera vez. Tu nombre se usara automaticamente para crear las carpetas.</p>
+    <div class="prField">
+      <label>Tu nombre</label>
+      <input type="text" id="prName" placeholder="Ej: Dr. Roberto Garcia" autocomplete="name">
+    </div>
+    <div class="prField">
+      <label>Area / Servicio</label>
+      <select id="prArea">
+        <option value="">Seleccionar (opcional)</option>
+        <option value="Medicina General">Medicina General</option>
+        <option value="Pediatria">Pediatria</option>
+        <option value="Ginecologia">Ginecologia</option>
+        <option value="Obstetricia">Obstetricia</option>
+        <option value="Enfermeria">Enfermeria</option>
+        <option value="Laboratorio">Laboratorio</option>
+        <option value="Farmacia">Farmacia</option>
+        <option value="Admision">Admision</option>
+        <option value="SIS">SIS</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div class="prField">
+      <label>Turno habitual</label>
+      <select id="prTurno">
+        <option value="Manana">Manana</option>
+        <option value="Tarde">Tarde</option>
+        <option value="Noche">Noche</option>
+      </select>
+    </div>
+    <button class="prSave" onclick="saveProfile()">Guardar y continuar</button>
+  </div>
+</div>
 
 <!-- HOME -->
 <div class="V on" id="vHome">
@@ -224,6 +288,11 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
     </div>
     <button class="hFolder" id="hFolder" onclick="go('vFolder')">📂 Mi carpeta <span class="c" id="hCnt">0</span></button>
     <div class="hLastSync" id="hLastSync"></div>
+    <div class="hProfile" id="hProfile" onclick="go('vProfile')" style="display:none">
+      <div class="avatar" id="hAvatar">?</div>
+      <span class="pname" id="hPName"></span>
+      <span class="pedit">editar</span>
+    </div>
   </div>
 </div>
 
@@ -292,9 +361,11 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
   </div>
   <div class="syBody">
     <div class="syCard">
-      <h3>Nombre de la carpeta</h3>
-      <p>Este nombre aparecera en la PC del centro.</p>
-      <input type="text" class="syInp" id="syInp" placeholder="Ej: Dr. Robb - Turno Manana">
+      <div class="syAutoFolder" id="syAutoFolder">
+        <div class="label">Carpeta automatica</div>
+        <div class="fname" id="syFolderName"></div>
+        <div class="fdetail" id="syFolderDetail"></div>
+      </div>
       <div class="syFiles" id="syFiles"></div>
       <div class="syProg" id="syProg"><div class="syBar"><div class="syFill" id="syFill"></div></div><div class="syTxt" id="syTxt"></div></div>
       <button class="syGo" id="syGo" onclick="doSync()">📤 Sincronizar ahora</button>
@@ -356,6 +427,7 @@ var cameraStream = null;
 var facingMode = 'environment';
 var flashOn = false;
 var deferredInstallPrompt = null;
+var profile = null; // { name, area, turno }
 
 /* =========================================================
    INDEXEDDB PERSISTENCE
@@ -435,6 +507,69 @@ async function loadFilesFromDB() {
   } catch (e) {
     console.warn('DB load error:', e);
   }
+}
+
+/* =========================================================
+   PROFILE
+   ========================================================= */
+function loadProfile() {
+  try {
+    var raw = localStorage.getItem('wichanzao_profile');
+    if (raw) profile = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function saveProfile() {
+  var name = document.getElementById('prName').value.trim();
+  if (!name) { toast('Escribe tu nombre', 'error'); haptic('error'); return; }
+  profile = {
+    name: name,
+    area: document.getElementById('prArea').value,
+    turno: document.getElementById('prTurno').value
+  };
+  localStorage.setItem('wichanzao_profile', JSON.stringify(profile));
+  updateProfileUI();
+  haptic('success');
+  toast('Perfil guardado', 'success');
+  go('vHome');
+}
+
+function updateProfileUI() {
+  var el = document.getElementById('hProfile');
+  if (profile && profile.name) {
+    el.style.display = 'flex';
+    var initials = profile.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
+    document.getElementById('hAvatar').textContent = initials;
+    var display = profile.name;
+    if (profile.area) display += ' · ' + profile.area;
+    document.getElementById('hPName').textContent = display;
+  }
+}
+
+function showProfileIfNeeded() {
+  if (!profile || !profile.name) {
+    // First time — show profile setup
+    document.querySelectorAll('.V').forEach(function(v) { v.classList.remove('on'); });
+    document.getElementById('vProfile').classList.add('on');
+  } else {
+    // Fill form for editing
+    document.getElementById('prName').value = profile.name;
+    document.getElementById('prArea').value = profile.area || '';
+    document.getElementById('prTurno').value = profile.turno || 'Manana';
+  }
+}
+
+function generateFolderName() {
+  if (!profile || !profile.name) return 'Sin_nombre';
+  var now = new Date();
+  var months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var dateStr = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  var turno = profile.turno || 'Manana';
+  var parts = [profile.name];
+  if (profile.area) parts.push(profile.area);
+  parts.push(dateStr);
+  parts.push('T' + turno);
+  return parts.join(' - ');
 }
 
 /* =========================================================
@@ -940,17 +1075,26 @@ function lbNext() {
    ========================================================= */
 function goSync() {
   if (!files.length) { toast('No hay archivos para enviar', 'error'); return; }
+  if (!profile || !profile.name) { toast('Configura tu perfil primero', 'error'); go('vProfile'); return; }
   go('vSync');
+
+  // Auto-generate folder name
+  var folderName = generateFolderName();
+  document.getElementById('syFolderName').textContent = folderName;
+  var detail = files.length + ' archivo(s)';
+  var pending = 0;
+  for (var i = 0; i < files.length; i++) { if (!files[i].uploaded) pending++; }
+  if (pending < files.length) detail += ' · ' + (files.length - pending) + ' ya subidos';
+  document.getElementById('syFolderDetail').textContent = detail;
+
   var list = document.getElementById('syFiles');
   var html = '';
-  var pending = 0;
   for (var i = 0; i < files.length; i++) {
     var f = files[i];
     var icon = f.type === 'pdf' ? '📑' : '📷';
     var extra = f.pages.length > 1 ? ' (' + f.pages.length + ' pags)' : '';
     var status = f.uploaded ? ' <span style="color:var(--success)">✓</span>' : '';
     html += '<div class="syFi">' + icon + ' ' + escHtml(f.name) + extra + status + '</div>';
-    if (!f.uploaded) pending++;
   }
   list.innerHTML = html;
   var base = location.href.substring(0, location.href.lastIndexOf('/') + 1);
@@ -962,8 +1106,8 @@ function goSync() {
 }
 
 async function doSync() {
-  var folderName = document.getElementById('syInp').value.trim();
-  if (!folderName) { toast('Escribe un nombre para la carpeta', 'error'); haptic('error'); return; }
+  var folderName = generateFolderName();
+  if (!folderName || folderName === 'Sin_nombre') { toast('Configura tu perfil primero', 'error'); haptic('error'); return; }
 
   if (!navigator.onLine) {
     toast('Sin conexion a internet', 'error');
@@ -1163,10 +1307,13 @@ if ('serviceWorker' in navigator) {
    INIT
    ========================================================= */
 (async function init() {
+  loadProfile();
   await loadFilesFromDB();
   updateBadge();
   updateLastSync();
   updateOnlineStatus();
+  updateProfileUI();
+  showProfileIfNeeded();
 })();
 </script>
 </body>

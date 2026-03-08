@@ -172,7 +172,14 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);min-h
       <span class="icon">🔍</span>
       <input type="text" id="searchInp" placeholder="Buscar carpeta o documento..." oninput="filterResults()">
     </div>
+    <select id="dateFilter" onchange="filterResults()" style="padding:10px 12px;border-radius:var(--r2);border:2px solid var(--bd);font-size:12px;font-weight:600;font-family:inherit;background:var(--s1);color:var(--t1);cursor:pointer">
+      <option value="all">Todas las fechas</option>
+      <option value="today">Hoy</option>
+      <option value="week">Esta semana</option>
+      <option value="month">Este mes</option>
+    </select>
     <button class="tbBtn primary" onclick="loadData()">🔄 Actualizar</button>
+    <button class="tbBtn danger" onclick="deleteOldFolders()">🗑 Limpiar antiguas</button>
   </div>
 
   <div id="out"><div class="ld"><div class="spinner"></div>Cargando documentos...</div></div>
@@ -466,25 +473,98 @@ async function loadData() {
 /* =========================================================
    SEARCH
    ========================================================= */
+function parseFolderDate(name) {
+  // Try to extract date from folder name patterns like "8 Mar 2026" or timestamps
+  var m = name.match(/(\d{1,2})[\s_]+(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)[\s_]+(\d{4})/i);
+  if (m) {
+    var months = { ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11 };
+    return new Date(parseInt(m[3]), months[m[2].toLowerCase()] || 0, parseInt(m[1]));
+  }
+  // Try to get date from first file's timestamp in the name
+  return null;
+}
+
 function filterResults() {
   var query = document.getElementById('searchInp').value.toLowerCase().trim();
-  if (!query) {
-    renderAllFolders(allFolders);
-    if (allFolders.length > 0) toggleFolder(0);
-    return;
-  }
+  var dateVal = document.getElementById('dateFilter').value;
+  var now = new Date();
+  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   var filtered = allFolders.filter(function(f) {
-    if (f.name.toLowerCase().replace(/_/g, ' ').includes(query)) return true;
-    for (var i = 0; i < f.docs.length; i++) {
-      if (f.docs[i].name.toLowerCase().includes(query)) return true;
+    // Text filter
+    if (query) {
+      var matchText = false;
+      if (f.name.toLowerCase().replace(/_/g, ' ').includes(query)) matchText = true;
+      for (var i = 0; i < f.docs.length; i++) {
+        if (f.docs[i].name.toLowerCase().includes(query)) matchText = true;
+      }
+      if (!matchText) return false;
     }
-    return false;
+
+    // Date filter
+    if (dateVal !== 'all') {
+      var fd = parseFolderDate(f.name);
+      if (!fd) return dateVal === 'all'; // If no date, only show in "all"
+      if (dateVal === 'today') {
+        return fd >= todayStart;
+      } else if (dateVal === 'week') {
+        var weekAgo = new Date(todayStart); weekAgo.setDate(weekAgo.getDate() - 7);
+        return fd >= weekAgo;
+      } else if (dateVal === 'month') {
+        var monthAgo = new Date(todayStart); monthAgo.setMonth(monthAgo.getMonth() - 1);
+        return fd >= monthAgo;
+      }
+    }
+    return true;
   });
+
   renderAllFolders(filtered);
-  // Auto-expand all results
   for (var i = 0; i < filtered.length; i++) {
     toggleFolder(i);
   }
+}
+
+async function deleteOldFolders() {
+  var days = prompt('Eliminar carpetas con mas de cuantos dias? (ej: 7)', '7');
+  if (!days) return;
+  days = parseInt(days);
+  if (isNaN(days) || days < 1) { pcToast('Numero invalido', 'error'); return; }
+
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  var toDelete = [];
+  for (var i = 0; i < allFolders.length; i++) {
+    var fd = parseFolderDate(allFolders[i].name);
+    if (fd && fd < cutoff) toDelete.push(allFolders[i].name);
+  }
+
+  if (!toDelete.length) {
+    pcToast('No hay carpetas con mas de ' + days + ' dias', 'info');
+    return;
+  }
+
+  if (!confirm('Se eliminaran ' + toDelete.length + ' carpeta(s) con mas de ' + days + ' dias:\n\n' + toDelete.map(function(n) { return n.replace(/_/g, ' '); }).join('\n') + '\n\n¿Continuar?')) return;
+
+  pcToast('Eliminando ' + toDelete.length + ' carpetas...', 'info');
+
+  for (var j = 0; j < toDelete.length; j++) {
+    try {
+      var files = await listBucket(toDelete[j] + '/');
+      var paths = files.filter(function(f) { return f.name; }).map(function(f) { return toDelete[j] + '/' + f.name; });
+      if (paths.length > 0) {
+        await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
+          method: 'DELETE', headers: hdrs,
+          body: JSON.stringify({ prefixes: paths })
+        });
+      }
+    } catch(e) {
+      console.warn('Error deleting folder:', toDelete[j], e);
+    }
+  }
+
+  pcToast(toDelete.length + ' carpetas eliminadas', 'success');
+  loadData();
 }
 
 // Ctrl+F shortcut
