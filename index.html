@@ -803,10 +803,18 @@ function openTodayFile(index) {
     return;
   }
   haptic();
-  // Open in fullscreen preview
-  var fp = document.getElementById('fullscreenPreview');
-  document.getElementById('fullscreenImg').src = f.url;
-  fp.classList.add('on');
+
+  if (f.type === 'pdf') {
+    // PDFs can't be cropped, just preview
+    var fp = document.getElementById('fullscreenPreview');
+    document.getElementById('fullscreenImg').src = f.url;
+    fp.classList.add('on');
+    return;
+  }
+
+  // Load image and open editor for crop/edit
+  editorTodayIndex = index;
+  openPhotoEditor(f.url, 'today', index);
 }
 
 function deleteTodayFile(index) {
@@ -1230,19 +1238,25 @@ function finalizePdf() {
 
 /* ===== PHOTO EDITOR ===== */
 var editorDataUrl = null;
-var editorSource = 'foto'; // 'foto' or 'pdf'
+var editorSource = 'foto'; // 'foto', 'pdf', or 'today'
 var editorPageIndex = -1;
+var editorTodayIndex = -1;
 var cropState = { dragging: false, handle: null, startX: 0, startY: 0, box: { x: 0, y: 0, w: 0, h: 0 }, imgRect: null };
 
 function openPhotoEditor(dataUrl, source, pageIndex) {
   editorDataUrl = dataUrl;
   editorSource = source || 'foto';
   editorPageIndex = pageIndex !== undefined ? pageIndex : -1;
+  if (source === 'today') editorTodayIndex = pageIndex;
 
   var img = document.getElementById('peImage');
+  img.crossOrigin = 'anonymous';
   img.src = dataUrl;
 
-  document.getElementById('peTitle').textContent = source === 'pdf' ? 'Editar pagina ' + (pageIndex + 1) : 'Editar foto';
+  var title = 'Editar foto';
+  if (source === 'pdf') title = 'Editar pagina ' + (pageIndex + 1);
+  if (source === 'today') title = 'Editar archivo';
+  document.getElementById('peTitle').textContent = title;
   document.getElementById('photoEditor').classList.add('on');
 
   // Wait for image to load, then init crop box
@@ -1281,7 +1295,10 @@ function resetCrop() {
 
 function deleteFromEditor() {
   haptic(30);
-  if (editorSource === 'pdf' && editorPageIndex >= 0) {
+  if (editorSource === 'today' && editorTodayIndex >= 0) {
+    deleteTodayFile(editorTodayIndex);
+    closePhotoEditor();
+  } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
     pdfPages.splice(editorPageIndex, 1);
     updateThumbStack();
     toast('Pagina eliminada', 'info');
@@ -1320,6 +1337,7 @@ function applyCrop() {
 
   // Calculate crop in original image coordinates
   var srcImg = new Image();
+  srcImg.crossOrigin = 'anonymous';
   srcImg.onload = function() {
     var scaleX = srcImg.width / iw;
     var scaleY = srcImg.height / ih;
@@ -1348,7 +1366,29 @@ function applyCrop() {
 function confirmCrop() {
   haptic(25);
 
-  if (editorSource === 'pdf' && editorPageIndex >= 0) {
+  if (editorSource === 'today' && editorTodayIndex >= 0) {
+    // Re-upload edited image to Supabase
+    var f = todayFiles[editorTodayIndex];
+    if (f && f.url) {
+      toast('Guardando cambios...', 'info');
+      var prefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
+      var storagePath = f.url.replace(prefix, '');
+
+      // Convert editor image to blob and re-upload
+      optimizeImage(editorDataUrl).then(function(optimized) {
+        var blob = dataUrlToBlob(optimized);
+        return uploadToSupabase(storagePath, blob, 'image/jpeg');
+      }).then(function() {
+        toast('Foto actualizada', 'success');
+        closePhotoEditor();
+      }).catch(function() {
+        toast('Error al guardar', 'error');
+        closePhotoEditor();
+      });
+    } else {
+      closePhotoEditor();
+    }
+  } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
     pdfPages[editorPageIndex] = editorDataUrl;
     updateThumbStack();
     toast('Pagina actualizada', 'success');

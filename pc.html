@@ -464,6 +464,54 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 .progress-text { font-size:12px; color:var(--t2); }
 
+/* ===== PC PHOTO EDITOR ===== */
+#pcEditor {
+  position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.95);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+}
+#pcEditor.on { display:flex; }
+#pcEditor .pce-top {
+  position:absolute; top:16px; left:16px; right:16px;
+  display:flex; align-items:center; justify-content:space-between; z-index:2;
+}
+#pcEditor .pce-title { color:#fff; font-size:16px; font-weight:700; }
+#pcEditor .pce-btn {
+  padding:10px 20px; border-radius:var(--r2); border:none; font-size:13px;
+  font-weight:700; font-family:inherit; cursor:pointer; display:inline-flex;
+  align-items:center; gap:6px; transition:all .15s;
+}
+#pcEditor .pce-btn:hover { opacity:.9; }
+#pcEditor .pce-btn.close { background:rgba(255,255,255,.15); color:#fff; }
+#pcEditor .pce-btn.save { background:var(--tl); color:var(--n1); }
+#pcEditor .pce-btn.danger { background:var(--danger); color:#fff; }
+#pcEditor .pce-btn.crop { background:rgba(255,255,255,.15); color:#fff; }
+#pcEditor .pce-wrap {
+  position:relative; max-width:90vw; max-height:75vh;
+  display:flex; align-items:center; justify-content:center;
+}
+#pcEditor .pce-wrap img {
+  max-width:90vw; max-height:75vh; object-fit:contain;
+  border-radius:8px; user-select:none;
+}
+#pcEditor .pce-crop {
+  position:absolute; border:2px dashed var(--tl);
+  box-shadow:0 0 0 9999px rgba(0,0,0,.5);
+  cursor:move; min-width:30px; min-height:30px;
+}
+#pcEditor .pce-crop .ch {
+  position:absolute; width:16px; height:16px;
+  background:var(--tl); border:2px solid #fff; border-radius:50%;
+  cursor:nw-resize; z-index:1;
+}
+#pcEditor .pce-crop .ch.tl { top:-8px; left:-8px; }
+#pcEditor .pce-crop .ch.tr { top:-8px; right:-8px; cursor:ne-resize; }
+#pcEditor .pce-crop .ch.bl { bottom:-8px; left:-8px; cursor:sw-resize; }
+#pcEditor .pce-crop .ch.br { bottom:-8px; right:-8px; cursor:se-resize; }
+#pcEditor .pce-bottom {
+  position:absolute; bottom:16px; left:16px; right:16px;
+  display:flex; align-items:center; justify-content:center; gap:12px; z-index:2;
+}
+
 /* ===== RESPONSIVE ===== */
 @media(max-width:768px) {
   .header-inner { padding:18px 16px; }
@@ -596,6 +644,31 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   </div>
 </div>
 
+<!-- PC PHOTO EDITOR -->
+<div id="pcEditor">
+  <div class="pce-top">
+    <button class="pce-btn close" onclick="closePcEditor()">&#10005; Cerrar</button>
+    <span class="pce-title" id="pceTitle">Editar imagen</span>
+    <div style="display:flex;gap:8px">
+      <button class="pce-btn danger" onclick="deletePcImage()">&#128465; Eliminar</button>
+      <button class="pce-btn crop" onclick="applyCropPc()">&#9986; Recortar</button>
+      <button class="pce-btn save" onclick="savePcEdit()">&#10003; Guardar</button>
+    </div>
+  </div>
+  <div class="pce-wrap" id="pceWrap">
+    <img id="pceImg" src="" crossorigin="anonymous">
+    <div class="pce-crop" id="pceCrop" style="display:none">
+      <div class="ch tl" data-h="tl"></div>
+      <div class="ch tr" data-h="tr"></div>
+      <div class="ch bl" data-h="bl"></div>
+      <div class="ch br" data-h="br"></div>
+    </div>
+  </div>
+  <div class="pce-bottom">
+    <button class="pce-btn crop" onclick="togglePcCrop()">&#9986; Activar recorte</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast info" id="toast"></div>
 
@@ -623,6 +696,15 @@ var countdownValue = REFRESH_INTERVAL;
 var isLoading = false;
 var lightboxImages = [];
 var lightboxIndex = 0;
+
+// PC Editor state
+var pceUrl = '';
+var pcePath = '';
+var pceDocName = '';
+var pceCropping = false;
+var pceCropData = null;
+var pceEdited = false;
+var pceEditedDataUrl = '';
 
 /* =========================================================
    HELPERS
@@ -1311,6 +1393,8 @@ function renderFileCard(doc, pathPrefix) {
     html += '<button class="dl-btn secondary" onclick="dlMultipleImages(this)" data-pages="' + escHtml(JSON.stringify(doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; }))) + '">&#128444; Imagenes</button>';
   } else {
     html += '<button class="dl-btn primary" onclick="forceDl(\'' + doc.pages[0].url + '\',\'' + escHtml(doc.name) + '.jpg\')">&#128190; Descargar JPG</button>';
+    html += '<button class="dl-btn secondary" onclick="openPcEditor(\'' + escHtml(doc.pages[0].url) + '\',\'' + escHtml(pathPrefix + '/' + doc.pages[0].rawName) + '\',\'' + escHtml(doc.name) + '\')">&#9998; Editar</button>';
+    html += '<button class="dl-btn danger" style="color:#fff" onclick="deletePcFile(\'' + escHtml(pathPrefix + '/' + doc.pages[0].rawName) + '\')">&#128465;</button>';
   }
 
   html += '</div>';
@@ -1323,6 +1407,8 @@ function renderFileCard(doc, pathPrefix) {
       html += '<img src="' + doc.pages[pi].url + '" onclick="openLightboxSingle(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name + ' - Pag ' + doc.pages[pi].num) + '\')" onerror="this.style.background=\'var(--s2)\'">';
       html += '<span>Pag ' + doc.pages[pi].num + '</span>';
       html += '<button onclick="forceDl(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + '_pag' + doc.pages[pi].num + '.jpg\')">&#128190;</button>';
+      html += '<button onclick="openPcEditor(\'' + escHtml(doc.pages[pi].url) + '\',\'' + escHtml(pathPrefix + '/' + doc.pages[pi].rawName) + '\',\'' + escHtml(doc.name + ' - Pag ' + doc.pages[pi].num) + '\')" style="color:var(--gd)">&#9998;</button>';
+      html += '<button onclick="deletePcFile(\'' + escHtml(pathPrefix + '/' + doc.pages[pi].rawName) + '\')" style="color:var(--danger)">&#128465;</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -1762,6 +1848,11 @@ document.addEventListener('keydown', function(e) {
 
   // Escape -> close lightbox or go back to directory
   if (e.key === 'Escape') {
+    var pce = document.getElementById('pcEditor');
+    if (pce.classList.contains('on')) {
+      closePcEditor();
+      return;
+    }
     var lb = document.getElementById('lightbox');
     if (lb.classList.contains('on')) {
       closeLightbox();
@@ -1776,6 +1867,267 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowRight') navLightbox(1);
   }
 });
+
+/* =========================================================
+   PC PHOTO EDITOR
+   ========================================================= */
+function openPcEditor(url, storagePath, docName) {
+  pceUrl = url;
+  pcePath = storagePath;
+  pceDocName = docName || 'Imagen';
+  pceCropping = false;
+  pceCropData = null;
+  pceEdited = false;
+  pceEditedDataUrl = '';
+
+  document.getElementById('pceTitle').textContent = pceDocName;
+  document.getElementById('pceCrop').style.display = 'none';
+
+  var img = document.getElementById('pceImg');
+  img.onload = function() {
+    document.getElementById('pcEditor').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  };
+  img.onerror = function() { showToast('No se pudo cargar la imagen', 'error'); };
+  img.src = url;
+}
+
+function closePcEditor() {
+  document.getElementById('pcEditor').classList.remove('on');
+  document.body.style.overflow = '';
+  pceCropping = false;
+  document.getElementById('pceCrop').style.display = 'none';
+}
+
+function togglePcCrop() {
+  pceCropping = !pceCropping;
+  var cropEl = document.getElementById('pceCrop');
+
+  if (pceCropping) {
+    var img = document.getElementById('pceImg');
+    var r = img.getBoundingClientRect();
+    var pad = 40;
+    cropEl.style.left = pad + 'px';
+    cropEl.style.top = pad + 'px';
+    cropEl.style.width = (r.width - pad * 2) + 'px';
+    cropEl.style.height = (r.height - pad * 2) + 'px';
+    cropEl.style.display = 'block';
+  } else {
+    cropEl.style.display = 'none';
+  }
+}
+
+function applyCropPc() {
+  if (!pceCropping) {
+    showToast('Activa el recorte primero', 'info');
+    return;
+  }
+
+  var img = document.getElementById('pceImg');
+  var cropEl = document.getElementById('pceCrop');
+  var imgRect = img.getBoundingClientRect();
+  var cropRect = cropEl.getBoundingClientRect();
+
+  // Calculate crop ratios relative to displayed image
+  var scaleX = img.naturalWidth / imgRect.width;
+  var scaleY = img.naturalHeight / imgRect.height;
+
+  var sx = Math.max(0, (cropRect.left - imgRect.left) * scaleX);
+  var sy = Math.max(0, (cropRect.top - imgRect.top) * scaleY);
+  var sw = cropRect.width * scaleX;
+  var sh = cropRect.height * scaleY;
+
+  // Clamp
+  if (sx + sw > img.naturalWidth) sw = img.naturalWidth - sx;
+  if (sy + sh > img.naturalHeight) sh = img.naturalHeight - sy;
+
+  var canvas = document.createElement('canvas');
+  canvas.width = Math.round(sw);
+  canvas.height = Math.round(sh);
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(img, Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh), 0, 0, canvas.width, canvas.height);
+
+  pceEditedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  pceEdited = true;
+  img.src = pceEditedDataUrl;
+
+  pceCropping = false;
+  cropEl.style.display = 'none';
+  showToast('Recorte aplicado - pulsa Guardar para confirmar', 'success');
+}
+
+function savePcEdit() {
+  if (!pceEdited || !pceEditedDataUrl) {
+    showToast('No hay cambios para guardar', 'info');
+    return;
+  }
+
+  var binary = atob(pceEditedDataUrl.split(',')[1]);
+  var arr = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  var blob = new Blob([arr], { type: 'image/jpeg' });
+
+  showToast('Guardando...', 'info');
+
+  fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + pcePath, {
+    method: 'PUT',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: blob
+  }).then(function(res) {
+    if (!res.ok) throw new Error('Error ' + res.status);
+    showToast('Imagen actualizada', 'success');
+    pceEdited = false;
+    closePcEditor();
+    // Refresh data to show updated image
+    invalidateCacheForPath(pcePath);
+    loadAllData();
+  }).catch(function(e) {
+    showToast('Error al guardar: ' + e.message, 'error');
+  });
+}
+
+function deletePcImage() {
+  if (!confirm('¿Eliminar esta imagen?\n\nEsta accion no se puede deshacer.')) return;
+  closePcEditor();
+  doDeletePcFile(pcePath);
+}
+
+function deletePcFile(storagePath) {
+  if (!confirm('¿Eliminar este archivo?\n\nEsta accion no se puede deshacer.')) return;
+  doDeletePcFile(storagePath);
+}
+
+function doDeletePcFile(storagePath) {
+
+  showToast('Eliminando...', 'info');
+  sbDelete([storagePath]).then(function(res) {
+    if (!res.ok) throw new Error('Error ' + res.status);
+    showToast('Archivo eliminado', 'success');
+    invalidateCacheForPath(storagePath);
+    loadAllData();
+  }).catch(function(e) {
+    showToast('Error al eliminar: ' + e.message, 'error');
+  });
+}
+
+function invalidateCacheForPath(path) {
+  // Clear loaded cache for the date folder containing this file
+  // path is like: workers/id/2026-03-08/filename.jpg
+  var parts = path.split('/');
+  if (parts.length >= 3 && parts[0] === 'workers') {
+    var wId = parts[1];
+    var date = parts[2];
+    var fi = allWorkerFiles[wId];
+    if (fi && fi.loaded[date]) {
+      delete fi.loaded[date];
+    }
+  }
+}
+
+/* PC Editor drag handlers */
+(function() {
+  var crop, wrap, dragging = false, resizing = false, handle = '';
+  var startX, startY, startL, startT, startW, startH;
+
+  function init() {
+    crop = document.getElementById('pceCrop');
+    wrap = document.getElementById('pceWrap');
+    if (!crop || !wrap) return;
+
+    crop.addEventListener('mousedown', function(e) {
+      if (e.target.classList.contains('ch')) {
+        resizing = true;
+        handle = e.target.getAttribute('data-h');
+      } else {
+        dragging = true;
+      }
+      startX = e.clientX;
+      startY = e.clientY;
+      startL = crop.offsetLeft;
+      startT = crop.offsetTop;
+      startW = crop.offsetWidth;
+      startH = crop.offsetHeight;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!dragging && !resizing) return;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      var img = document.getElementById('pceImg');
+      var imgRect = img.getBoundingClientRect();
+      var wrapRect = wrap.getBoundingClientRect();
+      var imgL = imgRect.left - wrapRect.left;
+      var imgT = imgRect.top - wrapRect.top;
+      var maxW = imgRect.width;
+      var maxH = imgRect.height;
+
+      if (dragging) {
+        var nl = Math.max(imgL, Math.min(startL + dx, imgL + maxW - crop.offsetWidth));
+        var nt = Math.max(imgT, Math.min(startT + dy, imgT + maxH - crop.offsetHeight));
+        crop.style.left = nl + 'px';
+        crop.style.top = nt + 'px';
+      }
+
+      if (resizing) {
+        var nw, nh, nl2, nt2;
+        if (handle === 'br') {
+          nw = Math.max(30, Math.min(startW + dx, imgL + maxW - startL));
+          nh = Math.max(30, Math.min(startH + dy, imgT + maxH - startT));
+          crop.style.width = nw + 'px';
+          crop.style.height = nh + 'px';
+        } else if (handle === 'bl') {
+          nw = Math.max(30, startW - dx);
+          nh = Math.max(30, Math.min(startH + dy, imgT + maxH - startT));
+          nl2 = startL + (startW - nw);
+          if (nl2 >= imgL) {
+            crop.style.left = nl2 + 'px';
+            crop.style.width = nw + 'px';
+          }
+          crop.style.height = nh + 'px';
+        } else if (handle === 'tr') {
+          nw = Math.max(30, Math.min(startW + dx, imgL + maxW - startL));
+          nh = Math.max(30, startH - dy);
+          nt2 = startT + (startH - nh);
+          if (nt2 >= imgT) {
+            crop.style.top = nt2 + 'px';
+            crop.style.height = nh + 'px';
+          }
+          crop.style.width = nw + 'px';
+        } else if (handle === 'tl') {
+          nw = Math.max(30, startW - dx);
+          nh = Math.max(30, startH - dy);
+          nl2 = startL + (startW - nw);
+          nt2 = startT + (startH - nh);
+          if (nl2 >= imgL) {
+            crop.style.left = nl2 + 'px';
+            crop.style.width = nw + 'px';
+          }
+          if (nt2 >= imgT) {
+            crop.style.top = nt2 + 'px';
+            crop.style.height = nh + 'px';
+          }
+        }
+      }
+    });
+
+    document.addEventListener('mouseup', function() {
+      dragging = false;
+      resizing = false;
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 
 /* =========================================================
    INIT
