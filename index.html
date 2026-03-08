@@ -133,7 +133,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 
 /* ===== VIEW: CAMERA ===== */
 #vCam{background:#000;overflow:hidden}
-.cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
 .cam-overlay{position:absolute;inset:0;display:flex;flex-direction:column;z-index:2}
 .cam-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + var(--st));background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,transparent 100%)}
 .cam-top-btn{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s}
@@ -862,8 +862,29 @@ function capturePhoto() {
   var video = document.getElementById('camVideo');
   var canvas = document.getElementById('camCanvas');
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  // Calculate visible area (match object-fit:cover crop)
+  var vw = video.videoWidth;
+  var vh = video.videoHeight;
+  var ew = video.clientWidth;
+  var eh = video.clientHeight;
+
+  var videoRatio = vw / vh;
+  var screenRatio = ew / eh;
+
+  var sx = 0, sy = 0, sw = vw, sh = vh;
+
+  if (videoRatio > screenRatio) {
+    // Video is wider than screen — crop sides
+    sw = Math.round(vh * screenRatio);
+    sx = Math.round((vw - sw) / 2);
+  } else {
+    // Video is taller than screen — crop top/bottom
+    sh = Math.round(vw / screenRatio);
+    sy = Math.round((vh - sh) / 2);
+  }
+
+  canvas.width = sw;
+  canvas.height = sh;
   var ctx = canvas.getContext('2d');
 
   // Mirror if front camera
@@ -871,7 +892,7 @@ function capturePhoto() {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(video, 0, 0);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   if (facingMode === 'user') {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
