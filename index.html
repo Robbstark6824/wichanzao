@@ -764,10 +764,10 @@ function saveTodayFiles() {
   localStorage.setItem(getTodayKey(), JSON.stringify(todayFiles));
 }
 
-function addTodayFile(name, type) {
+function addTodayFile(name, type, url) {
   var now = new Date();
   var time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  todayFiles.push({ name: name, time: time, type: type });
+  todayFiles.push({ name: name, time: time, type: type, url: url || '' });
   saveTodayFiles();
   updateTodayCount();
 }
@@ -779,16 +779,67 @@ function updateTodayCount() {
   var list = todayFiles.slice().reverse().slice(0, 10);
   for (var i = 0; i < list.length; i++) {
     var f = list[i];
+    var realIndex = todayFiles.length - 1 - i;
     var iconPath = f.type === 'pdf'
       ? '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>'
       : '<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>';
     var el = document.createElement('div');
     el.className = 'today-file';
+    el.style.cursor = 'pointer';
+    el.setAttribute('data-index', realIndex);
+    el.onclick = function() { openTodayFile(parseInt(this.getAttribute('data-index'))); };
     el.innerHTML = '<div class="tf-icon"><svg viewBox="0 0 24 24">' + iconPath + '</svg></div>' +
       '<span class="tf-name">' + escapeHtml(f.name) + '</span>' +
-      '<span class="tf-time">' + f.time + '</span>';
+      '<span class="tf-time">' + f.time + '</span>' +
+      '<button class="tf-del" data-index="' + realIndex + '" onclick="event.stopPropagation();deleteTodayFile(' + realIndex + ')" style="background:none;border:none;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
     container.appendChild(el);
   }
+}
+
+function openTodayFile(index) {
+  var f = todayFiles[index];
+  if (!f || !f.url) {
+    toast('Archivo pendiente de subir', 'info');
+    return;
+  }
+  haptic();
+  // Open in fullscreen preview
+  var fp = document.getElementById('fullscreenPreview');
+  document.getElementById('fullscreenImg').src = f.url;
+  fp.classList.add('on');
+}
+
+function deleteTodayFile(index) {
+  var f = todayFiles[index];
+  if (!f) return;
+
+  haptic(30);
+
+  if (f.url) {
+    // Extract storage path from public URL
+    var prefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
+    var storagePath = f.url.replace(prefix, '');
+
+    // Delete from Supabase
+    fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + SB_KEY,
+        'apikey': SB_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ prefixes: [storagePath] })
+    }).then(function() {
+      toast('Archivo eliminado', 'success');
+    }).catch(function() {
+      toast('Error al eliminar del servidor', 'error');
+    });
+  }
+
+  // Remove from local list
+  todayFiles.splice(index, 1);
+  saveTodayFiles();
+  updateTodayCount();
 }
 
 function escapeHtml(str) {
@@ -1467,15 +1518,17 @@ function confirmQuickName() {
 }
 
 function doUploadFoto(filename, dataUrl) {
+  var filePath = '';
   optimizeImage(dataUrl).then(function(optimized) {
     var blob = dataUrlToBlob(optimized);
     var now = new Date();
     var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     var ts = now.getTime();
-    var path = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
-    return uploadToSupabase(path, blob, 'image/jpeg');
+    filePath = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
+    return uploadToSupabase(filePath, blob, 'image/jpeg');
   }).then(function() {
-    addTodayFile(filename + '.jpg', 'foto');
+    var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + filePath;
+    addTodayFile(filename + '.jpg', 'foto', pubUrl);
     toast('Foto subida', 'success');
     haptic(30);
     updateTodayCount();
@@ -1508,7 +1561,8 @@ function doUploadPdf(filename, pages) {
         uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
           return uploadIndividualImages(filename, optimizedPages);
         }).then(function() {
-          addTodayFile(filename + '.pdf', 'pdf');
+          var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + pdfPath;
+          addTodayFile(filename + '.pdf', 'pdf', pubUrl);
           toast('PDF subido (' + totalPages + ' pag.)', 'success');
           haptic(30);
           updateTodayCount();
