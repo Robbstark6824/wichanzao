@@ -1086,7 +1086,7 @@ function openReviewPanel() {
   for (var i = 0; i < pdfPages.length; i++) {
     var page = document.createElement('div');
     page.className = 'review-page';
-    page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '" onclick="openFullscreen(' + i + ')">' +
+    page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '" onclick="editPdfPage(' + i + ')">' +
       '<div class="rp-num">Pag. ' + (i+1) + '</div>' +
       '<button class="rp-del" onclick="deletePage(' + i + ')"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></button>';
     scroll.appendChild(page);
@@ -1109,6 +1109,12 @@ function deletePage(index) {
   } else {
     openReviewPanel(); // refresh
   }
+}
+
+function editPdfPage(index) {
+  haptic();
+  closeReviewPanel();
+  openPhotoEditor(pdfPages[index], 'pdf', index);
 }
 
 function openFullscreen(index) {
@@ -1228,11 +1234,15 @@ function deleteFromEditor() {
     pdfPages.splice(editorPageIndex, 1);
     updateThumbStack();
     toast('Pagina eliminada', 'info');
+    closePhotoEditor();
+    if (pdfPages.length > 0) {
+      setTimeout(openReviewPanel, 300);
+    }
   } else {
     capturedSingleImage = null;
     toast('Foto eliminada', 'info');
+    closePhotoEditor();
   }
-  closePhotoEditor();
 }
 
 function applyCrop() {
@@ -1290,7 +1300,9 @@ function confirmCrop() {
   if (editorSource === 'pdf' && editorPageIndex >= 0) {
     pdfPages[editorPageIndex] = editorDataUrl;
     updateThumbStack();
+    toast('Pagina actualizada', 'success');
     closePhotoEditor();
+    setTimeout(openReviewPanel, 300);
   } else {
     capturedSingleImage = editorDataUrl;
     closePhotoEditor();
