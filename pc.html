@@ -62,25 +62,6 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* ===== MAIN LAYOUT ===== */
 .main { max-width:1400px; margin:0 auto; padding:24px 24px 60px; }
 
-/* ===== STATS BAR ===== */
-.stats-bar {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:12px; margin-bottom:24px;
-}
-.stat-card {
-  background:var(--s1); border-radius:var(--r2); padding:18px 20px;
-  border:1px solid var(--bd); text-align:center;
-  transition:transform .2s, box-shadow .2s;
-}
-.stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.06); }
-.stat-val { font-size:28px; font-weight:800; color:var(--n1); line-height:1; }
-.stat-val.teal { color:var(--tl); }
-.stat-val.gold { color:var(--gd); }
-.stat-label {
-  font-size:10px; color:var(--t3); text-transform:uppercase;
-  letter-spacing:1px; font-weight:700; margin-top:4px;
-}
-
 /* ===== TOOLBAR ===== */
 .toolbar {
   display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center;
@@ -557,7 +538,6 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   .header-inner { padding:18px 16px; }
   .header-left h1 { font-size:17px; }
   .main { padding:16px 12px 40px; }
-  .stats-bar { grid-template-columns:repeat(2,1fr); }
   .detail-header { padding:16px; flex-direction:column; align-items:flex-start; }
   .detail-name { font-size:18px; }
   .file-card { flex-direction:column; }
@@ -566,9 +546,6 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   .search-wrap .search-hint { display:none; }
 }
 @media(max-width:480px) {
-  .stats-bar { grid-template-columns:1fr 1fr; gap:8px; }
-  .stat-card { padding:12px; }
-  .stat-val { font-size:22px; }
   .detail-actions { width:100%; }
   .detail-actions .dl-btn { flex:1; justify-content:center; }
 }
@@ -598,26 +575,6 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 <!-- MAIN -->
 <div class="main">
 
-  <!-- Stats Bar -->
-  <div class="stats-bar" id="statsBar" style="display:none">
-    <div class="stat-card">
-      <div class="stat-val teal" id="statWorkers">0</div>
-      <div class="stat-label">Trabajadores activos</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statDocsToday">0</div>
-      <div class="stat-label">Documentos hoy</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val gold" id="statTotalDocs">0</div>
-      <div class="stat-label">Total documentos</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statTotalWorkers">0</div>
-      <div class="stat-label">Trabajadores registrados</div>
-    </div>
-  </div>
-
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="search-wrap">
@@ -627,29 +584,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
       <input type="text" id="searchInput" placeholder="Buscar por nombre o area..." oninput="applyFilters()">
       <span class="search-hint">Ctrl+F</span>
     </div>
-    <select id="servicioFilter" onchange="setServicioFilter(this.value)">
-      <option value="all">Todos los servicios</option>
-      <option value="medicina">Medicina</option>
-      <option value="enfermeria">Enfermeria</option>
-      <option value="obstetricia">Obstetricia</option>
-      <option value="psicologia">Psicologia</option>
-      <option value="odontologia">Odontologia</option>
-      <option value="nutricion">Nutricion</option>
-      <option value="administrativos">Administrativos</option>
-    </select>
-    <select id="dateFilter" onchange="applyFilters()">
-      <option value="all">Todas las fechas</option>
-      <option value="today">Hoy</option>
-      <option value="week">Esta semana</option>
-      <option value="month">Este mes</option>
-    </select>
     <button class="tb-btn primary" onclick="loadAllData()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.74"/><polyline points="21 3 21 9 15 9"/></svg>
       Actualizar
-    </button>
-    <button class="tb-btn danger" id="btnCleanup" onclick="cleanupOldFiles()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-      Limpiar antiguos
     </button>
   </div>
 
@@ -1064,9 +1001,7 @@ async function loadAllData() {
       legacyFolders.push({ name: legacyNames[li] });
     }
 
-    // 6. Update stats
-    document.getElementById('statsBar').style.display = 'grid';
-    updateStats();
+    // 6. Ready to render
 
     // 7. Render (skip DOM rebuild on auto-refresh if no new workers)
     var shouldRender = isFirstLoad || !autoRefreshing;
@@ -1082,8 +1017,13 @@ async function loadAllData() {
       // Silent refresh: only update stats, don't rebuild DOM
     }
 
-    // 8. Auto-cleanup files older than 3 months (silent, in background)
-    autoCleanup();
+    // 8. Auto-cleanup once per day
+    var lastClean = localStorage.getItem('wichanzao_pc_lastclean') || '';
+    var todayClean = todayStr();
+    if (lastClean !== todayClean) {
+      autoCleanup();
+      localStorage.setItem('wichanzao_pc_lastclean', todayClean);
+    }
 
   } catch (err) {
     console.error('Load error:', err);
@@ -1354,9 +1294,7 @@ function renderDetailView(wId) {
   var fileInfo = allWorkerFiles[wId];
   var dates = fileInfo ? fileInfo.dates : [];
 
-  // Apply date filter
-  var dateFilter = document.getElementById('dateFilter').value;
-  var filteredDates = filterDates(dates, dateFilter);
+  var filteredDates = dates;
 
   var html = '';
 
@@ -1464,59 +1402,10 @@ function renderDetailView(wId) {
 /* =========================================================
    DATE FILTERING
    ========================================================= */
-function filterDates(dates, filterVal) {
-  if (filterVal === 'all') return dates;
-  var now = new Date();
-  var todayS = todayStr();
-
-  return dates.filter(function(d) {
-    if (filterVal === 'today') return d === todayS;
-    var dt = new Date(d + 'T12:00:00');
-    if (filterVal === 'week') {
-      var weekAgo = new Date(now);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return dt >= weekAgo;
-    }
-    if (filterVal === 'month') {
-      var monthAgo = new Date(now);
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return dt >= monthAgo;
-    }
-    return true;
-  });
-}
-
 function setServicioFilter(val) {
   servicioFilter = val;
   localStorage.setItem('wichanzao_pc_servicio', val);
-  updateStats();
   applyFilters();
-}
-
-function updateStats() {
-  var todayS = todayStr();
-  var filtered = allWorkers;
-  if (servicioFilter && servicioFilter !== 'all') {
-    filtered = allWorkers.filter(function(w) {
-      var ws = w._servicio || w.servicio || '';
-      return ws === servicioFilter;
-    });
-  }
-  var totalDocs = 0, docsToday = 0, activeCount = 0;
-  for (var i = 0; i < filtered.length; i++) {
-    var wId = filtered[i]._folder || filtered[i].worker_id;
-    var fi = allWorkerFiles[wId];
-    if (fi) {
-      totalDocs += fi.dates.length;
-      if (fi.dates.indexOf(todayS) !== -1) docsToday++;
-    }
-    var act = activityInfo(filtered[i].last_active);
-    if (act.color === 'green') activeCount++;
-  }
-  document.getElementById('statWorkers').textContent = activeCount;
-  document.getElementById('statDocsToday').textContent = docsToday;
-  document.getElementById('statTotalDocs').textContent = totalDocs;
-  document.getElementById('statTotalWorkers').textContent = filtered.length;
 }
 
 function applyFilters() {
@@ -1946,15 +1835,6 @@ async function autoCleanup() {
       renderDirectory();
     }
   }
-}
-
-// Manual cleanup button (same behavior but with confirmation)
-async function cleanupOldFiles() {
-  if (!confirm('¿Eliminar archivos de mas de 3 meses?\n\nEsta accion no se puede deshacer.')) return;
-  showProgress('Eliminando archivos antiguos...');
-  await autoCleanup();
-  hideProgress();
-  loadAllData();
 }
 
 /* =========================================================
@@ -2397,14 +2277,6 @@ function softReloadDate(path) {
 /* =========================================================
    INIT
    ========================================================= */
-// Restore saved servicio filter
-(function() {
-  var sel = document.getElementById('servicioFilter');
-  if (sel && servicioFilter !== 'all') {
-    sel.value = servicioFilter;
-  }
-})();
-
 loadAllData();
 startAutoRefresh();
 </script>
