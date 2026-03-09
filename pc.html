@@ -1059,7 +1059,7 @@ function renderServiceHub() {
     // Count workers in this servicio
     var count = allWorkers.filter(function(w) { return (w._servicio || w.servicio || '') === key; }).length;
 
-    html += '<div class="service-card" onclick="document.getElementById(\'servicioFilter\').value=\'' + key + '\';setServicioFilter(\'' + key + '\')">';
+    html += '<div class="service-card" onclick="setServicioFilter(\'' + key + '\')">';
     html += '<div class="service-icon" style="background:' + si.bg + '">' + si.icon + '</div>';
     html += '<div class="service-name">' + s.label + '</div>';
     html += '<div class="service-count">' + count + ' usuario' + (count !== 1 ? 's' : '') + '</div>';
@@ -1102,12 +1102,24 @@ function renderDirectory() {
     });
   }
 
+  // Back to hub header
+  var sLabel = servicioFilter && SERVICIOS[servicioFilter] ? SERVICIOS[servicioFilter].label : '';
+  var headerHtml = '';
+  if (sLabel && !query) {
+    headerHtml += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">';
+    headerHtml += '<button onclick="setServicioFilter(\'all\')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;font-weight:700;color:var(--tl);padding:8px 14px;border-radius:8px;transition:background .2s" onmouseover="this.style.background=\'rgba(78,205,196,.08)\'" onmouseout="this.style.background=\'none\'">';
+    headerHtml += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>';
+    headerHtml += 'Servicios</button>';
+    headerHtml += '<h3 style="font-family:Playfair Display,serif;font-size:20px;font-weight:900;color:var(--n1)">' + sLabel + '</h3>';
+    headerHtml += '</div>';
+  }
+
   if (!filtered.length) {
-    container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><h3>Sin trabajadores</h3><p>Cuando el personal se registre en la app movil, apareceran aqui.</p></div>';
+    container.innerHTML = headerHtml + '<div class="empty-state"><div class="icon">&#128101;</div><h3>Sin trabajadores</h3><p>Cuando el personal se registre en la app movil, apareceran aqui.</p></div>';
     return;
   }
 
-  var html = '<div class="workers-grid">';
+  var html = headerHtml + '<div class="workers-grid">';
   for (var i = 0; i < filtered.length; i++) {
     var w = filtered[i];
     var act = activityInfo(w.last_active);
