@@ -104,18 +104,35 @@ body.dark .prev-date-card.expanded{box-shadow:0 2px 12px rgba(78,205,196,.05)}
 
 /* ===== VIEW: SETTINGS ===== */
 #vSettings{background:var(--bg);padding-top:var(--st)}
-.settings-header{display:flex;align-items:center;gap:12px;padding:18px 16px;background:linear-gradient(135deg,#0C1F3D 0%,#142952 60%,#1B3A6B 100%);box-shadow:0 4px 20px rgba(12,31,61,.2)}
+.settings-header{display:flex;align-items:center;gap:12px;padding:18px 16px;background:linear-gradient(135deg,#0C1F3D 0%,#142952 60%,#1B3A6B 100%);box-shadow:0 4px 20px rgba(12,31,61,.2);position:relative;overflow:hidden}
+.settings-header::after{content:'';position:absolute;top:-40%;right:-20%;width:160px;height:160px;background:radial-gradient(circle,rgba(78,205,196,.08) 0%,transparent 70%);border-radius:50%;pointer-events:none}
 .settings-header h3{font-size:17px;font-weight:800;color:#fff;flex:1}
-.settings-header button svg{fill:#fff !important}
-.settings-section{padding:16px}
-.settings-section h4{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
-.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(0,0,0,.06)}
-body.dark .settings-item{border-bottom-color:var(--bd)}
-.settings-item .si-left{display:flex;align-items:center;gap:12px;flex:1}
+/* Profile Card */
+.settings-profile{display:flex;align-items:center;gap:14px;padding:20px;margin:16px;background:var(--s1);border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.03);position:relative;overflow:hidden}
+.settings-profile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--tl),var(--gd))}
+.sp-avatar{width:52px;height:52px;border-radius:16px;background:var(--tl);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(78,205,196,.25)}
+.sp-info{flex:1;min-width:0}
+.sp-info h4{font-size:16px;font-weight:800;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-info p{font-size:12px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-badge{background:linear-gradient(135deg,rgba(78,205,196,.12),rgba(78,205,196,.04));color:var(--tl);font-size:10px;font-weight:700;padding:5px 10px;border-radius:20px;border:1px solid rgba(78,205,196,.15);white-space:nowrap;letter-spacing:.3px}
+body.dark .settings-profile{background:var(--s1);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.settings-section{padding:0 16px;margin-top:20px}
+.settings-section h4{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-left:4px}
+.settings-card{background:var(--s1);border-radius:16px;padding:4px 16px;box-shadow:0 2px 12px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.02)}
+body.dark .settings-card{background:var(--s1);box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.settings-card-danger{border:1px solid rgba(229,62,62,.1)}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.settings-item:last-child{border-bottom:none}
+body.dark .settings-item{border-bottom-color:rgba(255,255,255,.05)}
+.settings-item .si-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
 .settings-item .si-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .settings-item .si-icon svg{width:20px;height:20px}
+.settings-item .si-text{min-width:0}
 .settings-item .si-text h5{font-size:14px;font-weight:600;color:var(--t1)}
-.settings-item .si-text p{font-size:11px;color:var(--t3);margin-top:2px}
+.settings-item .si-text p{font-size:11px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.settings-version-badge{background:linear-gradient(135deg,var(--tl),var(--tl2));color:var(--n1);font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.3px}
+.settings-logout{width:100%;padding:15px;background:none;border:1.5px solid rgba(229,62,62,.15);border-radius:14px;color:#E53E3E;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.settings-logout:active{background:rgba(229,62,62,.06);transform:scale(.98)}
 /* Toggle switch */
 .toggle{width:48px;height:28px;border-radius:14px;background:var(--bd);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
 .toggle.on{background:var(--tl)}
@@ -698,124 +715,149 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 <!-- ===== VIEW: SETTINGS ===== -->
 <div class="V" id="vSettings">
   <div class="settings-header">
-    <button onclick="closeSettings()" style="background:none;border:none;padding:4px;cursor:pointer">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--t1)"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    <button onclick="closeSettings()" style="background:rgba(255,255,255,.1);border:none;padding:8px;cursor:pointer;border-radius:10px;display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
     </button>
     <h3>Configuracion</h3>
   </div>
-  <div style="overflow-y:auto;flex:1;padding-bottom:40px">
-    <!-- General -->
+  <div style="overflow-y:auto;flex:1;padding-bottom:40px;-webkit-overflow-scrolling:touch">
+    <!-- Profile Card -->
+    <div class="settings-profile">
+      <div class="sp-avatar" id="settingsAvatar"></div>
+      <div class="sp-info">
+        <h4 id="settingsProfileName">---</h4>
+        <p id="settingsProfileRole">---</p>
+      </div>
+      <div class="sp-badge" id="settingsProfileBadge">---</div>
+    </div>
+    <!-- Preferencias -->
     <div class="settings-section">
-      <h4>General</h4>
-      <div class="settings-item">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(78,205,196,.12)">
-            <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
+      <h4>Preferencias</h4>
+      <div class="settings-card">
+        <div class="settings-item">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05))">
+              <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Modo oscuro</h5>
+              <p>Tema oscuro para la app</p>
+            </div>
           </div>
-          <div class="si-text">
-            <h5>Modo oscuro</h5>
-            <p>Tema oscuro para la app</p>
-          </div>
+          <div class="toggle" id="toggleDark" onclick="toggleDarkMode()"></div>
         </div>
-        <div class="toggle" id="toggleDark" onclick="toggleDarkMode()"></div>
       </div>
     </div>
     <!-- Cuenta -->
     <div class="settings-section">
       <h4>Cuenta</h4>
-      <div class="settings-item" onclick="changeName()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(78,205,196,.12)">
-            <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <div class="settings-card">
+        <div class="settings-item" onclick="changeName()" style="cursor:pointer">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05))">
+              <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Nombre</h5>
+              <p id="settingsName">---</p>
+            </div>
           </div>
-          <div class="si-text">
-            <h5>Nombre</h5>
-            <p id="settingsName">---</p>
-          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
         </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        <div class="settings-item" onclick="changeServicio()" style="cursor:pointer">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.05))">
+              <svg viewBox="0 0 24 24" fill="#6366F1"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Servicio</h5>
+              <p id="settingsServicio">---</p>
+            </div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </div>
+        <div class="settings-item" onclick="changeArea()" style="cursor:pointer">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(56,161,105,.15),rgba(56,161,105,.05))">
+              <svg viewBox="0 0 24 24" fill="#38A169"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Rol</h5>
+              <p id="settingsArea">---</p>
+            </div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </div>
+        <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(212,168,83,.15),rgba(212,168,83,.05))">
+              <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Carpeta</h5>
+              <p id="settingsFolder">---</p>
+            </div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </div>
       </div>
-      <div class="settings-item" onclick="changeServicio()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(99,102,241,.12)">
-            <svg viewBox="0 0 24 24" fill="#6366F1"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+    </div>
+    <!-- Zona de peligro -->
+    <div class="settings-section">
+      <h4>Zona de peligro</h4>
+      <div class="settings-card settings-card-danger">
+        <div class="settings-item" onclick="deleteMyFolder()" style="cursor:pointer">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(229,62,62,.12),rgba(229,62,62,.04))">
+              <svg viewBox="0 0 24 24" fill="#E53E3E"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5 style="color:#E53E3E">Eliminar mi carpeta</h5>
+              <p>Borra todos tus archivos del servidor</p>
+            </div>
           </div>
-          <div class="si-text">
-            <h5>Servicio</h5>
-            <p id="settingsServicio">---</p>
-          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
         </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
-      <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(212,168,83,.12)">
-            <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-          </div>
-          <div class="si-text">
-            <h5>Carpeta</h5>
-            <p id="settingsFolder">---</p>
-          </div>
-        </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
-      <div class="settings-item" onclick="changeArea()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(56,161,105,.12)">
-            <svg viewBox="0 0 24 24" fill="#38A169"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-          </div>
-          <div class="si-text">
-            <h5>Rol</h5>
-            <p id="settingsArea">---</p>
-          </div>
-        </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
-      <div class="settings-item" onclick="deleteMyFolder()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(229,62,62,.08)">
-            <svg viewBox="0 0 24 24" fill="#E53E3E"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          </div>
-          <div class="si-text">
-            <h5>Eliminar mi carpeta</h5>
-            <p>Borra todos tus archivos del servidor</p>
-          </div>
-        </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
     </div>
     <!-- Acerca de -->
     <div class="settings-section">
       <h4>Acerca de</h4>
-      <div class="settings-item">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(78,205,196,.12)">
-            <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      <div class="settings-card">
+        <div class="settings-item">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05))">
+              <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Version</h5>
+              <p>v81</p>
+            </div>
           </div>
-          <div class="si-text">
-            <h5>Version</h5>
-            <p>v79</p>
-          </div>
+          <span class="settings-version-badge">Ultima</span>
         </div>
-      </div>
-      <div class="settings-item" onclick="showAuthorInfo()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(212,168,83,.12)">
-            <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <div class="settings-item" onclick="showAuthorInfo()" style="cursor:pointer">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(212,168,83,.15),rgba(212,168,83,.05))">
+              <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Desarrollador</h5>
+              <p>Robert Macedo Rios</p>
+            </div>
           </div>
-          <div class="si-text">
-            <h5>Desarrollador</h5>
-            <p>Robert Macedo Rios</p>
-          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
         </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
     </div>
     <!-- Cerrar sesion -->
-    <div style="padding:8px 16px 0">
-      <button onclick="doLogout()" style="width:100%;padding:14px;background:none;border:1px solid rgba(229,62,62,.2);border-radius:12px;color:#E53E3E;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s">Cerrar sesion</button>
+    <div style="padding:12px 16px 0">
+      <button class="settings-logout" onclick="doLogout()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#E53E3E"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        Cerrar sesion
+      </button>
     </div>
-    <div style="text-align:center;padding:20px 16px;color:var(--t3);font-size:10px;letter-spacing:.5px;opacity:.5">© NeuroArsenal</div>
+    <div style="text-align:center;padding:24px 16px;color:var(--t3);font-size:10px;letter-spacing:1px;opacity:.4;font-weight:600">© NEUROARSENAL</div>
   </div>
 </div>
 
@@ -1793,8 +1835,16 @@ function openSettings() {
   if (!worker) return;
   document.getElementById('settingsFolder').textContent = worker.id;
   document.getElementById('settingsName').textContent = worker.name;
-  document.getElementById('settingsServicio').textContent = worker.servicio ? (SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : worker.servicio) : 'Medicina';
+  var sLabel = worker.servicio ? (SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : worker.servicio) : 'Medicina';
+  document.getElementById('settingsServicio').textContent = sLabel;
   document.getElementById('settingsArea').textContent = worker.area;
+  /* Profile card */
+  var av = document.getElementById('settingsAvatar');
+  av.textContent = getInitials(worker.name);
+  av.style.background = avatarColor(worker.name);
+  document.getElementById('settingsProfileName').textContent = worker.name;
+  document.getElementById('settingsProfileRole').textContent = worker.area;
+  document.getElementById('settingsProfileBadge').textContent = sLabel;
   var darkOn = document.body.classList.contains('dark');
   document.getElementById('toggleDark').classList.toggle('on', darkOn);
   showView('vSettings');
