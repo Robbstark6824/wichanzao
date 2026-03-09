@@ -871,6 +871,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   migrateOldProfile();
   loadWorker();
+  setTimeout(function() { toast('v67-debug cargado', 'info'); }, 1500);
   loadTodayFiles();
   processOfflineQueue();
   setupOnlineOffline();
