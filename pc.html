@@ -2009,10 +2009,14 @@ function applyCropPc() {
     var ir = img.getBoundingClientRect();
     var cr = cropEl.getBoundingClientRect();
 
-    var sx = Math.max(0, cr.left - ir.left) * (img.naturalWidth / ir.width);
-    var sy = Math.max(0, cr.top - ir.top) * (img.naturalHeight / ir.height);
-    var sw = cr.width * (img.naturalWidth / ir.width);
-    var sh = cr.height * (img.naturalHeight / ir.height);
+    // Offset by border width (3px) so crop matches what's inside the border lines
+    var bw = 3;
+    var scaleX = img.naturalWidth / ir.width;
+    var scaleY = img.naturalHeight / ir.height;
+    var sx = Math.max(0, (cr.left + bw) - ir.left) * scaleX;
+    var sy = Math.max(0, (cr.top + bw) - ir.top) * scaleY;
+    var sw = (cr.width - bw * 2) * scaleX;
+    var sh = (cr.height - bw * 2) * scaleY;
 
     sw = Math.min(sw, img.naturalWidth - sx);
     sh = Math.min(sh, img.naturalHeight - sy);
