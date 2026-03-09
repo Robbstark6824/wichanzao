@@ -355,25 +355,6 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .dl-btn.gold { background:var(--gd); color:var(--n1); }
 .dl-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
 
-/* Page thumbnails row */
-.pages-row {
-  display:flex; gap:8px; overflow-x:auto; padding:8px 0; margin-top:6px;
-}
-.pages-row::-webkit-scrollbar { height:4px; }
-.pages-row::-webkit-scrollbar-thumb { background:var(--bd); border-radius:4px; }
-.page-thumb { flex-shrink:0; text-align:center; }
-.page-thumb img {
-  width:60px; height:78px; object-fit:cover; border-radius:6px;
-  border:1px solid var(--bd); display:block; margin-bottom:3px;
-  cursor:pointer; transition:transform .15s;
-}
-.page-thumb img:hover { transform:scale(1.06); }
-.page-thumb span { font-size:9px; color:var(--t3); display:block; }
-.page-thumb button {
-  font-size:10px; color:var(--tl); font-weight:700;
-  background:none; border:none; cursor:pointer; font-family:inherit; padding:2px 0;
-}
-.page-thumb button:hover { text-decoration:underline; }
 
 /* ===== LEGACY SECTION ===== */
 .legacy-section { margin-top:32px; }
@@ -1433,16 +1414,9 @@ function renderFileCard(doc, pathPrefix) {
 
   html += '</div>';
 
-  // Page thumbnails for multi-page documents
+  // Page count indicator for multi-page documents
   if (doc.pages.length > 1) {
-    html += '<div class="pages-row">';
-    for (var pi = 0; pi < doc.pages.length; pi++) {
-      html += '<div class="page-thumb">';
-      html += '<img src="' + doc.pages[pi].url + '" onclick="openLbReg(\'' + rid + '\',' + pi + ')" onerror="this.style.background=\'var(--s2)\'">';
-      html += '<span>Pag ' + doc.pages[pi].num + '</span>';
-      html += '</div>';
-    }
-    html += '</div>';
+    html += '<div style="margin-top:6px;font-size:11px;color:var(--t3);font-weight:600">' + doc.pages.length + ' paginas &middot; Click en la imagen para ver todas</div>';
   }
 
   html += '</div></div>';
@@ -1966,7 +1940,9 @@ function openPcEditor(url, storagePath, docName) {
     document.body.style.overflow = 'hidden';
   };
   img.onerror = function() { showToast('No se pudo cargar la imagen', 'error'); };
-  img.src = url;
+  // Force CORS reload with cache-buster to avoid tainted canvas
+  img.crossOrigin = 'anonymous';
+  img.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
 }
 
 function closePcEditor() {
@@ -2000,37 +1976,40 @@ function applyCropPc() {
     return;
   }
 
-  var img = document.getElementById('pceImg');
-  var cropEl = document.getElementById('pceCrop');
-  var imgRect = img.getBoundingClientRect();
-  var cropRect = cropEl.getBoundingClientRect();
+  try {
+    var img = document.getElementById('pceImg');
+    var cropEl = document.getElementById('pceCrop');
+    var imgRect = img.getBoundingClientRect();
+    var cropRect = cropEl.getBoundingClientRect();
 
-  // Calculate crop ratios relative to displayed image
-  var scaleX = img.naturalWidth / imgRect.width;
-  var scaleY = img.naturalHeight / imgRect.height;
+    var scaleX = img.naturalWidth / imgRect.width;
+    var scaleY = img.naturalHeight / imgRect.height;
 
-  var sx = Math.max(0, (cropRect.left - imgRect.left) * scaleX);
-  var sy = Math.max(0, (cropRect.top - imgRect.top) * scaleY);
-  var sw = cropRect.width * scaleX;
-  var sh = cropRect.height * scaleY;
+    var sx = Math.max(0, (cropRect.left - imgRect.left) * scaleX);
+    var sy = Math.max(0, (cropRect.top - imgRect.top) * scaleY);
+    var sw = cropRect.width * scaleX;
+    var sh = cropRect.height * scaleY;
 
-  // Clamp
-  if (sx + sw > img.naturalWidth) sw = img.naturalWidth - sx;
-  if (sy + sh > img.naturalHeight) sh = img.naturalHeight - sy;
+    if (sx + sw > img.naturalWidth) sw = img.naturalWidth - sx;
+    if (sy + sh > img.naturalHeight) sh = img.naturalHeight - sy;
 
-  var canvas = document.createElement('canvas');
-  canvas.width = Math.round(sw);
-  canvas.height = Math.round(sh);
-  var ctx = canvas.getContext('2d');
-  ctx.drawImage(img, Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh), 0, 0, canvas.width, canvas.height);
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.round(sw);
+    canvas.height = Math.round(sh);
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh), 0, 0, canvas.width, canvas.height);
 
-  pceEditedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-  pceEdited = true;
-  img.src = pceEditedDataUrl;
+    pceEditedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    pceEdited = true;
+    img.src = pceEditedDataUrl;
 
-  pceCropping = false;
-  cropEl.style.display = 'none';
-  showToast('Recorte aplicado - pulsa Guardar para confirmar', 'success');
+    pceCropping = false;
+    cropEl.style.display = 'none';
+    showToast('Recorte aplicado - pulsa Guardar para confirmar', 'success');
+  } catch (e) {
+    console.error('Crop error:', e);
+    showToast('Error al recortar: ' + e.message, 'error');
+  }
 }
 
 function savePcEdit() {
