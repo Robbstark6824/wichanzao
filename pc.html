@@ -141,6 +141,40 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 @media(max-width:1024px) { .workers-grid { grid-template-columns:repeat(2,1fr); } }
 @media(max-width:600px) { .workers-grid { grid-template-columns:1fr; } }
 
+/* Service Hub */
+.service-hub { text-align:center; padding:20px 0 10px; }
+.service-hub h2 { font-family:'Playfair Display',serif; font-size:24px; font-weight:900; color:var(--n1); margin-bottom:4px; }
+.service-hub p { font-size:13px; color:var(--t3); margin-bottom:24px; }
+.service-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+  max-width:900px; margin:0 auto;
+}
+@media(max-width:900px) { .service-grid { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:600px) { .service-grid { grid-template-columns:repeat(2,1fr); } }
+.service-card {
+  background:var(--s1); border-radius:var(--r1); padding:28px 16px 22px;
+  border:1px solid var(--bd); cursor:pointer; text-align:center;
+  transition:all .25s cubic-bezier(.4,0,.2,1); position:relative; overflow:hidden;
+}
+.service-card::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,transparent 50%,rgba(78,205,196,.04));
+  pointer-events:none;
+}
+.service-card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 16px 40px rgba(0,0,0,.08);
+  border-color:var(--tl);
+}
+.service-card:active { transform:translateY(-1px); }
+.service-icon {
+  width:56px; height:56px; border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 14px; font-size:26px;
+}
+.service-name { font-weight:800; font-size:14px; color:var(--t1); margin-bottom:4px; }
+.service-count { font-size:11px; color:var(--t3); font-weight:600; }
+
 .worker-card {
   background:var(--s1); border-radius:var(--r1); padding:20px;
   border:1px solid var(--bd); cursor:pointer;
@@ -1062,14 +1096,53 @@ async function loadAllData() {
 /* =========================================================
    RENDER WORKER DIRECTORY
    ========================================================= */
+var SERVICE_ICONS = {
+  'medicina':       { icon: '&#129658;', bg: 'rgba(78,205,196,.12)', color: '#4ECDC4' },
+  'enfermeria':     { icon: '&#128137;', bg: 'rgba(56,161,105,.12)', color: '#38A169' },
+  'obstetricia':    { icon: '&#128118;', bg: 'rgba(213,63,140,.12)', color: '#D53F8C' },
+  'psicologia':     { icon: '&#129504;', bg: 'rgba(128,90,213,.12)', color: '#805AD5' },
+  'odontologia':    { icon: '&#129463;', bg: 'rgba(49,130,206,.12)', color: '#3182CE' },
+  'nutricion':      { icon: '&#127823;', bg: 'rgba(214,158,46,.12)', color: '#D69E2E' },
+  'administrativos':{ icon: '&#128188;', bg: 'rgba(113,128,150,.12)', color: '#718096' }
+};
+
+function renderServiceHub() {
+  var html = '<div class="service-hub">';
+  html += '<h2>Centro de Salud Wichanzao</h2>';
+  html += '<p>Selecciona un servicio para ver sus documentos</p>';
+  html += '<div class="service-grid">';
+
+  for (var k = 0; k < SERVICIOS_KEYS.length; k++) {
+    var key = SERVICIOS_KEYS[k];
+    var s = SERVICIOS[key];
+    var si = SERVICE_ICONS[key];
+    // Count workers in this servicio
+    var count = allWorkers.filter(function(w) { return (w._servicio || w.servicio || '') === key; }).length;
+
+    html += '<div class="service-card" onclick="document.getElementById(\'servicioFilter\').value=\'' + key + '\';setServicioFilter(\'' + key + '\')">';
+    html += '<div class="service-icon" style="background:' + si.bg + '">' + si.icon + '</div>';
+    html += '<div class="service-name">' + s.label + '</div>';
+    html += '<div class="service-count">' + count + ' usuario' + (count !== 1 ? 's' : '') + '</div>';
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
 function renderDirectory() {
   var container = document.getElementById('workersContainer');
   var query = document.getElementById('searchInput').value.toLowerCase().trim();
 
+  // Show service hub if no servicio selected and no search query
+  if ((!servicioFilter || servicioFilter === 'all') && !query) {
+    container.innerHTML = renderServiceHub();
+    return;
+  }
+
   var threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
   var now = Date.now();
 
-  // Hide workers inactive for more than 3 months (keep those without date)
   var active = allWorkers.filter(function(w) {
     if (!w.last_active) return true;
     return (now - new Date(w.last_active).getTime()) < threeMonthsMs;
@@ -1082,21 +1155,15 @@ function renderDirectory() {
     });
   }
 
-  // Filter by servicio
   if (servicioFilter && servicioFilter !== 'all') {
     filtered = filtered.filter(function(w) {
       var ws = w._servicio || w.servicio || '';
-      if (servicioFilter === 'legacy') return !ws;
       return ws === servicioFilter;
     });
   }
 
   if (!filtered.length) {
-    if (allWorkers.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><h3>Sin trabajadores</h3><p>Cuando el personal se registre en la app movil, apareceran aqui.</p></div>';
-    } else {
-      container.innerHTML = '<div class="empty-state"><div class="icon">&#128269;</div><h3>Sin resultados</h3><p>No se encontraron trabajadores con esos filtros</p></div>';
-    }
+    container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><h3>Sin trabajadores</h3><p>Cuando el personal se registre en la app movil, apareceran aqui.</p></div>';
     return;
   }
 
@@ -1107,7 +1174,6 @@ function renderDirectory() {
     var wId = w._folder || w.worker_id;
     var fileInfo = allWorkerFiles[wId];
     var dateCount = fileInfo ? fileInfo.dates.length : 0;
-    var sLabel = w._servicio && SERVICIOS[w._servicio] ? SERVICIOS[w._servicio].label : '';
 
     html += '<div class="worker-card" onclick="openWorkerDetail(\'' + escHtml(wId) + '\')">';
     html += '<div class="avatar md" style="background:' + (w.avatar_color || '#4ECDC4') + '">';
@@ -1116,7 +1182,7 @@ function renderDirectory() {
     html += '</div>';
     html += '<div class="worker-info">';
     html += '<div class="worker-name">' + escHtml(w.name) + '</div>';
-    html += '<div class="worker-area">' + escHtml(w.area || 'Sin area') + (sLabel ? ' &middot; ' + escHtml(sLabel) : '') + '</div>';
+    html += '<div class="worker-area">' + escHtml(w.area || 'Sin area') + '</div>';
     html += '<div class="worker-time">' + act.label + (dateCount > 0 ? ' &middot; ' + dateCount + ' fecha(s)' : '') + '</div>';
     html += '</div>';
     html += '<span class="worker-arrow">&rsaquo;</span>';
