@@ -1821,11 +1821,19 @@ function updateLightboxUI() {
   counter.textContent = lightboxImages.length > 1 ? (lightboxIndex + 1) + ' / ' + lightboxImages.length : '';
   counter.style.display = lightboxImages.length > 1 ? '' : 'none';
 
-  // Always show action buttons
-  var hasPath = current.path && current.path.length > 0;
+  // Always show all action buttons
   document.getElementById('lbDlBtn').style.display = 'inline-flex';
-  document.getElementById('lbEditBtn').style.display = hasPath ? 'inline-flex' : 'none';
-  document.getElementById('lbDelBtn').style.display = hasPath ? 'inline-flex' : 'none';
+  document.getElementById('lbEditBtn').style.display = 'inline-flex';
+  document.getElementById('lbDelBtn').style.display = 'inline-flex';
+}
+
+function getLbPath(current) {
+  if (current.path) return current.path;
+  // Extract path from public URL
+  var marker = '/storage/v1/object/public/' + BUCKET + '/';
+  var idx = current.url.indexOf(marker);
+  if (idx >= 0) return current.url.substring(idx + marker.length);
+  return '';
 }
 
 function closeLightbox(e) {
@@ -1843,9 +1851,11 @@ function navLightbox(dir) {
 
 function editFromLightbox() {
   var current = lightboxImages[lightboxIndex];
-  if (!current || !current.path) return;
+  if (!current) return;
+  var path = getLbPath(current);
+  if (!path) { showToast('No se puede editar este archivo', 'error'); return; }
   closeLightbox();
-  openPcEditor(current.url, current.path, current.caption || 'Imagen');
+  openPcEditor(current.url, path, current.caption || 'Imagen');
 }
 
 function downloadFromLightbox() {
@@ -1857,7 +1867,9 @@ function downloadFromLightbox() {
 
 function deleteFromLightbox() {
   var current = lightboxImages[lightboxIndex];
-  if (!current || !current.path) return;
+  if (!current) return;
+  var path = getLbPath(current);
+  if (!path) { showToast('No se puede eliminar este archivo', 'error'); return; }
   if (!confirm('¿Eliminar esta imagen?\n\nEsta accion no se puede deshacer.')) return;
 
   closeLightbox();
