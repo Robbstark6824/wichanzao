@@ -2022,21 +2022,24 @@ function savePcEdit() {
   var saveBtn = document.querySelector('#pcEditor .pce-btn.save');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
 
-  fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + pcePath, {
-    method: 'PUT',
+  // Clean path: remove any query params that might have leaked in
+  var cleanPath = pcePath.split('?')[0];
+
+  fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + cleanPath, {
+    method: 'POST',
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
     body: blob
   }).then(function(res) {
-    if (!res.ok) throw new Error('Error ' + res.status);
+    if (!res.ok) return res.text().then(function(t) { throw new Error(res.status + ': ' + t); });
     showToast('Imagen guardada correctamente', 'success');
     pceEdited = false;
     closePcEditor();
-    // Force cache-bust for reloaded images
     imgCacheBuster = Date.now();
-    invalidateCacheForPath(pcePath);
+    invalidateCacheForPath(cleanPath);
     loadAllData();
   }).catch(function(e) {
     showToast('Error al guardar: ' + e.message, 'error');
+    console.error('Save error:', e);
   }).finally(function() {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '&#10003; Guardar'; }
   });
