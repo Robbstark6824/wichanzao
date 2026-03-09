@@ -618,6 +618,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
       Limpiar antiguos
     </button>
+    <button class="tb-btn" id="btnMigrate" onclick="migrateLegacyToMedicina()" style="background:#805AD5;color:#fff">
+      &#128640; Migrar legacy → Medicina
+    </button>
   </div>
 
   <!-- DIRECTORY VIEW -->
@@ -1860,6 +1863,112 @@ async function cleanupOldFiles() {
   await autoCleanup();
   hideProgress();
   loadAllData();
+}
+
+/* =========================================================
+   MIGRATE LEGACY WORKERS TO MEDICINA
+   ========================================================= */
+async function migrateLegacyToMedicina() {
+  // 1. Find legacy workers (in workers/ without servicio)
+  var legacyWorkers = allWorkers.filter(function(w) {
+    return !w._servicio && !w.servicio;
+  });
+
+  if (!legacyWorkers.length) {
+    showToast('No hay workers legacy para migrar', 'info');
+    return;
+  }
+
+  var names = legacyWorkers.map(function(w) { return w.name + ' (' + w._folder + ')'; }).join('\n');
+  if (!confirm('Se migraran ' + legacyWorkers.length + ' worker(s) a Medicina:\n\n' + names + '\n\n¿Continuar?')) return;
+
+  showProgress('Migrando workers a Medicina...');
+  var migrated = 0;
+  var errors = 0;
+
+  for (var wi = 0; wi < legacyWorkers.length; wi++) {
+    var w = legacyWorkers[wi];
+    var wId = w._folder || w.worker_id;
+    var srcPrefix = 'workers/' + wId;
+    var dstPrefix = 'medicina/workers/' + wId;
+
+    try {
+      // List all files recursively
+      var files = await listFilesRecursive(srcPrefix);
+      document.getElementById('progressTitle').textContent = 'Migrando ' + w.name + ' (' + files.length + ' archivos)...';
+
+      // Move each file
+      for (var fi = 0; fi < files.length; fi++) {
+        var srcKey = srcPrefix + '/' + files[fi];
+        var dstKey = dstPrefix + '/' + files[fi];
+
+        // Special handling for profile.json: add servicio field
+        if (files[fi] === 'profile.json') {
+          // Fetch, modify, upload to new location, delete old
+          var profRes = await fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + srcKey, {
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+            cache: 'no-store'
+          });
+          if (profRes.ok) {
+            var profile = await profRes.json();
+            profile.servicio = 'medicina';
+            var blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+            await fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + dstKey, {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json', 'x-upsert': 'true' },
+              body: blob
+            });
+            // Delete old
+            await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
+              method: 'DELETE',
+              headers: HEADERS,
+              body: JSON.stringify({ prefixes: [srcKey] })
+            });
+          }
+          continue;
+        }
+
+        // Move regular file
+        var moveRes = await fetch(SB_URL + '/storage/v1/object/move', {
+          method: 'POST',
+          headers: HEADERS,
+          body: JSON.stringify({ bucketId: BUCKET, sourceKey: srcKey, destinationKey: dstKey })
+        });
+        if (!moveRes.ok) {
+          console.warn('Move failed for', srcKey, moveRes.status);
+          errors++;
+        }
+      }
+      migrated++;
+    } catch (e) {
+      console.error('Migration error for', wId, e);
+      errors++;
+    }
+  }
+
+  hideProgress();
+  showToast(migrated + ' worker(s) migrado(s) a Medicina' + (errors > 0 ? ' (' + errors + ' errores)' : ''), errors > 0 ? 'warn' : 'success');
+  loadAllData();
+}
+
+async function listFilesRecursive(prefix) {
+  var items = await sbList(prefix + '/');
+  var files = [];
+  var subfolders = [];
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id) {
+      files.push(items[i].name);
+    } else if (items[i].name) {
+      subfolders.push(items[i].name);
+    }
+  }
+  for (var s = 0; s < subfolders.length; s++) {
+    var subFiles = await listFilesRecursive(prefix + '/' + subfolders[s]);
+    for (var sf = 0; sf < subFiles.length; sf++) {
+      files.push(subfolders[s] + '/' + subFiles[sf]);
+    }
+  }
+  return files;
 }
 
 /* =========================================================
