@@ -2362,6 +2362,11 @@ function finalizePdf() {
     return;
   }
   var pagesToUpload = pdfPages.slice();
+  var debugSizes = [];
+  for (var fi = 0; fi < pagesToUpload.length; fi++) {
+    debugSizes.push('P' + fi + ':' + pagesToUpload[fi].length);
+  }
+  toast('DEBUG FINALIZE: ' + debugSizes.join(' | '), 'info');
   pdfPages = [];
   stopCamera();
   showView('vMain');
@@ -2492,6 +2497,9 @@ function applyCrop() {
     var cw = Math.min(srcImg.width - cx, bw * scaleX);
     var ch = Math.min(srcImg.height - cy, bh * scaleY);
 
+    var cropPct = (cw/srcImg.width*100).toFixed(0) + '%x' + (ch/srcImg.height*100).toFixed(0) + '%';
+    toast('DEBUG CROP: Original ' + srcImg.width + 'x' + srcImg.height + ' → Recorte ' + Math.round(cw) + 'x' + Math.round(ch) + ' (' + cropPct + ')', 'info');
+
     var canvas = document.createElement('canvas');
     canvas.width = Math.round(cw);
     canvas.height = Math.round(ch);
@@ -2583,6 +2591,7 @@ function doConfirmSave() {
       closePhotoEditor();
     }
   } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
+    toast('DEBUG SAVE: guardando ' + (editorDataUrl ? editorDataUrl.length : 'NULL') + ' chars en pdfPages[' + editorPageIndex + ']', 'info');
     pdfPages[editorPageIndex] = editorDataUrl;
     updateThumbStack();
     toast('Pagina actualizada', 'success');
@@ -2783,12 +2792,23 @@ function doUploadFoto(filename, dataUrl) {
 
 function doUploadPdf(filename, pages) {
   var totalPages = pages.length;
+  var inputSizes = [];
+  for (var di = 0; di < totalPages; di++) {
+    inputSizes.push('P' + di + ':' + pages[di].length);
+  }
+  toast('DEBUG UPLOAD: ' + inputSizes.join(' | '), 'info');
   var optimizedPages = [];
   var currentPage = 0;
 
   function optimizeNext() {
     if (currentPage >= totalPages) {
+      var optSizes = [];
+      for (var oi = 0; oi < optimizedPages.length; oi++) {
+        optSizes.push('P' + oi + ':' + optimizedPages[oi].length);
+      }
+      toast('DEBUG PDF GEN: ' + optSizes.join(' | '), 'info');
       generatePdf(optimizedPages).then(function(pdfBlob) {
+        toast('DEBUG PDF BLOB: ' + pdfBlob.size + ' bytes', 'info');
         var now = new Date();
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
         var ts = now.getTime();
