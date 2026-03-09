@@ -727,6 +727,8 @@ var countdownValue = REFRESH_INTERVAL;
 var isLoading = false;
 var lightboxImages = [];
 var lightboxIndex = 0;
+var lbRegistry = {};
+var lbRegId = 0;
 
 // PC Editor state
 var pceUrl = '';
@@ -1401,7 +1403,9 @@ function renderFileCard(doc, pathPrefix) {
 
   if (thumbSrc) {
     var lbData = doc.pages.map(function(p) { return { url: p.url, caption: doc.name + (doc.pages.length > 1 ? ' - Pag ' + p.num : ''), path: pathPrefix + '/' + p.rawName }; });
-    html += '<img class="file-thumb" src="' + thumbSrc + '" onclick="openLightboxFromDoc(this)" data-images="' + escHtml(JSON.stringify(lbData)) + '" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
+    var rid = 'lb' + (lbRegId++);
+    lbRegistry[rid] = lbData;
+    html += '<img class="file-thumb" src="' + thumbSrc + '" onclick="openLbReg(\'' + rid + '\',0)" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
   } else {
     html += '<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3)">&#128196;</div>';
   }
@@ -1434,8 +1438,7 @@ function renderFileCard(doc, pathPrefix) {
     html += '<div class="pages-row">';
     for (var pi = 0; pi < doc.pages.length; pi++) {
       html += '<div class="page-thumb">';
-      var lbDataPage = doc.pages.map(function(p) { return { url: p.url, caption: doc.name + ' - Pag ' + p.num, path: pathPrefix + '/' + p.rawName }; });
-      html += '<img src="' + doc.pages[pi].url + '" onclick="openLightboxAt(this,' + pi + ')" data-images="' + escHtml(JSON.stringify(lbDataPage)) + '" onerror="this.style.background=\'var(--s2)\'">';
+      html += '<img src="' + doc.pages[pi].url + '" onclick="openLbReg(\'' + rid + '\',' + pi + ')" onerror="this.style.background=\'var(--s2)\'">';
       html += '<span>Pag ' + doc.pages[pi].num + '</span>';
       html += '</div>';
     }
@@ -1778,25 +1781,11 @@ async function cleanupOldFiles() {
 /* =========================================================
    LIGHTBOX
    ========================================================= */
-function openLightboxFromDoc(imgEl) {
-  try {
-    lightboxImages = JSON.parse(imgEl.getAttribute('data-images'));
-    lightboxIndex = 0;
-  } catch (e) {
-    lightboxImages = [{ url: imgEl.src, caption: '', path: '' }];
-    lightboxIndex = 0;
-  }
-  showLightbox();
-}
-
-function openLightboxAt(imgEl, index) {
-  try {
-    lightboxImages = JSON.parse(imgEl.getAttribute('data-images'));
-    lightboxIndex = index || 0;
-  } catch (e) {
-    lightboxImages = [{ url: imgEl.src, caption: '', path: '' }];
-    lightboxIndex = 0;
-  }
+function openLbReg(regId, startIndex) {
+  var data = lbRegistry[regId];
+  if (!data || !data.length) return;
+  lightboxImages = data;
+  lightboxIndex = startIndex || 0;
   showLightbox();
 }
 
