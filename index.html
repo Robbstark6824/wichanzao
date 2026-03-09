@@ -131,6 +131,33 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .today-file .tf-name{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today-file .tf-time{color:var(--t3);font-size:11px;flex-shrink:0}
 
+/* ===== PREVIOUS FILES ===== */
+.prev-section{background:var(--s1);border-radius:var(--r1);padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.prev-section .ps-header{display:flex;align-items:center;justify-content:space-between}
+.prev-section .ps-header h4{font-size:14px;font-weight:700;color:var(--t2)}
+.prev-date-card{border:1.5px solid var(--bd);border-radius:var(--r2);margin-top:10px;overflow:hidden}
+.prev-date-card.expanded{border-color:var(--tl)}
+.prev-date-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;background:var(--s2)}
+.prev-date-header:active{background:var(--bd)}
+.prev-date-header .pdh-left{display:flex;align-items:center;gap:10px}
+.prev-date-header .pdh-icon{width:36px;height:36px;border-radius:10px;background:var(--n1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prev-date-header .pdh-icon svg{width:16px;height:16px;fill:#fff}
+.prev-date-header .pdh-date{font-size:14px;font-weight:700}
+.prev-date-header .pdh-label{font-size:11px;color:var(--t3);margin-top:1px}
+.prev-date-header .pdh-chevron{transition:transform .25s;flex-shrink:0}
+.prev-date-card.expanded .pdh-chevron{transform:rotate(180deg)}
+.prev-date-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.prev-date-card.expanded .prev-date-body{max-height:2000px}
+.prev-date-files{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.prev-file{display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg);border-radius:var(--r3);cursor:pointer}
+.prev-file:active{background:var(--bd)}
+.prev-file .pf-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--s2)}
+.prev-file .pf-icon{width:44px;height:44px;border-radius:8px;background:var(--n1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prev-file .pf-icon svg{width:18px;height:18px;fill:#fff}
+.prev-file .pf-info{flex:1;min-width:0}
+.prev-file .pf-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.prev-file .pf-size{font-size:10px;color:var(--t3);margin-top:2px}
+
 /* ===== VIEW: CAMERA ===== */
 #vCam{background:#000;overflow:hidden}
 .cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
@@ -422,6 +449,15 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <div class="ts-label">documentos digitalizados</div>
       <div class="today-files" id="todayFiles"></div>
     </div>
+    <!-- Previous Files -->
+    <div class="prev-section" id="prevSection">
+      <div class="ps-header">
+        <h4>Archivos anteriores</h4>
+      </div>
+      <div id="prevDatesContainer">
+        <div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>
+      </div>
+    </div>
     <!-- Admin Panel (hidden by default) -->
     <div id="adminPanel" style="display:none;margin-top:24px;padding:0 16px 24px">
       <div style="background:var(--s1);border-radius:var(--r1);padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
@@ -553,6 +589,8 @@ var capturedSingleImage = null; // dataURL for foto mode
 var uploadQueue = [];        // offline queue
 var isUploading = false;
 var todayFiles = [];         // [{name, time, type}]
+var prevDatesCache = {};     // {dateStr: [files]}
+var prevDatesLoaded = false;
 var deferredPrompt = null;   // PWA install prompt
 
 /* ===== INITIALIZATION ===== */
@@ -753,6 +791,7 @@ function populateMain() {
   av.textContent = getInitials(worker.name);
   av.style.background = avatarColor(worker.name);
   updateTodayCount();
+  loadPreviousDates();
 }
 
 /* ===== TODAY FILES ===== */
@@ -826,6 +865,175 @@ function listAllFiles(prefix) {
       return allFiles;
     });
   });
+}
+
+/* ===== PREVIOUS FILES ===== */
+function getTodayDateString() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function formatDateDisplay(dateStr) {
+  var parts = dateStr.split('-');
+  var months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var day = parseInt(parts[2], 10);
+  var month = months[parseInt(parts[1], 10) - 1] || parts[1];
+  var year = parts[0];
+  var d = new Date();
+  d.setDate(d.getDate() - 1);
+  var yesterdayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  if (dateStr === yesterdayStr) return 'Ayer, ' + day + ' ' + month;
+  return day + ' ' + month + ' ' + year;
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function loadPreviousDates(forceRefresh) {
+  if (!worker || !worker.id) return;
+  var container = document.getElementById('prevDatesContainer');
+  if (!forceRefresh && prevDatesLoaded) return;
+
+  container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>';
+
+  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({ prefix: 'workers/' + worker.id + '/', limit: 1000, offset: 0, sortBy: { column: 'name', order: 'desc' } })
+  }).then(function(res) { return res.json(); })
+  .then(function(items) {
+    if (!Array.isArray(items)) items = [];
+    var todayStr = getTodayDateString();
+    var dateFolders = items.filter(function(i) {
+      return !i.id && /^\d{4}-\d{1,2}-\d{1,2}$/.test(i.name) && i.name !== todayStr;
+    });
+    dateFolders.sort(function(a, b) { return b.name.localeCompare(a.name); });
+
+    if (!dateFolders.length) {
+      container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">No hay archivos de dias anteriores</div>';
+      prevDatesLoaded = true;
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < dateFolders.length; i++) {
+      var ds = dateFolders[i].name;
+      var display = formatDateDisplay(ds);
+      html += '<div class="prev-date-card" id="pdc-' + ds + '">';
+      html += '<div class="prev-date-header" onclick="togglePrevDate(\'' + ds + '\')">';
+      html += '<div class="pdh-left">';
+      html += '<div class="pdh-icon"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg></div>';
+      html += '<div><div class="pdh-date">' + display + '</div>';
+      html += '<div class="pdh-label">' + ds + '</div></div>';
+      html += '</div>';
+      html += '<svg class="pdh-chevron" width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+      html += '</div>';
+      html += '<div class="prev-date-body"><div class="prev-date-files" id="pdf-' + ds + '"><div style="text-align:center;padding:12px;color:var(--t3);font-size:12px">Cargando...</div></div></div>';
+      html += '</div>';
+    }
+    container.innerHTML = html;
+    prevDatesLoaded = true;
+    if (forceRefresh) { prevDatesCache = {}; toast('Actualizado', 'success'); }
+  }).catch(function(e) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--danger);font-size:12px">Error: ' + e.message + '</div>';
+  });
+}
+
+function togglePrevDate(dateStr) {
+  haptic();
+  var card = document.getElementById('pdc-' + dateStr);
+  if (!card) return;
+  var isExpanded = card.classList.contains('expanded');
+  var allCards = document.querySelectorAll('.prev-date-card.expanded');
+  for (var i = 0; i < allCards.length; i++) allCards[i].classList.remove('expanded');
+  if (!isExpanded) {
+    card.classList.add('expanded');
+    loadPrevDateFiles(dateStr);
+  }
+}
+
+function loadPrevDateFiles(dateStr) {
+  var container = document.getElementById('pdf-' + dateStr);
+  if (!container) return;
+  if (prevDatesCache[dateStr]) { renderPrevFiles(container, dateStr, prevDatesCache[dateStr]); return; }
+
+  container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);font-size:12px">Cargando...</div>';
+  var prefix = 'workers/' + worker.id + '/' + dateStr + '/';
+
+  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+  }).then(function(res) { return res.json(); })
+  .then(function(items) {
+    if (!Array.isArray(items)) items = [];
+    var files = items.filter(function(i) { return !!i.id; }).map(function(f) {
+      var ext = f.name.split('.').pop().toLowerCase();
+      var isImg = ['jpg','jpeg','png','gif','webp'].indexOf(ext) >= 0;
+      return {
+        name: f.name,
+        url: SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + f.name,
+        type: ext === 'pdf' ? 'pdf' : (isImg ? 'image' : 'other'),
+        size: f.metadata && f.metadata.size ? f.metadata.size : 0
+      };
+    });
+    prevDatesCache[dateStr] = files;
+    renderPrevFiles(container, dateStr, files);
+  }).catch(function(e) {
+    container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--danger);font-size:12px">Error</div>';
+  });
+}
+
+function renderPrevFiles(container, dateStr, files) {
+  if (!files.length) { container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);font-size:12px">Sin archivos</div>'; return; }
+  var html = '';
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    var displayName = f.name.replace(/^\d+_/, '');
+    var sizeStr = f.size ? formatFileSize(f.size) : '';
+    html += '<div class="prev-file" onclick="openPrevFile(\'' + dateStr + '\',' + i + ')">';
+    if (f.type === 'image') {
+      html += '<img class="pf-thumb" src="' + f.url + '" alt="" loading="lazy">';
+    } else {
+      html += '<div class="pf-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg></div>';
+    }
+    html += '<div class="pf-info"><span class="pf-name">' + escapeHtml(displayName) + '</span>';
+    if (sizeStr) html += '<div class="pf-size">' + sizeStr + '</div>';
+    html += '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
+function openPrevFile(dateStr, index) {
+  var files = prevDatesCache[dateStr];
+  if (!files || !files[index]) return;
+  var f = files[index];
+  haptic();
+  if (f.type === 'pdf') {
+    window.open(f.url, '_blank');
+  } else if (f.type === 'image') {
+    // Open in editor for viewing/cropping
+    editorTodayIndex = -1;
+    // Load image as dataUrl for the editor
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      var c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      var dataUrl = c.toDataURL('image/jpeg', 0.92);
+      openPhotoEditor(dataUrl, 'today', -1);
+    };
+    img.onerror = function() {
+      window.open(f.url, '_blank');
+    };
+    img.src = f.url;
+  }
 }
 
 /* ===== ADMIN MODE ===== */
