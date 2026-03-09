@@ -90,6 +90,34 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .progress-wrap{width:100%;height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;margin:8px 0}
 .progress-bar{height:100%;background:linear-gradient(90deg,var(--tl),var(--tl2));border-radius:3px;transition:width .3s;width:0%}
 
+/* ===== DARK MODE ===== */
+body.dark{--bg:#0D1117;--s1:#161B22;--s2:#21262D;--t1:#E6EDF3;--t2:#8B949E;--t3:#484F58;--bd:#30363D;--n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B}
+body.dark .regCard,body.dark .welcome-card{background:var(--s1);box-shadow:0 8px 32px rgba(0,0,0,.5)}
+body.dark .regCard .top h2,body.dark .welcome-card h2{color:var(--tl)}
+body.dark .field input,body.dark .field select{background:var(--s2);color:var(--t1);border-color:var(--bd)}
+body.dark .mode-card{background:var(--s1);box-shadow:0 2px 12px rgba(0,0,0,.3)}
+body.dark .today-section,body.dark .prev-section{background:var(--s1)}
+body.dark .ts-header h4,body.dark .ps-header h4{color:var(--t1)}
+
+/* ===== VIEW: SETTINGS ===== */
+#vSettings{background:var(--bg);padding-top:var(--st)}
+.settings-header{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--bd)}
+.settings-header h3{font-size:17px;font-weight:800;color:var(--t1);flex:1}
+.settings-section{padding:16px}
+.settings-section h4{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+body.dark .settings-item{border-bottom-color:var(--bd)}
+.settings-item .si-left{display:flex;align-items:center;gap:12px;flex:1}
+.settings-item .si-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.settings-item .si-icon svg{width:20px;height:20px}
+.settings-item .si-text h5{font-size:14px;font-weight:600;color:var(--t1)}
+.settings-item .si-text p{font-size:11px;color:var(--t3);margin-top:2px}
+/* Toggle switch */
+.toggle{width:48px;height:28px;border-radius:14px;background:var(--bd);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
+.toggle.on{background:var(--tl)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(20px)}
+
 /* ===== VIEW: WELCOME ===== */
 #vWelcome{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px}
 .welcome-card{background:var(--s1);border-radius:var(--r1);padding:32px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:cardUp .5s cubic-bezier(.4,0,.2,1);text-align:center}
@@ -516,8 +544,8 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <button onclick="window.location.reload()" style="background:none;border:none;padding:8px;cursor:pointer;opacity:.4">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t1)"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
       </button>
-      <button onclick="doLogout()" style="background:none;border:none;padding:8px;cursor:pointer;opacity:.4">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t1)"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      <button onclick="openSettings()" style="background:none;border:none;padding:8px;cursor:pointer;opacity:.4">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t1)"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
       </button>
     </div>
   </div>
@@ -575,12 +603,98 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
         </div>
       </div>
     </div>
-    <!-- Logout + Delete folder -->
+    <!-- Delete folder -->
     <div style="margin-top:32px;text-align:center;padding-bottom:24px">
-      <button onclick="doLogout()" style="background:none;border:1px solid rgba(0,0,0,.15);color:var(--t2);font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit;width:calc(100% - 32px);margin:0 16px">Cerrar sesion</button>
-      <div style="height:16px"></div>
       <button onclick="deleteMyFolder()" style="background:none;border:1px solid rgba(229,62,62,.3);color:#E53E3E;font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit">Eliminar mi carpeta</button>
       <div style="font-size:11px;color:var(--t3);margin-top:6px">Borra todos tus archivos del servidor</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: SETTINGS ===== -->
+<div class="V" id="vSettings">
+  <div class="settings-header">
+    <button onclick="closeSettings()" style="background:none;border:none;padding:4px;cursor:pointer">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--t1)"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <h3>Configuracion</h3>
+  </div>
+  <div style="overflow-y:auto;flex:1;padding-bottom:40px">
+    <!-- Apariencia -->
+    <div class="settings-section">
+      <h4>Apariencia</h4>
+      <div class="settings-item">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(78,205,196,.12)">
+            <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Modo oscuro</h5>
+            <p>Tema oscuro para la app</p>
+          </div>
+        </div>
+        <div class="toggle" id="toggleDark" onclick="toggleDarkMode()"></div>
+      </div>
+    </div>
+    <!-- Cuenta -->
+    <div class="settings-section">
+      <h4>Cuenta</h4>
+      <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(212,168,83,.12)">
+            <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Cambiar carpeta</h5>
+            <p id="settingsFolder">---</p>
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+      <div class="settings-item" onclick="changeName()" style="cursor:pointer">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(78,205,196,.12)">
+            <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Cambiar nombre</h5>
+            <p id="settingsName">---</p>
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+      <div class="settings-item" onclick="changeArea()" style="cursor:pointer">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(56,161,105,.12)">
+            <svg viewBox="0 0 24 24" fill="#38A169"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Cambiar area</h5>
+            <p id="settingsArea">---</p>
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+    </div>
+    <!-- Sesion -->
+    <div class="settings-section">
+      <h4>Sesion</h4>
+      <div class="settings-item" onclick="doLogout()" style="cursor:pointer">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(229,62,62,.1)">
+            <svg viewBox="0 0 24 24" fill="#E53E3E"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5 style="color:#E53E3E">Cerrar sesion</h5>
+            <p>Volver a la pantalla de inicio</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- App info -->
+    <div style="text-align:center;padding:24px 16px;color:var(--t3);font-size:11px">
+      <div>C.S. Wichanzao v52</div>
+      <div style="margin-top:4px">Developed by Robert Macedo</div>
     </div>
   </div>
 </div>
@@ -701,6 +815,13 @@ var deferredPrompt = null;   // PWA install prompt
 
 /* ===== INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', function() {
+  // Restore dark mode
+  if (localStorage.getItem('wichanzao_dark') === '1') {
+    document.body.classList.add('dark');
+    if (document.querySelector('meta[name="theme-color"]')) {
+      document.querySelector('meta[name="theme-color"]').content = '#0D1117';
+    }
+  }
   migrateOldProfile();
   loadWorker();
   loadTodayFiles();
@@ -1390,6 +1511,77 @@ function doLogout() {
   prevDatesCache = {};
   showView('vWelcome');
   toast('Sesion cerrada', 'info');
+}
+
+/* ===== SETTINGS ===== */
+function openSettings() {
+  if (!worker) return;
+  document.getElementById('settingsFolder').textContent = worker.id;
+  document.getElementById('settingsName').textContent = worker.name;
+  document.getElementById('settingsArea').textContent = worker.area;
+  var darkOn = document.body.classList.contains('dark');
+  document.getElementById('toggleDark').classList.toggle('on', darkOn);
+  showView('vSettings');
+}
+
+function closeSettings() {
+  showView('vMain');
+  populateMain();
+}
+
+function toggleDarkMode() {
+  var toggle = document.getElementById('toggleDark');
+  var isDark = !document.body.classList.contains('dark');
+  document.body.classList.toggle('dark', isDark);
+  toggle.classList.toggle('on', isDark);
+  localStorage.setItem('wichanzao_dark', isDark ? '1' : '0');
+  if (document.querySelector('meta[name="theme-color"]')) {
+    document.querySelector('meta[name="theme-color"]').content = isDark ? '#0D1117' : '#0C1F3D';
+  }
+}
+
+function changeName() {
+  if (!worker) return;
+  var newName = prompt('Nuevo nombre:', worker.name);
+  if (!newName || !newName.trim() || newName.trim() === worker.name) return;
+  worker.name = newName.trim();
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  document.getElementById('settingsName').textContent = worker.name;
+  toast('Nombre actualizado', 'success');
+}
+
+function changeFolder() {
+  if (!worker) return;
+  var newFolder = prompt('Nueva carpeta (se creara una nueva, la anterior se mantiene):', worker.id);
+  if (!newFolder || !newFolder.trim()) return;
+  var folderId = newFolder.trim().toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!folderId || folderId.length < 2) { toast('Nombre invalido', 'error'); return; }
+  if (folderId === worker.id) return;
+  if (!confirm('Se creara la carpeta "' + folderId + '". Tu carpeta anterior (' + worker.id + ') seguira existiendo. ¿Continuar?')) return;
+  worker.id = folderId;
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  document.getElementById('settingsFolder').textContent = worker.id;
+  toast('Carpeta cambiada a ' + folderId, 'success');
+}
+
+function changeArea() {
+  if (!worker) return;
+  var areas = ['Medico General','Interno de Medicina','Obstetra','Enfermero/a','Odontologo','Psicologo','Nutricionista','Tecnico de Enfermeria'];
+  var msg = 'Selecciona tu area (escribe el numero):\n';
+  for (var i = 0; i < areas.length; i++) {
+    msg += (i + 1) + '. ' + areas[i] + '\n';
+  }
+  var choice = prompt(msg);
+  if (!choice) return;
+  var idx = parseInt(choice) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= areas.length) { toast('Opcion invalida', 'error'); return; }
+  worker.area = areas[idx];
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  document.getElementById('settingsArea').textContent = worker.area;
+  toast('Area actualizada', 'success');
 }
 
 function loadAdminWorkers() {
