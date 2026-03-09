@@ -912,19 +912,24 @@ async function loadAllData() {
       var workerDirs = await sbList('workers/');
       var wFolders = workerDirs.filter(function(i) { return i.id === null && i.name; });
 
-      // Fetch all profiles in parallel
+      // Fetch all profiles in parallel (authenticated, no cache)
       var profilePromises = wFolders.map(function(wf) {
-        return fetch(pubUrl('workers/' + wf.name + '/profile.json'))
-          .then(function(r) { return r.ok ? r.json() : null; })
+        return fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/workers/' + wf.name + '/profile.json', {
+          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+          cache: 'no-store'
+        }).then(function(r) { return r.ok ? r.json() : null; })
           .catch(function() { return null; });
       });
       var profiles = await Promise.all(profilePromises);
 
       for (var i = 0; i < wFolders.length; i++) {
-        if (profiles[i]) {
-          profiles[i]._folder = wFolders[i].name;
-          workers.push(profiles[i]);
+        var p = profiles[i];
+        if (!p) {
+          // No profile.json, still show folder
+          p = { name: wFolders[i].name, area: '' };
         }
+        p._folder = wFolders[i].name;
+        workers.push(p);
       }
     }
 
