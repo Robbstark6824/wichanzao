@@ -752,10 +752,8 @@ var pceUrl = '';
 var pcePath = '';
 var pceDocName = '';
 var pceCropping = false;
-var pceCropData = null;
 var pceEdited = false;
 var pceEditedDataUrl = '';
-var pceCorsReady = false;
 
 /* =========================================================
    HELPERS
@@ -1002,11 +1000,8 @@ async function loadAllData() {
 
     allWorkers = workers;
 
-    // 4. Preload date folders for each worker (for stats)
+    // 4. Preload date folders for each worker
     var todayS = todayStr();
-    var totalDocs = 0;
-    var docsToday = 0;
-    var activeCount = 0;
 
     var datePromises = workers.map(function(w) {
       return sbList(w._basePath + '/').catch(function() { return []; });
@@ -1022,12 +1017,6 @@ async function loadAllData() {
 
       allWorkerFiles[wId] = { dates: dateItems.map(function(d) { return d.name; }), loaded: {} };
 
-      // Count dates for total docs estimate
-      totalDocs += dateItems.length;
-      if (dateItems.some(function(d) { return d.name === todayS; })) docsToday++;
-
-      var act = activityInfo(workers[wi].last_active);
-      if (act.color === 'green') activeCount++;
     }
 
     // 5. Load legacy folders structure
@@ -1895,12 +1884,6 @@ function openLbReg(regId, startIndex) {
   showLightbox();
 }
 
-function openLightboxSingle(url, caption) {
-  lightboxImages = [{ url: url, caption: caption || '', path: '' }];
-  lightboxIndex = 0;
-  showLightbox();
-}
-
 function showLightbox() {
   var lb = document.getElementById('lightbox');
 
@@ -2233,11 +2216,6 @@ function deletePcImage() {
   doDeletePcFile(pcePath);
 }
 
-function deletePcFile(storagePath) {
-  if (!confirm('¿Eliminar este archivo?\n\nNo se puede deshacer.')) return;
-  doDeletePcFile(storagePath);
-}
-
 function doDeletePcFile(storagePath) {
   showToast('Eliminando...', 'info');
   sbDelete([storagePath]).then(function(res) {
@@ -2251,13 +2229,17 @@ function doDeletePcFile(storagePath) {
 
 function softReloadDate(path) {
   var parts = path.split('?')[0].split('/');
-  if (parts.length >= 3 && parts[0] === 'workers') {
-    var wId = parts[1];
-    var date = parts[2];
+  var wId, date;
+  // Handle both 'workers/id/date/...' and 'servicio/workers/id/date/...'
+  var wIdx = parts.indexOf('workers');
+  if (wIdx >= 0 && parts.length > wIdx + 2) {
+    wId = parts[wIdx + 1];
+    date = parts[wIdx + 2];
+  }
+  if (wId && date) {
     var fi = allWorkerFiles[wId];
     if (fi && fi.loaded[date]) {
       delete fi.loaded[date];
-      // Re-fetch just this date's files and re-render
       loadDateFiles(wId, date);
     }
   }
@@ -2326,6 +2308,18 @@ function softReloadDate(path) {
    ========================================================= */
 loadAllData();
 startAutoRefresh();
+
+/* Register Service Worker */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(function(reg) {
+    reg.addEventListener('updatefound', function() {
+      var nw = reg.installing;
+      if (nw) nw.addEventListener('statechange', function() {
+        if (nw.state === 'activated') window.location.reload();
+      });
+    });
+  }).catch(function(e) { console.log('SW error:', e); });
+}
 </script>
 <div style="position:fixed;bottom:12px;right:20px;z-index:1;pointer-events:none"><span style="font-size:10px;color:rgba(0,0,0,.2);font-weight:700;letter-spacing:1.2px;text-transform:uppercase">&copy; NeuroArsenal</span></div>
 </body>

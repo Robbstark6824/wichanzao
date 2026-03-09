@@ -1,4 +1,4 @@
-var CACHE_NAME = 'wichanzao-v82';
+var CACHE_NAME = 'wichanzao-v83';
 var PRECACHE = [
   './',
   './index.html',
@@ -64,16 +64,24 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Cache-first for static assets (js libs, icons, manifest)
+  // Cache-first for static assets (js libs, icons, manifest, fonts)
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(response) {
-        if (response && response.status === 200 && response.type === 'basic') {
-          var clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(e.request, clone);
-          });
+        if (response && response.status === 200) {
+          // Cache both same-origin (basic) and cross-origin (cors/opaque) responses
+          // This ensures Google Fonts and CDN assets are cached for offline
+          var shouldCache = response.type === 'basic' ||
+            url.hostname.includes('fonts.googleapis.com') ||
+            url.hostname.includes('fonts.gstatic.com') ||
+            url.hostname.includes('cdnjs.cloudflare.com');
+          if (shouldCache) {
+            var clone = response.clone();
+            caches.open(CACHE_NAME).then(function(cache) {
+              cache.put(e.request, clone);
+            });
+          }
         }
         return response;
       });

@@ -324,27 +324,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .fullscreen-preview .fp-close{position:absolute;top:calc(16px + var(--st));right:16px;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .fullscreen-preview .fp-close svg{width:20px;height:20px;fill:#fff}
 
-/* ===== VIEW: NAME ===== */
-#vName{background:var(--bg);padding-top:var(--st)}
-.name-header{background:var(--s1);padding:16px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 12px rgba(0,0,0,.04)}
-.name-back{background:none;border:none;cursor:pointer;padding:4px}
-.name-back svg{width:24px;height:24px;fill:var(--t1)}
-.name-header h3{font-size:17px;font-weight:800}
-.name-content{flex:1;overflow-y:auto;padding:20px}
-.name-preview{width:100%;border-radius:var(--r1);overflow:hidden;margin-bottom:20px;box-shadow:0 4px 16px rgba(0,0,0,.08);position:relative}
-.name-preview img{width:100%;display:block}
-.name-preview .np-badge{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px}
-.name-field{margin-bottom:16px}
-.name-field label{display:block;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
-.name-field input{width:100%;padding:14px 16px;border:1.5px solid var(--bd);border-radius:var(--r2);font-family:inherit;font-size:15px;background:var(--s1);color:var(--t1);transition:border-color .2s,box-shadow .2s}
-.name-field input:focus{outline:none;border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.15)}
-.name-upload-area{margin-top:16px}
-.name-upload-area .btn-primary{width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
-.upload-progress{margin-top:16px;display:none}
-.upload-progress.on{display:block}
-.upload-progress .up-status{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:6px}
-.upload-progress .up-detail{font-size:11px;color:var(--t3);margin-top:4px}
-
 /* ===== QUICK NAME BAR ===== */
 .quick-name{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(12,31,61,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:14px 16px;padding-bottom:calc(14px + var(--sb));transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:10px;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
 .quick-name.on{transform:translateY(0)}
@@ -831,7 +810,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p>v81</p>
+              <p>v83</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -963,36 +942,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleGalleryFile(event)">
 </div>
 
-<!-- ===== VIEW: NAME ===== -->
-<div class="V" id="vName">
-  <div class="name-header">
-    <button class="name-back" onclick="goBackFromName()">
-      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    </button>
-    <h3>Nombrar documento</h3>
-  </div>
-  <div class="name-content">
-    <div class="name-preview">
-      <img id="namePreviewImg" src="" alt="">
-      <div class="np-badge hidden" id="namePageBadge"></div>
-    </div>
-    <div class="name-field">
-      <label>Nombre del archivo</label>
-      <input type="text" id="nameInput" placeholder="Ej: referencia-paciente-garcia" autocomplete="off">
-    </div>
-    <div class="name-upload-area">
-      <button class="btn btn-primary" id="uploadBtn" onclick="startUpload()">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
-        Subir documento
-      </button>
-    </div>
-    <div class="upload-progress" id="uploadProgress">
-      <div class="up-status" id="uploadStatus">Preparando...</div>
-      <div class="progress-wrap"><div class="progress-bar" id="uploadBar"></div></div>
-      <div class="up-detail" id="uploadDetail"></div>
-    </div>
-  </div>
-</div>
 
 <script>
 /* ===========================================================
@@ -1368,7 +1317,7 @@ var GOOGLE_CLIENT_ID = '38819146456-l09vt0gl18sbussnbcvr9fn6bjbf32bv.apps.google
 var pendingGoogleUser = null;
 
 function googleSignIn() {
-  if (!google || !google.accounts) {
+  if (typeof google === 'undefined' || !google.accounts) {
     toast('Google no disponible. Verifica tu conexion.', 'error');
     return;
   }
@@ -1574,7 +1523,6 @@ function deleteMyFolder() {
     todayFiles = [];
     localStorage.removeItem(getTodayKey());
     updateTodayCount();
-    renderTodayFiles();
     toast('Carpeta eliminada correctamente', 'success');
   }).catch(function(e) {
     console.error('Delete folder error:', e);
@@ -2235,6 +2183,17 @@ function getTodayKey() {
   return 'wichanzao_today_' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+// Clean old wichanzao_today_* keys (keep only today)
+(function cleanOldTodayKeys() {
+  var todayKey = getTodayKey();
+  for (var i = localStorage.length - 1; i >= 0; i--) {
+    var k = localStorage.key(i);
+    if (k && k.indexOf('wichanzao_today_') === 0 && k !== todayKey) {
+      localStorage.removeItem(k);
+    }
+  }
+})();
+
 function loadTodayFiles() {
   var raw = localStorage.getItem(getTodayKey());
   if (raw) {
@@ -2642,12 +2601,6 @@ function editPdfPage(index) {
   haptic();
   closeReviewPanel();
   openPhotoEditor(pdfPages[index], 'pdf', index);
-}
-
-function openFullscreen(index) {
-  var fp = document.getElementById('fullscreenPreview');
-  document.getElementById('fullscreenImg').src = pdfPages[index];
-  fp.classList.add('on');
 }
 
 function closeFullscreen() {
@@ -3164,46 +3117,7 @@ function doUploadPdf(filename, pages) {
   optimizeNext();
 }
 
-/* ===== NAMING VIEW ===== */
-function goToNaming() {
-  var previewImg = document.getElementById('namePreviewImg');
-  var badge = document.getElementById('namePageBadge');
 
-  if (cameraMode === 'foto') {
-    previewImg.src = capturedSingleImage;
-    badge.classList.add('hidden');
-  } else {
-    previewImg.src = pdfPages[0];
-    badge.classList.remove('hidden');
-    badge.textContent = pdfPages.length + ' pagina' + (pdfPages.length !== 1 ? 's' : '');
-  }
-
-  // Generate suggested filename
-  var now = new Date();
-  var dateStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
-  document.getElementById('nameInput').value = 'referencia-' + dateStr;
-
-  document.getElementById('uploadBtn').disabled = false;
-  document.getElementById('uploadProgress').classList.remove('on');
-
-  showView('vName');
-  setTimeout(function() {
-    document.getElementById('nameInput').focus();
-  }, 350);
-}
-
-function goBackFromName() {
-  haptic();
-  // Go back to camera or main
-  if (cameraMode === 'pdf' && pdfPages.length > 0) {
-    // Go back to camera with existing pages
-    showView('vCam');
-    startCamera();
-    updateThumbStack();
-  } else {
-    showView('vMain');
-  }
-}
 
 /* ===== IMAGE OPTIMIZATION ===== */
 function optimizeImage(dataUrl, maxSizeBytes) {
@@ -3338,134 +3252,6 @@ function generatePdf(optimizedDataUrls) {
   });
 }
 
-/* ===== UPLOAD ===== */
-function startUpload() {
-  var filename = document.getElementById('nameInput').value.trim();
-  if (!filename) {
-    toast('Ingresa un nombre para el archivo', 'error');
-    return;
-  }
-
-  // Sanitize filename
-  filename = filename.replace(/[^a-zA-Z0-9\-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  if (!filename) filename = 'documento';
-
-  haptic(25);
-
-  var btn = document.getElementById('uploadBtn');
-  btn.disabled = true;
-
-  var progress = document.getElementById('uploadProgress');
-  progress.classList.add('on');
-  setUploadStatus('Optimizando imagenes...', 0, '');
-
-  if (cameraMode === 'foto') {
-    uploadFoto(filename);
-  } else {
-    uploadPdfDoc(filename);
-  }
-}
-
-function setUploadStatus(status, percent, detail) {
-  document.getElementById('uploadStatus').textContent = status;
-  document.getElementById('uploadBar').style.width = percent + '%';
-  document.getElementById('uploadDetail').textContent = detail || '';
-}
-
-function uploadFoto(filename) {
-  optimizeImage(capturedSingleImage).then(function(optimized) {
-    setUploadStatus('Subiendo imagen...', 40, '');
-
-    var blob = dataUrlToBlob(optimized);
-    var now = new Date();
-    var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-    var ts = now.getTime();
-    var path = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
-
-    return uploadToSupabase(path, blob, 'image/jpeg');
-  }).then(function() {
-    setUploadStatus('Completado', 100, '');
-    addTodayFile(filename + '.jpg', 'foto');
-    toast('Imagen subida correctamente', 'success');
-    haptic(30);
-    setTimeout(function() {
-      showView('vMain');
-      populateMain();
-    }, 800);
-  }).catch(function(err) {
-    console.error('Upload error:', err);
-    // Queue for offline
-    queueOfflineUpload(filename, cameraMode, [capturedSingleImage]);
-    toast('Guardado para subir cuando haya conexion', 'info');
-    addTodayFile(filename + '.jpg (pendiente)', 'foto');
-    setTimeout(function() {
-      showView('vMain');
-      populateMain();
-    }, 1200);
-  });
-}
-
-function uploadPdfDoc(filename) {
-  var optimizedPages = [];
-  var totalPages = pdfPages.length;
-  var currentPage = 0;
-
-  function optimizeNext() {
-    if (currentPage >= totalPages) {
-      // All optimized, generate PDF
-      setUploadStatus('Generando PDF...', 60, currentPage + ' paginas procesadas');
-      generatePdf(optimizedPages).then(function(pdfBlob) {
-        setUploadStatus('Subiendo PDF...', 75, '');
-
-        var now = new Date();
-        var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-        var ts = now.getTime();
-        var pdfPath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
-
-        // Upload PDF
-        uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
-          setUploadStatus('Subiendo imagenes...', 85, '');
-          // Also upload individual images
-          return uploadIndividualImages(filename, optimizedPages);
-        }).then(function() {
-          setUploadStatus('Completado', 100, '');
-          addTodayFile(filename + '.pdf', 'pdf');
-          toast('PDF subido correctamente (' + totalPages + ' pag.)', 'success');
-          haptic(30);
-          setTimeout(function() {
-            showView('vMain');
-            populateMain();
-          }, 800);
-        }).catch(function(err) {
-          console.error('PDF upload error:', err);
-          queueOfflineUpload(filename, cameraMode, pdfPages);
-          toast('Guardado para subir cuando haya conexion', 'info');
-          addTodayFile(filename + '.pdf (pendiente)', 'pdf');
-          setTimeout(function() {
-            showView('vMain');
-            populateMain();
-          }, 1200);
-        });
-      }).catch(function(err) {
-        console.error('PDF generation error:', err);
-        toast('Error al generar PDF', 'error');
-        document.getElementById('uploadBtn').disabled = false;
-      });
-      return;
-    }
-
-    var pct = Math.round((currentPage / totalPages) * 50);
-    setUploadStatus('Optimizando pagina ' + (currentPage + 1) + '/' + totalPages + '...', pct, '');
-
-    optimizeImage(pdfPages[currentPage]).then(function(optimized) {
-      optimizedPages.push(optimized);
-      currentPage++;
-      optimizeNext();
-    });
-  }
-
-  optimizeNext();
-}
 
 function uploadIndividualImages(filename, optimizedPages) {
   var now = new Date();
@@ -3611,30 +3397,23 @@ function setupOnlineOffline() {
 /* ===== SERVICE WORKER + AUTO-UPDATE ===== */
 function registerSW() {
   if (!('serviceWorker' in navigator)) return;
+  var reloading = false;
   navigator.serviceWorker.register('./sw.js').then(function(reg) {
     console.log('SW registered:', reg.scope);
 
     // Check for updates every 60 seconds
     setInterval(function() { reg.update(); }, 60000);
-
-    // When a new SW is found, auto-reload
-    reg.addEventListener('updatefound', function() {
-      var newWorker = reg.installing;
-      if (!newWorker) return;
-      newWorker.addEventListener('statechange', function() {
-        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-          console.log('New version detected, reloading...');
-          window.location.reload();
-        }
-      });
-    });
   }).catch(function(err) {
     console.warn('SW registration failed:', err);
   });
 
-  // Also reload when the controlling SW changes
+  // Reload once when the controlling SW changes (covers all update scenarios)
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    window.location.reload();
+    if (!reloading) {
+      reloading = true;
+      console.log('New version detected, reloading...');
+      window.location.reload();
+    }
   });
 }
 
