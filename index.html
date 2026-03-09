@@ -427,6 +427,9 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
           <button onclick="closeAdmin()" style="background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer">&times;</button>
         </div>
         <div id="adminWorkerList" style="font-size:13px;color:var(--t2)">Cargando...</div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08);text-align:center">
+          <button onclick="adminForceReload()" style="background:var(--n1);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;width:100%">Recargar todo</button>
+        </div>
       </div>
     </div>
     <!-- Delete folder -->
@@ -929,6 +932,21 @@ function adminDeleteFolder(folderId) {
     loadAdminWorkers();
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
+  });
+}
+
+function adminForceReload() {
+  toast('Limpiando cache...', 'info');
+  caches.keys().then(function(names) {
+    return Promise.all(names.map(function(n) { return caches.delete(n); }));
+  }).then(function() {
+    if (navigator.serviceWorker) {
+      return navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg) return reg.unregister();
+      });
+    }
+  }).then(function() {
+    window.location.reload(true);
   });
 }
 
