@@ -593,6 +593,17 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
       <input type="text" id="searchInput" placeholder="Buscar por nombre o area..." oninput="applyFilters()">
       <span class="search-hint">Ctrl+F</span>
     </div>
+    <select id="servicioFilter" onchange="servicioFilter=this.value;applyFilters()">
+      <option value="all">Todos los servicios</option>
+      <option value="medicina">Medicina</option>
+      <option value="enfermeria">Enfermeria</option>
+      <option value="obstetricia">Obstetricia</option>
+      <option value="psicologia">Psicologia</option>
+      <option value="odontologia">Odontologia</option>
+      <option value="nutricion">Nutricion</option>
+      <option value="administrativos">Administrativos</option>
+      <option value="legacy">Sin servicio (legacy)</option>
+    </select>
     <select id="dateFilter" onchange="applyFilters()">
       <option value="all">Todas las fechas</option>
       <option value="today">Hoy</option>
@@ -695,10 +706,26 @@ var HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-
 var REFRESH_INTERVAL = 30;
 
 /* =========================================================
+   SERVICIOS
+   ========================================================= */
+var SERVICIOS = {
+  'medicina':       { label: 'Medicina' },
+  'enfermeria':     { label: 'Enfermeria' },
+  'obstetricia':    { label: 'Obstetricia' },
+  'psicologia':     { label: 'Psicologia' },
+  'odontologia':    { label: 'Odontologia' },
+  'nutricion':      { label: 'Nutricion' },
+  'administrativos':{ label: 'Administrativos' }
+};
+var SERVICIOS_KEYS = Object.keys(SERVICIOS);
+
+/* =========================================================
    STATE
    ========================================================= */
 var allWorkers = [];
 var allWorkerFiles = {};
+var allWorkerPaths = {}; // wId -> basePath (e.g. 'medicina/workers/maria')
+var servicioFilter = 'all';
 var legacyFolders = [];
 var currentWorkerId = null;
 var expandedDates = {};
@@ -902,35 +929,65 @@ async function loadAllData() {
     var rootItems = await sbList('');
     var rootFolders = rootItems.filter(function(i) { return i.id === null && i.name; });
 
-    // 2. Separate workers/ from legacy folders
-    var hasWorkersDir = rootFolders.some(function(f) { return f.name === 'workers'; });
-    var legacyNames = rootFolders.filter(function(f) { return f.name !== 'workers' && f.name !== '.emptyFolderPlaceholder'; }).map(function(f) { return f.name; });
-
-    // 3. Load workers
-    var workers = [];
-    if (hasWorkersDir) {
-      var workerDirs = await sbList('workers/');
-      var wFolders = workerDirs.filter(function(i) { return i.id === null && i.name; });
-
-      // Fetch all profiles in parallel (authenticated, no cache)
-      var profilePromises = wFolders.map(function(wf) {
-        return fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/workers/' + wf.name + '/profile.json', {
-          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-          cache: 'no-store'
-        }).then(function(r) { return r.ok ? r.json() : null; })
-          .catch(function() { return null; });
-      });
-      var profiles = await Promise.all(profilePromises);
-
-      for (var i = 0; i < wFolders.length; i++) {
-        var p = profiles[i];
-        if (!p) {
-          // No profile.json, still show folder
-          p = { name: wFolders[i].name, area: '' };
-        }
-        p._folder = wFolders[i].name;
-        workers.push(p);
+    // 2. Build search prefixes: each servicio + legacy workers/
+    var searchPrefixes = [];
+    for (var sk = 0; sk < SERVICIOS_KEYS.length; sk++) {
+      var sKey = SERVICIOS_KEYS[sk];
+      if (rootFolders.some(function(f) { return f.name === sKey; })) {
+        searchPrefixes.push({ servicio: sKey, prefix: sKey + '/workers/' });
       }
+    }
+    if (rootFolders.some(function(f) { return f.name === 'workers'; })) {
+      searchPrefixes.push({ servicio: '', prefix: 'workers/' });
+    }
+
+    var legacyNames = rootFolders.filter(function(f) {
+      return f.name !== 'workers' && f.name !== '.emptyFolderPlaceholder' && !SERVICIOS[f.name];
+    }).map(function(f) { return f.name; });
+
+    // 3. Load workers from all servicios in parallel
+    var workers = [];
+    allWorkerPaths = {};
+
+    var prefixResults = await Promise.all(searchPrefixes.map(function(sp) {
+      return sbList(sp.prefix).then(function(items) {
+        return { servicio: sp.servicio, prefix: sp.prefix, folders: items.filter(function(i) { return i.id === null && i.name; }) };
+      }).catch(function() { return { servicio: sp.servicio, prefix: sp.prefix, folders: [] }; });
+    }));
+
+    // Collect all folder entries with their base paths
+    var allEntries = [];
+    for (var pr = 0; pr < prefixResults.length; pr++) {
+      var pRes = prefixResults[pr];
+      for (var fi = 0; fi < pRes.folders.length; fi++) {
+        allEntries.push({
+          name: pRes.folders[fi].name,
+          basePath: pRes.prefix + pRes.folders[fi].name,
+          servicio: pRes.servicio
+        });
+      }
+    }
+
+    // Fetch all profiles in parallel
+    var profilePromises = allEntries.map(function(entry) {
+      return fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + entry.basePath + '/profile.json', {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+        cache: 'no-store'
+      }).then(function(r) { return r.ok ? r.json() : null; })
+        .catch(function() { return null; });
+    });
+    var profiles = await Promise.all(profilePromises);
+
+    for (var i = 0; i < allEntries.length; i++) {
+      var p = profiles[i];
+      if (!p) {
+        p = { name: allEntries[i].name, area: '' };
+      }
+      p._folder = allEntries[i].name;
+      p._basePath = allEntries[i].basePath;
+      p._servicio = allEntries[i].servicio || p.servicio || '';
+      allWorkerPaths[p._folder] = p._basePath;
+      workers.push(p);
     }
 
     // Sort by most recently active
@@ -947,7 +1004,7 @@ async function loadAllData() {
     var activeCount = 0;
 
     var datePromises = workers.map(function(w) {
-      return sbList('workers/' + (w._folder || w.worker_id) + '/').catch(function() { return []; });
+      return sbList(w._basePath + '/').catch(function() { return []; });
     });
     var dateResults = await Promise.all(datePromises);
 
@@ -1029,11 +1086,20 @@ function renderDirectory() {
     });
   }
 
+  // Filter by servicio
+  if (servicioFilter && servicioFilter !== 'all') {
+    filtered = filtered.filter(function(w) {
+      var ws = w._servicio || w.servicio || '';
+      if (servicioFilter === 'legacy') return !ws;
+      return ws === servicioFilter;
+    });
+  }
+
   if (!filtered.length) {
     if (allWorkers.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><h3>Sin trabajadores</h3><p>Cuando el personal se registre en la app movil, apareceran aqui.</p></div>';
     } else {
-      container.innerHTML = '<div class="empty-state"><div class="icon">&#128269;</div><h3>Sin resultados</h3><p>No se encontraron trabajadores con "' + escHtml(query) + '"</p></div>';
+      container.innerHTML = '<div class="empty-state"><div class="icon">&#128269;</div><h3>Sin resultados</h3><p>No se encontraron trabajadores con esos filtros</p></div>';
     }
     return;
   }
@@ -1045,6 +1111,7 @@ function renderDirectory() {
     var wId = w._folder || w.worker_id;
     var fileInfo = allWorkerFiles[wId];
     var dateCount = fileInfo ? fileInfo.dates.length : 0;
+    var sLabel = w._servicio && SERVICIOS[w._servicio] ? SERVICIOS[w._servicio].label : '';
 
     html += '<div class="worker-card" onclick="openWorkerDetail(\'' + escHtml(wId) + '\')">';
     html += '<div class="avatar md" style="background:' + (w.avatar_color || '#4ECDC4') + '">';
@@ -1053,7 +1120,7 @@ function renderDirectory() {
     html += '</div>';
     html += '<div class="worker-info">';
     html += '<div class="worker-name">' + escHtml(w.name) + '</div>';
-    html += '<div class="worker-area">' + escHtml(w.area || 'Sin area') + '</div>';
+    html += '<div class="worker-area">' + escHtml(w.area || 'Sin area') + (sLabel ? ' &middot; ' + escHtml(sLabel) : '') + '</div>';
     html += '<div class="worker-time">' + act.label + (dateCount > 0 ? ' &middot; ' + dateCount + ' fecha(s)' : '') + '</div>';
     html += '</div>';
     html += '<span class="worker-arrow">&rsaquo;</span>';
@@ -1240,7 +1307,8 @@ function renderDetailView(wId) {
   html += '<div class="detail-info">';
   html += '<div class="detail-name">' + escHtml(w.name) + '</div>';
   html += '<div class="detail-area-row">';
-  html += '<span class="detail-area">' + escHtml(w.area || 'Sin area') + '</span>';
+  var sLabel = w._servicio && SERVICIOS[w._servicio] ? SERVICIOS[w._servicio].label : '';
+  html += '<span class="detail-area">' + escHtml(w.area || 'Sin area') + (sLabel ? ' &middot; ' + escHtml(sLabel) : '') + '</span>';
   if (w.turno) html += '<span class="detail-area" style="background:rgba(212,168,83,.1);color:var(--gd2)">Turno ' + escHtml(w.turno) + '</span>';
   html += '<span class="detail-activity"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--' + (act.color === 'green' ? 'success' : act.color === 'yellow' ? 'warn' : 't3') + ');vertical-align:middle;margin-right:4px"></span>' + act.label + '</span>';
   html += '</div></div>';
@@ -1297,7 +1365,7 @@ function renderDetailView(wId) {
           html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
           if (isOpen && loaded) {
             for (var fi = 0; fi < loaded.length; fi++) {
-              html += renderFileCard(loaded[fi], 'workers/' + wId + '/' + date);
+              html += renderFileCard(loaded[fi], (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
             }
             if (!loaded.length) {
               html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
@@ -1387,8 +1455,8 @@ async function loadDateFiles(wId, date) {
   if (fileInfo.loaded[date]) return;
 
   try {
-    var items = await sbList('workers/' + wId + '/' + date + '/');
-    var docs = groupFiles(items, 'workers/' + wId + '/' + date);
+    var items = await sbList((allWorkerPaths[wId] || 'workers/' + wId) + '/' + date + '/');
+    var docs = groupFiles(items, (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
     fileInfo.loaded[date] = docs;
     if (currentWorkerId === wId) {
       renderDetailView(wId);
@@ -1668,8 +1736,8 @@ async function dlWorkerZip(wId) {
       // Load files if not already loaded
       if (!fileInfo.loaded[date]) {
         try {
-          var items = await sbList('workers/' + wId + '/' + date + '/');
-          var docs = groupFiles(items, 'workers/' + wId + '/' + date);
+          var items = await sbList((allWorkerPaths[wId] || 'workers/' + wId) + '/' + date + '/');
+          var docs = groupFiles(items, (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
           fileInfo.loaded[date] = docs;
         } catch (e) {
           console.warn('Skip date:', date);
@@ -1754,7 +1822,7 @@ async function autoCleanup() {
   var deleted = 0;
   for (var j = 0; j < toDelete.length; j++) {
     try {
-      var path = 'workers/' + toDelete[j].wId + '/' + toDelete[j].date + '/';
+      var path = (allWorkerPaths[toDelete[j].wId] || 'workers/' + toDelete[j].wId) + '/' + toDelete[j].date + '/';
       var files = await sbList(path);
       var paths = files.filter(function(f) { return f.name; }).map(function(f) { return path + f.name; });
 
