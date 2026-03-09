@@ -650,11 +650,6 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
         </div>
       </div>
     </div>
-    <!-- Delete folder -->
-    <div style="margin-top:32px;text-align:center;padding-bottom:24px">
-      <button onclick="deleteMyFolder()" style="background:none;border:1px solid rgba(229,62,62,.3);color:#E53E3E;font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit">Eliminar mi carpeta</button>
-      <div style="font-size:11px;color:var(--t3);margin-top:6px">Borra todos tus archivos del servidor</div>
-    </div>
   </div>
 </div>
 
@@ -738,9 +733,25 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
         </div>
       </div>
     </div>
+    <!-- Datos -->
+    <div class="settings-section">
+      <h4>Datos</h4>
+      <div class="settings-item" onclick="deleteMyFolder()" style="cursor:pointer">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(229,62,62,.08)">
+            <svg viewBox="0 0 24 24" fill="#E53E3E"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Eliminar mi carpeta</h5>
+            <p>Borra todos tus archivos del servidor</p>
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+    </div>
     <!-- App info -->
     <div style="text-align:center;padding:24px 16px;color:var(--t3);font-size:11px">
-      <div>C.S. Wichanzao v69</div>
+      <div>C.S. Wichanzao v70</div>
       <div style="margin-top:4px">Developed by Robert Macedo</div>
     </div>
   </div>
