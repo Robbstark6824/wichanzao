@@ -118,29 +118,45 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
 .toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .toggle.on::after{transform:translateX(20px)}
 
-/* ===== VIEW: WELCOME ===== */
-#vWelcome{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px}
-.welcome-card{background:var(--s1);border-radius:var(--r1);padding:32px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:cardUp .5s cubic-bezier(.4,0,.2,1);text-align:center}
-.welcome-card .logo-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--tl),var(--tl2));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
-.welcome-card .logo-icon svg{width:36px;height:36px;fill:#fff}
-.welcome-card h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--n1);margin-bottom:4px}
-.welcome-card p{font-size:13px;color:var(--t2);margin-bottom:24px}
-.welcome-btns{display:flex;flex-direction:column;gap:10px}
-.welcome-btns .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;border-radius:var(--r2);padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.1);transition:box-shadow .2s}
-.welcome-btns .btn-google:active{box-shadow:0 0 0 rgba(0,0,0,0)}
-.welcome-btns .btn-google svg{width:20px;height:20px;flex-shrink:0}
-.welcome-btns .btn-login{background:var(--n1);color:#fff;border:none;border-radius:var(--r2);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
-.welcome-btns .btn-register{background:none;color:var(--tl);border:2px solid var(--tl);border-radius:var(--r2);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.welcome-btns .divider{display:flex;align-items:center;gap:12px;color:var(--t3);font-size:12px}
-.welcome-btns .divider::before,.welcome-btns .divider::after{content:'';flex:1;height:1px;background:rgba(0,0,0,.1)}
-
-/* ===== VIEW: LOGIN ===== */
-#vLogin{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px;overflow-y:auto}
-
-/* ===== VIEW: REGISTER ===== */
-#vRegister{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px;overflow-y:auto}
-.regCard{background:var(--s1);border-radius:var(--r1);padding:28px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:cardUp .5s cubic-bezier(.4,0,.2,1)}
-@keyframes cardUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+/* ===== AUTH SCREENS (Welcome, Login, Register) ===== */
+.auth-bg{background:linear-gradient(160deg,#080E1A 0%,var(--n1) 40%,var(--n2) 100%);justify-content:flex-end;align-items:center;padding:0;position:relative;overflow:hidden}
+.auth-bg::before{content:'';position:absolute;top:-30%;right:-30%;width:500px;height:500px;background:radial-gradient(circle,rgba(78,205,196,.08) 0%,transparent 70%);border-radius:50%}
+.auth-bg::after{content:'';position:absolute;bottom:-20%;left:-20%;width:400px;height:400px;background:radial-gradient(circle,rgba(212,168,83,.06) 0%,transparent 70%);border-radius:50%}
+.auth-top{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 20px;z-index:2;animation:authFadeIn .6s ease-out}
+@keyframes authFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.auth-top .auth-logo{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05));border:1px solid rgba(78,205,196,.2);display:flex;align-items:center;justify-content:center;margin-bottom:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.auth-top .auth-logo svg{width:40px;height:40px}
+.auth-top h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-.5px}
+.auth-top .auth-subtitle{font-size:14px;color:rgba(255,255,255,.5);margin-top:6px;font-weight:500}
+.auth-top .auth-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(78,205,196,.1);border:1px solid rgba(78,205,196,.2);border-radius:20px;padding:6px 14px;margin-top:16px;font-size:11px;color:var(--tl);font-weight:600;letter-spacing:.3px}
+.auth-top .auth-badge .pulse{width:6px;height:6px;border-radius:50%;background:var(--tl);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.auth-card{width:100%;max-width:440px;background:var(--s1);border-radius:28px 28px 0 0;padding:32px 24px;padding-bottom:calc(32px + var(--sb));box-shadow:0 -8px 40px rgba(0,0,0,.3);z-index:2;animation:authCardUp .5s cubic-bezier(.16,1,.3,1)}
+@keyframes authCardUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+body.dark .auth-card{background:var(--s1);box-shadow:0 -8px 40px rgba(0,0,0,.5)}
+.auth-card h3{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
+.auth-card .auth-desc{font-size:13px;color:var(--t2);margin-bottom:20px}
+.auth-btns{display:flex;flex-direction:column;gap:10px}
+.auth-btns .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-color:var(--bd)}
+.auth-btns .btn-google:active{transform:scale(.98);background:#f5f5f5}
+.auth-btns .btn-google svg{width:20px;height:20px;flex-shrink:0}
+.auth-btns .btn-manual{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.06);color:var(--t1);border:1.5px solid var(--bd);border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.auth-btns .btn-manual:active{transform:scale(.98)}
+.auth-btns .btn-manual svg{width:18px;height:18px;flex-shrink:0;opacity:.5}
+.auth-divider{display:flex;align-items:center;gap:12px;color:var(--t3);font-size:12px;font-weight:600;margin:4px 0}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
+.auth-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--t3)}
+.auth-footer a{color:var(--tl);font-weight:700;cursor:pointer;text-decoration:none}
+/* Login/Register specific */
+.auth-card .field{margin-bottom:14px}
+.auth-card .btn-primary{width:100%;border-radius:12px;padding:15px;font-size:15px}
+.auth-card .btn-back{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:8px}
+.auth-top-back{position:absolute;top:calc(16px + var(--st));left:16px;z-index:3}
+.auth-top-back button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.auth-top-back button svg{width:22px;height:22px;fill:#fff}
+/* regCard kept for Google Area select */
+.regCard{background:var(--s1);border-radius:var(--r1);padding:28px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:authCardUp .5s cubic-bezier(.16,1,.3,1)}
 .regCard .top{text-align:center;margin-bottom:24px}
 .regCard .top .logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--tl),var(--tl2));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
 .regCard .top .logo-icon svg{width:32px;height:32px;fill:#fff}
@@ -413,37 +429,50 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
   </button>
 </div>
 
-<!-- ===== VIEW: REGISTER ===== -->
 <!-- ===== VIEW: WELCOME ===== -->
-<div class="V" id="vWelcome">
-  <div class="welcome-card">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+<div class="V auth-bg" id="vWelcome">
+  <div class="auth-top">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" fill="rgba(78,205,196,.3)"/><path d="M14 2v6h6" stroke="#4ECDC4" stroke-width="1.5" fill="none"/><rect x="8" y="13" width="8" height="1.5" rx=".75" fill="#4ECDC4" opacity=".6"/><rect x="8" y="16" width="5" height="1.5" rx=".75" fill="#4ECDC4" opacity=".4"/></svg>
     </div>
-    <h2>C.S. Wichanzao</h2>
-    <p>Digitalizacion de documentos</p>
-    <div class="welcome-btns">
+    <h1>CSW Scan</h1>
+    <div class="auth-subtitle">Centro de Salud Wichanzao</div>
+    <div class="auth-badge"><span class="pulse"></span> Digitalizacion de documentos</div>
+  </div>
+  <div class="auth-card">
+    <h3>Bienvenido</h3>
+    <div class="auth-desc">Inicia sesion para gestionar tus documentos</div>
+    <div class="auth-btns">
       <button class="btn-google" onclick="googleSignIn()">
         <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         Continuar con Google
       </button>
-      <div class="divider">o</div>
-      <button class="btn-login" onclick="showView('vLogin')">Iniciar con usuario</button>
-      <button class="btn-register" onclick="showView('vRegister')">Crear cuenta manual</button>
+      <div class="auth-divider">o</div>
+      <button class="btn-manual" onclick="showView('vLogin')">
+        <svg viewBox="0 0 24 24" fill="var(--t2)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        Iniciar con usuario
+      </button>
+    </div>
+    <div class="auth-footer">
+      ¿No tienes cuenta? <a onclick="showView('vRegister')">Crear una</a>
     </div>
   </div>
 </div>
 
 <!-- ===== VIEW: GOOGLE AREA SELECT ===== -->
-<div class="V" id="vGoogleArea">
-  <div class="regCard">
-    <div class="top">
-      <div id="googleAvatar" style="width:64px;height:64px;border-radius:50%;margin:0 auto 12px;overflow:hidden;background:var(--tl)"><img id="googleAvatarImg" src="" style="width:100%;height:100%;object-fit:cover"></div>
-      <h2 id="googleWelcomeName">Bienvenido</h2>
-      <p>Selecciona tu area para completar tu registro</p>
+<div class="V auth-bg" id="vGoogleArea">
+  <div class="auth-top-back"><button onclick="showView('vWelcome')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button></div>
+  <div class="auth-top">
+    <div id="googleAvatar" style="width:80px;height:80px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--tl),var(--tl2));display:flex;align-items:center;justify-content:center">
+      <img id="googleAvatarImg" src="" style="width:100%;height:100%;object-fit:cover">
     </div>
+    <h1 id="googleWelcomeName" style="font-size:22px;margin-top:16px">Bienvenido</h1>
+    <div class="auth-subtitle">Un paso mas para completar tu cuenta</div>
+  </div>
+  <div class="auth-card">
+    <h3>Selecciona tu area</h3>
+    <div class="auth-desc">Esto nos ayuda a organizar tus documentos</div>
     <div class="field">
-      <label>Area</label>
       <select id="googleArea">
         <option value="">Seleccionar area...</option>
         <option value="Medico General">Medico General</option>
@@ -456,22 +485,23 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
         <option value="Tecnico de Enfermeria">Tecnico de Enfermeria</option>
       </select>
     </div>
-    <button class="btn btn-primary" onclick="completeGoogleRegister()">Comenzar</button>
+    <button class="btn btn-primary" onclick="completeGoogleRegister()" style="border-radius:12px;padding:15px;font-size:15px">Comenzar</button>
   </div>
 </div>
 
 <!-- ===== VIEW: LOGIN ===== -->
-<div class="V" id="vLogin">
-  <div class="regCard">
-    <div class="top">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-      </div>
-      <h2>Iniciar sesion</h2>
-      <p>Ingresa tus credenciales</p>
+<div class="V auth-bg" id="vLogin">
+  <div class="auth-top-back"><button onclick="showView('vWelcome')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button></div>
+  <div class="auth-top">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" fill="rgba(78,205,196,.4)"/><path d="M12 14c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="rgba(78,205,196,.3)"/></svg>
     </div>
+    <h1 style="font-size:24px">Iniciar sesion</h1>
+    <div class="auth-subtitle">Ingresa tus credenciales</div>
+  </div>
+  <div class="auth-card">
     <div class="field">
-      <label>Nombre de carpeta (usuario)</label>
+      <label>Usuario (nombre de carpeta)</label>
       <input type="text" id="loginFolder" placeholder="Ej: maria-garcia" autocomplete="username" style="text-transform:lowercase">
     </div>
     <div class="field">
@@ -479,22 +509,28 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
       <input type="password" id="loginPass" placeholder="Tu contrasena" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
-    <div style="text-align:center;margin-top:14px">
-      <button onclick="showView('vWelcome')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">&larr; Volver</button>
+    <div class="auth-divider" style="margin:12px 0">o</div>
+    <button class="btn-google" onclick="googleSignIn()" style="width:100%">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continuar con Google
+    </button>
+    <div class="auth-footer">
+      ¿No tienes cuenta? <a onclick="showView('vRegister')">Crear una</a>
     </div>
   </div>
 </div>
 
 <!-- ===== VIEW: REGISTER ===== -->
-<div class="V" id="vRegister">
-  <div class="regCard">
-    <div class="top">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-      </div>
-      <h2>C.S. Wichanzao</h2>
-      <p>Crear cuenta nueva</p>
+<div class="V auth-bg" id="vRegister">
+  <div class="auth-top-back"><button onclick="showView('vWelcome')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button></div>
+  <div class="auth-top" style="padding-bottom:10px">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="rgba(78,205,196,.35)"/></svg>
     </div>
+    <h1 style="font-size:24px">Crear cuenta</h1>
+    <div class="auth-subtitle">Registrate para empezar</div>
+  </div>
+  <div class="auth-card" style="overflow-y:auto;max-height:65vh">
     <div class="field">
       <label>Nombre completo</label>
       <input type="text" id="regName" placeholder="Ej: Maria Garcia" autocomplete="name">
@@ -502,7 +538,7 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
     <div class="field">
       <label>Nombre de carpeta (sera tu usuario)</label>
       <input type="text" id="regFolder" placeholder="Ej: maria-garcia" autocomplete="off" style="text-transform:lowercase">
-      <div style="font-size:11px;color:var(--t3);margin-top:4px">Este sera tu usuario para iniciar sesion.</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">Este sera tu usuario para iniciar sesion</div>
     </div>
     <div class="field">
       <label>Contrasena</label>
@@ -523,8 +559,13 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
       </select>
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
-    <div style="text-align:center;margin-top:14px">
-      <button onclick="showView('vWelcome')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">&larr; Volver</button>
+    <div class="auth-divider" style="margin:12px 0">o</div>
+    <button class="btn-google" onclick="googleSignIn()" style="width:100%">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Registrarse con Google
+    </button>
+    <div class="auth-footer">
+      ¿Ya tienes cuenta? <a onclick="showView('vLogin')">Iniciar sesion</a>
     </div>
   </div>
 </div>
