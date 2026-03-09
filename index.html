@@ -12,6 +12,7 @@
 <title>C.S. Wichanzao</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B;
@@ -97,8 +98,13 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .welcome-card h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--n1);margin-bottom:4px}
 .welcome-card p{font-size:13px;color:var(--t2);margin-bottom:24px}
 .welcome-btns{display:flex;flex-direction:column;gap:10px}
+.welcome-btns .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;border-radius:var(--r2);padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.1);transition:box-shadow .2s}
+.welcome-btns .btn-google:active{box-shadow:0 0 0 rgba(0,0,0,0)}
+.welcome-btns .btn-google svg{width:20px;height:20px;flex-shrink:0}
 .welcome-btns .btn-login{background:var(--n1);color:#fff;border:none;border-radius:var(--r2);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
 .welcome-btns .btn-register{background:none;color:var(--tl);border:2px solid var(--tl);border-radius:var(--r2);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.welcome-btns .divider{display:flex;align-items:center;gap:12px;color:var(--t3);font-size:12px}
+.welcome-btns .divider::before,.welcome-btns .divider::after{content:'';flex:1;height:1px;background:rgba(0,0,0,.1)}
 
 /* ===== VIEW: LOGIN ===== */
 #vLogin{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px;overflow-y:auto}
@@ -389,9 +395,40 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
     <h2>C.S. Wichanzao</h2>
     <p>Digitalizacion de documentos</p>
     <div class="welcome-btns">
-      <button class="btn-login" onclick="showView('vLogin')">Iniciar sesion</button>
-      <button class="btn-register" onclick="showView('vRegister')">Crear cuenta nueva</button>
+      <button class="btn-google" onclick="googleSignIn()">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continuar con Google
+      </button>
+      <div class="divider">o</div>
+      <button class="btn-login" onclick="showView('vLogin')">Iniciar con usuario</button>
+      <button class="btn-register" onclick="showView('vRegister')">Crear cuenta manual</button>
     </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: GOOGLE AREA SELECT ===== -->
+<div class="V" id="vGoogleArea">
+  <div class="regCard">
+    <div class="top">
+      <div id="googleAvatar" style="width:64px;height:64px;border-radius:50%;margin:0 auto 12px;overflow:hidden;background:var(--tl)"><img id="googleAvatarImg" src="" style="width:100%;height:100%;object-fit:cover"></div>
+      <h2 id="googleWelcomeName">Bienvenido</h2>
+      <p>Selecciona tu area para completar tu registro</p>
+    </div>
+    <div class="field">
+      <label>Area</label>
+      <select id="googleArea">
+        <option value="">Seleccionar area...</option>
+        <option value="Medico General">Medico General</option>
+        <option value="Interno de Medicina">Interno de Medicina</option>
+        <option value="Obstetra">Obstetra</option>
+        <option value="Enfermero/a">Enfermero/a</option>
+        <option value="Odontologo">Odontologo</option>
+        <option value="Psicologo">Psicologo</option>
+        <option value="Nutricionista">Nutricionista</option>
+        <option value="Tecnico de Enfermeria">Tecnico de Enfermeria</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="completeGoogleRegister()">Comenzar</button>
   </div>
 </div>
 
@@ -903,6 +940,128 @@ function doLogin() {
       toast('Error de conexion. Verifica tu internet.', 'error');
     }
   });
+}
+
+/* ===== GOOGLE SIGN-IN ===== */
+var GOOGLE_CLIENT_ID = '38819146456-l09vt0gl18sbussnbcvr9fn6bjbf32bv.apps.googleusercontent.com';
+var pendingGoogleUser = null;
+
+function googleSignIn() {
+  if (!google || !google.accounts) {
+    toast('Google no disponible. Verifica tu conexion.', 'error');
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleResponse,
+    auto_select: false
+  });
+  google.accounts.id.prompt(function(notification) {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      // Fallback: use button flow
+      google.accounts.id.renderButton(
+        document.createElement('div'),
+        { theme: 'outline', size: 'large' }
+      );
+      // Try popup method
+      google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'profile email',
+        callback: function() {}
+      });
+      // Use One Tap redirect as final fallback
+      toast('Selecciona tu cuenta de Google', 'info');
+      google.accounts.id.renderButton(
+        createGoogleButtonContainer(),
+        { theme: 'outline', size: 'large', width: 300, text: 'continue_with' }
+      );
+    }
+  });
+}
+
+function createGoogleButtonContainer() {
+  var existing = document.getElementById('googleBtnContainer');
+  if (existing) existing.remove();
+  var container = document.createElement('div');
+  container.id = 'googleBtnContainer';
+  container.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3)';
+  var close = document.createElement('button');
+  close.textContent = 'Cerrar';
+  close.style.cssText = 'display:block;margin:12px auto 0;background:none;border:none;color:var(--t3);font-size:13px;cursor:pointer;font-family:inherit';
+  close.onclick = function() { container.remove(); };
+  container.appendChild(document.createElement('div'));
+  container.appendChild(close);
+  document.body.appendChild(container);
+  return container.firstChild;
+}
+
+function handleGoogleResponse(response) {
+  var el = document.getElementById('googleBtnContainer');
+  if (el) el.remove();
+
+  // Decode JWT token
+  var payload = JSON.parse(atob(response.credential.split('.')[1]));
+  var email = payload.email || '';
+  var name = payload.name || email.split('@')[0];
+  var picture = payload.picture || '';
+
+  // Generate folder ID from email
+  var folderId = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!folderId || folderId.length < 2) folderId = 'user-' + Date.now();
+
+  toast('Verificando cuenta...', 'info');
+
+  // Check if profile already exists
+  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/workers/' + folderId + '/profile.json', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+    cache: 'no-store'
+  }).then(function(res) {
+    if (res.ok) return res.json();
+    return null;
+  }).then(function(profile) {
+    if (profile) {
+      // Existing user — login directly
+      if (!profile.picture && picture) {
+        profile.picture = picture;
+        uploadProfileToSupabase(profile);
+      }
+      saveWorker(profile);
+      populateMain();
+      showView('vMain');
+      toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
+    } else {
+      // New user — need to select area
+      pendingGoogleUser = {
+        id: folderId,
+        name: name,
+        email: email,
+        picture: picture,
+        google: true,
+        created: new Date().toISOString()
+      };
+      document.getElementById('googleWelcomeName').textContent = 'Hola, ' + name.split(' ')[0];
+      if (picture) {
+        document.getElementById('googleAvatarImg').src = picture;
+      }
+      showView('vGoogleArea');
+    }
+  }).catch(function() {
+    toast('Error de conexion', 'error');
+  });
+}
+
+function completeGoogleRegister() {
+  if (!pendingGoogleUser) return;
+  var area = document.getElementById('googleArea').value;
+  if (!area) { toast('Selecciona un area', 'error'); return; }
+
+  pendingGoogleUser.area = area;
+  saveWorker(pendingGoogleUser);
+  uploadProfileToSupabase(pendingGoogleUser);
+  populateMain();
+  showView('vMain');
+  toast('Cuenta creada. Bienvenido/a, ' + pendingGoogleUser.name.split(' ')[0], 'success');
+  pendingGoogleUser = null;
 }
 
 function uploadProfileToSupabase(w) {
