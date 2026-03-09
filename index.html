@@ -430,6 +430,11 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <div class="ts-label">documentos digitalizados</div>
       <div class="today-files" id="todayFiles"></div>
     </div>
+    <!-- Delete folder -->
+    <div style="margin-top:32px;text-align:center;padding-bottom:24px">
+      <button onclick="deleteMyFolder()" style="background:none;border:1px solid rgba(229,62,62,.3);color:#E53E3E;font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit">Eliminar mi carpeta</button>
+      <div style="font-size:11px;color:var(--t3);margin-top:6px">Borra todos tus archivos del servidor</div>
+    </div>
   </div>
 </div>
 
@@ -749,6 +754,78 @@ function populateMain() {
 }
 
 /* ===== TODAY FILES ===== */
+/* ===== DELETE MY FOLDER ===== */
+function deleteMyFolder() {
+  if (!worker || !worker.id) { toast('No hay perfil activo', 'error'); return; }
+  if (!confirm('¿Eliminar tu carpeta completa?\n\nSe borraran TODOS tus archivos del servidor.\nTu perfil local se mantendra.')) return;
+  if (!confirm('¿Estas seguro? Esta accion NO se puede deshacer.')) return;
+
+  haptic(50);
+  toast('Eliminando carpeta...', 'info');
+
+  var prefix = 'workers/' + worker.id;
+
+  // List all files in the folder recursively
+  listAllFiles(prefix).then(function(files) {
+    if (!files.length) {
+      toast('La carpeta ya esta vacia', 'info');
+      return;
+    }
+    // Delete all files
+    var paths = files.map(function(f) { return prefix + '/' + f; });
+    console.log('Deleting', paths.length, 'files:', paths);
+    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefixes: paths })
+    });
+  }).then(function(res) {
+    if (res && !res.ok) throw new Error('Error ' + res.status);
+    // Clear local today files
+    todayFiles = [];
+    localStorage.removeItem(getTodayKey());
+    updateTodayCount();
+    renderTodayFiles();
+    toast('Carpeta eliminada correctamente', 'success');
+  }).catch(function(e) {
+    console.error('Delete folder error:', e);
+    toast('Error al eliminar: ' + e.message, 'error');
+  });
+}
+
+function listAllFiles(prefix) {
+  return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+  }).then(function(res) {
+    return res.json();
+  }).then(function(items) {
+    if (!Array.isArray(items)) return [];
+    var allFiles = [];
+    var subfolders = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id) {
+        allFiles.push(items[i].name);
+      } else {
+        subfolders.push(items[i].name);
+      }
+    }
+    // Recursively list subfolders
+    var promises = subfolders.map(function(sub) {
+      return listAllFiles(prefix + '/' + sub).then(function(subFiles) {
+        return subFiles.map(function(f) { return sub + '/' + f; });
+      });
+    });
+    return Promise.all(promises).then(function(results) {
+      for (var j = 0; j < results.length; j++) {
+        allFiles = allFiles.concat(results[j]);
+      }
+      return allFiles;
+    });
+  });
+}
+
 function getTodayKey() {
   var d = new Date();
   return 'wichanzao_today_' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
