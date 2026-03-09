@@ -419,6 +419,22 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   color:#fff; text-align:center; margin-top:12px;
   font-size:13px; opacity:.6; max-width:80vw;
 }
+.lb-bottom {
+  position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:12px;
+  background:rgba(0,0,0,.6); border-radius:var(--r2); padding:8px 16px;
+}
+.lb-counter {
+  color:#fff; font-size:13px; font-weight:600; opacity:.7; min-width:60px; text-align:center;
+}
+.lb-edit-btn {
+  padding:8px 16px; border-radius:var(--r3); border:none;
+  background:rgba(255,255,255,.15); color:#fff; font-size:12px; font-weight:700;
+  font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+  transition:all .15s;
+}
+.lb-edit-btn:hover { background:var(--tl); color:var(--n1); }
+.lb-del-btn:hover { background:var(--danger); color:#fff; }
 .lb-nav {
   position:absolute; top:50%; transform:translateY(-50%);
   width:44px; height:44px; background:rgba(255,255,255,.1);
@@ -634,6 +650,11 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   <button class="lb-nav lb-next" id="lbNext" onclick="event.stopPropagation();navLightbox(1)">&rsaquo;</button>
   <img id="lbImg" src="">
   <div class="lb-caption" id="lbCaption"></div>
+  <div class="lb-bottom" id="lbBottom" onclick="event.stopPropagation()">
+    <span class="lb-counter" id="lbCounter"></span>
+    <button class="lb-edit-btn" id="lbEditBtn" onclick="editFromLightbox()">&#9998; Editar</button>
+    <button class="lb-edit-btn lb-del-btn" id="lbDelBtn" onclick="deleteFromLightbox()">&#128465; Eliminar</button>
+  </div>
 </div>
 
 <!-- PROGRESS OVERLAY -->
@@ -1370,7 +1391,8 @@ function renderFileCard(doc, pathPrefix) {
   var html = '<div class="file-card">';
 
   if (thumbSrc) {
-    html += '<img class="file-thumb" src="' + thumbSrc + '" onclick="openLightboxFromDoc(this)" data-images="' + escHtml(JSON.stringify(doc.pages.map(function(p,idx) { return { url: p.url, caption: doc.name + (doc.pages.length > 1 ? ' - Pag ' + p.num : '') }; }))) + '" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
+    var lbData = doc.pages.map(function(p) { return { url: p.url, caption: doc.name + (doc.pages.length > 1 ? ' - Pag ' + p.num : ''), path: pathPrefix + '/' + p.rawName }; });
+    html += '<img class="file-thumb" src="' + thumbSrc + '" onclick="openLightboxFromDoc(this)" data-images="' + escHtml(JSON.stringify(lbData)) + '" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
   } else {
     html += '<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3)">&#128196;</div>';
   }
@@ -1405,7 +1427,8 @@ function renderFileCard(doc, pathPrefix) {
     html += '<div class="pages-row">';
     for (var pi = 0; pi < doc.pages.length; pi++) {
       html += '<div class="page-thumb">';
-      html += '<img src="' + doc.pages[pi].url + '" onclick="openLightboxSingle(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name + ' - Pag ' + doc.pages[pi].num) + '\')" onerror="this.style.background=\'var(--s2)\'">';
+      var lbDataPage = doc.pages.map(function(p) { return { url: p.url, caption: doc.name + ' - Pag ' + p.num, path: pathPrefix + '/' + p.rawName }; });
+      html += '<img src="' + doc.pages[pi].url + '" onclick="openLightboxAt(this,' + pi + ')" data-images="' + escHtml(JSON.stringify(lbDataPage)) + '" onerror="this.style.background=\'var(--s2)\'">';
       html += '<span>Pag ' + doc.pages[pi].num + '</span>';
       html += '<button onclick="forceDl(\'' + doc.pages[pi].url + '\',\'' + escHtml(doc.name) + '_pag' + doc.pages[pi].num + '.jpg\')">&#128190;</button>';
       html += '<button onclick="openPcEditor(\'' + escHtml(doc.pages[pi].url) + '\',\'' + escHtml(pathPrefix + '/' + doc.pages[pi].rawName) + '\',\'' + escHtml(doc.name + ' - Pag ' + doc.pages[pi].num) + '\')" style="color:var(--gd)">&#9998;</button>';
@@ -1756,14 +1779,25 @@ function openLightboxFromDoc(imgEl) {
     lightboxImages = JSON.parse(imgEl.getAttribute('data-images'));
     lightboxIndex = 0;
   } catch (e) {
-    lightboxImages = [{ url: imgEl.src, caption: '' }];
+    lightboxImages = [{ url: imgEl.src, caption: '', path: '' }];
+    lightboxIndex = 0;
+  }
+  showLightbox();
+}
+
+function openLightboxAt(imgEl, index) {
+  try {
+    lightboxImages = JSON.parse(imgEl.getAttribute('data-images'));
+    lightboxIndex = index || 0;
+  } catch (e) {
+    lightboxImages = [{ url: imgEl.src, caption: '', path: '' }];
     lightboxIndex = 0;
   }
   showLightbox();
 }
 
 function openLightboxSingle(url, caption) {
-  lightboxImages = [{ url: url, caption: caption || '' }];
+  lightboxImages = [{ url: url, caption: caption || '', path: '' }];
   lightboxIndex = 0;
   showLightbox();
 }
@@ -1779,8 +1813,39 @@ function showLightbox() {
   document.getElementById('lbPrev').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
   document.getElementById('lbNext').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
 
+  // Counter
+  var counter = document.getElementById('lbCounter');
+  if (lightboxImages.length > 1) {
+    counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+  } else {
+    counter.textContent = '';
+  }
+
+  // Show edit/delete only if path available
+  var hasPath = lightboxImages[lightboxIndex].path && lightboxImages[lightboxIndex].path.length > 0;
+  document.getElementById('lbEditBtn').style.display = hasPath ? 'inline-flex' : 'none';
+  document.getElementById('lbDelBtn').style.display = hasPath ? 'inline-flex' : 'none';
+
   lb.classList.add('on');
   document.body.style.overflow = 'hidden';
+}
+
+function updateLightboxUI() {
+  var img = document.getElementById('lbImg');
+  var cap = document.getElementById('lbCaption');
+  img.src = lightboxImages[lightboxIndex].url;
+  cap.textContent = lightboxImages[lightboxIndex].caption || '';
+
+  var counter = document.getElementById('lbCounter');
+  if (lightboxImages.length > 1) {
+    counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+  } else {
+    counter.textContent = '';
+  }
+
+  var hasPath = lightboxImages[lightboxIndex].path && lightboxImages[lightboxIndex].path.length > 0;
+  document.getElementById('lbEditBtn').style.display = hasPath ? 'inline-flex' : 'none';
+  document.getElementById('lbDelBtn').style.display = hasPath ? 'inline-flex' : 'none';
 }
 
 function closeLightbox(e) {
@@ -1793,11 +1858,23 @@ function navLightbox(dir) {
   lightboxIndex += dir;
   if (lightboxIndex < 0) lightboxIndex = lightboxImages.length - 1;
   if (lightboxIndex >= lightboxImages.length) lightboxIndex = 0;
+  updateLightboxUI();
+}
 
-  var img = document.getElementById('lbImg');
-  var cap = document.getElementById('lbCaption');
-  img.src = lightboxImages[lightboxIndex].url;
-  cap.textContent = lightboxImages[lightboxIndex].caption || '';
+function editFromLightbox() {
+  var current = lightboxImages[lightboxIndex];
+  if (!current || !current.path) return;
+  closeLightbox();
+  openPcEditor(current.url, current.path, current.caption || 'Imagen');
+}
+
+function deleteFromLightbox() {
+  var current = lightboxImages[lightboxIndex];
+  if (!current || !current.path) return;
+  if (!confirm('¿Eliminar esta imagen?\n\nEsta accion no se puede deshacer.')) return;
+
+  closeLightbox();
+  doDeletePcFile(current.path);
 }
 
 /* =========================================================

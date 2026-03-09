@@ -821,6 +821,8 @@ function deleteTodayFile(index) {
   var f = todayFiles[index];
   if (!f) return;
 
+  if (!confirm('¿Eliminar "' + (f.name || 'archivo') + '"?\n\nEsta accion no se puede deshacer.')) return;
+
   haptic(30);
 
   if (f.url) {
@@ -1227,7 +1229,7 @@ function finalizePdf() {
   }
   var pagesToUpload = pdfPages.slice();
   pdfPages = [];
-  stopCamera();
+  // Keep camera stream alive for fast re-open
   showView('vMain');
   populateMain();
   // Show quick name bar over main view
@@ -1296,9 +1298,11 @@ function resetCrop() {
 function deleteFromEditor() {
   haptic(30);
   if (editorSource === 'today' && editorTodayIndex >= 0) {
+    // deleteTodayFile already has its own confirm
     deleteTodayFile(editorTodayIndex);
     closePhotoEditor();
   } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
+    if (!confirm('¿Eliminar esta pagina?')) return;
     pdfPages.splice(editorPageIndex, 1);
     updateThumbStack();
     toast('Pagina eliminada', 'info');
@@ -1307,6 +1311,7 @@ function deleteFromEditor() {
       setTimeout(openReviewPanel, 300);
     }
   } else {
+    if (!confirm('¿Eliminar esta foto?')) return;
     capturedSingleImage = null;
     toast('Foto eliminada', 'info');
     closePhotoEditor();
