@@ -581,7 +581,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
       <span class="search-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </span>
-      <input type="text" id="searchInput" placeholder="Buscar por nombre o area..." oninput="applyFilters()">
+      <input type="text" id="searchInput" placeholder="Buscar por nombre o rol..." oninput="applyFilters()">
       <span class="search-hint">Ctrl+F</span>
     </div>
     <button class="tb-btn primary" onclick="loadAllData()">
@@ -1134,7 +1134,7 @@ function renderDirectory() {
     html += '</div>';
     html += '<div class="worker-info">';
     html += '<div class="worker-name">' + escHtml(w.name) + '</div>';
-    html += '<div class="worker-area">' + escHtml(w.area || 'Sin area') + '</div>';
+    html += '<div class="worker-area">' + escHtml(w.area || 'Sin rol') + '</div>';
     html += '<div class="worker-time">' + act.label + (dateCount > 0 ? ' &middot; ' + dateCount + ' fecha(s)' : '') + '</div>';
     html += '</div>';
     html += '<span class="worker-arrow">&rsaquo;</span>';
@@ -1320,7 +1320,7 @@ function renderDetailView(wId) {
   html += '<div class="detail-name">' + escHtml(w.name) + '</div>';
   html += '<div class="detail-area-row">';
   var sLabel = w._servicio && SERVICIOS[w._servicio] ? SERVICIOS[w._servicio].label : '';
-  html += '<span class="detail-area">' + escHtml(w.area || 'Sin area') + (sLabel ? ' &middot; ' + escHtml(sLabel) : '') + '</span>';
+  html += '<span class="detail-area">' + escHtml(w.area || 'Sin rol') + (sLabel ? ' &middot; ' + escHtml(sLabel) : '') + '</span>';
   if (w.turno) html += '<span class="detail-area" style="background:rgba(212,168,83,.1);color:var(--gd2)">Turno ' + escHtml(w.turno) + '</span>';
   html += '<span class="detail-activity"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--' + (act.color === 'green' ? 'success' : act.color === 'yellow' ? 'warn' : 't3') + ');vertical-align:middle;margin-right:4px"></span>' + act.label + '</span>';
   html += '</div></div>';

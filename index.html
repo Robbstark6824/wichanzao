@@ -509,9 +509,9 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
       </select>
     </div>
     <div class="field">
-      <label>Area</label>
+      <label>Rol</label>
       <select id="googleArea" disabled>
-        <option value="">Primero selecciona un servicio</option>
+        <option value="">Selecciona un servicio primero</option>
       </select>
     </div>
     <button class="btn btn-primary" onclick="completeGoogleRegister()" style="border-radius:12px;padding:15px;font-size:15px">Comenzar</button>
@@ -565,6 +565,18 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
       <input type="text" id="regName" placeholder="Ej: Maria Garcia" autocomplete="name">
     </div>
     <div class="field">
+      <label>Servicio</label>
+      <select id="regServicio" onchange="updateAreaOptions('regServicio','regArea')">
+        <option value="">Seleccionar servicio...</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Rol</label>
+      <select id="regArea" disabled>
+        <option value="">Selecciona un servicio primero</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Nombre de carpeta (sera tu usuario)</label>
       <input type="text" id="regFolder" placeholder="Ej: maria-garcia" autocomplete="off" style="text-transform:lowercase">
       <div style="font-size:11px;color:var(--t3);margin-top:4px">Este sera tu usuario para iniciar sesion</div>
@@ -572,18 +584,6 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     <div class="field">
       <label>Contrasena</label>
       <input type="password" id="regPass" placeholder="Minimo 4 caracteres" autocomplete="new-password">
-    </div>
-    <div class="field">
-      <label>Servicio</label>
-      <select id="regServicio" onchange="updateAreaOptions('regServicio','regArea')">
-        <option value="">Seleccionar servicio...</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Area</label>
-      <select id="regArea" disabled>
-        <option value="">Primero selecciona un servicio</option>
-      </select>
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
     <div class="auth-divider" style="margin:12px 0">o</div>
@@ -744,7 +744,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
             <svg viewBox="0 0 24 24" fill="#38A169"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
           </div>
           <div class="si-text">
-            <h5>Area</h5>
+            <h5>Rol</h5>
             <p id="settingsArea">---</p>
           </div>
         </div>
@@ -773,7 +773,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
           </div>
           <div class="si-text">
             <h5>Version</h5>
-            <p>v78</p>
+            <p>v79</p>
           </div>
         </div>
       </div>
@@ -944,12 +944,12 @@ var SB_BUCKET = 'documentos';
 
 /* ===== SERVICIOS DEL CENTRO ===== */
 var SERVICIOS = {
-  'medicina':       { label: 'Medicina',       areas: ['Medico General','Interno de Medicina'] },
-  'enfermeria':     { label: 'Enfermeria',     areas: ['Enfermero/a','Tecnico de Enfermeria'] },
-  'obstetricia':    { label: 'Obstetricia',    areas: ['Obstetra'] },
-  'psicologia':     { label: 'Psicologia',     areas: ['Psicologo'] },
-  'odontologia':    { label: 'Odontologia',    areas: ['Odontologo'] },
-  'nutricion':      { label: 'Nutricion',      areas: ['Nutricionista'] },
+  'medicina':       { label: 'Medicina',       areas: ['Medico','Interno de Medicina'] },
+  'enfermeria':     { label: 'Enfermeria',     areas: ['Enfermero/a','Interno de Enfermeria'] },
+  'obstetricia':    { label: 'Obstetricia',    areas: ['Obstetra','Interno de Obstetricia'] },
+  'psicologia':     { label: 'Psicologia',     areas: ['Psicologo','Interno de Psicologia'] },
+  'odontologia':    { label: 'Odontologia',    areas: ['Odontologo','Interno de Odontologia'] },
+  'nutricion':      { label: 'Nutricion',      areas: ['Nutricionista','Interno de Nutricion'] },
   'administrativos':{ label: 'Administrativos',areas: ['Administrativo'] }
 };
 var SERVICIOS_KEYS = Object.keys(SERVICIOS);
@@ -1157,7 +1157,7 @@ function updateAreaOptions(servicioSelectId, areaSelectId) {
   var servicio = servicioSel.value;
   areaSel.innerHTML = '';
   if (!servicio || !SERVICIOS[servicio]) {
-    areaSel.innerHTML = '<option value="">Primero selecciona un servicio</option>';
+    areaSel.innerHTML = '<option value="">Selecciona un servicio primero</option>';
     areaSel.disabled = true;
     return;
   }
@@ -1169,7 +1169,7 @@ function updateAreaOptions(servicioSelectId, areaSelectId) {
     opt.textContent = areas[0];
     areaSel.appendChild(opt);
   } else {
-    areaSel.innerHTML = '<option value="">Seleccionar area...</option>';
+    areaSel.innerHTML = '<option value="">Seleccionar rol...</option>';
     for (var i = 0; i < areas.length; i++) {
       var opt = document.createElement('option');
       opt.value = areas[i];
@@ -1193,7 +1193,7 @@ function doRegister() {
   if (folder.length < 3) { toast('Nombre de carpeta muy corto', 'error'); return; }
   if (!pass || pass.length < 4) { toast('Contrasena minimo 4 caracteres', 'error'); return; }
   if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
-  if (!area) { toast('Selecciona un area', 'error'); return; }
+  if (!area) { toast('Selecciona un rol', 'error'); return; }
 
   // Sanitize folder name — this IS the worker ID, fixed forever
   var folderId = folder.replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -1425,7 +1425,7 @@ function completeGoogleRegister() {
   var servicio = document.getElementById('googleServicio').value;
   var area = document.getElementById('googleArea').value;
   if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
-  if (!area) { toast('Selecciona un area', 'error'); return; }
+  if (!area) { toast('Selecciona un rol', 'error'); return; }
 
   pendingGoogleUser.servicio = servicio;
   pendingGoogleUser.area = area;
@@ -1827,7 +1827,7 @@ function changeArea() {
   if (!worker) return;
   var servicio = worker.servicio || 'medicina';
   var areas = SERVICIOS[servicio] ? SERVICIOS[servicio].areas : ['Medico General','Interno de Medicina'];
-  var msg = 'Selecciona tu area (escribe el numero):\n';
+  var msg = 'Selecciona tu rol (escribe el numero):\n';
   for (var i = 0; i < areas.length; i++) {
     msg += (i + 1) + '. ' + areas[i] + '\n';
   }
@@ -1839,7 +1839,7 @@ function changeArea() {
   saveWorker(worker);
   uploadProfileToSupabase(worker);
   document.getElementById('settingsArea').textContent = worker.area;
-  toast('Area actualizada', 'success');
+  toast('Rol actualizado', 'success');
 }
 
 function changeServicio() {
