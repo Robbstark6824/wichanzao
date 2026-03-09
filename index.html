@@ -714,7 +714,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
         </div>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
-      <div class="settings-item">
+      <div class="settings-item" onclick="changeServicio()" style="cursor:pointer">
         <div class="si-left">
           <div class="si-icon" style="background:rgba(99,102,241,.12)">
             <svg viewBox="0 0 24 24" fill="#6366F1"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
@@ -724,6 +724,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
             <p id="settingsServicio">---</p>
           </div>
         </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
       <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
         <div class="si-left">
@@ -772,7 +773,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
           </div>
           <div class="si-text">
             <h5>Version</h5>
-            <p>v77</p>
+            <p>v78</p>
           </div>
         </div>
       </div>
@@ -1839,6 +1840,39 @@ function changeArea() {
   uploadProfileToSupabase(worker);
   document.getElementById('settingsArea').textContent = worker.area;
   toast('Area actualizada', 'success');
+}
+
+function changeServicio() {
+  if (!worker) return;
+  var msg = 'Selecciona tu servicio (escribe el numero):\n';
+  for (var i = 0; i < SERVICIOS_KEYS.length; i++) {
+    msg += (i + 1) + '. ' + SERVICIOS[SERVICIOS_KEYS[i]].label + '\n';
+  }
+  var current = worker.servicio ? (SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : worker.servicio) : 'Ninguno';
+  msg += '\nActual: ' + current;
+  var choice = prompt(msg);
+  if (!choice) return;
+  var idx = parseInt(choice) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= SERVICIOS_KEYS.length) { toast('Opcion invalida', 'error'); return; }
+  var newServicio = SERVICIOS_KEYS[idx];
+  if (newServicio === worker.servicio) return;
+
+  var warn = worker.servicio
+    ? 'Cambiaras de ' + current + ' a ' + SERVICIOS[newServicio].label + '.\n\nTus archivos anteriores se mantendran en ' + current + ' y los nuevos iran a ' + SERVICIOS[newServicio].label + '.\n\n¿Continuar?'
+    : 'Se asignara tu cuenta al servicio de ' + SERVICIOS[newServicio].label + '.\n\n¿Continuar?';
+  if (!confirm(warn)) return;
+
+  worker.servicio = newServicio;
+  // Update area to first option of new servicio if current area doesn't belong
+  var newAreas = SERVICIOS[newServicio].areas;
+  if (newAreas.indexOf(worker.area) === -1) {
+    worker.area = newAreas[0];
+    document.getElementById('settingsArea').textContent = worker.area;
+  }
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  document.getElementById('settingsServicio').textContent = SERVICIOS[newServicio].label;
+  toast('Servicio actualizado a ' + SERVICIOS[newServicio].label, 'success');
 }
 
 function loadAdminWorkers() {
