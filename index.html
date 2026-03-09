@@ -2378,6 +2378,7 @@ var editorSource = 'foto'; // 'foto', 'pdf', or 'today'
 var editorPageIndex = -1;
 var editorTodayIndex = -1;
 var cropState = { dragging: false, handle: null, startX: 0, startY: 0, box: { x: 0, y: 0, w: 0, h: 0 }, imgRect: null };
+var cropModified = false; // true when user moved/resized crop box without applying
 
 function openPhotoEditor(dataUrl, source, pageIndex) {
   editorDataUrl = dataUrl;
@@ -2426,6 +2427,7 @@ function initCropBox() {
   box.style.height = (ir.height - m * 2) + 'px';
 
   cropState.imgRect = { x: imgX, y: imgY, w: ir.width, h: ir.height };
+  cropModified = false;
 }
 
 function resetCrop() {
@@ -2499,6 +2501,7 @@ function applyCrop() {
     var cropped = canvas.toDataURL('image/jpeg', 0.92);
     editorDataUrl = cropped;
     document.getElementById('peImage').src = cropped;
+    cropModified = false;
     toast('Recortado', 'success');
 
     setTimeout(initCropBox, 100);
@@ -2509,6 +2512,54 @@ function applyCrop() {
 function confirmCrop() {
   haptic(25);
 
+  // If user modified crop box but didn't click "Recortar", auto-apply crop first
+  if (cropModified) {
+    var wrap = document.getElementById('peCanvasWrap');
+    var img = document.getElementById('peImage');
+    var box = document.getElementById('peCropBox');
+    var wr = wrap.getBoundingClientRect();
+
+    var bx = parseInt(box.style.left) || 0;
+    var by = parseInt(box.style.top) || 0;
+    var bw = parseInt(box.style.width) || 0;
+    var bh = parseInt(box.style.height) || 0;
+
+    var ir = img.getBoundingClientRect();
+    var ix = ir.left - wr.left;
+    var iy = ir.top - wr.top;
+    var iw = ir.width;
+    var ih = ir.height;
+
+    if (bw >= 20 && bh >= 20) {
+      var srcImg = new Image();
+      srcImg.crossOrigin = 'anonymous';
+      srcImg.onload = function() {
+        var scaleX = srcImg.width / iw;
+        var scaleY = srcImg.height / ih;
+        var cx = Math.max(0, (bx - ix) * scaleX);
+        var cy = Math.max(0, (by - iy) * scaleY);
+        var cw = Math.min(srcImg.width - cx, bw * scaleX);
+        var ch = Math.min(srcImg.height - cy, bh * scaleY);
+
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(cw);
+        canvas.height = Math.round(ch);
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(srcImg, Math.round(cx), Math.round(cy), Math.round(cw), Math.round(ch), 0, 0, Math.round(cw), Math.round(ch));
+
+        editorDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        cropModified = false;
+        doConfirmSave();
+      };
+      srcImg.src = editorDataUrl;
+      return;
+    }
+  }
+
+  doConfirmSave();
+}
+
+function doConfirmSave() {
   if (editorSource === 'today' && editorTodayIndex >= 0) {
     // Re-upload edited image to Supabase
     var f = todayFiles[editorTodayIndex];
@@ -2538,9 +2589,10 @@ function confirmCrop() {
     closePhotoEditor();
     setTimeout(openReviewPanel, 300);
   } else {
-    capturedSingleImage = editorDataUrl;
+    var savedDataUrl = editorDataUrl;
+    capturedSingleImage = savedDataUrl;
     closePhotoEditor();
-    showQuickName('foto', editorDataUrl);
+    showQuickName('foto', savedDataUrl);
   }
 }
 
@@ -2624,6 +2676,7 @@ function confirmCrop() {
     box.style.top = ny + 'px';
     box.style.width = nw + 'px';
     box.style.height = nh + 'px';
+    cropModified = true;
   }
 
   function onEnd() {
