@@ -740,7 +740,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     </div>
     <!-- App info -->
     <div style="text-align:center;padding:24px 16px;color:var(--t3);font-size:11px">
-      <div>C.S. Wichanzao v68</div>
+      <div>C.S. Wichanzao v69</div>
       <div style="margin-top:4px">Developed by Robert Macedo</div>
     </div>
   </div>
@@ -871,7 +871,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   migrateOldProfile();
   loadWorker();
-  setTimeout(function() { toast('v67-debug cargado', 'info'); }, 1500);
   loadTodayFiles();
   processOfflineQueue();
   setupOnlineOffline();
@@ -2363,9 +2362,6 @@ function finalizePdf() {
     return;
   }
   var pagesToUpload = pdfPages.slice();
-  for (var fi = 0; fi < pagesToUpload.length; fi++) {
-    _dlog('3.FINALIZE: pdfPages[' + fi + ']=' + pagesToUpload[fi].length + ' chars');
-  }
   pdfPages = [];
   stopCamera();
   showView('vMain');
@@ -2383,25 +2379,6 @@ var editorPageIndex = -1;
 var editorTodayIndex = -1;
 var cropState = { dragging: false, handle: null, startX: 0, startY: 0, box: { x: 0, y: 0, w: 0, h: 0 }, imgRect: null };
 var cropModified = false; // true when user moved/resized crop box without applying
-var _dbg = []; // debug log accumulator
-function _dlog(msg) { _dbg.push(msg); }
-function _showDebug() {
-  var txt = _dbg.join('\n');
-  _dbg = [];
-  var d = document.createElement('div');
-  d.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);color:#0f0;font:13px/1.6 monospace;padding:20px;padding-top:calc(var(--st) + 20px);overflow:auto;white-space:pre-wrap;word-break:break-all';
-  d.textContent = txt;
-  var btn = document.createElement('button');
-  btn.textContent = 'COPIAR Y CERRAR';
-  btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#4ECDC4;color:#000;border:none;padding:14px 28px;border-radius:8px;font:bold 15px sans-serif;z-index:10000';
-  btn.onclick = function() {
-    navigator.clipboard.writeText(txt).then(function() { toast('Copiado!','success'); });
-    document.body.removeChild(d);
-    document.body.removeChild(btn);
-  };
-  document.body.appendChild(d);
-  document.body.appendChild(btn);
-}
 
 function openPhotoEditor(dataUrl, source, pageIndex) {
   editorDataUrl = dataUrl;
@@ -2515,10 +2492,6 @@ function applyCrop() {
     var cw = Math.min(srcImg.width - cx, bw * scaleX);
     var ch = Math.min(srcImg.height - cy, bh * scaleY);
 
-    _dlog('1.CROP: box=(' + bx + ',' + by + ' ' + bw + 'x' + bh + ') img=(' + Math.round(ix) + ',' + Math.round(iy) + ' ' + Math.round(iw) + 'x' + Math.round(ih) + ')');
-    _dlog('1.CROP: original=' + srcImg.width + 'x' + srcImg.height + ' scale=' + scaleX.toFixed(2) + '/' + scaleY.toFixed(2));
-    _dlog('1.CROP: region=(' + Math.round(cx) + ',' + Math.round(cy) + ' ' + Math.round(cw) + 'x' + Math.round(ch) + ') = ' + (cw/srcImg.width*100).toFixed(0) + '%x' + (ch/srcImg.height*100).toFixed(0) + '%');
-
     var canvas = document.createElement('canvas');
     canvas.width = Math.round(cw);
     canvas.height = Math.round(ch);
@@ -2610,9 +2583,7 @@ function doConfirmSave() {
       closePhotoEditor();
     }
   } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
-    _dlog('2.SAVE: editorDataUrl=' + (editorDataUrl ? editorDataUrl.length + ' chars' : 'NULL') + ' -> pdfPages[' + editorPageIndex + ']');
     pdfPages[editorPageIndex] = editorDataUrl;
-    _dlog('2.SAVE: pdfPages[' + editorPageIndex + ']=' + pdfPages[editorPageIndex].length + ' chars');
     updateThumbStack();
     toast('Pagina actualizada', 'success');
     closePhotoEditor();
@@ -2812,20 +2783,12 @@ function doUploadFoto(filename, dataUrl) {
 
 function doUploadPdf(filename, pages) {
   var totalPages = pages.length;
-  for (var di = 0; di < totalPages; di++) {
-    _dlog('4.UPLOAD_IN: pages[' + di + ']=' + pages[di].length + ' chars');
-  }
   var optimizedPages = [];
   var currentPage = 0;
 
   function optimizeNext() {
     if (currentPage >= totalPages) {
-      for (var oi = 0; oi < optimizedPages.length; oi++) {
-        _dlog('5.OPTIMIZED: page[' + oi + ']=' + optimizedPages[oi].length + ' chars');
-      }
       generatePdf(optimizedPages).then(function(pdfBlob) {
-        _dlog('6.PDF_BLOB: ' + pdfBlob.size + ' bytes');
-        _showDebug();
         var now = new Date();
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
         var ts = now.getTime();
