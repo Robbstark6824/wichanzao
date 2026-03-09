@@ -590,10 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
     this.dataset.edited = '1';
   });
 
-  // Pre-warm camera after profile is loaded
-  if (worker) {
-    setTimeout(prewarmCamera, 500);
-  }
+  // Camera permission only requested when user opens Foto/PDF
 
   if (worker) {
     showView('vMain');
@@ -1132,23 +1129,7 @@ function startCamera() {
   });
 }
 
-// Pre-warm camera permission on app load
-function prewarmCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function(stream) {
-    currentStream = stream;
-    track = stream.getVideoTracks()[0];
-    if (track.getCapabilities) {
-      var caps = track.getCapabilities();
-      flashSupported = !!(caps.torch);
-    }
-    // Keep stream ready but don't attach to video yet
-    var video = document.getElementById('camVideo');
-    video.srcObject = stream;
-  }).catch(function() {
-    // Permission denied or no camera, will ask again when needed
-  });
-}
+// prewarmCamera removed - camera only activates when user opens Foto/PDF
 
 function stopCamera() {
   if (currentStream) {
