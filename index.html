@@ -89,6 +89,20 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .progress-wrap{width:100%;height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;margin:8px 0}
 .progress-bar{height:100%;background:linear-gradient(90deg,var(--tl),var(--tl2));border-radius:3px;transition:width .3s;width:0%}
 
+/* ===== VIEW: WELCOME ===== */
+#vWelcome{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px}
+.welcome-card{background:var(--s1);border-radius:var(--r1);padding:32px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:cardUp .5s cubic-bezier(.4,0,.2,1);text-align:center}
+.welcome-card .logo-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--tl),var(--tl2));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.welcome-card .logo-icon svg{width:36px;height:36px;fill:#fff}
+.welcome-card h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--n1);margin-bottom:4px}
+.welcome-card p{font-size:13px;color:var(--t2);margin-bottom:24px}
+.welcome-btns{display:flex;flex-direction:column;gap:10px}
+.welcome-btns .btn-login{background:var(--n1);color:#fff;border:none;border-radius:var(--r2);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.welcome-btns .btn-register{background:none;color:var(--tl);border:2px solid var(--tl);border-radius:var(--r2);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* ===== VIEW: LOGIN ===== */
+#vLogin{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px;overflow-y:auto}
+
 /* ===== VIEW: REGISTER ===== */
 #vRegister{background:linear-gradient(160deg,var(--n1) 0%,var(--n2) 50%,var(--n3) 100%);justify-content:center;align-items:center;padding:24px 20px;overflow-y:auto}
 .regCard{background:var(--s1);border-radius:var(--r1);padding:28px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:cardUp .5s cubic-bezier(.4,0,.2,1)}
@@ -366,6 +380,47 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 </div>
 
 <!-- ===== VIEW: REGISTER ===== -->
+<!-- ===== VIEW: WELCOME ===== -->
+<div class="V" id="vWelcome">
+  <div class="welcome-card">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+    </div>
+    <h2>C.S. Wichanzao</h2>
+    <p>Digitalizacion de documentos</p>
+    <div class="welcome-btns">
+      <button class="btn-login" onclick="showView('vLogin')">Iniciar sesion</button>
+      <button class="btn-register" onclick="showView('vRegister')">Crear cuenta nueva</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: LOGIN ===== -->
+<div class="V" id="vLogin">
+  <div class="regCard">
+    <div class="top">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      </div>
+      <h2>Iniciar sesion</h2>
+      <p>Ingresa tus credenciales</p>
+    </div>
+    <div class="field">
+      <label>Nombre de carpeta (usuario)</label>
+      <input type="text" id="loginFolder" placeholder="Ej: maria-garcia" autocomplete="username" style="text-transform:lowercase">
+    </div>
+    <div class="field">
+      <label>Contrasena</label>
+      <input type="password" id="loginPass" placeholder="Tu contrasena" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="showView('vWelcome')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">&larr; Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: REGISTER ===== -->
 <div class="V" id="vRegister">
   <div class="regCard">
     <div class="top">
@@ -373,16 +428,20 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
       </div>
       <h2>C.S. Wichanzao</h2>
-      <p>Registro de personal</p>
+      <p>Crear cuenta nueva</p>
     </div>
     <div class="field">
       <label>Nombre completo</label>
       <input type="text" id="regName" placeholder="Ej: Maria Garcia" autocomplete="name">
     </div>
     <div class="field">
-      <label>Nombre de carpeta</label>
+      <label>Nombre de carpeta (sera tu usuario)</label>
       <input type="text" id="regFolder" placeholder="Ej: maria-garcia" autocomplete="off" style="text-transform:lowercase">
-      <div style="font-size:11px;color:var(--t3);margin-top:4px">Este nombre se usa una sola vez. Todos tus archivos se guardaran aqui.</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">Este sera tu usuario para iniciar sesion.</div>
+    </div>
+    <div class="field">
+      <label>Contrasena</label>
+      <input type="password" id="regPass" placeholder="Minimo 4 caracteres" autocomplete="new-password">
     </div>
     <div class="field">
       <label>Area</label>
@@ -398,7 +457,10 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
         <option value="Tecnico de Enfermeria">Tecnico de Enfermeria</option>
       </select>
     </div>
-    <button class="btn btn-primary" onclick="doRegister()">Comenzar</button>
+    <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="showView('vWelcome')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">&larr; Volver</button>
+    </div>
   </div>
 </div>
 
@@ -638,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showView('vMain');
     populateMain();
   } else {
-    showView('vRegister');
+    showView('vWelcome');
   }
 });
 
@@ -742,12 +804,14 @@ function avatarColor(name) {
 function doRegister() {
   var name = document.getElementById('regName').value.trim();
   var folder = document.getElementById('regFolder').value.trim().toLowerCase();
+  var pass = document.getElementById('regPass').value;
   var area = document.getElementById('regArea').value;
 
   if (!name) { toast('Ingresa tu nombre', 'error'); return; }
   if (name.length < 3) { toast('Nombre muy corto', 'error'); return; }
   if (!folder) { toast('Ingresa un nombre de carpeta', 'error'); return; }
   if (folder.length < 3) { toast('Nombre de carpeta muy corto', 'error'); return; }
+  if (!pass || pass.length < 4) { toast('Contrasena minimo 4 caracteres', 'error'); return; }
   if (!area) { toast('Selecciona un area', 'error'); return; }
 
   // Sanitize folder name — this IS the worker ID, fixed forever
@@ -755,19 +819,90 @@ function doRegister() {
   if (!folderId || folderId.length < 2) { toast('Nombre de carpeta invalido', 'error'); return; }
 
   haptic(25);
+  toast('Verificando...', 'info');
 
-  var w = {
-    id: folderId,
-    name: name,
-    area: area,
-    created: new Date().toISOString()
-  };
+  // Check if folder already exists
+  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/workers/' + folderId + '/profile.json', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+    cache: 'no-store'
+  }).then(function(res) {
+    if (res.ok) {
+      toast('Esa carpeta ya existe. Usa Iniciar sesion.', 'error');
+      return;
+    }
 
-  saveWorker(w);
-  uploadProfileToSupabase(w);
-  populateMain();
-  showView('vMain');
-  toast('Bienvenido/a, ' + name.split(' ')[0], 'success');
+    var w = {
+      id: folderId,
+      name: name,
+      area: area,
+      pass: pass,
+      created: new Date().toISOString()
+    };
+
+    saveWorker(w);
+    uploadProfileToSupabase(w);
+    populateMain();
+    showView('vMain');
+    toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
+  }).catch(function() {
+    // If check fails (offline), create anyway
+    var w = {
+      id: folderId,
+      name: name,
+      area: area,
+      pass: pass,
+      created: new Date().toISOString()
+    };
+
+    saveWorker(w);
+    uploadProfileToSupabase(w);
+    populateMain();
+    showView('vMain');
+    toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
+  });
+}
+
+function doLogin() {
+  var folder = document.getElementById('loginFolder').value.trim().toLowerCase();
+  var pass = document.getElementById('loginPass').value;
+
+  if (!folder) { toast('Ingresa tu usuario (carpeta)', 'error'); return; }
+  if (!pass) { toast('Ingresa tu contrasena', 'error'); return; }
+
+  var folderId = folder.replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!folderId) { toast('Usuario invalido', 'error'); return; }
+
+  haptic(25);
+  toast('Verificando...', 'info');
+
+  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/workers/' + folderId + '/profile.json', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+    cache: 'no-store'
+  }).then(function(res) {
+    if (!res.ok) throw new Error('not_found');
+    return res.json();
+  }).then(function(profile) {
+    if (profile.pass && profile.pass !== pass) {
+      toast('Contrasena incorrecta', 'error');
+      return;
+    }
+    // If old account without password, update it
+    if (!profile.pass) {
+      profile.pass = pass;
+      uploadProfileToSupabase(profile);
+    }
+
+    saveWorker(profile);
+    populateMain();
+    showView('vMain');
+    toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
+  }).catch(function(e) {
+    if (e.message === 'not_found') {
+      toast('Usuario no encontrado. Verifica tu carpeta.', 'error');
+    } else {
+      toast('Error de conexion. Verifica tu internet.', 'error');
+    }
+  });
 }
 
 function uploadProfileToSupabase(w) {
