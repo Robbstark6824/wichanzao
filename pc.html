@@ -1008,9 +1008,18 @@ function renderDirectory() {
   var container = document.getElementById('workersContainer');
   var query = document.getElementById('searchInput').value.toLowerCase().trim();
 
-  var filtered = allWorkers;
+  var threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
+  var now = Date.now();
+
+  // Hide workers inactive for more than 3 months
+  var active = allWorkers.filter(function(w) {
+    if (!w.last_active) return false;
+    return (now - new Date(w.last_active).getTime()) < threeMonthsMs;
+  });
+
+  var filtered = active;
   if (query) {
-    filtered = allWorkers.filter(function(w) {
+    filtered = active.filter(function(w) {
       return w.name.toLowerCase().includes(query) || (w.area || '').toLowerCase().includes(query);
     });
   }
