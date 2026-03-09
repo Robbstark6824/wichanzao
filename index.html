@@ -149,9 +149,9 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
 .auth-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--t3)}
 .auth-footer a{color:var(--tl);font-weight:700;cursor:pointer;text-decoration:none}
 /* Login/Register specific */
-#vLogin,#vRegister,#vGoogleArea{justify-content:flex-start;align-items:center;padding:0 20px}
-#vLogin .auth-top,#vRegister .auth-top,#vGoogleArea .auth-top{margin-top:calc(60px + var(--st));margin-bottom:0;padding-bottom:16px;flex:0}
-#vLogin .auth-card,#vRegister .auth-card,#vGoogleArea .auth-card{margin-bottom:20px}
+#vLogin,#vRegister,#vGoogleArea{justify-content:center;align-items:center;padding:20px}
+#vLogin .auth-top,#vRegister .auth-top,#vGoogleArea .auth-top{margin-top:0;margin-bottom:0;padding:0 24px 16px;flex:none}
+#vLogin .auth-card,#vRegister .auth-card,#vGoogleArea .auth-card{margin-bottom:0;flex:none}
 .auth-card .field{margin-bottom:14px}
 .auth-card .btn-primary{width:100%;border-radius:12px;padding:15px;font-size:15px}
 .auth-card .btn-back{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:8px}
@@ -374,7 +374,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
 <div class="offline-bar" id="offlineBar">Sin conexion - Los archivos se subiran cuando vuelvas a estar en linea</div>
 
 <!-- Powered -->
-<div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;z-index:15;pointer-events:none"><span style="font-size:11px;color:rgba(0,0,0,.5);font-weight:600;letter-spacing:.5px">Developed by Robert Macedo</span></div>
+<div id="creditLine" style="position:fixed;bottom:8px;left:0;right:0;text-align:center;z-index:15;pointer-events:none"><span style="font-size:11px;color:rgba(0,0,0,.5);font-weight:600;letter-spacing:.5px">Developed by Robert Macedo</span></div>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
@@ -459,6 +459,9 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     <div class="auth-footer">
       ¿No tienes cuenta? <a onclick="showView('vRegister')">Crear una</a>
     </div>
+  </div>
+  <div style="padding:16px 0 8px;text-align:center;z-index:2">
+    <span style="font-size:11px;color:rgba(255,255,255,.3);font-weight:600;letter-spacing:.5px">Developed by Robert Macedo</span>
   </div>
 </div>
 
@@ -920,6 +923,11 @@ function showView(id) {
     views[i].classList.remove('on');
   }
   document.getElementById(id).classList.add('on');
+  var credit = document.getElementById('creditLine');
+  if (credit) {
+    var isAuth = (id === 'vWelcome' || id === 'vLogin' || id === 'vRegister' || id === 'vGoogleArea');
+    credit.style.display = isAuth ? 'none' : '';
+  }
 }
 
 /* ===== TOAST SYSTEM ===== */
