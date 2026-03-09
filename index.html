@@ -570,8 +570,10 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
         </div>
       </div>
     </div>
-    <!-- Delete folder -->
+    <!-- Logout + Delete folder -->
     <div style="margin-top:32px;text-align:center;padding-bottom:24px">
+      <button onclick="doLogout()" style="background:none;border:1px solid rgba(0,0,0,.15);color:var(--t2);font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit;width:calc(100% - 32px);margin:0 16px">Cerrar sesion</button>
+      <div style="height:16px"></div>
       <button onclick="deleteMyFolder()" style="background:none;border:1px solid rgba(229,62,62,.3);color:#E53E3E;font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit">Eliminar mi carpeta</button>
       <div style="font-size:11px;color:var(--t3);margin-top:6px">Borra todos tus archivos del servidor</div>
     </div>
@@ -1372,6 +1374,17 @@ function closeAdmin() {
   document.getElementById('adminPanel').style.display = 'none';
   isAdmin = false;
   if (worker) document.getElementById('mainName').textContent = worker.name;
+}
+
+function doLogout() {
+  if (!confirm('¿Cerrar sesion?')) return;
+  localStorage.removeItem('wichanzao_worker');
+  worker = null;
+  isAdmin = false;
+  prevDatesLoaded = false;
+  prevDatesCache = {};
+  showView('vWelcome');
+  toast('Sesion cerrada', 'info');
 }
 
 function loadAdminWorkers() {
