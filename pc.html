@@ -713,6 +713,7 @@ var lbRegistry = {};
 var lbRegId = 0;
 
 var imgCacheBuster = '';
+var editedImages = {}; // path -> dataUrl (edited images in memory)
 
 // PC Editor state
 var pceUrl = '';
@@ -1851,8 +1852,28 @@ function downloadFromLightbox() {
   if (!current) return;
   var filename = (current.caption || 'imagen').replace(/[^a-zA-Z0-9_\- ]/g, '') + '.jpg';
   var path = getLbPath(current);
+
+  // If we have an edited version in memory, download that directly
+  if (path && editedImages[path]) {
+    var dataUrl = editedImages[path];
+    var bin = atob(dataUrl.split(',')[1]);
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    var blob = new Blob([arr], { type: 'image/jpeg' });
+    var blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 2000);
+    showToast('Descargado: ' + filename, 'success');
+    return;
+  }
+
+  // Otherwise download from server (authenticated, no cache)
   if (path) {
-    // Download via authenticated API to bypass CDN cache entirely
     showToast('Descargando: ' + filename, 'info');
     fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
@@ -2072,6 +2093,8 @@ function savePcEdit() {
     return res.text().then(function(body) { console.log('Upload OK:', cleanPath, body); });
   }).then(function() {
     showToast('Imagen guardada correctamente', 'success');
+    // Store edited image in memory so downloads use it directly
+    editedImages[cleanPath] = pceEditedDataUrl;
     pceEdited = false;
     closePcEditor();
     imgCacheBuster = Date.now();

@@ -243,7 +243,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .pe-top-btn:active{transform:scale(.9)}
 .pe-top-btn svg{width:20px;height:20px;fill:#fff}
 .pe-title{color:#fff;font-size:14px;font-weight:700}
-.pe-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
+.pe-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none;padding:20px}
 .pe-canvas-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none}
 .pe-crop-box{position:absolute;border:2px solid var(--tl);box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move;touch-action:none;min-width:40px;min-height:40px}
 .pe-crop-box .pe-handle{position:absolute;width:28px;height:28px;background:var(--tl);border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);touch-action:none;z-index:1}
@@ -1281,13 +1281,17 @@ function initCropBox() {
   var ir = img.getBoundingClientRect();
   var wr = wrap.getBoundingClientRect();
 
-  // Crop box fills the image area
-  box.style.left = (ir.left - wr.left) + 'px';
-  box.style.top = (ir.top - wr.top) + 'px';
-  box.style.width = ir.width + 'px';
-  box.style.height = ir.height + 'px';
+  var imgX = ir.left - wr.left;
+  var imgY = ir.top - wr.top;
 
-  cropState.imgRect = { x: ir.left - wr.left, y: ir.top - wr.top, w: ir.width, h: ir.height };
+  // Crop box starts with margin so corner handles are accessible
+  var m = 20;
+  box.style.left = (imgX + m) + 'px';
+  box.style.top = (imgY + m) + 'px';
+  box.style.width = (ir.width - m * 2) + 'px';
+  box.style.height = (ir.height - m * 2) + 'px';
+
+  cropState.imgRect = { x: imgX, y: imgY, w: ir.width, h: ir.height };
 }
 
 function resetCrop() {
