@@ -706,6 +706,7 @@ var expandedLegacy = {};
 var countdownTimer = null;
 var countdownValue = REFRESH_INTERVAL;
 var isLoading = false;
+var autoRefreshing = false;
 var lightboxImages = [];
 var lightboxIndex = 0;
 var lbRegistry = {};
@@ -959,13 +960,19 @@ async function loadAllData() {
     document.getElementById('statTotalDocs').textContent = totalDocs;
     document.getElementById('statTotalWorkers').textContent = workers.length;
 
-    // 7. Render
-    if (currentWorkerId) {
-      renderDetailView(currentWorkerId);
+    // 7. Render (skip DOM rebuild on auto-refresh if no new workers)
+    var shouldRender = isFirstLoad || !autoRefreshing;
+    if (shouldRender) {
+      lbRegId = 0; lbRegistry = {};
+      if (currentWorkerId) {
+        renderDetailView(currentWorkerId);
+      } else {
+        renderDirectory();
+      }
+      renderLegacy();
     } else {
-      renderDirectory();
+      // Silent refresh: only update stats, don't rebuild DOM
     }
-    renderLegacy();
 
     // 8. Auto-cleanup files older than 3 months (silent, in background)
     autoCleanup();
@@ -1887,7 +1894,8 @@ function startAutoRefresh() {
     countdownValue--;
     updateCountdownDisplay();
     if (countdownValue <= 0) {
-      loadAllData();
+      autoRefreshing = true;
+      loadAllData().then(function() { autoRefreshing = false; }).catch(function() { autoRefreshing = false; });
     }
   }, 1000);
 }
@@ -2048,8 +2056,7 @@ function savePcEdit() {
     pceEdited = false;
     closePcEditor();
     imgCacheBuster = Date.now();
-    invalidateCacheForPath(cleanPath);
-    loadAllData();
+    softReloadDate(cleanPath);
   }).catch(function(e) {
     showToast('Error al guardar: ' + e.message, 'error');
     console.error('Save error:', e);
@@ -2074,18 +2081,23 @@ function doDeletePcFile(storagePath) {
   sbDelete([storagePath]).then(function(res) {
     if (!res.ok) throw new Error('Error ' + res.status);
     showToast('Archivo eliminado', 'success');
-    invalidateCacheForPath(storagePath);
-    loadAllData();
+    softReloadDate(storagePath);
   }).catch(function(e) {
     showToast('Error al eliminar: ' + e.message, 'error');
   });
 }
 
-function invalidateCacheForPath(path) {
-  var parts = path.split('/');
+function softReloadDate(path) {
+  var parts = path.split('?')[0].split('/');
   if (parts.length >= 3 && parts[0] === 'workers') {
-    var fi = allWorkerFiles[parts[1]];
-    if (fi && fi.loaded[parts[2]]) delete fi.loaded[parts[2]];
+    var wId = parts[1];
+    var date = parts[2];
+    var fi = allWorkerFiles[wId];
+    if (fi && fi.loaded[date]) {
+      delete fi.loaded[date];
+      // Re-fetch just this date's files and re-render
+      loadDateFiles(wId, date);
+    }
   }
 }
 
