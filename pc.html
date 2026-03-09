@@ -472,12 +472,12 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* ===== PC PHOTO EDITOR ===== */
 #pcEditor {
   position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.95);
-  display:none; flex-direction:column; align-items:center; justify-content:center;
+  display:none; flex-direction:column;
 }
 #pcEditor.on { display:flex; }
 #pcEditor .pce-top {
-  position:absolute; top:16px; left:16px; right:16px;
-  display:flex; align-items:center; justify-content:space-between; z-index:2;
+  padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0; z-index:2;
 }
 #pcEditor .pce-title { color:#fff; font-size:16px; font-weight:700; }
 #pcEditor .pce-btn {
@@ -491,31 +491,31 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 #pcEditor .pce-btn.danger { background:var(--danger); color:#fff; }
 #pcEditor .pce-btn.crop { background:rgba(255,255,255,.15); color:#fff; }
 #pcEditor .pce-wrap {
-  position:relative; max-width:65vw; max-height:60vh;
+  flex:1; position:relative; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   padding:20px;
 }
 #pcEditor .pce-wrap img {
-  max-width:100%; max-height:100%; object-fit:contain;
-  border-radius:8px; user-select:none;
+  max-width:70vw; max-height:65vh; object-fit:contain;
+  border-radius:8px; user-select:none; pointer-events:none;
 }
 #pcEditor .pce-crop {
-  position:absolute; border:2px dashed var(--tl);
-  box-shadow:0 0 0 9999px rgba(0,0,0,.5);
-  cursor:move; min-width:30px; min-height:30px;
+  position:absolute; border:3px solid var(--tl);
+  background:rgba(78,205,196,.08);
+  cursor:move; min-width:30px; min-height:30px; z-index:3;
 }
 #pcEditor .pce-crop .ch {
   position:absolute; width:22px; height:22px;
   background:var(--tl); border:3px solid #fff; border-radius:50%;
-  cursor:nw-resize; z-index:1;
+  cursor:nw-resize; z-index:4;
 }
 #pcEditor .pce-crop .ch.tl { top:-11px; left:-11px; }
 #pcEditor .pce-crop .ch.tr { top:-11px; right:-11px; cursor:ne-resize; }
 #pcEditor .pce-crop .ch.bl { bottom:-11px; left:-11px; cursor:sw-resize; }
 #pcEditor .pce-crop .ch.br { bottom:-11px; right:-11px; cursor:se-resize; }
 #pcEditor .pce-bottom {
-  position:absolute; bottom:16px; left:16px; right:16px;
-  display:flex; align-items:center; justify-content:center; gap:12px; z-index:2;
+  padding:12px 20px; display:flex; align-items:center; justify-content:center;
+  gap:12px; flex-shrink:0; z-index:2;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -711,6 +711,8 @@ var lightboxIndex = 0;
 var lbRegistry = {};
 var lbRegId = 0;
 
+var imgCacheBuster = '';
+
 // PC Editor state
 var pceUrl = '';
 var pcePath = '';
@@ -773,7 +775,9 @@ function activityInfo(iso) {
 }
 
 function pubUrl(path) {
-  return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
+  var u = SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
+  if (imgCacheBuster) u += '?v=' + imgCacheBuster;
+  return u;
 }
 
 /* =========================================================
@@ -1927,7 +1931,6 @@ function openPcEditor(url, storagePath, docName) {
   pcePath = storagePath;
   pceDocName = docName || 'Imagen';
   pceCropping = false;
-  pceCropData = null;
   pceEdited = false;
   pceEditedDataUrl = '';
 
@@ -1935,14 +1938,15 @@ function openPcEditor(url, storagePath, docName) {
   document.getElementById('pceCrop').style.display = 'none';
 
   var img = document.getElementById('pceImg');
+  img.crossOrigin = 'anonymous';
   img.onload = function() {
     document.getElementById('pcEditor').classList.add('on');
     document.body.style.overflow = 'hidden';
   };
   img.onerror = function() { showToast('No se pudo cargar la imagen', 'error'); };
-  // Force CORS reload with cache-buster to avoid tainted canvas
-  img.crossOrigin = 'anonymous';
-  img.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+  // Cache-bust to force fresh CORS load
+  var cleanUrl = url.split('?')[0];
+  img.src = cleanUrl + '?_t=' + Date.now();
 }
 
 function closePcEditor() {
@@ -1952,18 +1956,24 @@ function closePcEditor() {
   document.getElementById('pceCrop').style.display = 'none';
 }
 
+function getImgBounds() {
+  var img = document.getElementById('pceImg');
+  var wrap = document.getElementById('pceWrap');
+  var ir = img.getBoundingClientRect();
+  var wr = wrap.getBoundingClientRect();
+  return { l: ir.left - wr.left, t: ir.top - wr.top, w: ir.width, h: ir.height };
+}
+
 function togglePcCrop() {
   pceCropping = !pceCropping;
   var cropEl = document.getElementById('pceCrop');
-
   if (pceCropping) {
-    var img = document.getElementById('pceImg');
-    var r = img.getBoundingClientRect();
-    var pad = 40;
-    cropEl.style.left = pad + 'px';
-    cropEl.style.top = pad + 'px';
-    cropEl.style.width = (r.width - pad * 2) + 'px';
-    cropEl.style.height = (r.height - pad * 2) + 'px';
+    var b = getImgBounds();
+    var m = 30;
+    cropEl.style.left = (b.l + m) + 'px';
+    cropEl.style.top = (b.t + m) + 'px';
+    cropEl.style.width = (b.w - m * 2) + 'px';
+    cropEl.style.height = (b.h - m * 2) + 'px';
     cropEl.style.display = 'block';
   } else {
     cropEl.style.display = 'none';
@@ -1971,95 +1981,79 @@ function togglePcCrop() {
 }
 
 function applyCropPc() {
-  if (!pceCropping) {
-    showToast('Activa el recorte primero', 'info');
-    return;
-  }
-
+  if (!pceCropping) { showToast('Activa el recorte primero', 'info'); return; }
   try {
     var img = document.getElementById('pceImg');
     var cropEl = document.getElementById('pceCrop');
-    var imgRect = img.getBoundingClientRect();
-    var cropRect = cropEl.getBoundingClientRect();
+    var ir = img.getBoundingClientRect();
+    var cr = cropEl.getBoundingClientRect();
 
-    var scaleX = img.naturalWidth / imgRect.width;
-    var scaleY = img.naturalHeight / imgRect.height;
+    var sx = Math.max(0, cr.left - ir.left) * (img.naturalWidth / ir.width);
+    var sy = Math.max(0, cr.top - ir.top) * (img.naturalHeight / ir.height);
+    var sw = cr.width * (img.naturalWidth / ir.width);
+    var sh = cr.height * (img.naturalHeight / ir.height);
 
-    var sx = Math.max(0, (cropRect.left - imgRect.left) * scaleX);
-    var sy = Math.max(0, (cropRect.top - imgRect.top) * scaleY);
-    var sw = cropRect.width * scaleX;
-    var sh = cropRect.height * scaleY;
+    sw = Math.min(sw, img.naturalWidth - sx);
+    sh = Math.min(sh, img.naturalHeight - sy);
 
-    if (sx + sw > img.naturalWidth) sw = img.naturalWidth - sx;
-    if (sy + sh > img.naturalHeight) sh = img.naturalHeight - sy;
+    var c = document.createElement('canvas');
+    c.width = Math.round(sw); c.height = Math.round(sh);
+    c.getContext('2d').drawImage(img, Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh), 0, 0, c.width, c.height);
 
-    var canvas = document.createElement('canvas');
-    canvas.width = Math.round(sw);
-    canvas.height = Math.round(sh);
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(img, Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh), 0, 0, canvas.width, canvas.height);
-
-    pceEditedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    pceEditedDataUrl = c.toDataURL('image/jpeg', 0.92);
     pceEdited = true;
     img.src = pceEditedDataUrl;
-
     pceCropping = false;
     cropEl.style.display = 'none';
-    showToast('Recorte aplicado - pulsa Guardar para confirmar', 'success');
+    showToast('Recorte listo. Pulsa Guardar.', 'success');
   } catch (e) {
-    console.error('Crop error:', e);
     showToast('Error al recortar: ' + e.message, 'error');
   }
 }
 
 function savePcEdit() {
-  if (!pceEdited || !pceEditedDataUrl) {
-    showToast('No hay cambios para guardar', 'info');
-    return;
-  }
+  if (!pceEdited || !pceEditedDataUrl) { showToast('No hay cambios', 'info'); return; }
 
-  var binary = atob(pceEditedDataUrl.split(',')[1]);
-  var arr = new Uint8Array(binary.length);
-  for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  var bin = atob(pceEditedDataUrl.split(',')[1]);
+  var arr = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   var blob = new Blob([arr], { type: 'image/jpeg' });
 
-  showToast('Guardando...', 'info');
+  var saveBtn = document.querySelector('#pcEditor .pce-btn.save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
 
   fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + pcePath, {
     method: 'PUT',
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
-      'Content-Type': 'image/jpeg',
-      'x-upsert': 'true'
-    },
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
     body: blob
   }).then(function(res) {
     if (!res.ok) throw new Error('Error ' + res.status);
-    showToast('Imagen actualizada', 'success');
+    showToast('Imagen guardada correctamente', 'success');
     pceEdited = false;
     closePcEditor();
-    // Refresh data to show updated image
+    // Force cache-bust for reloaded images
+    imgCacheBuster = Date.now();
     invalidateCacheForPath(pcePath);
     loadAllData();
   }).catch(function(e) {
     showToast('Error al guardar: ' + e.message, 'error');
+  }).finally(function() {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '&#10003; Guardar'; }
   });
 }
 
 function deletePcImage() {
-  if (!confirm('¿Eliminar esta imagen?\n\nEsta accion no se puede deshacer.')) return;
+  if (!confirm('¿Eliminar esta imagen?\n\nNo se puede deshacer.')) return;
   closePcEditor();
   doDeletePcFile(pcePath);
 }
 
 function deletePcFile(storagePath) {
-  if (!confirm('¿Eliminar este archivo?\n\nEsta accion no se puede deshacer.')) return;
+  if (!confirm('¿Eliminar este archivo?\n\nNo se puede deshacer.')) return;
   doDeletePcFile(storagePath);
 }
 
 function doDeletePcFile(storagePath) {
-
   showToast('Eliminando...', 'info');
   sbDelete([storagePath]).then(function(res) {
     if (!res.ok) throw new Error('Error ' + res.status);
@@ -2072,117 +2066,69 @@ function doDeletePcFile(storagePath) {
 }
 
 function invalidateCacheForPath(path) {
-  // Clear loaded cache for the date folder containing this file
-  // path is like: workers/id/2026-03-08/filename.jpg
   var parts = path.split('/');
   if (parts.length >= 3 && parts[0] === 'workers') {
-    var wId = parts[1];
-    var date = parts[2];
-    var fi = allWorkerFiles[wId];
-    if (fi && fi.loaded[date]) {
-      delete fi.loaded[date];
-    }
+    var fi = allWorkerFiles[parts[1]];
+    if (fi && fi.loaded[parts[2]]) delete fi.loaded[parts[2]];
   }
 }
 
-/* PC Editor drag handlers */
+/* PC Editor crop drag */
 (function() {
-  var crop, wrap, dragging = false, resizing = false, handle = '';
-  var startX, startY, startL, startT, startW, startH;
+  var dragType = '', handle = '', sx, sy, sl, st, sw, sh;
 
-  function init() {
-    crop = document.getElementById('pceCrop');
-    wrap = document.getElementById('pceWrap');
-    if (!crop || !wrap) return;
+  document.addEventListener('mousedown', function(e) {
+    var crop = document.getElementById('pceCrop');
+    if (!crop || crop.style.display === 'none') return;
+    if (!crop.contains(e.target)) return;
 
-    crop.addEventListener('mousedown', function(e) {
-      if (e.target.classList.contains('ch')) {
-        resizing = true;
-        handle = e.target.getAttribute('data-h');
-      } else {
-        dragging = true;
+    if (e.target.classList.contains('ch')) {
+      dragType = 'resize';
+      handle = e.target.getAttribute('data-h');
+    } else {
+      dragType = 'move';
+    }
+    sx = e.clientX; sy = e.clientY;
+    sl = crop.offsetLeft; st = crop.offsetTop;
+    sw = crop.offsetWidth; sh = crop.offsetHeight;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragType) return;
+    var crop = document.getElementById('pceCrop');
+    var b = getImgBounds();
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+
+    if (dragType === 'move') {
+      crop.style.left = Math.max(b.l, Math.min(sl + dx, b.l + b.w - crop.offsetWidth)) + 'px';
+      crop.style.top = Math.max(b.t, Math.min(st + dy, b.t + b.h - crop.offsetHeight)) + 'px';
+    } else {
+      var nl, nt, nw, nh;
+      if (handle === 'br') {
+        nw = Math.max(30, Math.min(sw + dx, b.l + b.w - sl));
+        nh = Math.max(30, Math.min(sh + dy, b.t + b.h - st));
+        crop.style.width = nw + 'px'; crop.style.height = nh + 'px';
+      } else if (handle === 'tl') {
+        nw = Math.max(30, sw - dx); nh = Math.max(30, sh - dy);
+        nl = sl + sw - nw; nt = st + sh - nh;
+        if (nl >= b.l) { crop.style.left = nl + 'px'; crop.style.width = nw + 'px'; }
+        if (nt >= b.t) { crop.style.top = nt + 'px'; crop.style.height = nh + 'px'; }
+      } else if (handle === 'tr') {
+        nw = Math.max(30, Math.min(sw + dx, b.l + b.w - sl));
+        nh = Math.max(30, sh - dy); nt = st + sh - nh;
+        crop.style.width = nw + 'px';
+        if (nt >= b.t) { crop.style.top = nt + 'px'; crop.style.height = nh + 'px'; }
+      } else if (handle === 'bl') {
+        nw = Math.max(30, sw - dx); nl = sl + sw - nw;
+        nh = Math.max(30, Math.min(sh + dy, b.t + b.h - st));
+        if (nl >= b.l) { crop.style.left = nl + 'px'; crop.style.width = nw + 'px'; }
+        crop.style.height = nh + 'px';
       }
-      startX = e.clientX;
-      startY = e.clientY;
-      startL = crop.offsetLeft;
-      startT = crop.offsetTop;
-      startW = crop.offsetWidth;
-      startH = crop.offsetHeight;
-      e.preventDefault();
-    });
+    }
+  });
 
-    document.addEventListener('mousemove', function(e) {
-      if (!dragging && !resizing) return;
-      var dx = e.clientX - startX;
-      var dy = e.clientY - startY;
-      var img = document.getElementById('pceImg');
-      var imgRect = img.getBoundingClientRect();
-      var wrapRect = wrap.getBoundingClientRect();
-      var imgL = imgRect.left - wrapRect.left;
-      var imgT = imgRect.top - wrapRect.top;
-      var maxW = imgRect.width;
-      var maxH = imgRect.height;
-
-      if (dragging) {
-        var nl = Math.max(imgL, Math.min(startL + dx, imgL + maxW - crop.offsetWidth));
-        var nt = Math.max(imgT, Math.min(startT + dy, imgT + maxH - crop.offsetHeight));
-        crop.style.left = nl + 'px';
-        crop.style.top = nt + 'px';
-      }
-
-      if (resizing) {
-        var nw, nh, nl2, nt2;
-        if (handle === 'br') {
-          nw = Math.max(30, Math.min(startW + dx, imgL + maxW - startL));
-          nh = Math.max(30, Math.min(startH + dy, imgT + maxH - startT));
-          crop.style.width = nw + 'px';
-          crop.style.height = nh + 'px';
-        } else if (handle === 'bl') {
-          nw = Math.max(30, startW - dx);
-          nh = Math.max(30, Math.min(startH + dy, imgT + maxH - startT));
-          nl2 = startL + (startW - nw);
-          if (nl2 >= imgL) {
-            crop.style.left = nl2 + 'px';
-            crop.style.width = nw + 'px';
-          }
-          crop.style.height = nh + 'px';
-        } else if (handle === 'tr') {
-          nw = Math.max(30, Math.min(startW + dx, imgL + maxW - startL));
-          nh = Math.max(30, startH - dy);
-          nt2 = startT + (startH - nh);
-          if (nt2 >= imgT) {
-            crop.style.top = nt2 + 'px';
-            crop.style.height = nh + 'px';
-          }
-          crop.style.width = nw + 'px';
-        } else if (handle === 'tl') {
-          nw = Math.max(30, startW - dx);
-          nh = Math.max(30, startH - dy);
-          nl2 = startL + (startW - nw);
-          nt2 = startT + (startH - nh);
-          if (nl2 >= imgL) {
-            crop.style.left = nl2 + 'px';
-            crop.style.width = nw + 'px';
-          }
-          if (nt2 >= imgT) {
-            crop.style.top = nt2 + 'px';
-            crop.style.height = nh + 'px';
-          }
-        }
-      }
-    });
-
-    document.addEventListener('mouseup', function() {
-      dragging = false;
-      resizing = false;
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  document.addEventListener('mouseup', function() { dragType = ''; });
 })();
 
 /* =========================================================
