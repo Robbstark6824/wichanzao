@@ -119,7 +119,7 @@ body.dark .settings-item{border-bottom-color:var(--bd)}
 .toggle.on::after{transform:translateX(20px)}
 
 /* ===== AUTH SCREENS (Welcome, Login, Register) ===== */
-.auth-bg{background:linear-gradient(160deg,#080E1A 0%,var(--n1) 40%,var(--n2) 100%);justify-content:center;align-items:center;padding:20px;position:relative;overflow:hidden}
+.auth-bg{background:linear-gradient(160deg,#080E1A 0%,var(--n1) 40%,var(--n2) 100%);justify-content:center;align-items:center;padding:20px;position:relative;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .auth-bg::before{content:'';position:absolute;top:-30%;right:-30%;width:500px;height:500px;background:radial-gradient(circle,rgba(78,205,196,.08) 0%,transparent 70%);border-radius:50%}
 .auth-bg::after{content:'';position:absolute;bottom:-20%;left:-20%;width:400px;height:400px;background:radial-gradient(circle,rgba(212,168,83,.06) 0%,transparent 70%);border-radius:50%}
 .auth-top{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px 24px;z-index:2;animation:authFadeIn .6s ease-out;margin-top:calc(20px + var(--st))}
@@ -149,6 +149,9 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
 .auth-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--t3)}
 .auth-footer a{color:var(--tl);font-weight:700;cursor:pointer;text-decoration:none}
 /* Login/Register specific */
+#vLogin,#vRegister,#vGoogleArea{justify-content:flex-start;align-items:center;padding:0 20px}
+#vLogin .auth-top,#vRegister .auth-top,#vGoogleArea .auth-top{margin-top:calc(60px + var(--st));margin-bottom:0;padding-bottom:16px;flex:0}
+#vLogin .auth-card,#vRegister .auth-card,#vGoogleArea .auth-card{margin-bottom:20px}
 .auth-card .field{margin-bottom:14px}
 .auth-card .btn-primary{width:100%;border-radius:12px;padding:15px;font-size:15px}
 .auth-card .btn-back{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:8px}
