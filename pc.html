@@ -1775,14 +1775,15 @@ function openLightboxSingle(url, caption) {
 
 function showLightbox() {
   var lb = document.getElementById('lightbox');
-  var img = document.getElementById('lbImg');
-  var cap = document.getElementById('lbCaption');
-
-  img.src = lightboxImages[lightboxIndex].url;
-  cap.textContent = lightboxImages[lightboxIndex].caption || '';
 
   document.getElementById('lbPrev').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
   document.getElementById('lbNext').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
+
+  // Preload all images for instant navigation
+  for (var i = 0; i < lightboxImages.length; i++) {
+    var pre = new Image();
+    pre.src = lightboxImages[i].url;
+  }
 
   updateLightboxUI();
   lb.classList.add('on');
