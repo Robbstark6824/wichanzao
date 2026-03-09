@@ -721,6 +721,7 @@ var pceCropping = false;
 var pceCropData = null;
 var pceEdited = false;
 var pceEditedDataUrl = '';
+var pceCorsReady = false;
 
 /* =========================================================
    HELPERS
@@ -1934,20 +1935,30 @@ function openPcEditor(url, storagePath, docName) {
   pceCropping = false;
   pceEdited = false;
   pceEditedDataUrl = '';
+  pceCorsReady = false;
 
   document.getElementById('pceTitle').textContent = pceDocName;
   document.getElementById('pceCrop').style.display = 'none';
 
   var img = document.getElementById('pceImg');
-  img.crossOrigin = 'anonymous';
-  img.onload = function() {
-    document.getElementById('pcEditor').classList.add('on');
-    document.body.style.overflow = 'hidden';
+
+  // Show editor instantly with cached image
+  img.crossOrigin = '';
+  img.src = url;
+  document.getElementById('pcEditor').classList.add('on');
+  document.body.style.overflow = 'hidden';
+
+  // Load CORS version in background for canvas operations
+  var corsImg = new Image();
+  corsImg.crossOrigin = 'anonymous';
+  corsImg.onload = function() {
+    pceCorsReady = true;
+    // Swap to CORS-enabled image silently
+    img.crossOrigin = 'anonymous';
+    img.src = corsImg.src;
   };
-  img.onerror = function() { showToast('No se pudo cargar la imagen', 'error'); };
-  // Cache-bust to force fresh CORS load
   var cleanUrl = url.split('?')[0];
-  img.src = cleanUrl + '?_t=' + Date.now();
+  corsImg.src = cleanUrl + '?_cors=' + Date.now();
 }
 
 function closePcEditor() {
@@ -1983,6 +1994,7 @@ function togglePcCrop() {
 
 function applyCropPc() {
   if (!pceCropping) { showToast('Activa el recorte primero', 'info'); return; }
+  if (!pceCorsReady) { showToast('Cargando imagen, espera un momento...', 'info'); return; }
   try {
     var img = document.getElementById('pceImg');
     var cropEl = document.getElementById('pceCrop');
