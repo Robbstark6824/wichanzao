@@ -788,7 +788,7 @@ function pubUrl(path) {
    ========================================================= */
 async function sbList(prefix) {
   var res = await fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
-    method: 'POST', headers: HEADERS,
+    method: 'POST', headers: HEADERS, cache: 'no-store',
     body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
   });
   var data = await res.json();
