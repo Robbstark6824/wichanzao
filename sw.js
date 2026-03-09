@@ -1,9 +1,10 @@
-var CACHE_NAME = 'wichanzao-v83';
+var CACHE_NAME = 'wichanzao-v84';
 var PRECACHE = [
   './',
   './index.html',
   './pc.html',
   './manifest.json',
+  './manifest-pc.json',
   './icons/icon-192.svg',
   './icons/icon-512.svg',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',

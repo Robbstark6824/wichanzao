@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0C1F3D">
+<link rel="manifest" href="./manifest-pc.json">
+<link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Wichanzao · Panel de Referencias</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -568,6 +571,36 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 ::-webkit-scrollbar-thumb { background:var(--bd); border-radius:3px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--t3); }
 
+/* ===== INSTALL BANNER ===== */
+.pc-install-banner {
+  position:fixed; bottom:0; left:0; right:0; z-index:400;
+  background:linear-gradient(135deg,#0C1F3D,#142952); color:#fff;
+  padding:18px 24px; display:flex; align-items:center; gap:16px;
+  box-shadow:0 -4px 24px rgba(0,0,0,.3);
+  transform:translateY(100%); transition:transform .4s cubic-bezier(.4,0,.2,1);
+}
+.pc-install-banner.on { transform:translateY(0); }
+.pc-install-banner .pib-icon {
+  width:44px; height:44px; border-radius:12px;
+  background:linear-gradient(135deg,var(--tl),var(--tl2));
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.pc-install-banner .pib-icon svg { width:22px; height:22px; fill:var(--n1); }
+.pc-install-banner .pib-text { flex:1; }
+.pc-install-banner .pib-text h4 { font-size:14px; font-weight:700; margin-bottom:2px; }
+.pc-install-banner .pib-text p { font-size:12px; opacity:.6; }
+.pc-install-banner .pib-btn {
+  background:var(--tl); color:var(--n1); border:none; border-radius:10px;
+  padding:10px 20px; font-weight:700; font-size:13px; cursor:pointer;
+  font-family:inherit; white-space:nowrap; transition:all .2s;
+}
+.pc-install-banner .pib-btn:hover { background:var(--tl2); }
+.pc-install-banner .pib-close {
+  background:none; border:none; color:#fff; opacity:.5; font-size:22px;
+  cursor:pointer; padding:4px; transition:opacity .2s;
+}
+.pc-install-banner .pib-close:hover { opacity:1; }
+
 /* ===== RESPONSIVE ===== */
 @media(max-width:768px) {
   .header-inner { padding:18px 16px; }
@@ -587,6 +620,19 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 </style>
 </head>
 <body>
+
+<!-- Install Banner -->
+<div class="pc-install-banner" id="pcInstallBanner">
+  <div class="pib-icon">
+    <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+  </div>
+  <div class="pib-text">
+    <h4>Instalar Panel</h4>
+    <p>Acceso directo desde el escritorio</p>
+  </div>
+  <button class="pib-btn" id="pcInstallBtn" onclick="pcInstallApp()">Instalar</button>
+  <button class="pib-close" onclick="pcDismissInstall()">&times;</button>
+</div>
 
 <!-- HEADER -->
 <header class="header">
@@ -2308,6 +2354,34 @@ function softReloadDate(path) {
    ========================================================= */
 loadAllData();
 startAutoRefresh();
+
+/* ===== PWA INSTALL ===== */
+var pcDeferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  pcDeferredPrompt = e;
+  if (!localStorage.getItem('wichanzao_pc_install_dismissed')) {
+    document.getElementById('pcInstallBanner').classList.add('on');
+  }
+});
+function pcInstallApp() {
+  if (!pcDeferredPrompt) return;
+  pcDeferredPrompt.prompt();
+  pcDeferredPrompt.userChoice.then(function(r) {
+    if (r.outcome === 'accepted') {
+      document.getElementById('pcInstallBanner').classList.remove('on');
+    }
+    pcDeferredPrompt = null;
+  });
+}
+function pcDismissInstall() {
+  document.getElementById('pcInstallBanner').classList.remove('on');
+  localStorage.setItem('wichanzao_pc_install_dismissed', '1');
+}
+window.addEventListener('appinstalled', function() {
+  document.getElementById('pcInstallBanner').classList.remove('on');
+  pcDeferredPrompt = null;
+});
 
 /* Register Service Worker */
 if ('serviceWorker' in navigator) {
