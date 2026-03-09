@@ -46,7 +46,25 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Cache-first for everything else
+  // Network-first for HTML files (ensures updates arrive fast)
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(e.request, clone);
+          });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
+
+  // Cache-first for static assets (js libs, icons, manifest)
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
