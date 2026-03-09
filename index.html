@@ -834,6 +834,7 @@ function deleteTodayFile(index) {
     var storagePath = f.url.replace(prefix, '');
 
     // Delete from Supabase
+    console.log('Deleting:', storagePath);
     fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
       method: 'DELETE',
       headers: {
@@ -842,9 +843,12 @@ function deleteTodayFile(index) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ prefixes: [storagePath] })
-    }).then(function() {
+    }).then(function(res) {
+      console.log('Delete response:', res.status);
+      if (!res.ok) throw new Error('Error ' + res.status);
       toast('Archivo eliminado', 'success');
-    }).catch(function() {
+    }).catch(function(e) {
+      console.error('Delete error:', e);
       toast('Error al eliminar del servidor', 'error');
     });
   }

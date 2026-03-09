@@ -796,10 +796,25 @@ async function sbList(prefix) {
 }
 
 async function sbDelete(paths) {
-  return fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
+  console.log('Deleting:', paths);
+  var res = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
     method: 'DELETE', headers: HEADERS,
     body: JSON.stringify({ prefixes: paths })
   });
+  var body = await res.clone().text();
+  console.log('Delete response:', res.status, body);
+  if (!res.ok) {
+    // Try alternative format without prefixes wrapper
+    console.log('Trying alternative delete format...');
+    var res2 = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
+      method: 'DELETE', headers: HEADERS,
+      body: JSON.stringify(paths)
+    });
+    var body2 = await res2.clone().text();
+    console.log('Alt delete response:', res2.status, body2);
+    return res2;
+  }
+  return res;
 }
 
 /* =========================================================
@@ -2083,6 +2098,7 @@ function savePcEdit() {
 
   // Clean path: remove any query params that might have leaked in
   var cleanPath = pcePath.split('?')[0];
+  console.log('Saving to:', cleanPath, 'blob size:', blob.size, 'bytes');
 
   fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + cleanPath, {
     method: 'POST',
