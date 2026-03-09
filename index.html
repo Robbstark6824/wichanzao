@@ -500,19 +500,18 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     <div class="auth-subtitle">Un paso mas para completar tu cuenta</div>
   </div>
   <div class="auth-card">
-    <h3>Selecciona tu area</h3>
+    <h3>Completa tu perfil</h3>
     <div class="auth-desc">Esto nos ayuda a organizar tus documentos</div>
     <div class="field">
-      <select id="googleArea">
-        <option value="">Seleccionar area...</option>
-        <option value="Medico General">Medico General</option>
-        <option value="Interno de Medicina">Interno de Medicina</option>
-        <option value="Obstetra">Obstetra</option>
-        <option value="Enfermero/a">Enfermero/a</option>
-        <option value="Odontologo">Odontologo</option>
-        <option value="Psicologo">Psicologo</option>
-        <option value="Nutricionista">Nutricionista</option>
-        <option value="Tecnico de Enfermeria">Tecnico de Enfermeria</option>
+      <label>Servicio</label>
+      <select id="googleServicio" onchange="updateAreaOptions('googleServicio','googleArea')">
+        <option value="">Seleccionar servicio...</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Area</label>
+      <select id="googleArea" disabled>
+        <option value="">Primero selecciona un servicio</option>
       </select>
     </div>
     <button class="btn btn-primary" onclick="completeGoogleRegister()" style="border-radius:12px;padding:15px;font-size:15px">Comenzar</button>
@@ -575,17 +574,15 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
       <input type="password" id="regPass" placeholder="Minimo 4 caracteres" autocomplete="new-password">
     </div>
     <div class="field">
+      <label>Servicio</label>
+      <select id="regServicio" onchange="updateAreaOptions('regServicio','regArea')">
+        <option value="">Seleccionar servicio...</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Area</label>
-      <select id="regArea">
-        <option value="">Seleccionar area...</option>
-        <option value="Medico General">Medico General</option>
-        <option value="Interno de Medicina">Interno de Medicina</option>
-        <option value="Obstetra">Obstetra</option>
-        <option value="Enfermero/a">Enfermero/a</option>
-        <option value="Odontologo">Odontologo</option>
-        <option value="Psicologo">Psicologo</option>
-        <option value="Nutricionista">Nutricionista</option>
-        <option value="Tecnico de Enfermeria">Tecnico de Enfermeria</option>
+      <select id="regArea" disabled>
+        <option value="">Primero selecciona un servicio</option>
       </select>
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
@@ -717,6 +714,17 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
         </div>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
+      <div class="settings-item">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(99,102,241,.12)">
+            <svg viewBox="0 0 24 24" fill="#6366F1"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Servicio</h5>
+            <p id="settingsServicio">---</p>
+          </div>
+        </div>
+      </div>
       <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
         <div class="si-left">
           <div class="si-icon" style="background:rgba(212,168,83,.12)">
@@ -764,7 +772,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
           </div>
           <div class="si-text">
             <h5>Version</h5>
-            <p>v76</p>
+            <p>v77</p>
           </div>
         </div>
       </div>
@@ -933,8 +941,25 @@ var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var SB_BUCKET = 'documentos';
 
+/* ===== SERVICIOS DEL CENTRO ===== */
+var SERVICIOS = {
+  'medicina':       { label: 'Medicina',       areas: ['Medico General','Interno de Medicina'] },
+  'enfermeria':     { label: 'Enfermeria',     areas: ['Enfermero/a','Tecnico de Enfermeria'] },
+  'obstetricia':    { label: 'Obstetricia',    areas: ['Obstetra'] },
+  'psicologia':     { label: 'Psicologia',     areas: ['Psicologo'] },
+  'odontologia':    { label: 'Odontologia',    areas: ['Odontologo'] },
+  'nutricion':      { label: 'Nutricion',      areas: ['Nutricionista'] },
+  'administrativos':{ label: 'Administrativos',areas: ['Administrativo'] }
+};
+var SERVICIOS_KEYS = Object.keys(SERVICIOS);
+
+function workerBasePath(w) {
+  if (w && w.servicio) return w.servicio + '/workers/' + w.id;
+  return 'workers/' + w.id;
+}
+
 /* ===== GLOBALS ===== */
-var worker = null;          // {id, name, area, turno, created}
+var worker = null;          // {id, name, area, servicio, created}
 var cameraMode = 'foto';    // 'foto' | 'pdf'
 var pdfPages = [];           // array of dataURL strings for PDF mode
 var currentStream = null;    // MediaStream
@@ -959,6 +984,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.querySelector('meta[name="theme-color"]').content = '#0D1117';
     }
   }
+  populateServicioSelects();
   migrateOldProfile();
   loadWorker();
   loadTodayFiles();
@@ -1107,11 +1133,57 @@ function avatarColor(name) {
   return avatarColors[sum % avatarColors.length];
 }
 
+/* ===== SERVICIO/AREA HELPERS ===== */
+function populateServicioSelects() {
+  var selects = ['regServicio', 'googleServicio'];
+  for (var s = 0; s < selects.length; s++) {
+    var sel = document.getElementById(selects[s]);
+    if (!sel) continue;
+    sel.innerHTML = '<option value="">Seleccionar servicio...</option>';
+    for (var k = 0; k < SERVICIOS_KEYS.length; k++) {
+      var key = SERVICIOS_KEYS[k];
+      var opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = SERVICIOS[key].label;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+function updateAreaOptions(servicioSelectId, areaSelectId) {
+  var servicioSel = document.getElementById(servicioSelectId);
+  var areaSel = document.getElementById(areaSelectId);
+  var servicio = servicioSel.value;
+  areaSel.innerHTML = '';
+  if (!servicio || !SERVICIOS[servicio]) {
+    areaSel.innerHTML = '<option value="">Primero selecciona un servicio</option>';
+    areaSel.disabled = true;
+    return;
+  }
+  var areas = SERVICIOS[servicio].areas;
+  areaSel.disabled = false;
+  if (areas.length === 1) {
+    var opt = document.createElement('option');
+    opt.value = areas[0];
+    opt.textContent = areas[0];
+    areaSel.appendChild(opt);
+  } else {
+    areaSel.innerHTML = '<option value="">Seleccionar area...</option>';
+    for (var i = 0; i < areas.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = areas[i];
+      opt.textContent = areas[i];
+      areaSel.appendChild(opt);
+    }
+  }
+}
+
 /* ===== REGISTRATION ===== */
 function doRegister() {
   var name = document.getElementById('regName').value.trim();
   var folder = document.getElementById('regFolder').value.trim().toLowerCase();
   var pass = document.getElementById('regPass').value;
+  var servicio = document.getElementById('regServicio').value;
   var area = document.getElementById('regArea').value;
 
   if (!name) { toast('Ingresa tu nombre', 'error'); return; }
@@ -1119,6 +1191,7 @@ function doRegister() {
   if (!folder) { toast('Ingresa un nombre de carpeta', 'error'); return; }
   if (folder.length < 3) { toast('Nombre de carpeta muy corto', 'error'); return; }
   if (!pass || pass.length < 4) { toast('Contrasena minimo 4 caracteres', 'error'); return; }
+  if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
   if (!area) { toast('Selecciona un area', 'error'); return; }
 
   // Sanitize folder name — this IS the worker ID, fixed forever
@@ -1128,8 +1201,9 @@ function doRegister() {
   haptic(25);
   toast('Verificando...', 'info');
 
-  // Check if folder already exists
-  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/workers/' + folderId + '/profile.json', {
+  // Check if folder already exists in this servicio
+  var checkPath = servicio + '/workers/' + folderId + '/profile.json';
+  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + checkPath, {
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
     cache: 'no-store'
   }).then(function(res) {
@@ -1141,6 +1215,7 @@ function doRegister() {
     var w = {
       id: folderId,
       name: name,
+      servicio: servicio,
       area: area,
       pass: pass,
       created: new Date().toISOString()
@@ -1156,6 +1231,7 @@ function doRegister() {
     var w = {
       id: folderId,
       name: name,
+      servicio: servicio,
       area: area,
       pass: pass,
       created: new Date().toISOString()
@@ -1182,18 +1258,33 @@ function doLogin() {
   haptic(25);
   toast('Verificando...', 'info');
 
-  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/workers/' + folderId + '/profile.json', {
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-    cache: 'no-store'
-  }).then(function(res) {
-    if (!res.ok) throw new Error('not_found');
-    return res.json();
-  }).then(function(profile) {
+  // Search in all servicios + legacy path in parallel
+  var paths = SERVICIOS_KEYS.map(function(s) { return s + '/workers/' + folderId + '/profile.json'; });
+  paths.push('workers/' + folderId + '/profile.json'); // legacy
+
+  var fetches = paths.map(function(p) {
+    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+      cache: 'no-store'
+    }).then(function(res) {
+      if (!res.ok) return null;
+      return res.json();
+    }).catch(function() { return null; });
+  });
+
+  Promise.all(fetches).then(function(results) {
+    var profile = null;
+    for (var i = 0; i < results.length; i++) {
+      if (results[i]) { profile = results[i]; break; }
+    }
+    if (!profile) {
+      toast('Usuario no encontrado. Verifica tu carpeta.', 'error');
+      return;
+    }
     if (profile.pass && profile.pass !== pass) {
       toast('Contrasena incorrecta', 'error');
       return;
     }
-    // If old account without password, update it
     if (!profile.pass) {
       profile.pass = pass;
       uploadProfileToSupabase(profile);
@@ -1203,12 +1294,8 @@ function doLogin() {
     populateMain();
     showView('vMain');
     toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
-  }).catch(function(e) {
-    if (e.message === 'not_found') {
-      toast('Usuario no encontrado. Verifica tu carpeta.', 'error');
-    } else {
-      toast('Error de conexion. Verifica tu internet.', 'error');
-    }
+  }).catch(function() {
+    toast('Error de conexion. Verifica tu internet.', 'error');
   });
 }
 
@@ -1281,14 +1368,25 @@ function handleGoogleResponse(response) {
 
   toast('Verificando cuenta...', 'info');
 
-  // Check if profile already exists
-  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/workers/' + folderId + '/profile.json', {
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-    cache: 'no-store'
-  }).then(function(res) {
-    if (res.ok) return res.json();
-    return null;
-  }).then(function(profile) {
+  // Search all servicios + legacy path in parallel
+  var paths = SERVICIOS_KEYS.map(function(s) { return s + '/workers/' + folderId + '/profile.json'; });
+  paths.push('workers/' + folderId + '/profile.json');
+
+  var fetches = paths.map(function(p) {
+    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+      cache: 'no-store'
+    }).then(function(res) {
+      if (!res.ok) return null;
+      return res.json();
+    }).catch(function() { return null; });
+  });
+
+  Promise.all(fetches).then(function(results) {
+    var profile = null;
+    for (var i = 0; i < results.length; i++) {
+      if (results[i]) { profile = results[i]; break; }
+    }
     if (profile) {
       // Existing user — login directly
       if (!profile.picture && picture) {
@@ -1300,7 +1398,7 @@ function handleGoogleResponse(response) {
       showView('vMain');
       toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
     } else {
-      // New user — need to select area
+      // New user — need to select servicio and area
       pendingGoogleUser = {
         id: folderId,
         name: name,
@@ -1313,6 +1411,7 @@ function handleGoogleResponse(response) {
       if (picture) {
         document.getElementById('googleAvatarImg').src = picture;
       }
+      populateServicioSelects();
       showView('vGoogleArea');
     }
   }).catch(function() {
@@ -1322,9 +1421,12 @@ function handleGoogleResponse(response) {
 
 function completeGoogleRegister() {
   if (!pendingGoogleUser) return;
+  var servicio = document.getElementById('googleServicio').value;
   var area = document.getElementById('googleArea').value;
+  if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
   if (!area) { toast('Selecciona un area', 'error'); return; }
 
+  pendingGoogleUser.servicio = servicio;
   pendingGoogleUser.area = area;
   saveWorker(pendingGoogleUser);
   uploadProfileToSupabase(pendingGoogleUser);
@@ -1335,7 +1437,7 @@ function completeGoogleRegister() {
 }
 
 function uploadProfileToSupabase(w) {
-  var path = 'workers/' + w.id + '/profile.json';
+  var path = workerBasePath(w) + '/profile.json';
   var body = JSON.stringify(w, null, 2);
   var blob = new Blob([body], { type: 'application/json' });
 
@@ -1359,7 +1461,8 @@ function uploadProfileToSupabase(w) {
 function populateMain() {
   if (!worker) return;
   document.getElementById('mainName').textContent = worker.name;
-  document.getElementById('mainArea').textContent = worker.area;
+  var servicioLabel = worker.servicio && SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : '';
+  document.getElementById('mainArea').textContent = worker.area + (servicioLabel ? ' · ' + servicioLabel : '');
   var av = document.getElementById('mainAvatar');
   av.textContent = getInitials(worker.name);
   av.style.background = avatarColor(worker.name);
@@ -1377,7 +1480,7 @@ function deleteMyFolder() {
   haptic(50);
   toast('Eliminando carpeta...', 'info');
 
-  var prefix = 'workers/' + worker.id;
+  var prefix = workerBasePath(worker);
 
   // List all files in the folder recursively
   listAllFiles(prefix).then(function(files) {
@@ -1476,7 +1579,7 @@ function loadPreviousDates(forceRefresh) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
     cache: 'no-store',
-    body: JSON.stringify({ prefix: 'workers/' + worker.id + '/', limit: 1000, offset: 0, sortBy: { column: 'name', order: 'desc' } })
+    body: JSON.stringify({ prefix: workerBasePath(worker) + '/', limit: 1000, offset: 0, sortBy: { column: 'name', order: 'desc' } })
   }).then(function(res) { return res.json(); })
   .then(function(items) {
     if (!Array.isArray(items)) items = [];
@@ -1535,7 +1638,7 @@ function loadPrevDateFiles(dateStr) {
   if (prevDatesCache[dateStr]) { renderPrevFiles(container, dateStr, prevDatesCache[dateStr]); return; }
 
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);font-size:12px">Cargando...</div>';
-  var prefix = 'workers/' + worker.id + '/' + dateStr + '/';
+  var prefix = workerBasePath(worker) + '/' + dateStr + '/';
 
   fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
     method: 'POST',
@@ -1660,6 +1763,7 @@ function openSettings() {
   if (!worker) return;
   document.getElementById('settingsFolder').textContent = worker.id;
   document.getElementById('settingsName').textContent = worker.name;
+  document.getElementById('settingsServicio').textContent = worker.servicio ? (SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : worker.servicio) : 'Medicina';
   document.getElementById('settingsArea').textContent = worker.area;
   var darkOn = document.body.classList.contains('dark');
   document.getElementById('toggleDark').classList.toggle('on', darkOn);
@@ -1720,7 +1824,8 @@ function changeFolder() {
 
 function changeArea() {
   if (!worker) return;
-  var areas = ['Medico General','Interno de Medicina','Obstetra','Enfermero/a','Odontologo','Psicologo','Nutricionista','Tecnico de Enfermeria'];
+  var servicio = worker.servicio || 'medicina';
+  var areas = SERVICIOS[servicio] ? SERVICIOS[servicio].areas : ['Medico General','Interno de Medicina'];
   var msg = 'Selecciona tu area (escribe el numero):\n';
   for (var i = 0; i < areas.length; i++) {
     msg += (i + 1) + '. ' + areas[i] + '\n';
@@ -1740,42 +1845,54 @@ function loadAdminWorkers() {
   var container = document.getElementById('adminWorkerList');
   container.innerHTML = 'Cargando...';
 
-  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefix: 'workers/', limit: 100 })
-  }).then(function(res) { return res.json(); })
-  .then(function(items) {
-    if (!Array.isArray(items) || !items.length) {
-      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas</div>';
-      return;
+  // Fetch from all servicios + legacy workers/ in parallel
+  var prefixes = SERVICIOS_KEYS.map(function(s) { return { servicio: s, prefix: s + '/workers/' }; });
+  prefixes.push({ servicio: '', prefix: 'workers/' }); // legacy
+
+  var fetches = prefixes.map(function(p) {
+    return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: p.prefix, limit: 100 })
+    }).then(function(res) { return res.json(); }).then(function(items) {
+      if (!Array.isArray(items)) return [];
+      return items.filter(function(i) { return !i.id; }).map(function(i) {
+        return { name: i.name, basePath: p.prefix + i.name, servicio: p.servicio };
+      });
+    }).catch(function() { return []; });
+  });
+
+  Promise.all(fetches).then(function(results) {
+    var allFolders = [];
+    for (var r = 0; r < results.length; r++) {
+      for (var f = 0; f < results[r].length; f++) allFolders.push(results[r][f]);
     }
-    var folders = items.filter(function(i) { return !i.id; });
-    if (!folders.length) {
+    if (!allFolders.length) {
       container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas</div>';
       return;
     }
 
-    // Load profile for each folder
-    var promises = folders.map(function(f) {
-      return fetch(SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/workers/' + f.name + '/profile.json')
+    var profileFetches = allFolders.map(function(f) {
+      return fetch(SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + f.basePath + '/profile.json')
         .then(function(r) { return r.ok ? r.json() : null; })
         .catch(function() { return null; });
     });
 
-    Promise.all(promises).then(function(profiles) {
+    Promise.all(profileFetches).then(function(profiles) {
       var html = '';
-      for (var i = 0; i < folders.length; i++) {
-        var fname = folders[i].name;
+      for (var i = 0; i < allFolders.length; i++) {
+        var af = allFolders[i];
         var p = profiles[i];
-        var displayName = p ? p.name : fname;
+        var displayName = p ? p.name : af.name;
         var area = p ? p.area || '' : '';
+        var sLabel = af.servicio ? (SERVICIOS[af.servicio] ? SERVICIOS[af.servicio].label : af.servicio) : 'Legacy';
+        var bp = af.basePath.replace(/'/g, "\\'");
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-        html += '<div onclick="adminBrowseFolder(\'' + fname + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
+        html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
         html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + displayName + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
-        if (area) html += '<div style="font-size:11px;color:var(--t3)">' + area + '</div>';
-        html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + fname + '</div></div>';
-        html += '<button onclick="adminDeleteFolder(\'' + fname + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+        if (area) html += '<div style="font-size:11px;color:var(--t3)">' + area + ' &middot; ' + sLabel + '</div>';
+        html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + af.name + '</div></div>';
+        html += '<button onclick="adminDeleteFolder(\'' + bp + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
         html += '</div>';
       }
       container.innerHTML = html;
@@ -1785,14 +1902,15 @@ function loadAdminWorkers() {
   });
 }
 
-function adminDeleteFolder(folderId) {
-  if (!confirm('¿Borrar la carpeta "' + folderId + '" y todos sus archivos?')) return;
+function adminDeleteFolder(basePath) {
+  var folderName = basePath.split('/').pop();
+  if (!confirm('¿Borrar la carpeta "' + folderName + '" y todos sus archivos?')) return;
   if (!confirm('¿Seguro? No se puede deshacer.')) return;
 
   haptic(50);
-  toast('Eliminando ' + folderId + '...', 'info');
+  toast('Eliminando ' + folderName + '...', 'info');
 
-  var prefix = 'workers/' + folderId;
+  var prefix = basePath;
   listAllFiles(prefix).then(function(files) {
     if (!files.length) {
       toast('Carpeta vacia', 'info');
@@ -1814,11 +1932,11 @@ function adminDeleteFolder(folderId) {
   });
 }
 
-function adminBrowseFolder(folderId, displayName) {
+function adminBrowseFolder(basePath, displayName) {
   var container = document.getElementById('adminWorkerList');
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
-  var prefix = 'workers/' + folderId;
+  var prefix = basePath;
   fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
@@ -1829,6 +1947,7 @@ function adminBrowseFolder(folderId, displayName) {
     if (!Array.isArray(items)) { items = []; }
     var subfolders = items.filter(function(i) { return !i.id; });
     var files = items.filter(function(i) { return i.id; });
+    var bp = basePath.replace(/'/g, "\\'");
 
     var html = '<div style="margin-bottom:12px">';
     html += '<button onclick="loadAdminWorkers()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; Volver</button>';
@@ -1845,9 +1964,9 @@ function adminBrowseFolder(folderId, displayName) {
     for (var s = 0; s < subfolders.length; s++) {
       var sub = subfolders[s].name;
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div onclick="adminBrowseSub(\'' + folderId + '\',\'' + sub + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
+      html += '<div onclick="adminBrowseSub(\'' + bp + '\',\'' + sub + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
       html += '<div style="font-weight:600;font-size:13px;color:var(--tl)">&#128193; ' + sub + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div></div>';
-      html += '<button onclick="adminDeleteSub(\'' + folderId + '\',\'' + sub + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '<button onclick="adminDeleteSub(\'' + bp + '\',\'' + sub + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
       html += '</div>';
     }
 
@@ -1860,7 +1979,7 @@ function adminBrowseFolder(folderId, displayName) {
       if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
       html += '</div>';
       if (file.name !== 'profile.json') {
-        html += '<button onclick="adminDeleteFile(\'' + prefix + '/' + file.name + '\',\'' + folderId + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+        html += '<button onclick="adminDeleteFile(\'' + prefix + '/' + file.name + '\',\'' + bp + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
       }
       html += '</div>';
     }
@@ -1871,11 +1990,11 @@ function adminBrowseFolder(folderId, displayName) {
   });
 }
 
-function adminBrowseSub(folderId, subName, displayName) {
+function adminBrowseSub(basePath, subName, displayName) {
   var container = document.getElementById('adminWorkerList');
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
-  var prefix = 'workers/' + folderId + '/' + subName;
+  var prefix = basePath + '/' + subName;
   fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
@@ -1888,7 +2007,7 @@ function adminBrowseSub(folderId, subName, displayName) {
     var subfolders = items.filter(function(i) { return !i.id; });
 
     var html = '<div style="margin-bottom:12px">';
-    html += '<button onclick="adminBrowseFolder(\'' + folderId + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + displayName + '</button>';
+    html += '<button onclick="adminBrowseFolder(\'' + basePath.replace(/'/g, "\\'") + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + displayName + '</button>';
     html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + subName + '</div>';
     html += '<div style="font-size:11px;color:var(--t3)">' + files.length + ' archivo(s)</div>';
     html += '</div>';
@@ -1917,7 +2036,7 @@ function adminBrowseSub(folderId, subName, displayName) {
       html += '<div style="min-width:0"><div style="font-weight:500;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + file.name + '</div>';
       if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
       html += '</div></div>';
-      html += '<button onclick="adminDeleteFile(\'' + prefix + '/' + file.name + '\',\'' + folderId + '\',\'' + displayName.replace(/'/g, "\\'") + '\',\'' + subName + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '<button onclick="adminDeleteFile(\'' + prefix + '/' + file.name + '\',\'' + basePath.replace(/'/g, "\\'") + '\',\'' + displayName.replace(/'/g, "\\'") + '\',\'' + subName + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
       html += '</div>';
     }
 
@@ -1931,7 +2050,7 @@ function adminBrowseSub(folderId, subName, displayName) {
   });
 }
 
-function adminDeleteFile(filePath, folderId, displayName, subName) {
+function adminDeleteFile(filePath, basePath, displayName, subName) {
   var fileName = filePath.split('/').pop();
   if (!confirm('¿Borrar "' + fileName + '"?')) return;
 
@@ -1946,26 +2065,26 @@ function adminDeleteFile(filePath, folderId, displayName, subName) {
     if (!res.ok) throw new Error('Error ' + res.status);
     toast('Archivo eliminado', 'success');
     if (subName) {
-      adminBrowseSub(folderId, subName, displayName);
+      adminBrowseSub(basePath, subName, displayName);
     } else {
-      adminBrowseFolder(folderId, displayName);
+      adminBrowseFolder(basePath, displayName);
     }
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
   });
 }
 
-function adminDeleteSub(folderId, subName, displayName) {
+function adminDeleteSub(basePath, subName, displayName) {
   if (!confirm('¿Borrar carpeta "' + subName + '" y todos sus archivos?')) return;
 
   haptic(50);
   toast('Eliminando ' + subName + '...', 'info');
 
-  var prefix = 'workers/' + folderId + '/' + subName;
+  var prefix = basePath + '/' + subName;
   listAllFiles(prefix).then(function(files) {
     if (!files.length) {
       toast('Carpeta vacia', 'info');
-      adminBrowseFolder(folderId, displayName);
+      adminBrowseFolder(basePath, displayName);
       return;
     }
     var paths = files.map(function(f) { return prefix + '/' + f; });
@@ -1977,7 +2096,7 @@ function adminDeleteSub(folderId, subName, displayName) {
   }).then(function(res) {
     if (res && !res.ok) throw new Error('Error ' + res.status);
     toast('Carpeta eliminada', 'success');
-    adminBrowseFolder(folderId, displayName);
+    adminBrowseFolder(basePath, displayName);
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
   });
@@ -2860,7 +2979,7 @@ function doUploadFoto(filename, dataUrl) {
     var now = new Date();
     var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     var ts = now.getTime();
-    filePath = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
+    filePath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
     return uploadToSupabase(filePath, blob, 'image/jpeg');
   }).then(function() {
     var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + filePath;
@@ -2892,7 +3011,7 @@ function doUploadPdf(filename, pages) {
         var now = new Date();
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
         var ts = now.getTime();
-        var pdfPath = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
+        var pdfPath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
 
         uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
           return uploadIndividualImages(filename, optimizedPages);
@@ -3148,7 +3267,7 @@ function uploadFoto(filename) {
     var now = new Date();
     var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     var ts = now.getTime();
-    var path = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
+    var path = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.jpg';
 
     return uploadToSupabase(path, blob, 'image/jpeg');
   }).then(function() {
@@ -3188,7 +3307,7 @@ function uploadPdfDoc(filename) {
         var now = new Date();
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
         var ts = now.getTime();
-        var pdfPath = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
+        var pdfPath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
 
         // Upload PDF
         uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
@@ -3243,7 +3362,7 @@ function uploadIndividualImages(filename, optimizedPages) {
 
   for (var i = 0; i < optimizedPages.length; i++) {
     var blob = dataUrlToBlob(optimizedPages[i]);
-    var path = 'workers/' + worker.id + '/' + dateFolder + '/' + ts + '_' + filename + '_pag' + (i+1) + '.jpg';
+    var path = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '_pag' + (i+1) + '.jpg';
     promises.push(uploadToSupabase(path, blob, 'image/jpeg'));
   }
 
@@ -3274,6 +3393,7 @@ function queueOfflineUpload(filename, mode, dataUrls) {
     mode: mode,
     dataUrls: dataUrls,
     workerId: worker.id,
+    servicio: worker.servicio || '',
     timestamp: Date.now()
   });
   localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue));
@@ -3302,7 +3422,7 @@ function processOfflineQueue() {
         var blob = dataUrlToBlob(optimized);
         var now = new Date(item.timestamp);
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-        var path = 'workers/' + item.workerId + '/' + dateFolder + '/' + item.timestamp + '_' + item.filename + '.jpg';
+        var path = (item.servicio ? item.servicio + '/workers/' + item.workerId : 'workers/' + item.workerId) + '/' + dateFolder + '/' + item.timestamp + '_' + item.filename + '.jpg';
         return uploadToSupabase(path, blob, 'image/jpeg');
       });
     } else {
@@ -3323,7 +3443,7 @@ function processOfflineQueue() {
       }).then(function(pdfBlob) {
         var now = new Date(item.timestamp);
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-        var pdfPath = 'workers/' + item.workerId + '/' + dateFolder + '/' + item.timestamp + '_' + item.filename + '.pdf';
+        var pdfPath = (item.servicio ? item.servicio + '/workers/' + item.workerId : 'workers/' + item.workerId) + '/' + dateFolder + '/' + item.timestamp + '_' + item.filename + '.pdf';
         return uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
           return uploadIndividualImagesOffline(item, optimized);
         });
@@ -3352,7 +3472,7 @@ function uploadIndividualImagesOffline(item, optimizedPages) {
 
   for (var i = 0; i < optimizedPages.length; i++) {
     var blob = dataUrlToBlob(optimizedPages[i]);
-    var path = 'workers/' + item.workerId + '/' + dateFolder + '/' + item.timestamp + '_' + item.filename + '_pag' + (i+1) + '.jpg';
+    var path = (item.servicio ? item.servicio + '/workers/' + item.workerId : 'workers/' + item.workerId) + '/' + dateFolder + '/' + item.timestamp + '_' + item.filename + '_pag' + (i+1) + '.jpg';
     promises.push(uploadToSupabase(path, blob, 'image/jpeg'));
   }
 
