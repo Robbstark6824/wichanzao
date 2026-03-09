@@ -1011,9 +1011,9 @@ function renderDirectory() {
   var threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
   var now = Date.now();
 
-  // Hide workers inactive for more than 3 months
+  // Hide workers inactive for more than 3 months (keep those without date)
   var active = allWorkers.filter(function(w) {
-    if (!w.last_active) return false;
+    if (!w.last_active) return true;
     return (now - new Date(w.last_active).getTime()) < threeMonthsMs;
   });
 
