@@ -1441,7 +1441,7 @@ function renderFileCard(doc, pathPrefix) {
 async function forceDl(url, filename) {
   try {
     showToast('Descargando: ' + filename, 'info');
-    var res = await fetch(url);
+    var res = await fetch(url, { cache: 'no-store' });
     var blob = await res.blob();
     var blobUrl = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -1850,9 +1850,33 @@ function downloadFromLightbox() {
   var current = lightboxImages[lightboxIndex];
   if (!current) return;
   var filename = (current.caption || 'imagen').replace(/[^a-zA-Z0-9_\- ]/g, '') + '.jpg';
-  // Always add fresh cache-buster to force CDN to serve latest version
-  var dlUrl = current.url.split('?')[0] + '?dl=' + Date.now();
-  forceDl(dlUrl, filename);
+  var path = getLbPath(current);
+  if (path) {
+    // Download via authenticated API to bypass CDN cache entirely
+    showToast('Descargando: ' + filename, 'info');
+    fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+      cache: 'no-store'
+    }).then(function(res) {
+      if (!res.ok) throw new Error('Error ' + res.status);
+      return res.blob();
+    }).then(function(blob) {
+      var blobUrl = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 2000);
+      showToast('Descargado: ' + filename, 'success');
+    }).catch(function(e) {
+      console.error('Auth download failed, fallback:', e);
+      forceDl(current.url, filename);
+    });
+  } else {
+    forceDl(current.url, filename);
+  }
 }
 
 function deleteFromLightbox() {
@@ -2045,6 +2069,8 @@ function savePcEdit() {
     body: blob
   }).then(function(res) {
     if (!res.ok) return res.text().then(function(t) { throw new Error(res.status + ': ' + t); });
+    return res.text().then(function(body) { console.log('Upload OK:', cleanPath, body); });
+  }).then(function() {
     showToast('Imagen guardada correctamente', 'success');
     pceEdited = false;
     closePcEditor();
