@@ -1078,25 +1078,11 @@ function openCamera(mode) {
   document.getElementById('thumbStack').classList.add('hidden');
   document.getElementById('camPreview').classList.remove('show');
 
-  // If camera is already warm, show immediately
-  if (currentStream && currentStream.active) {
-    showView('vCam');
-    return;
-  }
-
   showView('vCam');
   startCamera();
 }
 
 function startCamera() {
-  // Reuse existing stream if still active
-  if (currentStream && currentStream.active) {
-    var video = document.getElementById('camVideo');
-    video.srcObject = currentStream;
-    video.play();
-    return;
-  }
-
   var constraints = {
     video: {
       facingMode: facingMode,
@@ -1149,8 +1135,8 @@ function closeCamera() {
   haptic();
   hideQuickName();
   pdfPages = [];
+  stopCamera();
   showView('vMain');
-  // Keep stream alive for fast re-open
 }
 
 function switchCamera() {
@@ -1422,7 +1408,7 @@ function finalizePdf() {
   }
   var pagesToUpload = pdfPages.slice();
   pdfPages = [];
-  // Keep camera stream alive for fast re-open
+  stopCamera();
   showView('vMain');
   populateMain();
   // Show quick name bar over main view
