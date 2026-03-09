@@ -1060,6 +1060,7 @@ function adminTap() {
     if (pwd === 'Nomejodas1') {
       isAdmin = true;
       haptic(50);
+      document.getElementById('mainName').textContent = worker.name + ' \uD83D\uDC51';
       toast('Modo admin activado', 'success');
       openAdmin();
     } else if (pwd !== null) {
@@ -1076,6 +1077,7 @@ function openAdmin() {
 function closeAdmin() {
   document.getElementById('adminPanel').style.display = 'none';
   isAdmin = false;
+  if (worker) document.getElementById('mainName').textContent = worker.name;
 }
 
 function loadAdminWorkers() {
