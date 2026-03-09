@@ -334,18 +334,25 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
 .author-overlay.on{transform:translateX(0)}
 .author-header{display:flex;align-items:center;gap:12px;padding:12px 16px;padding-top:calc(var(--st) + 12px);border-bottom:1px solid var(--bd)}
 .author-header h3{font-size:17px;font-weight:700;color:var(--t1)}
-.author-content{flex:1;overflow-y:auto;padding:32px 24px;display:flex;flex-direction:column;align-items:center}
-.author-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--tl),var(--n1));display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.author-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--t1);margin:0}
-.author-role{font-size:14px;color:var(--tl);font-weight:600;margin:6px 0 2px}
-.author-uni{font-size:13px;color:var(--t2);margin:0}
-.author-divider{width:40px;height:2px;background:linear-gradient(90deg,var(--tl),var(--gd));border-radius:2px;margin:24px 0}
-.author-dedication{display:flex;gap:12px;background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--bd);margin-bottom:28px}
-.author-dedication p{font-size:13px;line-height:1.65;color:var(--t2);margin:0}
-.author-dedication strong{color:var(--t1);font-weight:600}
-.author-brand{text-align:center;padding:16px;border:1px solid var(--bd);border-radius:12px;width:100%}
-.author-brand-name{display:block;font-size:18px;font-weight:800;letter-spacing:1px;color:var(--t1)}
-.author-brand-tag{display:block;font-size:11px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+.author-content{flex:1;overflow-y:auto;padding:0 20px 40px;display:flex;flex-direction:column;align-items:center}
+.author-hero{position:relative;width:100%;text-align:center;padding:48px 20px 28px;margin-bottom:20px;border-radius:0 0 24px 24px;overflow:hidden}
+.author-hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0C1F3D 0%,#1B3A6B 50%,#142952 100%);z-index:0}
+.author-hero>*{position:relative;z-index:1}
+.author-avatar{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#4ECDC4,#D4A853);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 20px rgba(78,205,196,.35)}
+.author-name{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:#fff;margin:0;letter-spacing:.3px}
+.author-role{font-size:13px;color:#4ECDC4;font-weight:600;margin:6px 0 10px}
+.author-uni-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 14px;font-size:11px;color:rgba(255,255,255,.8);font-weight:500}
+.author-dedication-card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:24px 20px;margin-bottom:16px;width:100%}
+.author-ded-icon{text-align:center;margin-bottom:10px}
+.author-ded-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--t1);text-align:center;margin:0 0 16px}
+.author-ded-text{font-size:13.5px;line-height:1.7;color:var(--t2);margin:0 0 12px}
+.author-ded-text:last-of-type{margin-bottom:16px}
+.author-ded-text strong{color:var(--t1);font-weight:600}
+.author-ded-quote{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;line-height:1.6;color:var(--tl);text-align:center;margin:0;padding:14px 0 0;border-top:1px solid var(--bd)}
+.author-brand{text-align:center;padding:20px;background:var(--card);border:1px solid var(--bd);border-radius:16px;width:100%}
+.author-brand-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0C1F3D,#1B3A6B);color:#4ECDC4;font-size:20px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-family:'Playfair Display',serif}
+.author-brand-name{display:block;font-size:18px;font-weight:800;letter-spacing:.5px;color:var(--t1)}
+.author-brand-tag{display:block;font-size:11px;color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-top:3px;font-weight:500}
 .photo-editor{position:fixed;inset:0;z-index:70;background:#111;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
 .photo-editor.on{opacity:1;pointer-events:auto}
 .pe-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + var(--st));background:#111;z-index:2}
@@ -805,18 +812,35 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     <h3>Acerca del autor</h3>
   </div>
   <div class="author-content">
-    <div class="author-avatar">
-      <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--tl)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+    <!-- Hero card -->
+    <div class="author-hero">
+      <div class="author-hero-bg"></div>
+      <div class="author-avatar">
+        <svg viewBox="0 0 24 24" width="44" height="44" fill="#fff"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+      <h2 class="author-name">Robert Macedo Rios</h2>
+      <p class="author-role">Interno de Medicina Humana</p>
+      <div class="author-uni-badge">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--gd)"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+        Universidad Privada Antenor Orrego
+      </div>
     </div>
-    <h2 class="author-name">Robert Macedo Rios</h2>
-    <p class="author-role">Interno de Medicina Humana</p>
-    <p class="author-uni">Universidad Privada Antenor Orrego</p>
-    <div class="author-divider"></div>
-    <div class="author-dedication">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gd)" style="flex-shrink:0;margin-top:2px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-      <p>Esta aplicacion fue creada con gratitud hacia el <strong>Centro de Salud Materno Infantil Wichanzao</strong>, que durante dos meses y medio me brindo invaluables enseñanzas. Agradezco profundamente a todos los doctores que guiaron mi formacion y a mis compañeros de rotacion que hicieron de esta experiencia algo inolvidable.</p>
+
+    <!-- Dedicatoria -->
+    <div class="author-dedication-card">
+      <div class="author-ded-icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="var(--gd)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </div>
+      <h4 class="author-ded-title">Dedicatoria</h4>
+      <p class="author-ded-text">Esta aplicacion nace del corazon y fue creada con profunda gratitud hacia el <strong>Centro de Salud Materno Infantil Wichanzao</strong> de Trujillo, Peru.</p>
+      <p class="author-ded-text">Durante dos meses y medio de internado, este centro se convirtio en mi segundo hogar. Cada guardia, cada paciente y cada desafio me forjaron como profesional de salud.</p>
+      <p class="author-ded-text">Gracias infinitas a todos los <strong>doctores</strong> que con paciencia y dedicacion guiaron mi formacion, y a mis <strong>compañeros de rotacion</strong> que hicieron de cada jornada una experiencia inolvidable.</p>
+      <p class="author-ded-quote">"La medicina no es solo una profesion, es una vocacion que se aprende al lado de quienes la viven cada dia."</p>
     </div>
+
+    <!-- Brand -->
     <div class="author-brand">
+      <div class="author-brand-icon">N</div>
       <span class="author-brand-name">NeuroArsenal</span>
       <span class="author-brand-tag">Preparacion Medica</span>
     </div>
