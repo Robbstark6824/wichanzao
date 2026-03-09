@@ -1,4 +1,4 @@
-var CACHE_NAME = 'wichanzao-v24';
+var CACHE_NAME = 'wichanzao-v25';
 var PRECACHE = [
   './',
   './index.html',
