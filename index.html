@@ -391,7 +391,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
   <div class="main-header">
     <div class="avatar md" id="mainAvatar" style="background:var(--tl)"></div>
     <div class="info">
-      <h3 id="mainName">---</h3>
+      <h3 id="mainName" onclick="adminTap()">---</h3>
       <div class="sub">
         <span class="dot"></span>
         <span id="mainArea">---</span>
@@ -429,6 +429,16 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
       <div class="ts-count" id="todayCount">0</div>
       <div class="ts-label">documentos digitalizados</div>
       <div class="today-files" id="todayFiles"></div>
+    </div>
+    <!-- Admin Panel (hidden by default) -->
+    <div id="adminPanel" style="display:none;margin-top:24px;padding:0 16px 24px">
+      <div style="background:var(--s1);border-radius:var(--r1);padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h4 style="font-size:14px;font-weight:800;color:var(--t1)">Panel Admin</h4>
+          <button onclick="closeAdmin()" style="background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer">&times;</button>
+        </div>
+        <div id="adminWorkerList" style="font-size:13px;color:var(--t2)">Cargando...</div>
+      </div>
     </div>
     <!-- Delete folder -->
     <div style="margin-top:32px;text-align:center;padding-bottom:24px">
@@ -823,6 +833,116 @@ function listAllFiles(prefix) {
       }
       return allFiles;
     });
+  });
+}
+
+/* ===== ADMIN MODE ===== */
+var adminTapCount = 0;
+var adminTapTimer = null;
+var isAdmin = false;
+
+function adminTap() {
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(function() { adminTapCount = 0; }, 2000);
+  if (adminTapCount >= 5) {
+    adminTapCount = 0;
+    var pwd = prompt('Clave admin:');
+    if (pwd === 'Nomejodas1') {
+      isAdmin = true;
+      haptic(50);
+      toast('Modo admin activado', 'success');
+      openAdmin();
+    } else if (pwd !== null) {
+      toast('Clave incorrecta', 'error');
+    }
+  }
+}
+
+function openAdmin() {
+  document.getElementById('adminPanel').style.display = 'block';
+  loadAdminWorkers();
+}
+
+function closeAdmin() {
+  document.getElementById('adminPanel').style.display = 'none';
+  isAdmin = false;
+}
+
+function loadAdminWorkers() {
+  var container = document.getElementById('adminWorkerList');
+  container.innerHTML = 'Cargando...';
+
+  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: 'workers/', limit: 100 })
+  }).then(function(res) { return res.json(); })
+  .then(function(items) {
+    if (!Array.isArray(items) || !items.length) {
+      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas</div>';
+      return;
+    }
+    var folders = items.filter(function(i) { return !i.id; });
+    if (!folders.length) {
+      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas</div>';
+      return;
+    }
+
+    // Load profile for each folder
+    var promises = folders.map(function(f) {
+      return fetch(SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/workers/' + f.name + '/profile.json')
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .catch(function() { return null; });
+    });
+
+    Promise.all(promises).then(function(profiles) {
+      var html = '';
+      for (var i = 0; i < folders.length; i++) {
+        var fname = folders[i].name;
+        var p = profiles[i];
+        var displayName = p ? p.name : fname;
+        var area = p ? p.area || '' : '';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+        html += '<div><div style="font-weight:700;font-size:13px">' + displayName + '</div>';
+        if (area) html += '<div style="font-size:11px;color:var(--t3)">' + area + '</div>';
+        html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + fname + '</div></div>';
+        html += '<button onclick="adminDeleteFolder(\'' + fname + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    });
+  }).catch(function(e) {
+    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error: ' + e.message + '</div>';
+  });
+}
+
+function adminDeleteFolder(folderId) {
+  if (!confirm('¿Borrar la carpeta "' + folderId + '" y todos sus archivos?')) return;
+  if (!confirm('¿Seguro? No se puede deshacer.')) return;
+
+  haptic(50);
+  toast('Eliminando ' + folderId + '...', 'info');
+
+  var prefix = 'workers/' + folderId;
+  listAllFiles(prefix).then(function(files) {
+    if (!files.length) {
+      toast('Carpeta vacia', 'info');
+      loadAdminWorkers();
+      return;
+    }
+    var paths = files.map(function(f) { return prefix + '/' + f; });
+    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefixes: paths })
+    });
+  }).then(function(res) {
+    if (res && !res.ok) throw new Error('Error ' + res.status);
+    toast('Carpeta eliminada', 'success');
+    loadAdminWorkers();
+  }).catch(function(e) {
+    toast('Error: ' + e.message, 'error');
   });
 }
 
