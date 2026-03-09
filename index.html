@@ -349,6 +349,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
 .author-ded-text:last-of-type{margin-bottom:16px}
 .author-ded-text strong{color:var(--t1);font-weight:600}
 .author-ded-quote{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;line-height:1.6;color:var(--tl);text-align:center;margin:0;padding:14px 0 0;border-top:1px solid var(--bd)}
+.author-ded-signature{font-family:'Playfair Display',serif;font-size:14px;color:var(--t2);text-align:right;margin:16px 0 0;padding-top:12px;border-top:1px solid var(--bd)}
 .author-brand{text-align:center;padding:20px;background:var(--card);border:1px solid var(--bd);border-radius:16px;width:100%}
 .author-brand-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0C1F3D,#1B3A6B);color:#4ECDC4;font-size:20px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-family:'Playfair Display',serif}
 .author-brand-name{display:block;font-size:18px;font-weight:800;letter-spacing:.5px;color:var(--t1)}
@@ -685,9 +686,9 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     <h3>Configuracion</h3>
   </div>
   <div style="overflow-y:auto;flex:1;padding-bottom:40px">
-    <!-- Apariencia -->
+    <!-- General -->
     <div class="settings-section">
-      <h4>Apariencia</h4>
+      <h4>General</h4>
       <div class="settings-item">
         <div class="si-left">
           <div class="si-icon" style="background:rgba(78,205,196,.12)">
@@ -704,26 +705,26 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
     <!-- Cuenta -->
     <div class="settings-section">
       <h4>Cuenta</h4>
-      <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(212,168,83,.12)">
-            <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-          </div>
-          <div class="si-text">
-            <h5>Cambiar carpeta</h5>
-            <p id="settingsFolder">---</p>
-          </div>
-        </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
       <div class="settings-item" onclick="changeName()" style="cursor:pointer">
         <div class="si-left">
           <div class="si-icon" style="background:rgba(78,205,196,.12)">
             <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
           </div>
           <div class="si-text">
-            <h5>Cambiar nombre</h5>
+            <h5>Nombre</h5>
             <p id="settingsName">---</p>
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+      <div class="settings-item" onclick="changeFolder()" style="cursor:pointer">
+        <div class="si-left">
+          <div class="si-icon" style="background:rgba(212,168,83,.12)">
+            <svg viewBox="0 0 24 24" fill="var(--gd)"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          </div>
+          <div class="si-text">
+            <h5>Carpeta</h5>
+            <p id="settingsFolder">---</p>
           </div>
         </div>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
@@ -734,31 +735,12 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
             <svg viewBox="0 0 24 24" fill="#38A169"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
           </div>
           <div class="si-text">
-            <h5>Cambiar area</h5>
+            <h5>Area</h5>
             <p id="settingsArea">---</p>
           </div>
         </div>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
-    </div>
-    <!-- Sesion -->
-    <div class="settings-section">
-      <h4>Sesion</h4>
-      <div class="settings-item" onclick="doLogout()" style="cursor:pointer">
-        <div class="si-left">
-          <div class="si-icon" style="background:rgba(229,62,62,.1)">
-            <svg viewBox="0 0 24 24" fill="#E53E3E"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-          </div>
-          <div class="si-text">
-            <h5 style="color:#E53E3E">Cerrar sesion</h5>
-            <p>Volver a la pantalla de inicio</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Datos -->
-    <div class="settings-section">
-      <h4>Datos</h4>
       <div class="settings-item" onclick="deleteMyFolder()" style="cursor:pointer">
         <div class="si-left">
           <div class="si-icon" style="background:rgba(229,62,62,.08)">
@@ -782,7 +764,7 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
           </div>
           <div class="si-text">
             <h5>Version</h5>
-            <p>v70</p>
+            <p>v72</p>
           </div>
         </div>
       </div>
@@ -799,7 +781,11 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
     </div>
-    <div style="text-align:center;padding:16px;color:var(--t3);font-size:10px;letter-spacing:.5px;opacity:.5">© NeuroArsenal</div>
+    <!-- Cerrar sesion -->
+    <div style="padding:8px 16px 0">
+      <button onclick="doLogout()" style="width:100%;padding:14px;background:none;border:1px solid rgba(229,62,62,.2);border-radius:12px;color:#E53E3E;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s">Cerrar sesion</button>
+    </div>
+    <div style="text-align:center;padding:20px 16px;color:var(--t3);font-size:10px;letter-spacing:.5px;opacity:.5">© NeuroArsenal</div>
   </div>
 </div>
 
@@ -834,8 +820,10 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
       <h4 class="author-ded-title">Dedicatoria</h4>
       <p class="author-ded-text">Esta aplicacion nace del corazon y fue creada con profunda gratitud hacia el <strong>Centro de Salud Materno Infantil Wichanzao</strong> de Trujillo, Peru.</p>
       <p class="author-ded-text">Durante dos meses y medio de internado, este centro se convirtio en mi segundo hogar. Cada guardia, cada paciente y cada desafio me forjaron como profesional de salud.</p>
-      <p class="author-ded-text">Gracias infinitas a todos los <strong>doctores</strong> que con paciencia y dedicacion guiaron mi formacion, y a mis <strong>compañeros de rotacion</strong> que hicieron de cada jornada una experiencia inolvidable.</p>
+      <p class="author-ded-text">Gracias infinitas a cada persona que formo parte de este camino: a los <strong>doctores</strong> que con paciencia y dedicacion guiaron mi formacion, a las <strong>enfermeras</strong> y <strong>tecnicas</strong> que con su experiencia y calidez me enseñaron el verdadero significado del cuidado al paciente, y a mis <strong>compañeros de rotacion</strong> que hicieron de cada jornada algo inolvidable.</p>
+      <p class="author-ded-text">A todo el <strong>personal del centro de salud</strong> — administrativos, obstetras, laboratoristas y cada miembro del equipo — gracias por acogerme y hacer de Wichanzao una experiencia que llevo con orgullo.</p>
       <p class="author-ded-quote">"La medicina no es solo una profesion, es una vocacion que se aprende al lado de quienes la viven cada dia."</p>
+      <p class="author-ded-signature">Con gratitud,<br><strong>Robert Macedo Rios</strong></p>
     </div>
 
     <!-- Brand -->
