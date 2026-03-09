@@ -149,8 +149,9 @@ body.dark .auth-btns .btn-google{background:var(--s2);color:var(--t1);border-col
 .auth-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--t3)}
 .auth-footer a{color:var(--tl);font-weight:700;cursor:pointer;text-decoration:none}
 /* Login/Register specific */
-#vLogin .auth-top,#vRegister .auth-top,#vGoogleArea .auth-top{margin-top:0;padding:0 24px 16px;flex:none}
-#vLogin .auth-card,#vRegister .auth-card,#vGoogleArea .auth-card{flex:none}
+#vLogin,#vRegister,#vGoogleArea{justify-content:flex-start}
+#vLogin .auth-top,#vRegister .auth-top,#vGoogleArea .auth-top{margin-top:calc(50px + var(--st));padding:0 24px 16px;flex:none}
+#vLogin .auth-card,#vRegister .auth-card,#vGoogleArea .auth-card{flex:none;margin-bottom:40px}
 .auth-card .field{margin-bottom:14px}
 .auth-card .btn-primary{width:100%;border-radius:12px;padding:15px;font-size:15px}
 .auth-card .btn-back{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:8px}
