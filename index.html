@@ -236,31 +236,28 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
 .quick-name .qn-send.uploading::after{content:'';width:22px;height:22px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
 
 /* ===== PHOTO EDITOR ===== */
-.photo-editor{position:fixed;inset:0;z-index:70;background:#000;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
+.photo-editor{position:fixed;inset:0;z-index:70;background:#111;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
 .photo-editor.on{opacity:1;pointer-events:auto}
-.pe-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + var(--st));background:linear-gradient(180deg,rgba(0,0,0,.7),transparent);position:absolute;top:0;left:0;right:0;z-index:2}
-.pe-top-btn{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pe-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + var(--st));background:#111;z-index:2}
+.pe-top-btn{background:rgba(255,255,255,.1);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .pe-top-btn:active{transform:scale(.9)}
-.pe-top-btn svg{width:20px;height:20px;fill:#fff}
+.pe-top-btn svg{width:18px;height:18px;fill:#fff}
 .pe-title{color:#fff;font-size:14px;font-weight:700}
-.pe-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none;padding:20px}
-.pe-canvas-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none}
-.pe-crop-box{position:absolute;border:2px solid var(--tl);box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move;touch-action:none;min-width:40px;min-height:40px}
-.pe-crop-box .pe-handle{position:absolute;width:28px;height:28px;background:var(--tl);border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);touch-action:none;z-index:1}
-.pe-handle.tl{top:-14px;left:-14px;cursor:nw-resize}
-.pe-handle.tr{top:-14px;right:-14px;cursor:ne-resize}
-.pe-handle.bl{bottom:-14px;left:-14px;cursor:sw-resize}
-.pe-handle.br{bottom:-14px;right:-14px;cursor:se-resize}
-.pe-bottom{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px 20px;padding-bottom:calc(16px + var(--sb));background:linear-gradient(0deg,rgba(0,0,0,.7),transparent);position:absolute;bottom:0;left:0;right:0;z-index:2}
-.pe-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;color:#fff;cursor:pointer;padding:8px 16px;border-radius:var(--r2);transition:background .15s;font-family:inherit}
-.pe-btn:active{background:rgba(255,255,255,.1)}
-.pe-btn svg{width:26px;height:26px}
-.pe-btn span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.pe-btn.danger svg{fill:var(--danger)}
-.pe-btn.danger span{color:var(--danger)}
-.pe-btn.primary{background:var(--tl);border-radius:50%;width:56px;height:56px;gap:0;padding:0}
-.pe-btn.primary svg{fill:var(--n1);width:28px;height:28px}
-.pe-btn.primary span{display:none}
+.pe-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none;padding:24px;background:#111}
+.pe-canvas-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none;border-radius:4px}
+.pe-crop-box{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.6);cursor:move;touch-action:none;min-width:40px;min-height:40px}
+.pe-crop-box::before{content:'';position:absolute;inset:0;border:1px dashed rgba(255,255,255,.3);pointer-events:none}
+.pe-crop-box .pe-handle{position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5);touch-action:none;z-index:1}
+.pe-handle.tl{top:-10px;left:-10px}
+.pe-handle.tr{top:-10px;right:-10px}
+.pe-handle.bl{bottom:-10px;left:-10px}
+.pe-handle.br{bottom:-10px;right:-10px}
+.pe-bottom{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 16px;padding-bottom:calc(14px + var(--sb));background:#111;z-index:2}
+.pe-action-btn{display:flex;align-items:center;gap:6px;border:none;cursor:pointer;padding:10px 18px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700}
+.pe-action-btn:active{transform:scale(.96)}
+.pe-action-btn.delete{background:rgba(229,62,62,.15);color:#E53E3E}
+.pe-action-btn.crop{background:rgba(255,255,255,.1);color:#fff}
+.pe-action-btn.confirm{background:var(--tl);color:var(--n1)}
 .pe-btn.primary:active{transform:scale(.9)}
 
 /* ===== MISC HELPERS ===== */
@@ -309,17 +306,9 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--t1);-webk
     </div>
   </div>
   <div class="pe-bottom">
-    <button class="pe-btn danger" onclick="deleteFromEditor()">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-      <span>Eliminar</span>
-    </button>
-    <button class="pe-btn primary" onclick="confirmCrop()">
-      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-    </button>
-    <button class="pe-btn" onclick="applyCrop()">
-      <svg viewBox="0 0 24 24" fill="#fff"><path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/></svg>
-      <span>Recortar</span>
-    </button>
+    <button class="pe-action-btn delete" onclick="deleteFromEditor()">Eliminar</button>
+    <button class="pe-action-btn crop" onclick="applyCrop()">Recortar</button>
+    <button class="pe-action-btn confirm" onclick="confirmCrop()">Guardar</button>
   </div>
 </div>
 
