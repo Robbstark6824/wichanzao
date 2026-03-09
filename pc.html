@@ -1850,7 +1850,9 @@ function downloadFromLightbox() {
   var current = lightboxImages[lightboxIndex];
   if (!current) return;
   var filename = (current.caption || 'imagen').replace(/[^a-zA-Z0-9_\- ]/g, '') + '.jpg';
-  forceDl(current.url, filename);
+  // Always add fresh cache-buster to force CDN to serve latest version
+  var dlUrl = current.url.split('?')[0] + '?dl=' + Date.now();
+  forceDl(dlUrl, filename);
 }
 
 function deleteFromLightbox() {
@@ -1861,7 +1863,7 @@ function deleteFromLightbox() {
   if (!confirm('¿Eliminar esta imagen?\n\nEsta accion no se puede deshacer.')) return;
 
   closeLightbox();
-  doDeletePcFile(current.path);
+  doDeletePcFile(path);
 }
 
 /* =========================================================
