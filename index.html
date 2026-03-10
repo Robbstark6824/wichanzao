@@ -970,7 +970,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v3.1';
+var APP_VERSION = 'v3.2';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2401,55 +2401,54 @@ function openTodayFile(index) {
   openPhotoEditor(f.url, 'today', index);
 }
 
-// Robust delete: tries BOTH Supabase formats and verifies response body
+// DELETE with full diagnostic — temporary debug mode
 function sbDeleteFiles(paths) {
   var headers = { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' };
   var url = SB_URL + '/storage/v1/object/' + SB_BUCKET;
-  console.log('[DELETE] Paths to delete:', JSON.stringify(paths));
+  var debug = '[DELETE DEBUG]\nPaths: ' + JSON.stringify(paths) + '\nURL: ' + url;
 
-  // Format 1: { prefixes: [...] } — official Supabase format
+  // Format 1: { prefixes: [...] }
   return fetch(url, {
     method: 'DELETE', headers: headers,
     body: JSON.stringify({ prefixes: paths })
   }).then(function(res) {
-    console.log('[DELETE] {prefixes} status:', res.status);
-    return res.json().catch(function() { return []; });
-  }).then(function(body) {
-    console.log('[DELETE] {prefixes} body:', JSON.stringify(body));
-    // If response has deleted items, success
-    if (Array.isArray(body) && body.length > 0) {
-      console.log('[DELETE] OK: deleted', body.length, 'files via {prefixes}');
-      return body;
-    }
-    // Format 2: raw array [...] — alternative format
-    console.log('[DELETE] {prefixes} deleted nothing, trying raw array...');
-    return fetch(url, {
-      method: 'DELETE', headers: headers,
-      body: JSON.stringify(paths)
-    }).then(function(res2) {
-      console.log('[DELETE] raw array status:', res2.status);
-      return res2.json().catch(function() { return []; });
-    }).then(function(body2) {
-      console.log('[DELETE] raw array body:', JSON.stringify(body2));
-      if (Array.isArray(body2) && body2.length > 0) {
-        console.log('[DELETE] OK: deleted', body2.length, 'files via raw array');
-        return body2;
+    var status1 = res.status;
+    return res.text().then(function(text) {
+      debug += '\n\n[F1 {prefixes}] Status: ' + status1 + '\nBody: ' + text.substring(0, 300);
+
+      // Try to parse body
+      var body = [];
+      try { body = JSON.parse(text); } catch(e) {}
+
+      // Check if it actually deleted something
+      if (Array.isArray(body) && body.length > 0 && body[0].name) {
+        debug += '\n\nRESULT: F1 deleted ' + body.length + ' files';
+        alert(debug);
+        return body;
       }
-      // Format 3: delete individual files one by one
-      console.log('[DELETE] Trying individual DELETE per file...');
-      return Promise.all(paths.map(function(p) {
-        return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY }
-        }).then(function(r) {
-          console.log('[DELETE] Individual', p, ':', r.status);
-          return { path: p, status: r.status, ok: r.ok };
+
+      // Format 2: raw array [...]
+      return fetch(url, {
+        method: 'DELETE', headers: headers,
+        body: JSON.stringify(paths)
+      }).then(function(res2) {
+        var status2 = res2.status;
+        return res2.text().then(function(text2) {
+          debug += '\n\n[F2 raw array] Status: ' + status2 + '\nBody: ' + text2.substring(0, 300);
+
+          var body2 = [];
+          try { body2 = JSON.parse(text2); } catch(e) {}
+
+          if (Array.isArray(body2) && body2.length > 0 && body2[0].name) {
+            debug += '\n\nRESULT: F2 deleted ' + body2.length + ' files';
+            alert(debug);
+            return body2;
+          }
+
+          debug += '\n\nRESULT: Ningun formato funciono';
+          alert(debug);
+          throw new Error('DELETE no elimino archivos. Revisa el alert de debug.');
         });
-      })).then(function(results) {
-        var deleted = results.filter(function(r) { return r.ok; });
-        console.log('[DELETE] Individual results:', deleted.length, '/', results.length);
-        if (deleted.length > 0) return deleted;
-        throw new Error('No se pudo eliminar ningún archivo');
       });
     });
   });
