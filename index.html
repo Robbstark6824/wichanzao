@@ -2201,6 +2201,66 @@ function loadTodayFiles() {
   } else {
     todayFiles = [];
   }
+  // If no local files and worker is loaded, sync from Supabase
+  if (!todayFiles.length && worker && worker.id) {
+    syncTodayFromServer();
+  }
+}
+
+function syncTodayFromServer() {
+  var dateStr = getTodayDateString();
+  var prefix = workerBasePath(worker) + '/' + dateStr + '/';
+
+  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+  }).then(function(res) { return res.json(); })
+  .then(function(items) {
+    if (!Array.isArray(items) || !items.length) return;
+
+    var files = items.filter(function(i) { return i.id && i.name && i.name !== 'profile.json'; });
+    if (!files.length) return;
+
+    // Group: PDFs and page images belong together
+    var pdfNames = {};   // basePrefix -> true
+    var pageFiles = {};  // basePrefix -> [filenames]
+    var standaloneFiles = [];
+
+    for (var i = 0; i < files.length; i++) {
+      var name = files[i].name;
+      if (name.match(/\.pdf$/i)) {
+        var cleanName = name.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+        pdfNames[cleanName] = name;
+      }
+    }
+
+    for (var j = 0; j < files.length; j++) {
+      var fn = files[j].name;
+      // Skip thumbnail files
+      if (fn.match(/_thumb\./i)) continue;
+      // Skip page images that belong to a PDF
+      var pageMatch = fn.replace(/^\d+_/, '').match(/^(.+)_pag\d+\.(jpg|jpeg|png)$/i);
+      if (pageMatch && pdfNames[pageMatch[1]]) continue;
+
+      if (fn.match(/\.pdf$/i)) {
+        var pdfClean = fn.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+        var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + fn;
+        todayFiles.push({ name: pdfClean + '.pdf', time: '--:--', type: 'pdf', url: pubUrl });
+      } else if (fn.match(/\.(jpg|jpeg|png)$/i)) {
+        var fotoClean = fn.replace(/^\d+_/, '').replace(/\.(jpg|jpeg|png)$/i, '');
+        var fotoUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + fn;
+        todayFiles.push({ name: fotoClean + '.jpg', time: '--:--', type: 'foto', url: fotoUrl });
+      }
+    }
+
+    if (todayFiles.length) {
+      saveTodayFiles();
+      updateTodayCount();
+    }
+  }).catch(function(e) {
+    console.error('Sync today from server error:', e);
+  });
 }
 
 function saveTodayFiles() {
