@@ -970,7 +970,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v3.4';
+var APP_VERSION = 'v3.5';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2418,24 +2418,58 @@ function deleteTodayFile(index) {
   var f = todayFiles[index];
   if (!f) return;
 
-  if (!confirm('¿Eliminar "' + (f.name || 'archivo') + '"?\n\nEsta accion no se puede deshacer.')) return;
+  if (!confirm('¿Eliminar "' + (f.name || 'archivo') + '"?')) return;
 
   haptic(30);
-  toast('Eliminando...', 'info');
 
-  // Helper to remove from local list after server confirms
+  // Find the DOM element and show inline "Eliminando..." feedback
+  var fileEl = document.querySelector('.today-file[data-index="' + index + '"]');
+  if (fileEl) {
+    fileEl.style.pointerEvents = 'none';
+    fileEl.style.opacity = '0.5';
+    var nameEl = fileEl.querySelector('.tf-name');
+    if (nameEl) nameEl.textContent = 'Eliminando...';
+  }
+
   function removeLocal() {
     var idx = todayFiles.indexOf(f);
     if (idx >= 0) {
       todayFiles.splice(idx, 1);
       saveTodayFiles();
+    }
+    // Animate out then rebuild list
+    if (fileEl) {
+      fileEl.style.transition = 'all .3s ease';
+      fileEl.style.opacity = '0';
+      fileEl.style.maxHeight = '0';
+      fileEl.style.padding = '0';
+      fileEl.style.margin = '0';
+      fileEl.style.overflow = 'hidden';
+      setTimeout(function() { updateTodayCount(); }, 350);
+    } else {
       updateTodayCount();
     }
   }
 
+  function showError(msg) {
+    if (fileEl) {
+      fileEl.style.opacity = '1';
+      fileEl.style.pointerEvents = '';
+      var nameEl = fileEl.querySelector('.tf-name');
+      if (nameEl) {
+        nameEl.textContent = 'Error';
+        nameEl.style.color = 'var(--danger)';
+        setTimeout(function() {
+          nameEl.textContent = f.name;
+          nameEl.style.color = '';
+        }, 2000);
+      }
+    }
+    toast(msg, 'error');
+  }
+
   if (!f.url) {
     removeLocal();
-    toast('Archivo eliminado', 'success');
     return;
   }
 
@@ -2446,7 +2480,6 @@ function deleteTodayFile(index) {
   // For PDFs: also delete associated page images
   if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
     var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
-    // Extract base name WITHOUT timestamp: "doc-20260310-163227" from "1773178348227_doc-20260310-163227.pdf"
     var baseName = fileName.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
 
     fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
@@ -2459,7 +2492,6 @@ function deleteTodayFile(index) {
       for (var i = 0; i < items.length; i++) {
         if (!items[i].id || !items[i].name) continue;
         var n = items[i].name;
-        // Match: the PDF itself, OR any file with same baseName + _pag/_thumb (any timestamp)
         if (n === fileName ||
             n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_pag\\d+\\.', 'i')) ||
             n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_thumb\\.', 'i'))
@@ -2468,20 +2500,17 @@ function deleteTodayFile(index) {
         }
       }
       if (!pathsToDelete.length) pathsToDelete = [storagePath];
-      var count = pathsToDelete.length;
       return sbDeleteFiles(pathsToDelete).then(function() {
         removeLocal();
-        toast('PDF eliminado (' + count + ' archivos)', 'success');
       });
     }).catch(function(e) {
-      toast('Error: ' + e.message, 'error');
+      showError('Error: ' + e.message);
     });
   } else {
     sbDeleteFiles([storagePath]).then(function() {
       removeLocal();
-      toast('Archivo eliminado', 'success');
     }).catch(function(e) {
-      toast('Error: ' + e.message, 'error');
+      showError('Error: ' + e.message);
     });
   }
 }
