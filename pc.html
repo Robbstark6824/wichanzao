@@ -891,12 +891,20 @@ function pubUrl(path) {
    SUPABASE API
    ========================================================= */
 async function sbList(prefix) {
-  var res = await fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
-    method: 'POST', headers: HEADERS, cache: 'no-store',
-    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-  });
-  var data = await res.json();
-  return Array.isArray(data) ? data : [];
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+  try {
+    var res = await fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
+      method: 'POST', headers: HEADERS, cache: 'no-store', signal: controller.signal,
+      body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+    });
+    clearTimeout(timeoutId);
+    var data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
 async function sbDelete(paths) {
@@ -1135,7 +1143,10 @@ async function loadAllData() {
 
   } catch (err) {
     console.error('Load error:', err);
-    container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p></div>';
+    // On auto-refresh errors, keep current UI — don't destroy what's already shown
+    if (!autoRefreshing) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p><button onclick="loadAllData()" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:14px">Reintentar</button></div>';
+    }
   }
 
   isLoading = false;

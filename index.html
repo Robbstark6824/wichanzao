@@ -2909,6 +2909,7 @@ function handleGalleryFile(event) {
 
 /* ===== 2 EN 1: PREVIEW & GENERATE ===== */
 function showDosEnUnoPreview() {
+  if (!dosEnUnoImages[0] || !dosEnUnoImages[1]) return;
   var canvas = document.getElementById('deuCanvas');
   // A4 proportions at good resolution
   var pw = 2100;
@@ -2926,24 +2927,23 @@ function showDosEnUnoPreview() {
   function drawImage(imgSrc, yOffset, maxH) {
     var img = new Image();
     img.onload = function() {
-      // Scale to fit width, then center vertically in its half
       var scale = Math.min((pw - margin * 2) / img.width, (maxH - margin * 2) / img.height);
       var dw = img.width * scale;
       var dh = img.height * scale;
       var dx = (pw - dw) / 2;
       var dy = yOffset + (maxH - dh) / 2;
       ctx.drawImage(img, dx, dy, dw, dh);
+      img.onload = null;
+      img.src = '';
 
       loaded++;
       if (loaded === 2) {
-        // Draw separator line
         ctx.strokeStyle = '#ccc';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(margin, halfH);
         ctx.lineTo(pw - margin, halfH);
         ctx.stroke();
-        // Show preview
         document.getElementById('dosEnUnoPreview').classList.add('on');
       }
     };
@@ -2959,6 +2959,8 @@ function confirmDosEnUno() {
   var canvas = document.getElementById('deuCanvas');
   var combinedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
+  // Free canvas memory immediately
+  canvas.width = 1; canvas.height = 1;
   document.getElementById('dosEnUnoPreview').classList.remove('on');
   dosEnUnoImages = [null, null];
   dosEnUnoStep = 0;
@@ -2968,11 +2970,14 @@ function confirmDosEnUno() {
 
   setTimeout(function() {
     showQuickName('pdf', [combinedDataUrl]);
+    combinedDataUrl = null;
   }, 350);
 }
 
 function cancelDosEnUno() {
   haptic();
+  var canvas = document.getElementById('deuCanvas');
+  canvas.width = 1; canvas.height = 1;
   document.getElementById('dosEnUnoPreview').classList.remove('on');
   dosEnUnoImages = [null, null];
   dosEnUnoStep = 0;
