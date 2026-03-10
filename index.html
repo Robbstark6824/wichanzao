@@ -970,7 +970,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v3.2';
+var APP_VERSION = 'v3.3';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2465,7 +2465,6 @@ function deleteTodayFile(index) {
 
   // Helper to remove from local list after server confirms
   function removeLocal() {
-    // Re-find index (may have shifted)
     var idx = todayFiles.indexOf(f);
     if (idx >= 0) {
       todayFiles.splice(idx, 1);
@@ -2474,8 +2473,29 @@ function deleteTodayFile(index) {
     }
   }
 
+  // Helper to verify deletion by listing the folder after delete
+  function verifyDeletion(folderPath, deletedPaths) {
+    return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: folderPath, limit: 1000, offset: 0 })
+    }).then(function(res) { return res.json(); }).then(function(items) {
+      if (!Array.isArray(items)) items = [];
+      var names = items.map(function(i) { return i.name; });
+      var stillExists = deletedPaths.filter(function(p) {
+        var fname = p.substring(p.lastIndexOf('/') + 1);
+        return names.indexOf(fname) >= 0;
+      });
+      var debug = '[VERIFY POST-DELETE]\nFolder: ' + folderPath +
+        '\nFiles in folder: ' + JSON.stringify(names) +
+        '\nDeleted paths: ' + JSON.stringify(deletedPaths) +
+        '\nStill exist: ' + JSON.stringify(stillExists);
+      alert(debug);
+      return stillExists.length === 0;
+    });
+  }
+
   if (!f.url) {
-    // No URL = pending upload, just remove locally
     removeLocal();
     toast('Archivo eliminado', 'success');
     return;
@@ -2483,15 +2503,13 @@ function deleteTodayFile(index) {
 
   var urlPrefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
   var storagePath = f.url.replace(urlPrefix, '');
-  console.log('[DELETE] storagePath:', storagePath);
+  var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
 
-  // For PDFs: also delete associated page images (_pag1.jpg, _pag2.jpg, etc.)
+  // For PDFs: also delete associated page images
   if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
-    var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
     var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
     var basePrefix = fileName.replace(/\.pdf$/i, '');
 
-    // List date folder, find all related files, delete all
     fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
@@ -2509,24 +2527,31 @@ function deleteTodayFile(index) {
         }
       }
       if (!pathsToDelete.length) pathsToDelete = [storagePath];
-      return sbDeleteFiles(pathsToDelete);
-    }).then(function(result) {
-      console.log('[DELETE] PDF delete result:', JSON.stringify(result));
-      removeLocal();
-      toast('PDF eliminado del servidor', 'success');
+      return sbDeleteFiles(pathsToDelete).then(function() {
+        return verifyDeletion(folderPath, pathsToDelete);
+      }).then(function(confirmed) {
+        if (confirmed) {
+          removeLocal();
+          toast('PDF eliminado y verificado', 'success');
+        } else {
+          toast('Supabase dice borrado pero sigue existiendo!', 'error');
+        }
+      });
     }).catch(function(e) {
-      console.error('[DELETE] Error:', e);
-      toast('Error al eliminar: ' + e.message, 'error');
+      toast('Error: ' + e.message, 'error');
     });
   } else {
-    // Single file (foto)
-    sbDeleteFiles([storagePath]).then(function(result) {
-      console.log('[DELETE] File delete result:', JSON.stringify(result));
-      removeLocal();
-      toast('Archivo eliminado del servidor', 'success');
+    sbDeleteFiles([storagePath]).then(function() {
+      return verifyDeletion(folderPath, [storagePath]);
+    }).then(function(confirmed) {
+      if (confirmed) {
+        removeLocal();
+        toast('Archivo eliminado y verificado', 'success');
+      } else {
+        toast('Supabase dice borrado pero sigue existiendo!', 'error');
+      }
     }).catch(function(e) {
-      console.error('[DELETE] Error:', e);
-      toast('Error al eliminar: ' + e.message, 'error');
+      toast('Error: ' + e.message, 'error');
     });
   }
 }
