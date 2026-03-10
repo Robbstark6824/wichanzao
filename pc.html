@@ -1791,7 +1791,7 @@ function renderFileCard(doc, pathPrefix) {
 async function forceDl(url, filename) {
   try {
     showToast('Descargando: ' + filename, 'info');
-    var res = await fetch(url, { cache: 'no-store' });
+    var res = await fetch(url);
     var blob = await res.blob();
     var blobUrl = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -1808,15 +1808,55 @@ async function forceDl(url, filename) {
   }
 }
 
+// Parallel batch fetch helper: downloads N items at a time
+var DL_BATCH_SIZE = 5;
+async function fetchBatch(urls, onProgress) {
+  var results = new Array(urls.length);
+  var done = 0;
+  var i = 0;
+
+  async function next() {
+    var idx = i++;
+    if (idx >= urls.length) return;
+    try {
+      var res = await fetch(urls[idx]);
+      results[idx] = await res.blob();
+    } catch (e) {
+      results[idx] = null;
+    }
+    done++;
+    if (onProgress) onProgress(done, urls.length);
+    await next();
+  }
+
+  var workers = [];
+  for (var w = 0; w < Math.min(DL_BATCH_SIZE, urls.length); w++) {
+    workers.push(next());
+  }
+  await Promise.all(workers);
+  return results;
+}
+
 function dlMultipleImages(btn) {
   try {
     var pages = JSON.parse(btn.getAttribute('data-pages'));
     showToast('Descargando ' + pages.length + ' imagenes...', 'info');
-    for (var i = 0; i < pages.length; i++) {
-      (function(pg, delay) {
-        setTimeout(function() { forceDl(pg.url, pg.name); }, delay);
-      })(pages[i], i * 800);
-    }
+    var urls = pages.map(function(p) { return p.url; });
+    fetchBatch(urls, function(done, total) {
+      if (done === total) showToast(total + ' imagenes descargadas', 'success');
+    }).then(function(blobs) {
+      for (var i = 0; i < blobs.length; i++) {
+        if (!blobs[i]) continue;
+        var blobUrl = URL.createObjectURL(blobs[i]);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = pages[i].name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        (function(u) { setTimeout(function() { URL.revokeObjectURL(u); }, 2000); })(blobUrl);
+      }
+    });
   } catch (e) {
     showToast('Error al descargar', 'error');
   }
@@ -1835,13 +1875,17 @@ async function generatePdf(btn) {
   btn.innerHTML = '&#9203; Generando...';
 
   try {
-    var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    // Load all images in parallel
+    var imgPromises = docData.pages.map(function(p) { return loadImage(p.url); });
+    var images = await Promise.all(imgPromises);
 
-    for (var i = 0; i < docData.pages.length; i++) {
+    var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    var pw = pdf.internal.pageSize.getWidth();
+    var ph = pdf.internal.pageSize.getHeight();
+
+    for (var i = 0; i < images.length; i++) {
       if (i > 0) pdf.addPage();
-      var img = await loadImage(docData.pages[i].url);
-      var pw = pdf.internal.pageSize.getWidth();
-      var ph = pdf.internal.pageSize.getHeight();
+      var img = images[i];
       var ratio = Math.min(pw / img.width, ph / img.height);
       var w = img.width * ratio;
       var h = img.height * ratio;
@@ -1895,37 +1939,28 @@ async function downloadDocsAsZip(docs, zipName) {
   try {
     var zip = new JSZip();
     var folder = zip.folder(zipName);
-    var total = 0;
-    for (var d = 0; d < docs.length; d++) {
-      total += docs[d].pages.length;
-      if (docs[d].pdfUrl) total++;
-    }
 
-    var done = 0;
-    for (var di = 0; di < docs.length; di++) {
-      var doc = docs[di];
+    // Build flat list of all files to download
+    var files = [];
+    for (var d = 0; d < docs.length; d++) {
+      var doc = docs[d];
       for (var pi = 0; pi < doc.pages.length; pi++) {
         var pageSuffix = doc.pages.length > 1 ? '_pag' + doc.pages[pi].num : '';
-        var fileName = doc.name + pageSuffix + '.jpg';
-        try {
-          var res = await fetch(doc.pages[pi].url);
-          var blob = await res.blob();
-          folder.file(fileName, blob);
-        } catch (e) {
-          console.warn('Skip:', fileName);
-        }
-        done++;
-        updateProgress((done / total) * 90, 'Descargando archivos... ' + done + '/' + total);
+        files.push({ url: doc.pages[pi].url, name: doc.name + pageSuffix + '.jpg' });
       }
       if (doc.pdfUrl) {
-        try {
-          var pdfRes = await fetch(doc.pdfUrl);
-          var pdfBlob = await pdfRes.blob();
-          folder.file(doc.name + '.pdf', pdfBlob);
-        } catch (e) {}
-        done++;
-        updateProgress((done / total) * 90);
+        files.push({ url: doc.pdfUrl, name: doc.name + '.pdf' });
       }
+    }
+
+    // Download all files in parallel batches
+    var urls = files.map(function(f) { return f.url; });
+    var blobs = await fetchBatch(urls, function(done, total) {
+      updateProgress((done / total) * 90, 'Descargando archivos... ' + done + '/' + total);
+    });
+
+    for (var i = 0; i < files.length; i++) {
+      if (blobs[i]) folder.file(files[i].name, blobs[i]);
     }
 
     updateProgress(95, 'Generando ZIP...');
@@ -1979,48 +2014,59 @@ async function dlWorkerZip(wId) {
     var zip = new JSZip();
     var rootFolder = zip.folder(wName);
     var dates = fileInfo.dates;
-    var totalDates = dates.length;
+    var basePath = allWorkerPaths[wId] || 'workers/' + wId;
 
+    // Phase 1: Load all date file lists in parallel batches
+    updateProgress(5, 'Listando archivos...');
+    var datesToLoad = [];
     for (var di = 0; di < dates.length; di++) {
-      var date = dates[di];
-      updateProgress((di / totalDates) * 80, 'Cargando ' + date + '...');
+      if (!fileInfo.loaded[dates[di]]) datesToLoad.push(dates[di]);
+    }
 
-      // Load files if not already loaded
-      if (!fileInfo.loaded[date]) {
-        try {
-          var items = await sbList((allWorkerPaths[wId] || 'workers/' + wId) + '/' + date + '/');
-          var docs = groupFiles(items, (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
-          fileInfo.loaded[date] = docs;
-        } catch (e) {
-          console.warn('Skip date:', date);
-          continue;
-        }
-      }
+    // Load file lists in parallel (batch of 5)
+    var listIdx = 0;
+    async function loadNext() {
+      var idx = listIdx++;
+      if (idx >= datesToLoad.length) return;
+      try {
+        var date = datesToLoad[idx];
+        var items = await sbList(basePath + '/' + date + '/');
+        fileInfo.loaded[date] = groupFiles(items, basePath + '/' + date);
+      } catch (e) {}
+      await loadNext();
+    }
+    var listWorkers = [];
+    for (var lw = 0; lw < Math.min(DL_BATCH_SIZE, datesToLoad.length); lw++) listWorkers.push(loadNext());
+    await Promise.all(listWorkers);
 
+    updateProgress(20, 'Preparando descarga...');
+
+    // Phase 2: Build flat file list across all dates
+    var allFiles = [];
+    for (var di2 = 0; di2 < dates.length; di2++) {
+      var date = dates[di2];
       var dateDocs = fileInfo.loaded[date];
-      if (!dateDocs.length) continue;
-
-      var dateFolder = rootFolder.folder(date);
-
+      if (!dateDocs || !dateDocs.length) continue;
       for (var fi = 0; fi < dateDocs.length; fi++) {
         var doc = dateDocs[fi];
         for (var pi = 0; pi < doc.pages.length; pi++) {
           var pageSuffix = doc.pages.length > 1 ? '_pag' + doc.pages[pi].num : '';
-          var fileName = doc.name + pageSuffix + '.jpg';
-          try {
-            var res = await fetch(doc.pages[pi].url);
-            var blob = await res.blob();
-            dateFolder.file(fileName, blob);
-          } catch (e) {}
+          allFiles.push({ url: doc.pages[pi].url, path: date + '/' + doc.name + pageSuffix + '.jpg' });
         }
         if (doc.pdfUrl) {
-          try {
-            var pdfRes = await fetch(doc.pdfUrl);
-            var pdfBlob = await pdfRes.blob();
-            dateFolder.file(doc.name + '.pdf', pdfBlob);
-          } catch (e) {}
+          allFiles.push({ url: doc.pdfUrl, path: date + '/' + doc.name + '.pdf' });
         }
       }
+    }
+
+    // Phase 3: Download all files in parallel batches
+    var urls = allFiles.map(function(f) { return f.url; });
+    var blobs = await fetchBatch(urls, function(done, total) {
+      updateProgress(20 + (done / total) * 65, 'Descargando... ' + done + '/' + total);
+    });
+
+    for (var i = 0; i < allFiles.length; i++) {
+      if (blobs[i]) rootFolder.file(allFiles[i].path, blobs[i]);
     }
 
     updateProgress(90, 'Generando ZIP...');
