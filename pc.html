@@ -764,7 +764,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* =========================================================
    CONFIG
    ========================================================= */
-var APP_VERSION = 'v4.0';
+var APP_VERSION = 'v4.1';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
@@ -1499,10 +1499,10 @@ function renderDetailView(wId) {
   html += '</div>';
 
   // Group dates by month
+  var monthGroups = filteredDates.length ? groupDatesByMonth(filteredDates) : [];
   if (!filteredDates.length) {
     html += '<div class="empty-state"><div class="icon">&#128196;</div><h3>Sin archivos</h3><p>No hay archivos en el rango seleccionado.</p></div>';
   } else {
-    var monthGroups = groupDatesByMonth(filteredDates);
     var todayS = todayStr();
     var currentMonth = todayS.substring(0, 7); // YYYY-MM
 
@@ -1566,12 +1566,10 @@ function renderDetailView(wId) {
 
   detailEl.innerHTML = html;
 
-  // Load files for expanded dates (use cached monthGroups, avoid redundant calls)
-  var _mGroups = groupDatesByMonth(filteredDates);
-  var _firstMonthDates = _mGroups.length > 0 ? _mGroups[0].dates.length : 0;
+  // Load files for expanded dates (reuse monthGroups from above)
   var _firstMonthSet = {};
-  if (_mGroups.length > 0) {
-    for (var fm = 0; fm < _mGroups[0].dates.length; fm++) _firstMonthSet[_mGroups[0].dates[fm]] = true;
+  if (monthGroups && monthGroups.length > 0) {
+    for (var fm = 0; fm < monthGroups[0].dates.length; fm++) _firstMonthSet[monthGroups[0].dates[fm]] = true;
   }
   var _today = todayStr();
   for (var d = 0; d < filteredDates.length; d++) {
@@ -1744,7 +1742,7 @@ function renderFileCard(doc, pathPrefix) {
     var lbData = doc.pages.map(function(p) { return { url: p.url, caption: doc.name + (doc.pages.length > 1 ? ' - Pag ' + p.num : ''), path: pathPrefix + '/' + p.rawName }; });
     var rid = 'lb' + (lbRegId++);
     lbRegistry[rid] = lbData;
-    html += '<img class="file-thumb" src="' + thumbSrc + '" onclick="openLbReg(\'' + rid + '\',0)" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
+    html += '<img class="file-thumb" src="' + thumbSrc + '" loading="lazy" onclick="openLbReg(\'' + rid + '\',0)" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
   } else {
     html += '<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3)">&#128196;</div>';
   }
@@ -1815,7 +1813,10 @@ async function fetchBatch(urls, onProgress) {
     var idx = i++;
     if (idx >= urls.length) return;
     try {
-      var res = await fetch(urls[idx]);
+      var ctrl = new AbortController();
+      var tid = setTimeout(function() { ctrl.abort(); }, 30000);
+      var res = await fetch(urls[idx], { signal: ctrl.signal });
+      clearTimeout(tid);
       results[idx] = await res.blob();
     } catch (e) {
       results[idx] = null;
@@ -2164,12 +2165,8 @@ function showLightbox() {
   document.getElementById('lbPrev').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
   document.getElementById('lbNext').style.display = lightboxImages.length > 1 ? 'flex' : 'none';
 
-  // Preload all images with CORS for instant navigation + editing
-  for (var i = 0; i < lightboxImages.length; i++) {
-    var pre = new Image();
-    pre.crossOrigin = 'anonymous';
-    pre.src = lightboxImages[i].url;
-  }
+  // Preload current + adjacent images only (not all)
+  preloadLbNeighbors();
 
   updateLightboxUI();
   lb.classList.add('on');
@@ -2205,12 +2202,29 @@ function closeLightbox(e) {
   if (e && e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'BUTTON')) return;
   document.getElementById('lightbox').classList.remove('on');
   document.body.style.overflow = '';
+  _lbPreloaded = {};
+}
+
+var _lbPreloaded = {};
+function preloadLbNeighbors() {
+  var indices = [lightboxIndex, lightboxIndex - 1, lightboxIndex + 1];
+  for (var k = 0; k < indices.length; k++) {
+    var idx = indices[k];
+    if (idx < 0) idx = lightboxImages.length - 1;
+    if (idx >= lightboxImages.length) idx = 0;
+    var u = lightboxImages[idx] && lightboxImages[idx].url;
+    if (u && !_lbPreloaded[u]) {
+      var pre = new Image(); pre.crossOrigin = 'anonymous'; pre.src = u;
+      _lbPreloaded[u] = true;
+    }
+  }
 }
 
 function navLightbox(dir) {
   lightboxIndex += dir;
   if (lightboxIndex < 0) lightboxIndex = lightboxImages.length - 1;
   if (lightboxIndex >= lightboxImages.length) lightboxIndex = 0;
+  preloadLbNeighbors();
   updateLightboxUI();
 }
 

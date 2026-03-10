@@ -868,10 +868,21 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p>v84</p>
+              <p>v4.1</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
+        </div>
+        <div class="settings-item">
+          <div class="si-left">
+            <div class="si-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.05))">
+              <svg viewBox="0 0 24 24" fill="#7C3AED"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/><path d="M7 9h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>
+            </div>
+            <div class="si-text">
+              <h5>Mensaje del desarrollador</h5>
+              <p style="font-style:italic;line-height:1.4">Gracias por usar Wichanzao App. Cada actualizacion esta hecha con dedicacion para facilitar tu trabajo diario. Si tienes sugerencias, no dudes en comentarlas.</p>
+            </div>
+          </div>
         </div>
         <div class="settings-item" onclick="showAuthorInfo()" style="cursor:pointer">
           <div class="si-left">
@@ -1008,7 +1019,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v4.0';
+var APP_VERSION = 'v4.1';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2289,8 +2300,11 @@ function forceSyncToday() {
   syncTodayFromServer(true);
 }
 
+var _syncInProgress = false;
 function syncTodayFromServer(showFeedback) {
   if (!worker || !worker.id) return;
+  if (_syncInProgress) return;
+  _syncInProgress = true;
   var dateStr = getTodayDateString();
   var basePath = workerBasePath(worker);
   var prefix = basePath + '/' + dateStr + '/';
@@ -2381,7 +2395,7 @@ function syncTodayFromServer(showFeedback) {
   }).catch(function(e) {
     console.error('[SYNC] Error:', e);
     if (showFeedback) toast('Error al sincronizar: ' + e.message, 'error');
-  });
+  }).finally(function() { _syncInProgress = false; });
 }
 
 function saveTodayFiles() {
