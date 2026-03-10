@@ -2260,6 +2260,31 @@ function openTodayFile(index) {
   openPhotoEditor(f.url, 'today', index);
 }
 
+// Robust delete: tries { prefixes: [...] } first, then raw array [...] as fallback
+function sbDeleteFiles(paths) {
+  var headers = { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+  var url = SB_URL + '/storage/v1/object/' + SB_BUCKET;
+  console.log('[DELETE] Attempting to delete:', paths);
+
+  return fetch(url, {
+    method: 'DELETE', headers: headers,
+    body: JSON.stringify({ prefixes: paths })
+  }).then(function(res) {
+    console.log('[DELETE] Format {prefixes} response:', res.status);
+    if (res.ok) return res;
+    // Fallback: try raw array format
+    console.log('[DELETE] Trying raw array format...');
+    return fetch(url, {
+      method: 'DELETE', headers: headers,
+      body: JSON.stringify(paths)
+    }).then(function(res2) {
+      console.log('[DELETE] Raw array response:', res2.status);
+      if (res2.ok) return res2;
+      throw new Error('Delete failed: ' + res2.status);
+    });
+  });
+}
+
 function deleteTodayFile(index) {
   var f = todayFiles[index];
   if (!f) return;
@@ -2275,11 +2300,10 @@ function deleteTodayFile(index) {
     // For PDFs: also delete associated page images (_pag1.jpg, _pag2.jpg, etc.)
     if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
       var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
-      // e.g. "1234_examen.pdf" -> base prefix "1234_examen"
       var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
       var basePrefix = fileName.replace(/\.pdf$/i, '');
 
-      // List all files in the date folder, find related pages, delete all
+      // List date folder, find all related files, delete all
       fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
@@ -2297,33 +2321,19 @@ function deleteTodayFile(index) {
           }
         }
         if (!pathsToDelete.length) pathsToDelete = [storagePath];
-        console.log('Deleting PDF + pages:', pathsToDelete);
-        return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prefixes: pathsToDelete })
-        });
-      }).then(function(res) {
-        console.log('Delete response:', res.status);
-        if (!res.ok) throw new Error('Error ' + res.status);
+        return sbDeleteFiles(pathsToDelete);
+      }).then(function() {
         toast('PDF y paginas eliminados', 'success');
       }).catch(function(e) {
-        console.error('Delete error:', e);
+        console.error('[DELETE] Error:', e);
         toast('Error al eliminar del servidor', 'error');
       });
     } else {
-      // Single file (foto): delete directly
-      console.log('Deleting:', storagePath);
-      fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prefixes: [storagePath] })
-      }).then(function(res) {
-        console.log('Delete response:', res.status);
-        if (!res.ok) throw new Error('Error ' + res.status);
+      // Single file (foto)
+      sbDeleteFiles([storagePath]).then(function() {
         toast('Archivo eliminado', 'success');
       }).catch(function(e) {
-        console.error('Delete error:', e);
+        console.error('[DELETE] Error:', e);
         toast('Error al eliminar del servidor', 'error');
       });
     }
