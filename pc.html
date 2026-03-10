@@ -1085,14 +1085,11 @@ async function loadAllData() {
       var oldInfo = allWorkerFiles[wId];
       var oldDates = oldInfo ? oldInfo.dates : [];
 
-      // Detect if dates changed (added or removed)
-      if (newDates.length !== oldDates.length || newDates.join(',') !== oldDates.join(',')) {
+      if (!oldInfo || newDates.length !== oldDates.length || newDates.join(',') !== oldDates.join(',')) {
         dataChanged = true;
-        allWorkerFiles[wId] = { dates: newDates, loaded: {} };
-      } else if (!oldInfo) {
-        allWorkerFiles[wId] = { dates: newDates, loaded: {} };
       }
-      // Keep existing loaded cache if dates didn't change
+      // Always reset loaded cache — files within a date can change between refreshes
+      allWorkerFiles[wId] = { dates: newDates, loaded: {} };
     }
 
     // 5. Load legacy folders structure
@@ -1103,16 +1100,9 @@ async function loadAllData() {
 
     // 6. Ready to render
 
-    // 7. Render
+    // 7. Render: always on first/manual load, on auto-refresh if viewing detail or data changed
     var viewingDetail = !!currentWorkerId;
-    var shouldRender = isFirstLoad || !autoRefreshing || dataChanged;
-
-    // During auto-refresh while viewing a worker detail: always invalidate file cache
-    // so deletions from mobile are picked up (file deleted ≠ date removed)
-    if (autoRefreshing && viewingDetail && allWorkerFiles[currentWorkerId]) {
-      allWorkerFiles[currentWorkerId].loaded = {};
-      shouldRender = true;
-    }
+    var shouldRender = isFirstLoad || !autoRefreshing || dataChanged || viewingDetail;
 
     if (shouldRender) {
       lbRegId = 0; lbRegistry = {};
