@@ -113,6 +113,7 @@ body.dark .field input,body.dark .field select{background:var(--s2);color:var(--
 body.dark .mode-card{background:var(--s1);box-shadow:0 2px 12px rgba(0,0,0,.3);border:none}
 body.dark .mode-card .mc-icon.foto{box-shadow:0 4px 14px rgba(78,205,196,.15)}
 body.dark .mode-card .mc-icon.pdf{box-shadow:0 4px 14px rgba(212,168,83,.15)}
+body.dark .mode-card .mc-icon.dosEnUno{box-shadow:0 4px 14px rgba(124,58,237,.15)}
 body.dark .today-section,body.dark .prev-section{background:var(--s1)}
 body.dark .today-section{border-left-color:var(--tl)}
 body.dark .prev-date-card.expanded{box-shadow:0 2px 12px rgba(78,205,196,.05)}
@@ -217,8 +218,9 @@ body.dark .btn-google{background:var(--s2);color:var(--t1);border-color:var(--bd
 .mode-cards{display:flex;flex-direction:column;gap:14px}
 .mode-card{background:var(--s1);border-radius:var(--r1);padding:22px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.03);cursor:pointer;transition:transform .2s cubic-bezier(.4,0,.2,1),box-shadow .2s;border:none;position:relative;overflow:hidden}
 .mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r1) var(--r1) 0 0}
-.mode-card:first-child::before{background:linear-gradient(90deg,var(--tl),var(--tl2))}
-.mode-card:last-child::before{background:linear-gradient(90deg,var(--gd),var(--gd2))}
+.mode-card:nth-child(1)::before{background:linear-gradient(90deg,var(--tl),var(--tl2))}
+.mode-card:nth-child(2)::before{background:linear-gradient(90deg,var(--gd),var(--gd2))}
+.mode-card:nth-child(3)::before{background:linear-gradient(90deg,#7C3AED,#A78BFA)}
 .mode-card:active{transform:scale(.97);box-shadow:0 1px 6px rgba(0,0,0,.1)}
 .mode-card .mc-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
 .mode-card .mc-icon svg{width:28px;height:28px}
@@ -226,6 +228,8 @@ body.dark .btn-google{background:var(--s2);color:var(--t1);border-color:var(--bd
 .mode-card .mc-icon.foto svg{fill:#fff}
 .mode-card .mc-icon.pdf{background:linear-gradient(135deg,var(--gd),var(--gd2));box-shadow:0 4px 14px rgba(212,168,83,.3)}
 .mode-card .mc-icon.pdf svg{fill:#fff}
+.mode-card .mc-icon.dosEnUno{background:linear-gradient(135deg,#7C3AED,#A78BFA);box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.mode-card .mc-icon.dosEnUno svg{fill:#fff}
 .mode-card .mc-text h4{font-size:17px;font-weight:800}
 .mode-card .mc-text p{font-size:12px;color:var(--t2);margin-top:2px}
 .mode-card .mc-arrow{margin-left:auto;opacity:.25;flex-shrink:0}
@@ -379,6 +383,13 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .author-brand-tag{display:block;font-size:11px;color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-top:3px;font-weight:500}
 .photo-editor{position:fixed;inset:0;z-index:70;background:#111;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
 .photo-editor.on{opacity:1;pointer-events:auto}
+.deu-preview{position:fixed;inset:0;z-index:70;background:#111;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
+.deu-preview.on{opacity:1;pointer-events:auto}
+.deu-preview .deu-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
+.deu-preview .deu-top span{color:#fff;font-weight:700;font-size:15px}
+.deu-preview .deu-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}
+.deu-preview .deu-canvas-wrap canvas{max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.deu-preview .deu-bottom{display:flex;gap:12px;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
 .pe-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + var(--st));background:#111;z-index:2}
 .pe-top-btn{background:rgba(255,255,255,.1);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .pe-top-btn:active{transform:scale(.9)}
@@ -484,6 +495,22 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   <button class="fp-close" onclick="closeFullscreen()">
     <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
   </button>
+</div>
+
+<!-- 2 en 1 combined preview -->
+<div class="deu-preview" id="dosEnUnoPreview">
+  <div class="deu-top">
+    <button onclick="cancelDosEnUno()" style="background:none;border:none;padding:8px;cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></button>
+    <span>Vista previa 2 en 1</span>
+    <div style="width:38px"></div>
+  </div>
+  <div class="deu-canvas-wrap">
+    <canvas id="deuCanvas"></canvas>
+  </div>
+  <div class="deu-bottom">
+    <button class="pe-action-btn delete" onclick="cancelDosEnUno()" style="flex:1;justify-content:center">Cancelar</button>
+    <button class="pe-action-btn confirm" onclick="confirmDosEnUno()" style="flex:2;justify-content:center">Generar PDF</button>
+  </div>
 </div>
 
 <!-- ===== VIEW: WELCOME ===== -->
@@ -669,6 +696,17 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="mc-text">
           <h4>PDF</h4>
           <p>Varias paginas en un documento</p>
+        </div>
+        <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+      <!-- 2 en 1 card -->
+      <div class="mode-card" onclick="openCamera('dosEnUno')">
+        <div class="mc-icon dosEnUno">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16v7H4V4zm0 9h16v7H4v-7z" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="10" cy="7.5" r="1.5"/><circle cx="10" cy="16.5" r="1.5"/><path d="M13.5 6h3M13.5 9h2M13.5 15h3M13.5 18h2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="mc-text">
+          <h4>2 en 1</h4>
+          <p>Combina 2 fotos en una pagina PDF</p>
         </div>
         <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
@@ -970,7 +1008,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v3.5';
+var APP_VERSION = 'v4.0';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -1010,6 +1048,8 @@ var todayFiles = [];         // [{name, time, type}]
 var prevDatesCache = {};     // {dateStr: [files]}
 var prevDatesLoaded = false;
 var deferredPrompt = null;   // PWA install prompt
+var dosEnUnoImages = [null, null]; // [croppedDataUrl1, croppedDataUrl2]
+var dosEnUnoStep = 0;              // 0=photo1, 1=photo2
 
 /* ===== INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', function() {
@@ -2528,7 +2568,13 @@ function openCamera(mode) {
   pdfPages = [];
   capturedSingleImage = null;
 
-  document.getElementById('camModeLabel').textContent = mode === 'pdf' ? 'PDF' : 'FOTO';
+  if (mode === 'dosEnUno') {
+    document.getElementById('camModeLabel').textContent = '2 EN 1 · Foto 1';
+    dosEnUnoImages = [null, null];
+    dosEnUnoStep = 0;
+  } else {
+    document.getElementById('camModeLabel').textContent = mode === 'pdf' ? 'PDF' : 'FOTO';
+  }
 
   var finalizeBtn = document.getElementById('camFinalize');
   if (mode === 'pdf') {
@@ -2597,6 +2643,8 @@ function closeCamera() {
   haptic();
   hideQuickName();
   pdfPages = [];
+  dosEnUnoImages = [null, null];
+  dosEnUnoStep = 0;
   stopCamera();
   showView('vMain');
 }
@@ -2680,9 +2728,12 @@ function capturePhoto() {
 
   if (cameraMode === 'foto') {
     capturedSingleImage = dataUrl;
-    // Show preview then open editor
     showCapturePreview(dataUrl, function() {
       openPhotoEditor(dataUrl, 'foto');
+    });
+  } else if (cameraMode === 'dosEnUno') {
+    showCapturePreview(dataUrl, function() {
+      openPhotoEditor(dataUrl, 'dosEnUno', dosEnUnoStep);
     });
   } else {
     // PDF mode
@@ -2691,7 +2742,6 @@ function capturePhoto() {
       return;
     }
     pdfPages.push(dataUrl);
-    // Show brief preview then animate to thumb stack
     showCapturePreview(dataUrl, function() {
       animateToThumbStack(dataUrl);
     });
@@ -2840,6 +2890,8 @@ function handleGalleryFile(event) {
     if (cameraMode === 'foto') {
       capturedSingleImage = dataUrl;
       openPhotoEditor(dataUrl, 'foto');
+    } else if (cameraMode === 'dosEnUno') {
+      openPhotoEditor(dataUrl, 'dosEnUno', dosEnUnoStep);
     } else {
       if (pdfPages.length >= 5) {
         toast('Maximo 5 paginas', 'error');
@@ -2853,6 +2905,78 @@ function handleGalleryFile(event) {
   reader.readAsDataURL(file);
   // Reset input so same file can be selected again
   event.target.value = '';
+}
+
+/* ===== 2 EN 1: PREVIEW & GENERATE ===== */
+function showDosEnUnoPreview() {
+  var canvas = document.getElementById('deuCanvas');
+  // A4 proportions at good resolution
+  var pw = 2100;
+  var ph = 2970;
+  canvas.width = pw;
+  canvas.height = ph;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, pw, ph);
+
+  var halfH = Math.floor(ph / 2);
+  var margin = 40;
+  var loaded = 0;
+
+  function drawImage(imgSrc, yOffset, maxH) {
+    var img = new Image();
+    img.onload = function() {
+      // Scale to fit width, then center vertically in its half
+      var scale = Math.min((pw - margin * 2) / img.width, (maxH - margin * 2) / img.height);
+      var dw = img.width * scale;
+      var dh = img.height * scale;
+      var dx = (pw - dw) / 2;
+      var dy = yOffset + (maxH - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+
+      loaded++;
+      if (loaded === 2) {
+        // Draw separator line
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(margin, halfH);
+        ctx.lineTo(pw - margin, halfH);
+        ctx.stroke();
+        // Show preview
+        document.getElementById('dosEnUnoPreview').classList.add('on');
+      }
+    };
+    img.src = imgSrc;
+  }
+
+  drawImage(dosEnUnoImages[0], 0, halfH);
+  drawImage(dosEnUnoImages[1], halfH, halfH);
+}
+
+function confirmDosEnUno() {
+  haptic(25);
+  var canvas = document.getElementById('deuCanvas');
+  var combinedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+  document.getElementById('dosEnUnoPreview').classList.remove('on');
+  dosEnUnoImages = [null, null];
+  dosEnUnoStep = 0;
+
+  showView('vMain');
+  populateMain();
+
+  setTimeout(function() {
+    showQuickName('pdf', [combinedDataUrl]);
+  }, 350);
+}
+
+function cancelDosEnUno() {
+  haptic();
+  document.getElementById('dosEnUnoPreview').classList.remove('on');
+  dosEnUnoImages = [null, null];
+  dosEnUnoStep = 0;
+  showView('vMain');
 }
 
 /* ===== FINALIZE PDF ===== */
@@ -2893,6 +3017,7 @@ function openPhotoEditor(dataUrl, source, pageIndex) {
 
   var title = 'Editar foto';
   if (source === 'pdf') title = 'Editar pagina ' + (pageIndex + 1);
+  if (source === 'dosEnUno') title = 'Recortar foto ' + (pageIndex + 1) + ' de 2';
   if (source === 'today') title = 'Editar archivo';
   document.getElementById('peTitle').textContent = title;
   document.getElementById('photoEditor').classList.add('on');
@@ -2951,6 +3076,9 @@ function deleteFromEditor() {
     if (pdfPages.length > 0) {
       setTimeout(openReviewPanel, 300);
     }
+  } else if (editorSource === 'dosEnUno') {
+    closePhotoEditor();
+    // Stay on camera, user can re-capture this photo
   } else {
     if (!confirm('¿Eliminar esta foto?')) return;
     capturedSingleImage = null;
@@ -3089,6 +3217,19 @@ function doConfirmSave() {
     toast('Pagina actualizada', 'success');
     closePhotoEditor();
     setTimeout(openReviewPanel, 300);
+  } else if (editorSource === 'dosEnUno') {
+    dosEnUnoImages[editorPageIndex] = editorDataUrl;
+    closePhotoEditor();
+    if (editorPageIndex === 0) {
+      // First photo cropped, capture second
+      dosEnUnoStep = 1;
+      document.getElementById('camModeLabel').textContent = '2 EN 1 · Foto 2';
+      toast('Foto 1 lista. Captura la foto 2', 'info');
+    } else {
+      // Both photos cropped, show combined preview
+      stopCamera();
+      showDosEnUnoPreview();
+    }
   } else {
     var savedDataUrl = editorDataUrl;
     capturedSingleImage = savedDataUrl;
