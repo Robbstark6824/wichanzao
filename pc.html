@@ -8,8 +8,11 @@
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Wichanzao · Panel de Referencias</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://xqphjvppfgwabfruyjae.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root {
   --n1:#0C1F3D; --n2:#142952; --n3:#1B3A6B;
@@ -1031,15 +1034,21 @@ async function loadAllData() {
       }
     }
 
-    // Fetch all profiles in parallel
+    // Fetch all profiles AND date folders in parallel (2 requests per worker at once)
     var profilePromises = allEntries.map(function(entry) {
       return fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + entry.basePath + '/profile.json', {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-        cache: 'no-store'
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
       }).then(function(r) { return r.ok ? r.json() : null; })
         .catch(function() { return null; });
     });
-    var profiles = await Promise.all(profilePromises);
+    var dateListPromises = allEntries.map(function(entry) {
+      return sbList(entry.basePath + '/').catch(function() { return []; });
+    });
+
+    // Fire both sets at the same time — profiles + dates load simultaneously
+    var combined = await Promise.all([Promise.all(profilePromises), Promise.all(dateListPromises)]);
+    var profiles = combined[0];
+    var dateResults = combined[1];
 
     for (var i = 0; i < allEntries.length; i++) {
       var p = profiles[i];
@@ -1061,13 +1070,8 @@ async function loadAllData() {
     allWorkers = workers;
     computeServiceCounts();
 
-    // 4. Preload date folders for each worker
+    // 4. Process preloaded date folders
     var todayS = todayStr();
-
-    var datePromises = workers.map(function(w) {
-      return sbList(w._basePath + '/').catch(function() { return []; });
-    });
-    var dateResults = await Promise.all(datePromises);
 
     var dataChanged = false;
     for (var wi = 0; wi < workers.length; wi++) {
