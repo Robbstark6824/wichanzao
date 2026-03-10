@@ -970,7 +970,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v3.3';
+var APP_VERSION = 'v3.4';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2401,56 +2401,16 @@ function openTodayFile(index) {
   openPhotoEditor(f.url, 'today', index);
 }
 
-// DELETE with full diagnostic — temporary debug mode
+// Delete files from Supabase Storage
 function sbDeleteFiles(paths) {
   var headers = { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' };
   var url = SB_URL + '/storage/v1/object/' + SB_BUCKET;
-  var debug = '[DELETE DEBUG]\nPaths: ' + JSON.stringify(paths) + '\nURL: ' + url;
-
-  // Format 1: { prefixes: [...] }
   return fetch(url, {
     method: 'DELETE', headers: headers,
     body: JSON.stringify({ prefixes: paths })
   }).then(function(res) {
-    var status1 = res.status;
-    return res.text().then(function(text) {
-      debug += '\n\n[F1 {prefixes}] Status: ' + status1 + '\nBody: ' + text.substring(0, 300);
-
-      // Try to parse body
-      var body = [];
-      try { body = JSON.parse(text); } catch(e) {}
-
-      // Check if it actually deleted something
-      if (Array.isArray(body) && body.length > 0 && body[0].name) {
-        debug += '\n\nRESULT: F1 deleted ' + body.length + ' files';
-        alert(debug);
-        return body;
-      }
-
-      // Format 2: raw array [...]
-      return fetch(url, {
-        method: 'DELETE', headers: headers,
-        body: JSON.stringify(paths)
-      }).then(function(res2) {
-        var status2 = res2.status;
-        return res2.text().then(function(text2) {
-          debug += '\n\n[F2 raw array] Status: ' + status2 + '\nBody: ' + text2.substring(0, 300);
-
-          var body2 = [];
-          try { body2 = JSON.parse(text2); } catch(e) {}
-
-          if (Array.isArray(body2) && body2.length > 0 && body2[0].name) {
-            debug += '\n\nRESULT: F2 deleted ' + body2.length + ' files';
-            alert(debug);
-            return body2;
-          }
-
-          debug += '\n\nRESULT: Ningun formato funciono';
-          alert(debug);
-          throw new Error('DELETE no elimino archivos. Revisa el alert de debug.');
-        });
-      });
-    });
+    if (!res.ok) throw new Error('Delete status: ' + res.status);
+    return res.json().catch(function() { return []; });
   });
 }
 
@@ -2473,28 +2433,6 @@ function deleteTodayFile(index) {
     }
   }
 
-  // Helper to verify deletion by listing the folder after delete
-  function verifyDeletion(folderPath, deletedPaths) {
-    return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefix: folderPath, limit: 1000, offset: 0 })
-    }).then(function(res) { return res.json(); }).then(function(items) {
-      if (!Array.isArray(items)) items = [];
-      var names = items.map(function(i) { return i.name; });
-      var stillExists = deletedPaths.filter(function(p) {
-        var fname = p.substring(p.lastIndexOf('/') + 1);
-        return names.indexOf(fname) >= 0;
-      });
-      var debug = '[VERIFY POST-DELETE]\nFolder: ' + folderPath +
-        '\nFiles in folder: ' + JSON.stringify(names) +
-        '\nDeleted paths: ' + JSON.stringify(deletedPaths) +
-        '\nStill exist: ' + JSON.stringify(stillExists);
-      alert(debug);
-      return stillExists.length === 0;
-    });
-  }
-
   if (!f.url) {
     removeLocal();
     toast('Archivo eliminado', 'success');
@@ -2508,7 +2446,8 @@ function deleteTodayFile(index) {
   // For PDFs: also delete associated page images
   if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
     var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
-    var basePrefix = fileName.replace(/\.pdf$/i, '');
+    // Extract base name WITHOUT timestamp: "doc-20260310-163227" from "1773178348227_doc-20260310-163227.pdf"
+    var baseName = fileName.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
 
     fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
       method: 'POST',
@@ -2518,38 +2457,29 @@ function deleteTodayFile(index) {
       if (!Array.isArray(items)) items = [];
       var pathsToDelete = [];
       for (var i = 0; i < items.length; i++) {
-        if (items[i].id && items[i].name && (
-          items[i].name === fileName ||
-          items[i].name.indexOf(basePrefix + '_pag') === 0 ||
-          items[i].name.indexOf(basePrefix + '_thumb') === 0
-        )) {
-          pathsToDelete.push(folderPath + items[i].name);
+        if (!items[i].id || !items[i].name) continue;
+        var n = items[i].name;
+        // Match: the PDF itself, OR any file with same baseName + _pag/_thumb (any timestamp)
+        if (n === fileName ||
+            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_pag\\d+\\.', 'i')) ||
+            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_thumb\\.', 'i'))
+        ) {
+          pathsToDelete.push(folderPath + n);
         }
       }
       if (!pathsToDelete.length) pathsToDelete = [storagePath];
+      var count = pathsToDelete.length;
       return sbDeleteFiles(pathsToDelete).then(function() {
-        return verifyDeletion(folderPath, pathsToDelete);
-      }).then(function(confirmed) {
-        if (confirmed) {
-          removeLocal();
-          toast('PDF eliminado y verificado', 'success');
-        } else {
-          toast('Supabase dice borrado pero sigue existiendo!', 'error');
-        }
+        removeLocal();
+        toast('PDF eliminado (' + count + ' archivos)', 'success');
       });
     }).catch(function(e) {
       toast('Error: ' + e.message, 'error');
     });
   } else {
     sbDeleteFiles([storagePath]).then(function() {
-      return verifyDeletion(folderPath, [storagePath]);
-    }).then(function(confirmed) {
-      if (confirmed) {
-        removeLocal();
-        toast('Archivo eliminado y verificado', 'success');
-      } else {
-        toast('Supabase dice borrado pero sigue existiendo!', 'error');
-      }
+      removeLocal();
+      toast('Archivo eliminado', 'success');
     }).catch(function(e) {
       toast('Error: ' + e.message, 'error');
     });
@@ -3337,7 +3267,7 @@ function doUploadPdf(filename, pages) {
         var pdfPath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
 
         uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
-          return uploadIndividualImages(filename, optimizedPages);
+          return uploadIndividualImages(filename, optimizedPages, ts);
         }).then(function() {
           var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + pdfPath;
           addTodayFile(filename + '.pdf', 'pdf', pubUrl);
@@ -3510,10 +3440,10 @@ function generatePdf(optimizedDataUrls) {
 }
 
 
-function uploadIndividualImages(filename, optimizedPages) {
+function uploadIndividualImages(filename, optimizedPages, pdfTimestamp) {
   var now = new Date();
   var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  var ts = now.getTime();
+  var ts = pdfTimestamp || now.getTime(); // Use same timestamp as PDF
   var promises = [];
 
   for (var i = 0; i < optimizedPages.length; i++) {
