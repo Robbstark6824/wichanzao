@@ -1,4 +1,4 @@
-var CACHE_NAME = 'wichanzao-v95';
+var CACHE_NAME = 'wichanzao-v96';
 var PRECACHE = [
   './',
   './index.html',
@@ -35,9 +35,12 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
+  // Only handle GET requests — let POST, DELETE, PUT, etc. pass through directly
+  if (e.request.method !== 'GET') return;
+
   var url = new URL(e.request.url);
 
-  // Network-first for Supabase API calls
+  // Network-first for Supabase API calls (GET only, e.g. public file URLs)
   if (url.hostname.includes('supabase.co')) {
     e.respondWith(
       fetch(e.request).catch(function() {
