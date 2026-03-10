@@ -1069,6 +1069,7 @@ async function loadAllData() {
     });
     var dateResults = await Promise.all(datePromises);
 
+    var dataChanged = false;
     for (var wi = 0; wi < workers.length; wi++) {
       var wId = workers[wi]._folder || workers[wi].worker_id;
       var dateItems = dateResults[wi].filter(function(i) {
@@ -1076,8 +1077,18 @@ async function loadAllData() {
       });
       dateItems.sort(function(a, b) { return b.name.localeCompare(a.name); });
 
-      allWorkerFiles[wId] = { dates: dateItems.map(function(d) { return d.name; }), loaded: {} };
+      var newDates = dateItems.map(function(d) { return d.name; });
+      var oldInfo = allWorkerFiles[wId];
+      var oldDates = oldInfo ? oldInfo.dates : [];
 
+      // Detect if dates changed (added or removed)
+      if (newDates.length !== oldDates.length || newDates.join(',') !== oldDates.join(',')) {
+        dataChanged = true;
+        allWorkerFiles[wId] = { dates: newDates, loaded: {} };
+      } else if (!oldInfo) {
+        allWorkerFiles[wId] = { dates: newDates, loaded: {} };
+      }
+      // Keep existing loaded cache if dates didn't change
     }
 
     // 5. Load legacy folders structure
@@ -1088,18 +1099,45 @@ async function loadAllData() {
 
     // 6. Ready to render
 
-    // 7. Render (skip DOM rebuild on auto-refresh if no new workers)
-    var shouldRender = isFirstLoad || !autoRefreshing;
+    // 7. Render: always on first load/manual, on auto-refresh only if data changed
+    var shouldRender = isFirstLoad || !autoRefreshing || dataChanged;
     if (shouldRender) {
       lbRegId = 0; lbRegistry = {};
       if (currentWorkerId) {
+        // Invalidate loaded files for current worker to pick up deletions
+        if (autoRefreshing && allWorkerFiles[currentWorkerId]) {
+          var expandedKeys = [];
+          var fi = allWorkerFiles[currentWorkerId];
+          for (var dk in expandedDates) {
+            if (dk.indexOf(currentWorkerId + '_') === 0 && dk.indexOf('_month_') === -1 && expandedDates[dk]) {
+              var date = dk.replace(currentWorkerId + '_', '');
+              if (fi.loaded[date]) {
+                delete fi.loaded[date]; // Force re-fetch from server
+              }
+            }
+          }
+        }
         renderDetailView(currentWorkerId);
       } else {
         renderDirectory();
       }
       renderLegacy();
-    } else {
-      // Silent refresh: only update stats, don't rebuild DOM
+    } else if (autoRefreshing && currentWorkerId && allWorkerFiles[currentWorkerId]) {
+      // Even if dates didn't change, re-check files for expanded dates (catches file deletions within same date)
+      var cfi = allWorkerFiles[currentWorkerId];
+      var needsRerender = false;
+      for (var edk in expandedDates) {
+        if (edk.indexOf(currentWorkerId + '_') === 0 && edk.indexOf('_month_') === -1 && expandedDates[edk]) {
+          var eDate = edk.replace(currentWorkerId + '_', '');
+          if (cfi.loaded[eDate]) {
+            delete cfi.loaded[eDate];
+            needsRerender = true;
+          }
+        }
+      }
+      if (needsRerender) {
+        renderDetailView(currentWorkerId);
+      }
     }
 
     // 8. Auto-cleanup once per day
