@@ -130,6 +130,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:14px;
+  contain:layout style;
 }
 @media(max-width:1024px) { .workers-grid { grid-template-columns:repeat(2,1fr); } }
 @media(max-width:600px) { .workers-grid { grid-template-columns:1fr; } }
@@ -147,8 +148,8 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .service-card {
   background:var(--s1); border-radius:20px; padding:30px 16px 24px;
   border:1px solid var(--bd); cursor:pointer; text-align:center;
-  transition:all .3s cubic-bezier(.4,0,.2,1); position:relative; overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s cubic-bezier(.4,0,.2,1),border-color .3s; position:relative; overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.04); will-change:transform;
 }
 .service-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:3px;
@@ -180,10 +181,10 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .worker-card {
   background:var(--s1); border-radius:18px; padding:20px;
   border:1px solid var(--bd); cursor:pointer;
-  transition:all .25s cubic-bezier(.4,0,.2,1);
+  transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1),border-color .25s;
   display:flex; align-items:center; gap:14px;
   position:relative; overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.03);
+  box-shadow:0 2px 8px rgba(0,0,0,.03); will-change:transform;
 }
 .worker-card::before {
   content:''; position:absolute; inset:0;
@@ -290,7 +291,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .detail-actions { display:flex; gap:8px; flex-wrap:wrap; }
 
 /* Month group */
-.month-group { margin-bottom:20px; }
+.month-group { margin-bottom:20px; content-visibility:auto; contain-intrinsic-size:auto 200px; }
 .month-header {
   display:flex; align-items:center; gap:10px; margin-bottom:10px;
   padding:0 4px; cursor:pointer; user-select:none;
@@ -662,7 +663,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
       <span class="search-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </span>
-      <input type="text" id="searchInput" placeholder="Buscar por nombre o rol..." oninput="applyFilters()">
+      <input type="text" id="searchInput" placeholder="Buscar por nombre o rol..." oninput="debouncedApplyFilters()">
       <span class="search-hint">Ctrl+F</span>
     </div>
     <button class="tb-btn primary" onclick="loadAllData()">
@@ -793,6 +794,19 @@ var lbRegId = 0;
 var imgCacheBuster = '';
 var editedImages = {}; // path -> dataUrl (edited images in memory)
 
+// Performance: pagination & debounce
+var DIR_PAGE_SIZE = 50;
+var dirCurrentPage = 0;
+var dirFilteredCache = [];
+var _searchTimer = null;
+function debouncedApplyFilters() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(applyFilters, 250);
+}
+
+// Performance: pre-computed service counts
+var _serviceCounts = {};
+
 // PC Editor state
 var pceUrl = '';
 var pcePath = '';
@@ -804,10 +818,10 @@ var pceEditedDataUrl = '';
 /* =========================================================
    HELPERS
    ========================================================= */
+var _escDiv = document.createElement('div');
 function escHtml(s) {
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  _escDiv.textContent = s;
+  return _escDiv.innerHTML;
 }
 
 function getInitials(name) {
@@ -1045,6 +1059,7 @@ async function loadAllData() {
     });
 
     allWorkers = workers;
+    computeServiceCounts();
 
     // 4. Preload date folders for each worker
     var todayS = todayStr();
@@ -1116,6 +1131,15 @@ var SERVICE_ICONS = {
   'administrativos':{ icon: '&#128188;', bg: 'rgba(113,128,150,.12)', color: '#718096' }
 };
 
+function computeServiceCounts() {
+  _serviceCounts = {};
+  for (var k = 0; k < SERVICIOS_KEYS.length; k++) _serviceCounts[SERVICIOS_KEYS[k]] = 0;
+  for (var i = 0; i < allWorkers.length; i++) {
+    var ws = allWorkers[i]._servicio || allWorkers[i].servicio || '';
+    if (_serviceCounts[ws] !== undefined) _serviceCounts[ws]++;
+  }
+}
+
 function renderServiceHub() {
   var html = '<div class="service-hub">';
   html += '<h2>Centro de Salud Wichanzao</h2>';
@@ -1126,8 +1150,7 @@ function renderServiceHub() {
     var key = SERVICIOS_KEYS[k];
     var s = SERVICIOS[key];
     var si = SERVICE_ICONS[key];
-    // Count workers in this servicio
-    var count = allWorkers.filter(function(w) { return (w._servicio || w.servicio || '') === key; }).length;
+    var count = _serviceCounts[key] || 0;
 
     html += '<div class="service-card" onclick="setServicioFilter(\'' + key + '\')">';
     html += '<div class="service-icon" style="background:' + si.bg + '">' + si.icon + '</div>';
@@ -1152,28 +1175,26 @@ function renderDirectory() {
 
   var threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
   var now = Date.now();
+  var hasServicio = servicioFilter && servicioFilter !== 'all';
 
-  var active = allWorkers.filter(function(w) {
-    if (!w.last_active) return true;
-    return (now - new Date(w.last_active).getTime()) < threeMonthsMs;
-  });
-
-  var filtered = active;
-  if (query) {
-    filtered = active.filter(function(w) {
-      return w.name.toLowerCase().includes(query) || (w.area || '').toLowerCase().includes(query);
-    });
+  // Single-pass filtering (combined active + query + servicio)
+  var filtered = [];
+  for (var fi = 0; fi < allWorkers.length; fi++) {
+    var w = allWorkers[fi];
+    // Activity check
+    if (w.last_active && (now - new Date(w.last_active).getTime()) >= threeMonthsMs) continue;
+    // Servicio check
+    if (hasServicio && (w._servicio || w.servicio || '') !== servicioFilter) continue;
+    // Search check
+    if (query && !w.name.toLowerCase().includes(query) && !(w.area || '').toLowerCase().includes(query)) continue;
+    filtered.push(w);
   }
 
-  if (servicioFilter && servicioFilter !== 'all') {
-    filtered = filtered.filter(function(w) {
-      var ws = w._servicio || w.servicio || '';
-      return ws === servicioFilter;
-    });
-  }
+  dirFilteredCache = filtered;
+  dirCurrentPage = 0;
 
   // Back to hub header
-  var sLabel = servicioFilter && SERVICIOS[servicioFilter] ? SERVICIOS[servicioFilter].label : '';
+  var sLabel = hasServicio && SERVICIOS[servicioFilter] ? SERVICIOS[servicioFilter].label : '';
   var headerHtml = '';
   if (sLabel && !query) {
     headerHtml += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">';
@@ -1189,15 +1210,41 @@ function renderDirectory() {
     return;
   }
 
-  var html = headerHtml + '<div class="workers-grid">';
-  for (var i = 0; i < filtered.length; i++) {
-    var w = filtered[i];
+  // Paginated rendering: show first page
+  var pageEnd = Math.min(DIR_PAGE_SIZE, filtered.length);
+  var html = headerHtml + '<div class="workers-grid" id="workersGrid">';
+  html += renderWorkerCards(filtered, 0, pageEnd);
+  html += '</div>';
+
+  // "Load more" button if there are more workers
+  if (filtered.length > DIR_PAGE_SIZE) {
+    html += '<div id="loadMoreWrap" style="text-align:center;padding:20px">';
+    html += '<button class="tb-btn primary" onclick="loadMoreWorkers()" style="font-size:13px;padding:10px 28px">';
+    html += 'Mostrar mas (' + (filtered.length - DIR_PAGE_SIZE) + ' restantes)</button></div>';
+  }
+
+  container.innerHTML = html;
+
+  // Event delegation for worker cards
+  var grid = document.getElementById('workersGrid');
+  if (grid) {
+    grid.onclick = function(e) {
+      var card = e.target.closest('.worker-card');
+      if (card && card.dataset.wid) openWorkerDetail(card.dataset.wid);
+    };
+  }
+}
+
+function renderWorkerCards(list, start, end) {
+  var html = '';
+  for (var i = start; i < end; i++) {
+    var w = list[i];
     var act = activityInfo(w.last_active);
     var wId = w._folder || w.worker_id;
     var fileInfo = allWorkerFiles[wId];
     var dateCount = fileInfo ? fileInfo.dates.length : 0;
 
-    html += '<div class="worker-card" onclick="openWorkerDetail(\'' + escHtml(wId) + '\')">';
+    html += '<div class="worker-card" data-wid="' + escHtml(wId) + '">';
     html += '<div class="avatar md" style="background:' + (w.avatar_color || '#4ECDC4') + '">';
     html += getInitials(w.name);
     html += '<span class="activity-dot ' + act.color + '"></span>';
@@ -1210,8 +1257,26 @@ function renderDirectory() {
     html += '<span class="worker-arrow">&rsaquo;</span>';
     html += '</div>';
   }
-  html += '</div>';
-  container.innerHTML = html;
+  return html;
+}
+
+function loadMoreWorkers() {
+  dirCurrentPage++;
+  var start = dirCurrentPage * DIR_PAGE_SIZE;
+  var end = Math.min(start + DIR_PAGE_SIZE, dirFilteredCache.length);
+  var grid = document.getElementById('workersGrid');
+  if (grid) {
+    grid.insertAdjacentHTML('beforeend', renderWorkerCards(dirFilteredCache, start, end));
+  }
+  var wrap = document.getElementById('loadMoreWrap');
+  if (wrap) {
+    var remaining = dirFilteredCache.length - end;
+    if (remaining <= 0) {
+      wrap.remove();
+    } else {
+      wrap.innerHTML = '<button class="tb-btn primary" onclick="loadMoreWorkers()" style="font-size:13px;padding:10px 28px">Mostrar mas (' + remaining + ' restantes)</button>';
+    }
+  }
 }
 
 function buildSkeletonGrid() {
@@ -1467,14 +1532,21 @@ function renderDetailView(wId) {
 
   detailEl.innerHTML = html;
 
-  // Load files for expanded dates
+  // Load files for expanded dates (use cached monthGroups, avoid redundant calls)
+  var _mGroups = groupDatesByMonth(filteredDates);
+  var _firstMonthDates = _mGroups.length > 0 ? _mGroups[0].dates.length : 0;
+  var _firstMonthSet = {};
+  if (_mGroups.length > 0) {
+    for (var fm = 0; fm < _mGroups[0].dates.length; fm++) _firstMonthSet[_mGroups[0].dates[fm]] = true;
+  }
+  var _today = todayStr();
   for (var d = 0; d < filteredDates.length; d++) {
     var dd = filteredDates[d];
     var dk = wId + '_' + dd;
     var ddMonth = dd.substring(0, 7);
     var monthK = wId + '_month_' + ddMonth;
-    var monthIsOpen = expandedDates[monthK] !== undefined ? expandedDates[monthK] : (filteredDates.indexOf(dd) < groupDatesByMonth(filteredDates)[0].dates.length);
-    var isExp = expandedDates[dk] !== undefined ? expandedDates[dk] : (dd === todayStr());
+    var monthIsOpen = expandedDates[monthK] !== undefined ? expandedDates[monthK] : !!_firstMonthSet[dd];
+    var isExp = expandedDates[dk] !== undefined ? expandedDates[dk] : (dd === _today);
     if (monthIsOpen && isExp && !(fileInfo && fileInfo.loaded[dd])) {
       loadDateFiles(wId, dd);
     }
@@ -1505,6 +1577,29 @@ function toggleMonth(wId, monthKey) {
   var mk = wId + '_month_' + monthKey;
   var wasOpen = expandedDates[mk] !== undefined ? expandedDates[mk] : true;
   expandedDates[mk] = !wasOpen;
+
+  // Try targeted DOM update first
+  var header = event && event.currentTarget;
+  if (header) {
+    var monthGroup = header.parentElement;
+    var body = monthGroup ? monthGroup.querySelector('.month-body') : null;
+    var arrow = header.querySelector('.month-arrow');
+    if (body && arrow) {
+      if (!wasOpen) {
+        body.classList.remove('open');
+        arrow.classList.remove('open');
+      } else {
+        body.classList.add('open');
+        arrow.classList.add('open');
+        // Render month content if opening and empty
+        if (!body.children.length) {
+          renderDetailView(wId);
+          return;
+        }
+      }
+      return;
+    }
+  }
   renderDetailView(wId);
 }
 
@@ -1512,6 +1607,32 @@ function toggleDateSection(wId, date) {
   var dk = wId + '_' + date;
   var wasOpen = expandedDates[dk] !== undefined ? expandedDates[dk] : (date === todayStr());
   expandedDates[dk] = !wasOpen;
+
+  // Try targeted DOM update
+  var header = event && event.currentTarget;
+  if (header) {
+    var dateSection = header.parentElement;
+    var bodyId = 'dbody_' + (wId + '_' + date).replace(/[^a-zA-Z0-9_-]/g, '_');
+    var body = document.getElementById(bodyId);
+    var arrow = header.querySelector('.date-arrow');
+    if (body && arrow) {
+      if (!wasOpen) {
+        body.classList.remove('open');
+        header.classList.remove('open');
+        arrow.classList.remove('open');
+      } else {
+        body.classList.add('open');
+        header.classList.add('open');
+        arrow.classList.add('open');
+        // Load files if not yet loaded
+        var fileInfo = allWorkerFiles[wId];
+        if (fileInfo && !fileInfo.loaded[date]) {
+          loadDateFiles(wId, date);
+        }
+      }
+      return;
+    }
+  }
   renderDetailView(wId);
 }
 
@@ -1521,11 +1642,38 @@ async function loadDateFiles(wId, date) {
   if (fileInfo.loaded[date]) return;
 
   try {
-    var items = await sbList((allWorkerPaths[wId] || 'workers/' + wId) + '/' + date + '/');
-    var docs = groupFiles(items, (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
+    var basePath = allWorkerPaths[wId] || 'workers/' + wId;
+    var items = await sbList(basePath + '/' + date + '/');
+    var docs = groupFiles(items, basePath + '/' + date);
     fileInfo.loaded[date] = docs;
     if (currentWorkerId === wId) {
-      renderDetailView(wId);
+      // Targeted DOM update: only update the specific date body
+      var dk = wId + '_' + date;
+      var bodyEl = document.getElementById('dbody_' + dk.replace(/[^a-zA-Z0-9_-]/g, '_'));
+      if (bodyEl) {
+        var html = '';
+        for (var fi = 0; fi < docs.length; fi++) {
+          html += renderFileCard(docs[fi], basePath + '/' + date);
+        }
+        if (!docs.length) {
+          html = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+        }
+        bodyEl.innerHTML = html;
+        // Update file count in header
+        var dateSection = bodyEl.parentElement;
+        if (dateSection) {
+          var countEl = dateSection.querySelector('.count');
+          if (countEl) countEl.textContent = docs.length + ' archivo(s)';
+          else {
+            var titleDiv = dateSection.querySelector('.date-title');
+            if (titleDiv && !titleDiv.querySelector('.count')) {
+              titleDiv.insertAdjacentHTML('beforeend', '<div class="count">' + docs.length + ' archivo(s)</div>');
+            }
+          }
+        }
+      } else {
+        renderDetailView(wId);
+      }
     }
   } catch (e) {
     var dk = wId + '_' + date;
