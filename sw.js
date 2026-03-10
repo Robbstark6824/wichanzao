@@ -1,26 +1,26 @@
-var CACHE_NAME = 'wichanzao-v97';
+var CACHE_NAME = 'wichanzao-v98';
 var PRECACHE = [
-  './',
-  './index.html',
-  './pc.html',
   './manifest.json',
   './manifest-pc.json',
   './icons/icon-192.svg',
-  './icons/icon-512.svg',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+  './icons/icon-512.svg'
 ];
 
+// Install: cache only small static files — NEVER fail install
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(PRECACHE);
+      // Cache each file individually — don't let one failure kill the install
+      return Promise.allSettled(PRECACHE.map(function(url) {
+        return cache.add(url).catch(function() { /* skip */ });
+      }));
     }).then(function() {
-      return self.skipWaiting();
+      return self.skipWaiting(); // Activate immediately
     })
   );
 });
 
+// Activate: clean old caches, take control immediately
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(names) {
@@ -29,29 +29,23 @@ self.addEventListener('activate', function(e) {
               .map(function(n) { return caches.delete(n); })
       );
     }).then(function() {
-      return self.clients.claim();
+      return self.clients.claim(); // Take over all open tabs NOW
     })
   );
 });
 
+// Fetch: ONLY intercept GET requests for static assets
 self.addEventListener('fetch', function(e) {
-  // Only handle GET requests — let POST, DELETE, PUT, etc. pass through directly
+  // NEVER intercept non-GET requests (POST, DELETE, PUT)
   if (e.request.method !== 'GET') return;
 
   var url = new URL(e.request.url);
 
-  // Network-first for Supabase API calls (GET only, e.g. public file URLs)
-  if (url.hostname.includes('supabase.co')) {
-    e.respondWith(
-      fetch(e.request).catch(function() {
-        return caches.match(e.request);
-      })
-    );
-    return;
-  }
+  // NEVER intercept Supabase calls — always go to network
+  if (url.hostname.includes('supabase.co')) return;
 
-  // Network-first for HTML files (ensures updates arrive fast)
-  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+  // HTML files & navigation: ALWAYS network first, cache fallback for offline only
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/')) {
     e.respondWith(
       fetch(e.request).then(function(response) {
         if (response && response.status === 200) {
@@ -68,26 +62,25 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Cache-first for static assets (js libs, icons, manifest, fonts)
+  // Static assets (icons, manifests, fonts, CDN libs): cache-first
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(response) {
-        if (response && response.status === 200) {
-          // Cache both same-origin (basic) and cross-origin (cors/opaque) responses
-          // This ensures Google Fonts and CDN assets are cached for offline
-          var shouldCache = response.type === 'basic' ||
-            url.hostname.includes('fonts.googleapis.com') ||
-            url.hostname.includes('fonts.gstatic.com') ||
-            url.hostname.includes('cdnjs.cloudflare.com');
-          if (shouldCache) {
-            var clone = response.clone();
-            caches.open(CACHE_NAME).then(function(cache) {
-              cache.put(e.request, clone);
-            });
-          }
+        if (response && response.status === 200 && (
+          response.type === 'basic' ||
+          url.hostname.includes('fonts.googleapis.com') ||
+          url.hostname.includes('fonts.gstatic.com') ||
+          url.hostname.includes('cdnjs.cloudflare.com')
+        )) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(e.request, clone);
+          });
         }
         return response;
+      }).catch(function() {
+        return caches.match(e.request);
       });
     })
   );
