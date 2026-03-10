@@ -1487,6 +1487,7 @@ function populateMain() {
   var av = document.getElementById('mainAvatar');
   av.textContent = getInitials(worker.name);
   av.style.background = avatarColor(worker.name);
+  loadTodayFiles();
   updateTodayCount();
   loadPreviousDates();
 }
