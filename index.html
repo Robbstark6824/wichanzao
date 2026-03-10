@@ -661,7 +661,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     <div class="today-section">
       <div class="ts-header">
         <h4>Archivos de hoy</h4>
-        <button onclick="syncTodayFromServer(true)" style="background:none;border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:11px;font-family:inherit;font-weight:600;color:var(--tl);cursor:pointer;display:flex;align-items:center;gap:4px">
+        <button onclick="forceSyncToday()" style="background:none;border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:11px;font-family:inherit;font-weight:600;color:var(--tl);cursor:pointer;display:flex;align-items:center;gap:4px">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-3-6.74"/><polyline points="21 3 21 9 15 9"/></svg>
           Sincronizar
         </button>
@@ -2213,6 +2213,21 @@ function loadTodayFiles() {
   if (!todayFiles.length && worker && worker.id) {
     syncTodayFromServer(false);
   }
+}
+
+function forceSyncToday() {
+  // Clear SW caches silently, then sync
+  if ('caches' in window) {
+    caches.keys().then(function(names) {
+      Promise.all(names.map(function(n) { return caches.delete(n); }));
+    });
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(r) { r.update(); });
+    });
+  }
+  syncTodayFromServer(true);
 }
 
 function syncTodayFromServer(showFeedback) {
