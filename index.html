@@ -10,6 +10,21 @@
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <link rel="apple-touch-icon" href="./icons/icon-192.svg">
 <title>C.S. Wichanzao</title>
+<script>
+// Nuclear SW reset: runs BEFORE anything else to ensure latest code
+(function(){
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.getRegistration().then(function(reg) {
+    if (!reg) return;
+    // Force immediate update check
+    reg.update();
+    // If SW is controlling but using old cache, force refresh
+    if (reg.active) {
+      reg.active.postMessage({ type: 'VERSION_CHECK' });
+    }
+  });
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -413,6 +428,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 
 <!-- Powered -->
 <div id="creditLine" style="position:fixed;bottom:8px;left:0;right:0;text-align:center;z-index:15;pointer-events:none"><span style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.8px;opacity:.7">© NeuroArsenal</span></div>
+<script>document.addEventListener('DOMContentLoaded',function(){var c=document.getElementById('creditLine');if(c&&typeof APP_VERSION!=='undefined')c.innerHTML='<span style=\"font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.8px;opacity:.7\">© NeuroArsenal · '+APP_VERSION+'</span>';});</script>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
@@ -952,6 +968,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    C.S. WICHANZAO — Document Digitization PWA
    Production build — Vanilla JS, single file
    =========================================================== */
+
+/* ===== APP VERSION ===== */
+var APP_VERSION = 'v3.0';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2248,16 +2267,26 @@ function syncTodayFromServer(showFeedback) {
     console.log('[SYNC] Server returned', items.length, 'items');
 
     var files = items.filter(function(i) { return i.id && i.name && i.name !== 'profile.json'; });
-    if (!files.length) {
-      if (showFeedback) toast('No hay archivos de hoy en el servidor', 'info');
-      return;
+
+    // Build set of ALL server URLs (for reconciliation)
+    var serverUrls = {};
+    for (var s = 0; s < files.length; s++) {
+      serverUrls[SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + files[s].name] = true;
     }
 
-    // Build set of URLs we already have locally
-    var existingUrls = {};
-    for (var e = 0; e < todayFiles.length; e++) {
-      if (todayFiles[e].url) existingUrls[todayFiles[e].url] = true;
-    }
+    // RECONCILE: remove local files that no longer exist on server
+    var removed = 0;
+    var beforeCount = todayFiles.length;
+    todayFiles = todayFiles.filter(function(f) {
+      if (!f.url) return true; // Keep pending uploads (no URL yet)
+      if (f.url.indexOf(prefix) === -1) return true; // Keep files from other folders
+      // Check if this file's URL (or its base) exists on server
+      if (serverUrls[f.url]) return true;
+      // For PDFs, check if the PDF itself exists (page images are grouped under it)
+      console.log('[SYNC] Removing deleted file:', f.name, f.url);
+      removed++;
+      return false;
+    });
 
     // Identify PDFs to group their page images
     var pdfNames = {};
@@ -2268,6 +2297,13 @@ function syncTodayFromServer(showFeedback) {
       }
     }
 
+    // Build set of URLs we already have locally
+    var existingUrls = {};
+    for (var e = 0; e < todayFiles.length; e++) {
+      if (todayFiles[e].url) existingUrls[todayFiles[e].url] = true;
+    }
+
+    // ADD new files from server
     var added = 0;
     for (var j = 0; j < files.length; j++) {
       var fn = files[j].name;
@@ -2276,7 +2312,7 @@ function syncTodayFromServer(showFeedback) {
       if (pageMatch && pdfNames[pageMatch[1]]) continue;
 
       var fileUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + fn;
-      if (existingUrls[fileUrl]) continue; // Already have this file locally
+      if (existingUrls[fileUrl]) continue;
 
       if (fn.match(/\.pdf$/i)) {
         var pdfClean = fn.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
@@ -2289,11 +2325,16 @@ function syncTodayFromServer(showFeedback) {
       }
     }
 
-    console.log('[SYNC] Added', added, 'new files from server');
-    if (added > 0) {
+    console.log('[SYNC] Added', added, ', removed', removed);
+    if (added > 0 || removed > 0) {
       saveTodayFiles();
       updateTodayCount();
-      if (showFeedback) toast(added + ' archivo(s) sincronizado(s)', 'success');
+      if (showFeedback) {
+        var msg = '';
+        if (added > 0) msg += added + ' nuevo(s)';
+        if (removed > 0) msg += (msg ? ', ' : '') + removed + ' eliminado(s)';
+        toast('Sincronizado: ' + msg, 'success');
+      }
     } else if (showFeedback) {
       toast('Todo sincronizado', 'success');
     }
@@ -2392,57 +2433,74 @@ function deleteTodayFile(index) {
   if (!confirm('¿Eliminar "' + (f.name || 'archivo') + '"?\n\nEsta accion no se puede deshacer.')) return;
 
   haptic(30);
+  toast('Eliminando...', 'info');
 
-  if (f.url) {
-    var prefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
-    var storagePath = f.url.replace(prefix, '');
-
-    // For PDFs: also delete associated page images (_pag1.jpg, _pag2.jpg, etc.)
-    if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
-      var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
-      var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
-      var basePrefix = fileName.replace(/\.pdf$/i, '');
-
-      // List date folder, find all related files, delete all
-      fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prefix: folderPath, limit: 1000, offset: 0 })
-      }).then(function(res) { return res.json(); }).then(function(items) {
-        if (!Array.isArray(items)) items = [];
-        var pathsToDelete = [];
-        for (var i = 0; i < items.length; i++) {
-          if (items[i].id && items[i].name && (
-            items[i].name === fileName ||
-            items[i].name.indexOf(basePrefix + '_pag') === 0 ||
-            items[i].name.indexOf(basePrefix + '_thumb') === 0
-          )) {
-            pathsToDelete.push(folderPath + items[i].name);
-          }
-        }
-        if (!pathsToDelete.length) pathsToDelete = [storagePath];
-        return sbDeleteFiles(pathsToDelete);
-      }).then(function() {
-        toast('PDF y paginas eliminados', 'success');
-      }).catch(function(e) {
-        console.error('[DELETE] Error:', e);
-        toast('Error al eliminar del servidor', 'error');
-      });
-    } else {
-      // Single file (foto)
-      sbDeleteFiles([storagePath]).then(function() {
-        toast('Archivo eliminado', 'success');
-      }).catch(function(e) {
-        console.error('[DELETE] Error:', e);
-        toast('Error al eliminar del servidor', 'error');
-      });
+  // Helper to remove from local list after server confirms
+  function removeLocal() {
+    // Re-find index (may have shifted)
+    var idx = todayFiles.indexOf(f);
+    if (idx >= 0) {
+      todayFiles.splice(idx, 1);
+      saveTodayFiles();
+      updateTodayCount();
     }
   }
 
-  // Remove from local list
-  todayFiles.splice(index, 1);
-  saveTodayFiles();
-  updateTodayCount();
+  if (!f.url) {
+    // No URL = pending upload, just remove locally
+    removeLocal();
+    toast('Archivo eliminado', 'success');
+    return;
+  }
+
+  var urlPrefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
+  var storagePath = f.url.replace(urlPrefix, '');
+  console.log('[DELETE] storagePath:', storagePath);
+
+  // For PDFs: also delete associated page images (_pag1.jpg, _pag2.jpg, etc.)
+  if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
+    var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
+    var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
+    var basePrefix = fileName.replace(/\.pdf$/i, '');
+
+    // List date folder, find all related files, delete all
+    fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: folderPath, limit: 1000, offset: 0 })
+    }).then(function(res) { return res.json(); }).then(function(items) {
+      if (!Array.isArray(items)) items = [];
+      var pathsToDelete = [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id && items[i].name && (
+          items[i].name === fileName ||
+          items[i].name.indexOf(basePrefix + '_pag') === 0 ||
+          items[i].name.indexOf(basePrefix + '_thumb') === 0
+        )) {
+          pathsToDelete.push(folderPath + items[i].name);
+        }
+      }
+      if (!pathsToDelete.length) pathsToDelete = [storagePath];
+      return sbDeleteFiles(pathsToDelete);
+    }).then(function() {
+      removeLocal();
+      toast('PDF eliminado del servidor', 'success');
+    }).catch(function(e) {
+      console.error('[DELETE] Error:', e);
+      removeLocal(); // Remove locally anyway so UI stays consistent
+      toast('Eliminado localmente (servidor: ' + e.message + ')', 'error');
+    });
+  } else {
+    // Single file (foto)
+    sbDeleteFiles([storagePath]).then(function() {
+      removeLocal();
+      toast('Archivo eliminado del servidor', 'success');
+    }).catch(function(e) {
+      console.error('[DELETE] Error:', e);
+      removeLocal(); // Remove locally anyway
+      toast('Eliminado localmente (servidor: ' + e.message + ')', 'error');
+    });
+  }
 }
 
 function escapeHtml(str) {

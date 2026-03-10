@@ -7,6 +7,16 @@
 <link rel="manifest" href="./manifest-pc.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Wichanzao · Panel de Referencias</title>
+<script>
+// Nuclear SW reset: runs BEFORE anything else to ensure latest code
+(function(){
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.getRegistration().then(function(reg) {
+    if (!reg) return;
+    reg.update();
+  });
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://xqphjvppfgwabfruyjae.supabase.co" crossorigin>
@@ -754,6 +764,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* =========================================================
    CONFIG
    ========================================================= */
+var APP_VERSION = 'v3.0';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
@@ -2638,6 +2649,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div style="position:fixed;bottom:12px;right:20px;z-index:1;pointer-events:none"><span style="font-size:10px;color:rgba(0,0,0,.2);font-weight:700;letter-spacing:1.2px;text-transform:uppercase">&copy; NeuroArsenal</span></div>
+<div id="pcCreditLine" style="position:fixed;bottom:12px;right:20px;z-index:1;pointer-events:none"><span style="font-size:10px;color:rgba(0,0,0,.2);font-weight:700;letter-spacing:1.2px;text-transform:uppercase">&copy; NeuroArsenal · <script>document.write(APP_VERSION)</script></span></div>
 </body>
 </html>
