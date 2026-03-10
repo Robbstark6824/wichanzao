@@ -1103,45 +1103,25 @@ async function loadAllData() {
 
     // 6. Ready to render
 
-    // 7. Render: always on first load/manual, on auto-refresh only if data changed
+    // 7. Render
+    var viewingDetail = !!currentWorkerId;
     var shouldRender = isFirstLoad || !autoRefreshing || dataChanged;
+
+    // During auto-refresh while viewing a worker detail: always invalidate file cache
+    // so deletions from mobile are picked up (file deleted ≠ date removed)
+    if (autoRefreshing && viewingDetail && allWorkerFiles[currentWorkerId]) {
+      allWorkerFiles[currentWorkerId].loaded = {};
+      shouldRender = true;
+    }
+
     if (shouldRender) {
       lbRegId = 0; lbRegistry = {};
-      if (currentWorkerId) {
-        // Invalidate loaded files for current worker to pick up deletions
-        if (autoRefreshing && allWorkerFiles[currentWorkerId]) {
-          var expandedKeys = [];
-          var fi = allWorkerFiles[currentWorkerId];
-          for (var dk in expandedDates) {
-            if (dk.indexOf(currentWorkerId + '_') === 0 && dk.indexOf('_month_') === -1 && expandedDates[dk]) {
-              var date = dk.replace(currentWorkerId + '_', '');
-              if (fi.loaded[date]) {
-                delete fi.loaded[date]; // Force re-fetch from server
-              }
-            }
-          }
-        }
+      if (viewingDetail) {
         renderDetailView(currentWorkerId);
       } else {
         renderDirectory();
       }
       renderLegacy();
-    } else if (autoRefreshing && currentWorkerId && allWorkerFiles[currentWorkerId]) {
-      // Even if dates didn't change, re-check files for expanded dates (catches file deletions within same date)
-      var cfi = allWorkerFiles[currentWorkerId];
-      var needsRerender = false;
-      for (var edk in expandedDates) {
-        if (edk.indexOf(currentWorkerId + '_') === 0 && edk.indexOf('_month_') === -1 && expandedDates[edk]) {
-          var eDate = edk.replace(currentWorkerId + '_', '');
-          if (cfi.loaded[eDate]) {
-            delete cfi.loaded[eDate];
-            needsRerender = true;
-          }
-        }
-      }
-      if (needsRerender) {
-        renderDetailView(currentWorkerId);
-      }
     }
 
     // 8. Auto-cleanup once per day
