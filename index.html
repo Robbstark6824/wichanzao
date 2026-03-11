@@ -334,13 +334,22 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .review-top h3{color:#fff;font-size:16px;font-weight:800}
 .review-close{background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .review-close svg{width:18px;height:18px;fill:#fff}
-.review-scroll{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;align-items:center;gap:14px;padding:0 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
-.review-page{flex-shrink:0;width:calc(100vw - 80px);max-width:320px;scroll-snap-align:center;position:relative}
+.review-body{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.review-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:opacity .2s}
+.review-arrow:active{transform:translateY(-50%) scale(.9)}
+.review-arrow svg{width:20px;height:20px;fill:#fff}
+.review-arrow.left{left:10px}
+.review-arrow.right{right:10px}
+.review-arrow.hidden{opacity:0;pointer-events:none}
+.review-scroll{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;align-items:center;justify-content:center;gap:14px;padding:0 60px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.review-page{flex-shrink:0;width:calc(100vw - 120px);max-width:320px;scroll-snap-align:center;position:relative}
 .review-page img{width:100%;border-radius:var(--r2);box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .review-page .rp-num{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
 .review-page .rp-del{position:absolute;top:10px;right:10px;background:var(--danger);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .review-page .rp-del svg{width:14px;height:14px;fill:#fff}
-.review-hint{color:var(--t3);font-size:12px;text-align:center;padding:12px;padding-bottom:calc(12px + var(--sb))}
+.review-bottom{display:flex;justify-content:center;padding:12px 20px;padding-bottom:calc(12px + var(--sb))}
+.review-edit-btn{background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:10px;padding:10px 28px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
+.review-edit-btn:active{transform:scale(.96)}
 
 /* Fullscreen page preview */
 .fullscreen-preview{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -403,13 +412,17 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .pe-title{color:#fff;font-size:14px;font-weight:700}
 .pe-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none;padding:24px;background:#111}
 .pe-canvas-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none;border-radius:4px}
-.pe-crop-box{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.6);cursor:move;touch-action:none;min-width:40px;min-height:40px}
+.pe-crop-box{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(17,17,17,.95);cursor:move;touch-action:none;min-width:40px;min-height:40px}
 .pe-crop-box::before{content:'';position:absolute;inset:0;border:1px dashed rgba(255,255,255,.3);pointer-events:none}
-.pe-crop-box .pe-handle{position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5);touch-action:none;z-index:1}
-.pe-handle.tl{top:-10px;left:-10px}
-.pe-handle.tr{top:-10px;right:-10px}
-.pe-handle.bl{bottom:-10px;left:-10px}
-.pe-handle.br{bottom:-10px;right:-10px}
+.pe-crop-box .pe-handle{position:absolute;width:28px;height:28px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5);touch-action:none;z-index:1}
+.pe-handle.tl{top:-14px;left:-14px}
+.pe-handle.tr{top:-14px;right:-14px}
+.pe-handle.bl{bottom:-14px;left:-14px}
+.pe-handle.br{bottom:-14px;right:-14px}
+.pe-handle.tc{top:-14px;left:50%;transform:translateX(-50%)}
+.pe-handle.bc{bottom:-14px;left:50%;transform:translateX(-50%)}
+.pe-handle.ml{top:50%;left:-14px;transform:translateY(-50%)}
+.pe-handle.mr{top:50%;right:-14px;transform:translateY(-50%)}
 .pe-bottom{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 16px;padding-bottom:calc(14px + var(--sb));background:#111;z-index:2}
 .pe-action-btn{display:flex;align-items:center;gap:6px;border:none;cursor:pointer;padding:10px 18px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700}
 .pe-action-btn:active{transform:scale(.96)}
@@ -462,8 +475,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     <img id="peImage" src="" alt="">
     <div class="pe-crop-box" id="peCropBox">
       <div class="pe-handle tl" data-handle="tl"></div>
+      <div class="pe-handle tc" data-handle="tc"></div>
       <div class="pe-handle tr" data-handle="tr"></div>
+      <div class="pe-handle ml" data-handle="ml"></div>
+      <div class="pe-handle mr" data-handle="mr"></div>
       <div class="pe-handle bl" data-handle="bl"></div>
+      <div class="pe-handle bc" data-handle="bc"></div>
       <div class="pe-handle br" data-handle="br"></div>
     </div>
   </div>
@@ -995,8 +1012,21 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
       </button>
     </div>
-    <div class="review-scroll" id="reviewScroll"></div>
-    <div class="review-hint">Desliza para ver las paginas &bull; Toca para ver en grande</div>
+    <div class="review-body">
+      <button class="review-arrow left hidden" id="reviewArrowLeft" onclick="reviewNav(-1)">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </button>
+      <div class="review-scroll" id="reviewScroll"></div>
+      <button class="review-arrow right hidden" id="reviewArrowRight" onclick="reviewNav(1)">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </button>
+    </div>
+    <div class="review-bottom">
+      <button class="review-edit-btn" id="reviewEditBtn" onclick="editCurrentReviewPage()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        Editar
+      </button>
+    </div>
   </div>
   <!-- Hidden file input for gallery -->
   <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleGalleryFile(event)">
@@ -2888,6 +2918,8 @@ function updateThumbStack() {
 }
 
 /* ===== REVIEW PANEL ===== */
+var reviewCurrentPage = 0;
+
 function openReviewPanel() {
   haptic();
   var panel = document.getElementById('reviewPanel');
@@ -2900,13 +2932,66 @@ function openReviewPanel() {
   for (var i = 0; i < pdfPages.length; i++) {
     var page = document.createElement('div');
     page.className = 'review-page';
-    page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '" onclick="editPdfPage(' + i + ')">' +
+    page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '">' +
       '<div class="rp-num">Pag. ' + (i+1) + '</div>' +
       '<button class="rp-del" onclick="deletePage(' + i + ')"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></button>';
     scroll.appendChild(page);
   }
 
+  // Clamp current page
+  if (reviewCurrentPage >= pdfPages.length) reviewCurrentPage = pdfPages.length - 1;
+  if (reviewCurrentPage < 0) reviewCurrentPage = 0;
+
   panel.classList.add('open');
+
+  // Scroll to current page and update arrows
+  setTimeout(function() {
+    reviewScrollToPage(reviewCurrentPage, false);
+    updateReviewArrows();
+  }, 50);
+
+  // Listen for scroll to update arrows
+  scroll.onscroll = updateReviewArrows;
+}
+
+function reviewScrollToPage(index, smooth) {
+  var scroll = document.getElementById('reviewScroll');
+  var pages = scroll.querySelectorAll('.review-page');
+  if (!pages[index]) return;
+  pages[index].scrollIntoView({ behavior: smooth !== false ? 'smooth' : 'auto', inline: 'center', block: 'nearest' });
+  reviewCurrentPage = index;
+}
+
+function reviewNav(dir) {
+  haptic();
+  var next = reviewCurrentPage + dir;
+  if (next < 0 || next >= pdfPages.length) return;
+  reviewScrollToPage(next, true);
+  setTimeout(updateReviewArrows, 350);
+}
+
+function updateReviewArrows() {
+  var left = document.getElementById('reviewArrowLeft');
+  var right = document.getElementById('reviewArrowRight');
+  // Detect current page from scroll position
+  var scroll = document.getElementById('reviewScroll');
+  var pages = scroll.querySelectorAll('.review-page');
+  if (pages.length === 0) return;
+  var scrollCenter = scroll.scrollLeft + scroll.clientWidth / 2;
+  for (var i = 0; i < pages.length; i++) {
+    var pageCenter = pages[i].offsetLeft - scroll.offsetLeft + pages[i].offsetWidth / 2;
+    if (Math.abs(scrollCenter - pageCenter) < pages[i].offsetWidth / 2) {
+      reviewCurrentPage = i;
+      break;
+    }
+  }
+  left.classList.toggle('hidden', reviewCurrentPage <= 0);
+  right.classList.toggle('hidden', reviewCurrentPage >= pdfPages.length - 1);
+}
+
+function editCurrentReviewPage() {
+  haptic();
+  editPdfPage(reviewCurrentPage);
 }
 
 function closeReviewPanel() {
@@ -3338,7 +3423,7 @@ function doConfirmSave() {
     imgBounds = { x: ir.left - wr.left, y: ir.top - wr.top, w: ir.width, h: ir.height };
 
     handle = target.getAttribute('data-handle');
-    if (!handle && target === box) handle = 'move';
+    if (!handle && (target === box || target.closest('.pe-crop-box') === box)) handle = 'move';
     if (!handle) return;
 
     e.preventDefault();
@@ -3393,6 +3478,18 @@ function doConfirmSave() {
       var newY2 = clamp(startBox.y + dy, imgBounds.y, startBox.y + startBox.h - minSize);
       nh = startBox.h - (newY2 - startBox.y);
       ny = newY2;
+    } else if (handle === 'tc') {
+      var newYtc = clamp(startBox.y + dy, imgBounds.y, startBox.y + startBox.h - minSize);
+      nh = startBox.h - (newYtc - startBox.y);
+      ny = newYtc;
+    } else if (handle === 'bc') {
+      nh = clamp(startBox.h + dy, minSize, imgBounds.y + imgBounds.h - ny);
+    } else if (handle === 'ml') {
+      var newXml = clamp(startBox.x + dx, imgBounds.x, startBox.x + startBox.w - minSize);
+      nw = startBox.w - (newXml - startBox.x);
+      nx = newXml;
+    } else if (handle === 'mr') {
+      nw = clamp(startBox.w + dx, minSize, imgBounds.x + imgBounds.w - nx);
     }
 
     box.style.left = nx + 'px';
