@@ -330,6 +330,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   border:1px solid var(--bd); margin-bottom:12px;
   overflow:hidden; transition:all .25s;
   box-shadow:0 1px 4px rgba(0,0,0,.03);
+  content-visibility:auto; contain-intrinsic-size:auto 80px;
 }
 .date-section:hover { box-shadow:0 4px 20px rgba(0,0,0,.06); }
 .date-header {
@@ -373,6 +374,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   padding:18px 22px; border-bottom:1px solid #F0F2F5;
   display:flex; align-items:flex-start; gap:16px;
   transition:background .15s;
+  content-visibility:auto; contain-intrinsic-size:auto 100px;
 }
 .file-card:last-child { border-bottom:none; }
 .file-card:hover { background:rgba(78,205,196,.02); }
@@ -863,10 +865,10 @@ var pceEditedDataUrl = '';
 /* =========================================================
    HELPERS
    ========================================================= */
-var _escDiv = document.createElement('div');
+// Optimized escHtml: regex-based, no DOM access
 function escHtml(s) {
-  _escDiv.textContent = s;
-  return _escDiv.innerHTML;
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function getInitials(name) {
@@ -930,21 +932,41 @@ function thumbUrl(fullUrl) {
 /* =========================================================
    SUPABASE API
    ========================================================= */
-async function sbList(prefix) {
+// sbList cache: avoid duplicate requests for the same prefix within TTL
+var _sbListCache = {};
+var SB_LIST_CACHE_TTL = 30000; // 30 seconds
+
+function sbListCacheClear() { _sbListCache = {}; }
+
+async function sbList(prefix, skipCache) {
+  // Return cached result if fresh
+  var cached = _sbListCache[prefix];
+  if (!skipCache && cached && (Date.now() - cached.ts < SB_LIST_CACHE_TTL)) {
+    return cached.data;
+  }
+  // Deduplicate: if same prefix is already in-flight, wait for it
+  if (cached && cached.promise) return cached.promise;
+
   var controller = new AbortController();
   var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
-  try {
-    var res = await fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
-      method: 'POST', headers: HEADERS, cache: 'no-store', signal: controller.signal,
-      body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-    });
+  var p = fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
+    method: 'POST', headers: HEADERS, cache: 'no-store', signal: controller.signal,
+    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
+  }).then(function(res) {
     clearTimeout(timeoutId);
-    var data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
+    return res.json();
+  }).then(function(data) {
+    var result = Array.isArray(data) ? data : [];
+    _sbListCache[prefix] = { data: result, ts: Date.now() };
+    return result;
+  }).catch(function(e) {
     clearTimeout(timeoutId);
+    delete _sbListCache[prefix];
     throw e;
-  }
+  });
+
+  _sbListCache[prefix] = { promise: p };
+  return p;
 }
 
 async function sbDelete(paths) {
@@ -1893,6 +1915,36 @@ async function fetchBatch(urls, onProgress) {
   return results;
 }
 
+// Streaming batch: downloads files and adds to ZIP folder immediately, freeing memory
+async function fetchBatchToZip(files, zipFolder, onProgress) {
+  var done = 0;
+  var i = 0;
+  var total = files.length;
+
+  async function next() {
+    var idx = i++;
+    if (idx >= total) return;
+    try {
+      var ctrl = new AbortController();
+      var tid = setTimeout(function() { ctrl.abort(); }, 30000);
+      var res = await fetch(files[idx].url, { signal: ctrl.signal });
+      clearTimeout(tid);
+      var blob = await res.blob();
+      zipFolder.file(files[idx].name || files[idx].path, blob);
+      blob = null; // Release blob reference immediately
+    } catch (e) { /* skip failed files */ }
+    done++;
+    if (onProgress) onProgress(done, total);
+    await next();
+  }
+
+  var workers = [];
+  for (var w = 0; w < Math.min(DL_BATCH_SIZE, total); w++) {
+    workers.push(next());
+  }
+  await Promise.all(workers);
+}
+
 function dlMultipleImages(btn) {
   try {
     var pages = JSON.parse(btn.getAttribute('data-pages'));
@@ -2008,15 +2060,10 @@ async function downloadDocsAsZip(docs, zipName) {
       }
     }
 
-    // Download all files in parallel batches
-    var urls = files.map(function(f) { return f.url; });
-    var blobs = await fetchBatch(urls, function(done, total) {
+    // Download and add to ZIP in streaming batches (not all in memory at once)
+    await fetchBatchToZip(files, folder, function(done, total) {
       updateProgress((done / total) * 90, 'Descargando archivos... ' + done + '/' + total);
     });
-
-    for (var i = 0; i < files.length; i++) {
-      if (blobs[i]) folder.file(files[i].name, blobs[i]);
-    }
 
     updateProgress(95, 'Generando ZIP...');
     var content = await zip.generateAsync({ type: 'blob' });
@@ -2114,15 +2161,10 @@ async function dlWorkerZip(wId) {
       }
     }
 
-    // Phase 3: Download all files in parallel batches
-    var urls = allFiles.map(function(f) { return f.url; });
-    var blobs = await fetchBatch(urls, function(done, total) {
+    // Phase 3: Download files and add to ZIP in streaming batches (low memory)
+    await fetchBatchToZip(allFiles, rootFolder, function(done, total) {
       updateProgress(20 + (done / total) * 65, 'Descargando... ' + done + '/' + total);
     });
-
-    for (var i = 0; i < allFiles.length; i++) {
-      if (blobs[i]) rootFolder.file(allFiles[i].path, blobs[i]);
-    }
 
     updateProgress(90, 'Generando ZIP...');
     var content = await zip.generateAsync({ type: 'blob' });
@@ -2275,7 +2317,11 @@ function closeLightbox(e) {
   if (e && e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'BUTTON')) return;
   document.getElementById('lightbox').classList.remove('on');
   document.body.style.overflow = '';
+  // Free memory: clear preloaded images and current lightbox image
   _lbPreloaded = {};
+  var lbImg = document.getElementById('lbImg');
+  if (lbImg) lbImg.removeAttribute('src');
+  lightboxImages = [];
 }
 
 var _lbPreloaded = {};
@@ -2402,10 +2448,16 @@ function updateCountdownDisplay() {
 function startAutoRefresh() {
   if (countdownTimer) clearInterval(countdownTimer);
   countdownTimer = setInterval(function() {
+    // Skip auto-refresh if user is busy (downloading ZIP, editing image, or using lightbox)
+    var busy = document.getElementById('progressOverlay').classList.contains('on')
+            || document.getElementById('pcEditor').classList.contains('on');
+    if (busy) { countdownValue = REFRESH_INTERVAL; return; }
+
     countdownValue--;
     updateCountdownDisplay();
     if (countdownValue <= 0) {
       autoRefreshing = true;
+      sbListCacheClear(); // Clear sbList cache before refresh
       loadAllData().then(function() { autoRefreshing = false; }).catch(function() { autoRefreshing = false; });
     }
   }, 1000);
@@ -2557,7 +2609,9 @@ function savePcEdit() {
     return res.text().then(function(body) { console.log('Upload OK:', cleanPath, body); });
   }).then(function() {
     showToast('Imagen guardada correctamente', 'success');
-    // Store edited image in memory so downloads use it directly
+    // Store edited image in memory so downloads use it directly (limit to 20 to prevent memory leak)
+    var editKeys = Object.keys(editedImages);
+    if (editKeys.length >= 20) delete editedImages[editKeys[0]];
     editedImages[cleanPath] = pceEditedDataUrl;
     pceEdited = false;
     closePcEditor();
@@ -2723,15 +2777,20 @@ window.addEventListener('appinstalled', function() {
 if ('serviceWorker' in navigator) {
   var pcReloading = false;
   // updateViaCache:'none' = ALWAYS fetch sw.js from network, never HTTP cache
+  function canSafelyReload() {
+    // Don't reload if user is in the middle of downloading, editing, or viewing
+    return !document.getElementById('progressOverlay').classList.contains('on')
+        && !document.getElementById('pcEditor').classList.contains('on');
+  }
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg) {
     // Force update check on EVERY page load
     reg.update();
-    // Also check every 60 seconds
-    setInterval(function() { reg.update(); }, 60000);
+    // Check every 3 minutes (was 60s — less aggressive)
+    setInterval(function() { reg.update(); }, 180000);
     reg.addEventListener('updatefound', function() {
       var nw = reg.installing;
       if (nw) nw.addEventListener('statechange', function() {
-        if (nw.state === 'activated' && !pcReloading) {
+        if (nw.state === 'activated' && !pcReloading && canSafelyReload()) {
           pcReloading = true;
           window.location.reload();
         }
@@ -2740,7 +2799,7 @@ if ('serviceWorker' in navigator) {
   }).catch(function(e) { console.log('SW error:', e); });
   // Also listen for controllerchange (covers skipWaiting scenario)
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (!pcReloading) {
+    if (!pcReloading && canSafelyReload()) {
       pcReloading = true;
       window.location.reload();
     }
