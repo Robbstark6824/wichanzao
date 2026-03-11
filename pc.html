@@ -1552,7 +1552,9 @@ async function dlLegacyZip(fname) {
 /* =========================================================
    OPEN WORKER DETAIL
    ========================================================= */
+var _dirScrollY = 0;
 function openWorkerDetail(wId) {
+  _dirScrollY = window.scrollY;
   currentWorkerId = wId;
   document.getElementById('viewDirectory').classList.add('hidden');
   document.getElementById('viewDetail').classList.add('visible');
@@ -1564,6 +1566,7 @@ function closeDetail() {
   currentWorkerId = null;
   document.getElementById('viewDetail').classList.remove('visible');
   document.getElementById('viewDirectory').classList.remove('hidden');
+  window.scrollTo(0, _dirScrollY);
 }
 
 /* =========================================================
@@ -1638,7 +1641,8 @@ function renderDetailView(wId) {
       var mg = monthGroups[mi];
       var isCurrentMonth = mg.key === currentMonth;
       var monthKey = wId + '_month_' + mg.key;
-      var monthOpen = expandedDates[monthKey] !== undefined ? expandedDates[monthKey] : (mi === 0); // First month always open
+      if (expandedDates[monthKey] === undefined) expandedDates[monthKey] = (mi === 0);
+      var monthOpen = expandedDates[monthKey];
 
       html += '<div class="month-group">';
       html += '<div class="month-header" onclick="toggleMonth(event,\'' + escHtml(wId) + '\',\'' + mg.key + '\')">';
@@ -1653,7 +1657,8 @@ function renderDetailView(wId) {
           var date = mg.dates[i];
           var isToday = date === todayS;
           var dateKey = wId + '_' + date;
-          var isOpen = expandedDates[dateKey] !== undefined ? expandedDates[dateKey] : isToday;
+          if (expandedDates[dateKey] === undefined) expandedDates[dateKey] = isToday;
+          var isOpen = expandedDates[dateKey];
           var loaded = fileInfo && fileInfo.loaded[date];
 
           html += '<div class="date-section">';
@@ -1700,7 +1705,7 @@ function renderDetailView(wId) {
     var firstOpenMonth = null;
     for (var mo = 0; mo < monthGroups.length; mo++) {
       var mk2 = wId + '_month_' + monthGroups[mo].key;
-      var mOpen = expandedDates[mk2] !== undefined ? expandedDates[mk2] : (mo === 0);
+      var mOpen = !!expandedDates[mk2];
       if (mOpen) { firstOpenMonth = monthGroups[mo]; break; }
     }
     if (firstOpenMonth) {
@@ -1731,7 +1736,7 @@ function applyFilters() {
    ========================================================= */
 function toggleMonth(e, wId, monthKey) {
   var mk = wId + '_month_' + monthKey;
-  var wasOpen = expandedDates[mk] !== undefined ? expandedDates[mk] : false;
+  var wasOpen = !!expandedDates[mk];
   expandedDates[mk] = !wasOpen;
 
   // Try targeted DOM update first
@@ -1770,7 +1775,8 @@ function renderMonthDates(wId, monthKey, bodyEl) {
     var date = monthDates[i];
     var isToday = date === todayS;
     var dateKey = wId + '_' + date;
-    var isOpen = expandedDates[dateKey] !== undefined ? expandedDates[dateKey] : isToday;
+    if (expandedDates[dateKey] === undefined) expandedDates[dateKey] = isToday;
+    var isOpen = expandedDates[dateKey];
     var loaded = fileInfo && fileInfo.loaded[date];
 
     html += '<div class="date-section">';
@@ -2109,13 +2115,20 @@ function dlMultipleImagesReg(regId) {
   fetchBatch(urls, function(done, total) {
     if (done === total) showToast(total + ' imagenes descargadas', 'success');
   }).then(function(blobs) {
+    // Stagger downloads 150ms apart to avoid browser blocking
+    var delay = 0;
     for (var i = 0; i < blobs.length; i++) {
       if (!blobs[i]) continue;
-      var blobUrl = URL.createObjectURL(blobs[i]);
-      var a = document.createElement('a');
-      a.href = blobUrl; a.download = pages[i].name;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      (function(u) { setTimeout(function() { URL.revokeObjectURL(u); }, 2000); })(blobUrl);
+      (function(blob, name, d) {
+        setTimeout(function() {
+          var blobUrl = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = blobUrl; a.download = name;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 3000);
+        }, d);
+      })(blobs[i], pages[i].name, delay);
+      delay += 150;
     }
   });
 }
@@ -2246,7 +2259,7 @@ async function dlDateZip(wId, date) {
     showToast('Espera a que carguen los archivos', 'info');
     await loadDateFiles(wId, date);
     fileInfo = allWorkerFiles[wId];
-    if (!fileInfo || !fileInfo.loaded[date]) return;
+    if (!fileInfo || !fileInfo.loaded[date]) { showToast('No se pudieron cargar los archivos', 'error'); return; }
   }
   var docs = fileInfo.loaded[date];
   if (!docs.length) { showToast('Sin archivos en esta fecha', 'info'); return; }
