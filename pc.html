@@ -1129,7 +1129,7 @@ async function loadAllData() {
 
     // 3. Load workers from all servicios in parallel
     var workers = [];
-    allWorkerPaths = {};
+    var newWorkerPaths = {};
 
     var prefixResults = await Promise.all(searchPrefixes.map(function(sp) {
       return sbList(sp.prefix).then(function(items) {
@@ -1180,7 +1180,7 @@ async function loadAllData() {
       p._nameLower = (p.name || '').toLowerCase();
       p._areaLower = (p.area || '').toLowerCase();
       p._lastActiveTs = p.last_active ? new Date(p.last_active).getTime() : 0;
-      allWorkerPaths[p._folder] = p._basePath;
+      newWorkerPaths[p._folder] = p._basePath;
       workers.push(p);
     }
 
@@ -1189,6 +1189,8 @@ async function loadAllData() {
       return (b.last_active || '').localeCompare(a.last_active || '');
     });
 
+    // Assign all state atomically (no clearing before network completes)
+    allWorkerPaths = newWorkerPaths;
     allWorkers = workers;
     // Build O(1) lookup map
     allWorkersMap = {};
