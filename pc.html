@@ -1775,7 +1775,7 @@ function toggleDateSection(wId, date) {
     var body = document.getElementById(bodyId);
     var arrow = header.querySelector('.date-arrow');
     if (body && arrow) {
-      if (!wasOpen) {
+      if (wasOpen) {
         body.classList.remove('open');
         header.classList.remove('open');
         arrow.classList.remove('open');
