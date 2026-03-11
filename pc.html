@@ -820,9 +820,6 @@ function debouncedApplyFilters() {
   _searchTimer = setTimeout(applyFilters, 250);
 }
 
-// Performance: debounce renderDetailView
-var _renderDetailTimer = null;
-
 // Performance: IntersectionObserver for lazy thumbnails
 var _thumbObserver = null;
 function initThumbObserver() {
@@ -860,10 +857,12 @@ var pceEditedDataUrl = '';
 /* =========================================================
    HELPERS
    ========================================================= */
-// Optimized escHtml: regex-based, no DOM access
+// Optimized escHtml: single-pass replacement
+var _escMap = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' };
+var _escRe = /[&<>"]/g;
 function escHtml(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(_escRe, function(c) { return _escMap[c]; });
 }
 
 function getInitials(name) {
@@ -996,17 +995,23 @@ async function sbDelete(paths) {
 /* =========================================================
    FILE GROUPING
    ========================================================= */
+// Pre-compiled regex for groupFiles (avoid re-creation per file)
+var _reThumb = /_thumb\.(jpg|jpeg|png)$/i;
+var _rePdf = /\.pdf$/i;
+var _rePage = /^(.+)_pag(\d+)\.(jpg|jpeg|png)$/i;
+var _reImg = /\.(jpg|jpeg|png)$/i;
+
 function groupFiles(rawFiles, pathPrefix) {
   var groups = {};
   for (var i = 0; i < rawFiles.length; i++) {
     var f = rawFiles[i];
     if (!f.id || !f.name) continue;
     if (f.name === 'profile.json') continue;
-    if (f.name.match(/_thumb\.(jpg|jpeg|png)$/i)) continue;
+    if (_reThumb.test(f.name)) continue;
 
     // Real PDF file
-    if (f.name.match(/\.pdf$/i)) {
-      var pdfClean = f.name.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+    if (_rePdf.test(f.name)) {
+      var pdfClean = f.name.replace(/^\d+_/, '').replace(_rePdf, '');
       var pdfKey = '_pdf_' + pdfClean;
       if (!groups[pdfKey]) {
         groups[pdfKey] = { name: pdfClean, type: 'pdf-file', pdfUrl: pubUrl(pathPrefix + '/' + f.name), pages: [], totalSize: 0, rawName: f.name };
@@ -1017,14 +1022,14 @@ function groupFiles(rawFiles, pathPrefix) {
     }
 
     var clean = f.name.replace(/^\d+_/, '');
-    var m = clean.match(/^(.+)_pag(\d+)\.(jpg|jpeg|png)$/i);
+    var m = _rePage.exec(clean);
     if (m) {
       var base = m[1];
       if (!groups[base]) groups[base] = { name: base, type: 'pdf', pages: [], totalSize: 0 };
       groups[base].pages.push({ file: f, num: parseInt(m[2]), url: pubUrl(pathPrefix + '/' + f.name), rawName: f.name });
       groups[base].totalSize += (f.metadata && f.metadata.size) || 0;
     } else {
-      var dname = clean.replace(/\.(jpg|jpeg|png)$/i, '');
+      var dname = clean.replace(_reImg, '');
       var key = '_s_' + f.name;
       groups[key] = {
         name: dname, type: 'foto',
@@ -1516,7 +1521,6 @@ function closeDetail() {
   currentWorkerId = null;
   document.getElementById('viewDetail').classList.remove('visible');
   document.getElementById('viewDirectory').classList.remove('hidden');
-  renderDirectory();
 }
 
 /* =========================================================
@@ -1541,12 +1545,7 @@ function groupDatesByMonth(dates) {
   return groups;
 }
 
-function renderDetailView(wId, immediate) {
-  if (!immediate) {
-    clearTimeout(_renderDetailTimer);
-    _renderDetailTimer = setTimeout(function() { renderDetailView(wId, true); }, 30);
-    return;
-  }
+function renderDetailView(wId) {
   // Clean old lightbox registry to prevent memory leaks
   lbRegistry = {};
   lbRegId = 0;
@@ -1699,7 +1698,7 @@ function toggleMonth(wId, monthKey) {
     var body = monthGroup ? monthGroup.querySelector('.month-body') : null;
     var arrow = header.querySelector('.month-arrow');
     if (body && arrow) {
-      if (!wasOpen) {
+      if (wasOpen) {
         body.classList.remove('open');
         arrow.classList.remove('open');
       } else {
@@ -2848,6 +2847,7 @@ function forceRefresh() {
     });
   }
   // Reload all data fresh
+  sbListCacheClear();
   loadAllData();
 }
 
