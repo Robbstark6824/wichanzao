@@ -443,8 +443,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 <!-- Offline Bar -->
 <div class="offline-bar" id="offlineBar">Sin conexion - Los archivos se subiran cuando vuelvas a estar en linea</div>
 
-<!-- Powered -->
-<div id="creditLine" style="position:fixed;bottom:calc(8px + var(--sb));left:0;right:0;text-align:center;z-index:15;pointer-events:none"><span class="credit-badge">© NeuroArsenal</span></div>
 <script>document.addEventListener('DOMContentLoaded',function(){var c=document.getElementById('creditLine');if(c&&typeof APP_VERSION!=='undefined')c.querySelector('.credit-badge').textContent='© NeuroArsenal · '+APP_VERSION;});</script>
 
 <!-- Toast Container -->
@@ -752,6 +750,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </div>
       </div>
     </div>
+    <!-- Credit at bottom of scroll -->
+    <div id="creditLine" style="text-align:center;padding:12px 0 20px"><span class="credit-badge">© NeuroArsenal</span></div>
   </div>
 </div>
 
@@ -943,10 +943,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     </div>
 
     <!-- Brand -->
-    <div class="author-brand">
-      <div class="author-brand-icon">N</div>
-      <span class="author-brand-name">NeuroArsenal</span>
-      <span class="author-brand-tag">Preparacion Medica</span>
+    <div style="text-align:center;padding:20px 0 8px;width:100%">
+      <span class="credit-badge" style="font-size:11px;padding:6px 18px">© NeuroArsenal</span>
     </div>
   </div>
 </div>
@@ -1121,11 +1119,6 @@ function showView(id) {
     views[i].classList.remove('on');
   }
   document.getElementById(id).classList.add('on');
-  var credit = document.getElementById('creditLine');
-  if (credit) {
-    var isAuth = (id === 'vWelcome' || id === 'vLogin' || id === 'vRegister' || id === 'vGoogleArea');
-    credit.style.display = isAuth ? 'none' : '';
-  }
 }
 
 /* ===== TOAST SYSTEM ===== */
