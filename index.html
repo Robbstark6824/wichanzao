@@ -1202,6 +1202,7 @@ function generateWorkerId(name) {
 }
 
 function getInitials(name) {
+  if (!name || !name.trim()) return '??';
   var parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.substring(0, 2).toUpperCase();
@@ -1404,7 +1405,7 @@ async function doLogin() {
     saveWorker(profile);
     populateMain();
     showView('vMain');
-    toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
+    toast('Bienvenido/a, ' + (profile.name || 'Usuario').split(' ')[0], 'success');
     syncTodayFromServer(true);
   } catch(e) {
     toast('Error de conexion. Verifica tu internet.', 'error');
@@ -1468,8 +1469,10 @@ function handleGoogleResponse(response) {
   var el = document.getElementById('googleBtnContainer');
   if (el) el.remove();
 
-  // Decode JWT token
-  var payload = JSON.parse(atob(response.credential.split('.')[1]));
+  // Decode JWT token (base64url → base64)
+  var b64 = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  var payload = JSON.parse(atob(b64));
   var email = payload.email || '';
   var name = payload.name || email.split('@')[0];
   var picture = payload.picture || '';
@@ -1508,7 +1511,7 @@ function handleGoogleResponse(response) {
       saveWorker(profile);
       populateMain();
       showView('vMain');
-      toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
+      toast('Bienvenido/a, ' + (profile.name || 'Usuario').split(' ')[0], 'success');
       syncTodayFromServer(true);
     } else {
       // New user — need to select servicio and area
@@ -1825,6 +1828,8 @@ function openPrevFile(dateStr, index) {
       c.width = img.naturalWidth; c.height = img.naturalHeight;
       c.getContext('2d').drawImage(img, 0, 0);
       var dataUrl = c.toDataURL('image/jpeg', 0.92);
+      c.width = 0; c.height = 0;
+      img.src = '';
       openPhotoEditor(dataUrl, 'today', -1);
     };
     img.onerror = function() {
@@ -1846,15 +1851,18 @@ function adminTap() {
   if (adminTapCount >= 5) {
     adminTapCount = 0;
     var pwd = prompt('Clave admin:');
-    if (pwd === 'Nomejodas1') {
-      isAdmin = true;
-      haptic(50);
-      document.getElementById('mainName').textContent = worker.name + ' \uD83D\uDC51';
-      toast('Modo admin activado', 'success');
-      openAdmin();
-    } else if (pwd !== null) {
-      toast('Clave incorrecta', 'error');
-    }
+    if (pwd === null) return;
+    hashPass(pwd).then(function(h) {
+      if (h === '6b630b2b8e99ebca1fd39a7202168f59517e8e064958ab364ac0466d237956ad') {
+        isAdmin = true;
+        haptic(50);
+        document.getElementById('mainName').textContent = worker.name + ' \uD83D\uDC51';
+        toast('Modo admin activado', 'success');
+        openAdmin();
+      } else {
+        toast('Clave incorrecta', 'error');
+      }
+    });
   }
 }
 
@@ -2727,6 +2735,8 @@ function capturePhoto() {
   // Calculate visible area (match object-fit:cover crop)
   var vw = video.videoWidth;
   var vh = video.videoHeight;
+
+  if (!vw || !vh) { toast('Camara no lista', 'error'); return; }
   var ew = video.clientWidth;
   var eh = video.clientHeight;
 
@@ -2829,7 +2839,7 @@ function animateToThumbStack(dataUrl) {
   void img.offsetWidth;
 
   // Compute target rect
-  var sb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb') || '0');
+  var sb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb') || '0') || 0;
   var targetBottom = 100 + sb;
   var targetLeft = 16;
   var targetW = 60;
@@ -2971,8 +2981,6 @@ function showDosEnUnoPreview() {
       var dx = (pw - dw) / 2;
       var dy = yOffset + (maxH - dh) / 2;
       ctx.drawImage(img, dx, dy, dw, dh);
-      img.onload = null;
-      img.src = '';
 
       loaded++;
       if (loaded === 2) {
@@ -2985,6 +2993,7 @@ function showDosEnUnoPreview() {
         document.getElementById('dosEnUnoPreview').classList.add('on');
       }
     };
+    img.onerror = function() { toast('Error cargando imagen', 'error'); };
     img.src = imgSrc;
   }
 
@@ -3178,6 +3187,7 @@ function applyCrop() {
 
     setTimeout(initCropBox, 100);
   };
+  srcImg.onerror = function() { toast('Error al cargar imagen', 'error'); };
   srcImg.src = editorDataUrl;
 }
 
@@ -3223,6 +3233,7 @@ function confirmCrop() {
         cropModified = false;
         doConfirmSave();
       };
+      srcImg.onerror = function() { doConfirmSave(); };
       srcImg.src = editorDataUrl;
       return;
     }
@@ -3378,8 +3389,8 @@ function doConfirmSave() {
     cropBox.addEventListener('touchstart', onStart, { passive: false });
     var handles = cropBox.querySelectorAll('.pe-handle');
     for (var i = 0; i < handles.length; i++) {
-      handles[i].addEventListener('mousedown', onStart);
-      handles[i].addEventListener('touchstart', onStart, { passive: false });
+      handles[i].addEventListener('mousedown', function(e) { e.stopPropagation(); onStart(e); });
+      handles[i].addEventListener('touchstart', function(e) { e.stopPropagation(); onStart(e); }, { passive: false });
     }
   });
 })();
@@ -3572,13 +3583,15 @@ function optimizeImage(dataUrl, maxSizeBytes) {
 
       checkSize();
     };
+    img.onerror = function() { resolve(dataUrl); };
     img.src = dataUrl;
   });
 }
 
 function dataUrlToBlob(dataUrl) {
   var parts = dataUrl.split(',');
-  var mime = parts[0].match(/:(.*?);/)[1];
+  var m = parts[0].match(/:(.*?);/);
+  var mime = m ? m[1] : 'image/jpeg';
   var bstr = atob(parts[1]);
   var n = bstr.length;
   var u8arr = new Uint8Array(n);
@@ -3695,7 +3708,20 @@ function queueOfflineUpload(filename, mode, dataUrls) {
     servicio: worker.servicio || '',
     timestamp: Date.now()
   });
-  localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue));
+  try {
+    localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue));
+  } catch(e) {
+    // localStorage full — drop oldest items and retry
+    while (queue.length > 1) {
+      queue.shift();
+      try {
+        localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue));
+        toast('Memoria llena, se descartaron archivos antiguos', 'warn');
+        return;
+      } catch(e2) {}
+    }
+    toast('Sin espacio para guardar offline', 'error');
+  }
 }
 
 function getOfflineQueue() {
