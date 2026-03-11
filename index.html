@@ -443,7 +443,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 <!-- Offline Bar -->
 <div class="offline-bar" id="offlineBar">Sin conexion - Los archivos se subiran cuando vuelvas a estar en linea</div>
 
-<script>document.addEventListener('DOMContentLoaded',function(){var c=document.getElementById('creditLine');if(c&&typeof APP_VERSION!=='undefined')c.querySelector('.credit-badge').textContent='© NeuroArsenal · '+APP_VERSION;});</script>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
@@ -874,7 +873,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p>v4.1</p>
+              <p id="settingsVersionText">v110</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -944,7 +943,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 
     <!-- Brand -->
     <div style="text-align:center;padding:20px 0 8px;width:100%">
-      <span class="credit-badge" style="font-size:11px;padding:6px 18px">© NeuroArsenal</span>
+      <span class="credit-badge" style="font-size:11px;padding:6px 18px;border:1.5px solid rgba(78,205,196,.45);box-shadow:0 0 12px rgba(78,205,196,.12)">© NeuroArsenal</span>
     </div>
   </div>
 </div>
@@ -1012,7 +1011,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v4.1';
+var APP_VERSION = 'v110';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
