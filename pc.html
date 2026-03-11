@@ -383,6 +383,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   transition:transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
   background:var(--s2);
 }
+.lazy-thumb[data-src] { background:linear-gradient(135deg,var(--s2) 25%,var(--s1) 50%,var(--s2) 75%); background-size:200% 200%; animation:shimmer 1.5s infinite; }
 .file-thumb:hover { transform:scale(1.08); box-shadow:0 8px 24px rgba(0,0,0,.12); }
 .file-content { flex:1; min-width:0; }
 .file-head { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
@@ -446,6 +447,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   animation:lbIn .2s ease;
 }
 @keyframes lbIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 .lb-close {
   position:absolute; top:16px; right:16px;
   width:44px; height:44px; background:rgba(255,255,255,.1);
@@ -713,7 +715,10 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   <button class="lb-close" onclick="event.stopPropagation();closeLightbox()">&times;</button>
   <button class="lb-nav lb-prev" id="lbPrev" onclick="event.stopPropagation();navLightbox(-1)">&lsaquo;</button>
   <button class="lb-nav lb-next" id="lbNext" onclick="event.stopPropagation();navLightbox(1)">&rsaquo;</button>
-  <img id="lbImg" src="">
+  <div id="lbSpinner" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10002">
+    <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div>
+  </div>
+  <img id="lbImg" src="" style="transition:opacity .2s">
   <div class="lb-caption" id="lbCaption"></div>
   <div class="lb-bottom" id="lbBottom" onclick="event.stopPropagation()">
     <span class="lb-counter" id="lbCounter"></span>
@@ -818,6 +823,32 @@ function debouncedApplyFilters() {
   _searchTimer = setTimeout(applyFilters, 250);
 }
 
+// Performance: debounce renderDetailView
+var _renderDetailTimer = null;
+
+// Performance: IntersectionObserver for lazy thumbnails
+var _thumbObserver = null;
+function initThumbObserver() {
+  if (_thumbObserver) return;
+  _thumbObserver = new IntersectionObserver(function(entries) {
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].isIntersecting) {
+        var img = entries[i].target;
+        if (img.dataset.src) {
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+        }
+        _thumbObserver.unobserve(img);
+      }
+    }
+  }, { rootMargin: '200px' });
+}
+function observeLazyThumbs(container) {
+  if (!_thumbObserver) initThumbObserver();
+  var imgs = (container || document).querySelectorAll('img.lazy-thumb[data-src]');
+  for (var i = 0; i < imgs.length; i++) _thumbObserver.observe(imgs[i]);
+}
+
 // Performance: pre-computed service counts
 var _serviceCounts = {};
 
@@ -885,6 +916,15 @@ function pubUrl(path) {
   var u = SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
   if (imgCacheBuster) u += '?v=' + imgCacheBuster;
   return u;
+}
+
+// Generate thumbnail URL using Supabase image transforms (server-side resize)
+function thumbUrl(fullUrl) {
+  if (!fullUrl) return '';
+  // Convert /object/public/ to /render/image/public/ and add resize params
+  var t = fullUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  t += (t.indexOf('?') >= 0 ? '&' : '?') + 'width=150&resize=contain&quality=50';
+  return t;
 }
 
 /* =========================================================
@@ -1055,10 +1095,13 @@ async function loadAllData() {
 
     // Fetch all profiles AND date folders in parallel (2 requests per worker at once)
     var profilePromises = allEntries.map(function(entry) {
+      var ctrl = new AbortController();
+      var tid = setTimeout(function() { ctrl.abort(); }, 10000);
       return fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + entry.basePath + '/profile.json', {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-      }).then(function(r) { return r.ok ? r.json() : null; })
-        .catch(function() { return null; });
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+        signal: ctrl.signal
+      }).then(function(r) { clearTimeout(tid); return r.ok ? r.json() : null; })
+        .catch(function() { clearTimeout(tid); return null; });
     });
     var dateListPromises = allEntries.map(function(entry) {
       return sbList(entry.basePath + '/').catch(function() { return []; });
@@ -1106,9 +1149,14 @@ async function loadAllData() {
 
       if (!oldInfo || newDates.length !== oldDates.length || newDates.join(',') !== oldDates.join(',')) {
         dataChanged = true;
+        // Only reset loaded cache when dates actually changed
+        allWorkerFiles[wId] = { dates: newDates, loaded: {} };
+      } else if (oldInfo) {
+        // Dates unchanged — preserve loaded file cache, only invalidate today's date (may have new files)
+        var _td = todayStr();
+        if (oldInfo.loaded[_td]) delete oldInfo.loaded[_td];
+        oldInfo.dates = newDates;
       }
-      // Always reset loaded cache — files within a date can change between refreshes
-      allWorkerFiles[wId] = { dates: newDates, loaded: {} };
     }
 
     // 5. Load legacy folders structure
@@ -1463,7 +1511,15 @@ function groupDatesByMonth(dates) {
   return groups;
 }
 
-function renderDetailView(wId) {
+function renderDetailView(wId, immediate) {
+  if (!immediate) {
+    clearTimeout(_renderDetailTimer);
+    _renderDetailTimer = setTimeout(function() { renderDetailView(wId, true); }, 30);
+    return;
+  }
+  // Clean old lightbox registry to prevent memory leaks
+  lbRegistry = {};
+  lbRegId = 0;
   var detailEl = document.getElementById('viewDetail');
   var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
   if (!w) {
@@ -1565,6 +1621,7 @@ function renderDetailView(wId) {
   }
 
   detailEl.innerHTML = html;
+  observeLazyThumbs(detailEl);
 
   // Load files for expanded dates (reuse monthGroups from above)
   var _firstMonthSet = {};
@@ -1691,6 +1748,7 @@ async function loadDateFiles(wId, date) {
           html = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
         }
         bodyEl.innerHTML = html;
+        observeLazyThumbs(bodyEl);
         // Update file count in header
         var dateSection = bodyEl.parentElement;
         if (dateSection) {
@@ -1742,7 +1800,8 @@ function renderFileCard(doc, pathPrefix) {
     var lbData = doc.pages.map(function(p) { return { url: p.url, caption: doc.name + (doc.pages.length > 1 ? ' - Pag ' + p.num : ''), path: pathPrefix + '/' + p.rawName }; });
     var rid = 'lb' + (lbRegId++);
     lbRegistry[rid] = lbData;
-    html += '<img class="file-thumb" src="' + thumbSrc + '" loading="lazy" onclick="openLbReg(\'' + rid + '\',0)" onerror="this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\'">';
+    var tSrc = thumbUrl(thumbSrc);
+    html += '<img class="file-thumb lazy-thumb" data-src="' + tSrc + '" onclick="openLbReg(\'' + rid + '\',0)" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src=\'' + thumbSrc + '\';}else{this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\';}">';
   } else {
     html += '<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3)">&#128196;</div>';
   }
@@ -1872,21 +1931,20 @@ async function generatePdf(btn) {
   btn.innerHTML = '&#9203; Generando...';
 
   try {
-    // Load all images in parallel
-    var imgPromises = docData.pages.map(function(p) { return loadImage(p.url); });
-    var images = await Promise.all(imgPromises);
-
     var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     var pw = pdf.internal.pageSize.getWidth();
     var ph = pdf.internal.pageSize.getHeight();
 
-    for (var i = 0; i < images.length; i++) {
+    // Load images one by one to save memory
+    for (var i = 0; i < docData.pages.length; i++) {
+      btn.innerHTML = '&#9203; Pag ' + (i + 1) + '/' + docData.pages.length + '...';
       if (i > 0) pdf.addPage();
-      var img = images[i];
+      var img = await loadImage(docData.pages[i].url);
       var ratio = Math.min(pw / img.width, ph / img.height);
       var w = img.width * ratio;
       var h = img.height * ratio;
       pdf.addImage(img.src, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
+      img.src = ''; img = null; // Free memory
     }
 
     pdf.save(docData.name + '.pdf');
@@ -2175,7 +2233,22 @@ function showLightbox() {
 
 function updateLightboxUI() {
   var current = lightboxImages[lightboxIndex];
-  document.getElementById('lbImg').src = current.url;
+  var lbImg = document.getElementById('lbImg');
+
+  // Show loading state
+  lbImg.style.opacity = '0.3';
+  var spinner = document.getElementById('lbSpinner');
+  if (spinner) spinner.style.display = 'block';
+
+  // Use edited image if available, otherwise load from URL
+  var path = getLbPath(current);
+  var displayUrl = (path && editedImages[path]) ? editedImages[path] : current.url;
+
+  lbImg.onload = function() {
+    lbImg.style.opacity = '1';
+    if (spinner) spinner.style.display = 'none';
+  };
+  lbImg.src = displayUrl;
   document.getElementById('lbCaption').textContent = current.caption || '';
 
   // Counter
