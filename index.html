@@ -37,7 +37,7 @@
   --gd:#D4A853;--gd2:#C4983F;
   --bg:#F5F7FA;--s1:#FFF;--s2:#EEF1F6;
   --t1:#0D1B2A;--t2:#4A5568;--t3:#A0AEC0;
-  --bd:#D8DFE9;
+  --bd:#D8DFE9;--card:#FFF;
   --r1:18px;--r2:14px;--r3:10px;
   --st:env(safe-area-inset-top,0px);
   --sb:env(safe-area-inset-bottom,0px);
@@ -108,7 +108,7 @@ body{font-family:'Manrope',sans-serif;background:#080E1A;color:var(--t1);-webkit
 .progress-bar{height:100%;background:linear-gradient(90deg,var(--tl),var(--tl2));border-radius:3px;transition:width .3s;width:0%}
 
 /* ===== DARK MODE ===== */
-body.dark{--bg:#0D1117;--s1:#161B22;--s2:#21262D;--t1:#E6EDF3;--t2:#8B949E;--t3:#484F58;--bd:#30363D;--n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B}
+body.dark{--bg:#0D1117;--s1:#161B22;--s2:#21262D;--t1:#E6EDF3;--t2:#8B949E;--t3:#484F58;--bd:#30363D;--card:#161B22;--n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B}
 body.dark .regCard,body.dark .welcome-card{background:var(--s1);box-shadow:0 8px 32px rgba(0,0,0,.5)}
 body.dark .regCard .top h2,body.dark .welcome-card h2{color:var(--tl)}
 body.dark .field input,body.dark .field select{background:var(--s2);color:var(--t1);border-color:var(--bd)}
@@ -892,7 +892,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v121</p>
+              <p id="settingsVersionText">v122</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -1042,7 +1042,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v121';
+var APP_VERSION = 'v122';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
