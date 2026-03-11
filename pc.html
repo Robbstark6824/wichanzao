@@ -1261,15 +1261,16 @@ async function loadAllData() {
     var lastClean = localStorage.getItem('wichanzao_pc_lastclean') || '';
     var todayClean = todayStr();
     if (lastClean !== todayClean) {
-      autoCleanup();
       localStorage.setItem('wichanzao_pc_lastclean', todayClean);
+      // Defer cleanup so it doesn't block initial render
+      setTimeout(autoCleanup, 5000);
     }
 
   } catch (err) {
     console.error('Load error:', err);
     // On auto-refresh errors, keep current UI — don't destroy what's already shown
     if (!autoRefreshing) {
-      container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p><button onclick="loadAllData()" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:14px">Reintentar</button></div>';
+      container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p><button onclick="loadAllData()" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--tl);color:var(--n1);cursor:pointer;font-size:14px">Reintentar</button></div>';
     }
   }
 
@@ -1535,6 +1536,7 @@ function renderLegacyFiles(el, docs, folderName) {
     html += renderFileCard(docs[i], folderName);
   }
   el.innerHTML = html;
+  observeLazyThumbs(el);
 }
 
 async function dlLegacyZip(fname) {
@@ -1639,7 +1641,7 @@ function renderDetailView(wId) {
       var monthOpen = expandedDates[monthKey] !== undefined ? expandedDates[monthKey] : (mi === 0); // First month always open
 
       html += '<div class="month-group">';
-      html += '<div class="month-header" onclick="toggleMonth(\'' + escHtml(wId) + '\',\'' + mg.key + '\')">';
+      html += '<div class="month-header" onclick="toggleMonth(event,\'' + escHtml(wId) + '\',\'' + mg.key + '\')">';
       html += '<span class="month-arrow' + (monthOpen ? ' open' : '') + '">&#9654;</span>';
       html += '<h2>' + mg.label + (isCurrentMonth ? ' <span style="font-family:Manrope;font-size:11px;font-weight:700;background:var(--tl);color:var(--n1);padding:2px 8px;border-radius:4px;vertical-align:middle;margin-left:6px">MES ACTUAL</span>' : '') + '</h2>';
       html += '<span class="month-count">' + mg.dates.length + ' dia(s)</span>';
@@ -1655,7 +1657,7 @@ function renderDetailView(wId) {
           var loaded = fileInfo && fileInfo.loaded[date];
 
           html += '<div class="date-section">';
-          html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="event.stopPropagation();toggleDateSection(\'' + escHtml(wId) + '\',\'' + date + '\')">';
+          html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="event.stopPropagation();toggleDateSection(event,\'' + escHtml(wId) + '\',\'' + date + '\')">';
           html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
           html += '<div class="date-title"><h3>' + formatDate(date);
           if (isToday) html += ' <span class="today-badge">Hoy</span>';
@@ -1727,13 +1729,13 @@ function applyFilters() {
 /* =========================================================
    DATE SECTION TOGGLE & FILE LOADING
    ========================================================= */
-function toggleMonth(wId, monthKey) {
+function toggleMonth(e, wId, monthKey) {
   var mk = wId + '_month_' + monthKey;
-  var wasOpen = expandedDates[mk] !== undefined ? expandedDates[mk] : true;
+  var wasOpen = expandedDates[mk] !== undefined ? expandedDates[mk] : false;
   expandedDates[mk] = !wasOpen;
 
   // Try targeted DOM update first
-  var header = event && event.currentTarget;
+  var header = e && e.currentTarget;
   if (header) {
     var monthGroup = header.parentElement;
     var body = monthGroup ? monthGroup.querySelector('.month-body') : null;
@@ -1772,7 +1774,7 @@ function renderMonthDates(wId, monthKey, bodyEl) {
     var loaded = fileInfo && fileInfo.loaded[date];
 
     html += '<div class="date-section">';
-    html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="event.stopPropagation();toggleDateSection(\'' + escHtml(wId) + '\',\'' + date + '\')">';
+    html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="event.stopPropagation();toggleDateSection(event,\'' + escHtml(wId) + '\',\'' + date + '\')">';
     html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
     html += '<div class="date-title"><h3>' + formatDate(date);
     if (isToday) html += ' <span class="today-badge">Hoy</span>';
@@ -1802,13 +1804,13 @@ function renderMonthDates(wId, monthKey, bodyEl) {
   preloadMonthFiles(wId, monthDates);
 }
 
-function toggleDateSection(wId, date) {
+function toggleDateSection(e, wId, date) {
   var dk = wId + '_' + date;
   var wasOpen = expandedDates[dk] !== undefined ? expandedDates[dk] : (date === todayStr());
   expandedDates[dk] = !wasOpen;
 
   // Try targeted DOM update
-  var header = event && event.currentTarget;
+  var header = e && e.currentTarget;
   if (header) {
     var dateSection = header.parentElement;
     var bodyId = 'dbody_' + (wId + '_' + date).replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -2124,12 +2126,6 @@ function dlMultipleImagesReg(regId) {
 async function generatePdfReg(regId, btn) {
   var docData = lbRegistry[regId];
   if (!docData) return;
-  return generatePdf_inner(docData, btn);
-}
-async function generatePdf(btn) {
-  if (!window.jspdf) { showToast('jsPDF no cargado aun', 'error'); return; }
-  var docData;
-  try { docData = JSON.parse(btn.getAttribute('data-doc')); } catch (e) { return; }
   return generatePdf_inner(docData, btn);
 }
 async function generatePdf_inner(docData, btn) {
@@ -2813,8 +2809,11 @@ function softReloadDate(path) {
     var fi = allWorkerFiles[wId];
     if (fi && fi.loaded[date]) {
       delete fi.loaded[date];
-      loadDateFiles(wId, date);
     }
+    // Clear sbList cache for this date so network fetch gets fresh data
+    var basePath = allWorkerPaths[wId] || 'workers/' + wId;
+    delete _sbListCache[basePath + '/' + date + '/'];
+    loadDateFiles(wId, date);
   }
 }
 
@@ -2902,8 +2901,15 @@ function forceRefresh() {
       regs.forEach(function(r) { r.update(); });
     });
   }
-  // Reload all data fresh
+  // Reload all data fresh — clear ALL caches
   sbListCacheClear();
+  // Clear loaded file cache so stale files don't persist
+  var wKeys = Object.keys(allWorkerFiles);
+  for (var wk = 0; wk < wKeys.length; wk++) {
+    allWorkerFiles[wKeys[wk]].loaded = {};
+  }
+  editedImages = {};
+  imgCacheBuster = Date.now();
   loadAllData();
 }
 
