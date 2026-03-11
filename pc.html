@@ -1645,21 +1645,16 @@ function renderDetailView(wId, immediate) {
   detailEl.innerHTML = html;
   observeLazyThumbs(detailEl);
 
-  // Load files for expanded dates (reuse monthGroups from above)
-  var _firstMonthSet = {};
+  // Pre-load files for the first open month (all dates in parallel)
   if (monthGroups && monthGroups.length > 0) {
-    for (var fm = 0; fm < monthGroups[0].dates.length; fm++) _firstMonthSet[monthGroups[0].dates[fm]] = true;
-  }
-  var _today = todayStr();
-  for (var d = 0; d < filteredDates.length; d++) {
-    var dd = filteredDates[d];
-    var dk = wId + '_' + dd;
-    var ddMonth = dd.substring(0, 7);
-    var monthK = wId + '_month_' + ddMonth;
-    var monthIsOpen = expandedDates[monthK] !== undefined ? expandedDates[monthK] : !!_firstMonthSet[dd];
-    var isExp = expandedDates[dk] !== undefined ? expandedDates[dk] : (dd === _today);
-    if (monthIsOpen && isExp && !(fileInfo && fileInfo.loaded[dd])) {
-      loadDateFiles(wId, dd);
+    var firstOpenMonth = null;
+    for (var mo = 0; mo < monthGroups.length; mo++) {
+      var mk2 = wId + '_month_' + monthGroups[mo].key;
+      var mOpen = expandedDates[mk2] !== undefined ? expandedDates[mk2] : (mo === 0);
+      if (mOpen) { firstOpenMonth = monthGroups[mo]; break; }
+    }
+    if (firstOpenMonth) {
+      preloadMonthFiles(wId, firstOpenMonth.dates);
     }
   }
 }
@@ -1702,16 +1697,61 @@ function toggleMonth(wId, monthKey) {
       } else {
         body.classList.add('open');
         arrow.classList.add('open');
-        // Render month content if opening and empty
+        // Render month content inline if empty (no full re-render!)
         if (!body.children.length) {
-          renderDetailView(wId);
-          return;
+          renderMonthDates(wId, monthKey, body);
         }
       }
       return;
     }
   }
   renderDetailView(wId);
+}
+
+// Render just one month's dates into the month-body element (fast, no full re-render)
+function renderMonthDates(wId, monthKey, bodyEl) {
+  var fileInfo = allWorkerFiles[wId];
+  var dates = fileInfo ? fileInfo.dates : [];
+  var monthDates = dates.filter(function(d) { return d.substring(0, 7) === monthKey; });
+  var todayS = todayStr();
+  var html = '';
+
+  for (var i = 0; i < monthDates.length; i++) {
+    var date = monthDates[i];
+    var isToday = date === todayS;
+    var dateKey = wId + '_' + date;
+    var isOpen = expandedDates[dateKey] !== undefined ? expandedDates[dateKey] : isToday;
+    var loaded = fileInfo && fileInfo.loaded[date];
+
+    html += '<div class="date-section">';
+    html += '<div class="date-header' + (isOpen ? ' open' : '') + '" onclick="event.stopPropagation();toggleDateSection(\'' + escHtml(wId) + '\',\'' + date + '\')">';
+    html += '<span class="date-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>';
+    html += '<div class="date-title"><h3>' + formatDate(date);
+    if (isToday) html += ' <span class="today-badge">Hoy</span>';
+    html += '</h3>';
+    if (loaded) html += '<div class="count">' + loaded.length + ' archivo(s)</div>';
+    html += '</div>';
+    html += '<div class="date-actions">';
+    html += '<button class="date-btn" onclick="event.stopPropagation();dlDateZip(\'' + escHtml(wId) + '\',\'' + date + '\')">&#128230; ZIP</button>';
+    html += '</div></div>';
+
+    html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
+    if (isOpen && loaded) {
+      for (var fi = 0; fi < loaded.length; fi++) {
+        html += renderFileCard(loaded[fi], (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
+      }
+      if (!loaded.length) html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+    } else if (isOpen) {
+      html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
+    }
+    html += '</div></div>';
+  }
+
+  bodyEl.innerHTML = html;
+  observeLazyThumbs(bodyEl);
+
+  // Pre-load files for ALL dates in this month in parallel (user will click them)
+  preloadMonthFiles(wId, monthDates);
 }
 
 function toggleDateSection(wId, date) {
@@ -1735,9 +1775,21 @@ function toggleDateSection(wId, date) {
         body.classList.add('open');
         header.classList.add('open');
         arrow.classList.add('open');
-        // Load files if not yet loaded
         var fileInfo = allWorkerFiles[wId];
-        if (fileInfo && !fileInfo.loaded[date]) {
+        // If files already pre-loaded, render them immediately
+        if (fileInfo && fileInfo.loaded[date]) {
+          var docs = fileInfo.loaded[date];
+          if (!body.querySelector('.file-card') && docs.length) {
+            var basePath = allWorkerPaths[wId] || 'workers/' + wId;
+            var html = '';
+            for (var fi = 0; fi < docs.length; fi++) {
+              html += renderFileCard(docs[fi], basePath + '/' + date);
+            }
+            body.innerHTML = html;
+            observeLazyThumbs(body);
+          }
+        } else if (fileInfo) {
+          // Not yet loaded — fetch from network
           loadDateFiles(wId, date);
         }
       }
@@ -1794,6 +1846,56 @@ async function loadDateFiles(wId, date) {
       bodyEl.innerHTML = '<div style="padding:16px;color:var(--danger);font-size:12px">Error al cargar: ' + escHtml(e.message) + '</div>';
     }
   }
+}
+
+// Pre-load file lists for all dates in a month (parallel, background)
+function preloadMonthFiles(wId, monthDates) {
+  var fileInfo = allWorkerFiles[wId];
+  if (!fileInfo) return;
+  var basePath = allWorkerPaths[wId] || 'workers/' + wId;
+  var toLoad = monthDates.filter(function(d) { return !fileInfo.loaded[d]; });
+  if (!toLoad.length) return;
+
+  var idx = 0;
+  async function worker() {
+    while (idx < toLoad.length) {
+      var date = toLoad[idx++];
+      if (fileInfo.loaded[date]) continue;
+      try {
+        var items = await sbList(basePath + '/' + date + '/');
+        var docs = groupFiles(items, basePath + '/' + date);
+        fileInfo.loaded[date] = docs;
+        // Update DOM if this date's body is visible and empty
+        if (currentWorkerId === wId) {
+          var dk = wId + '_' + date;
+          var bodyEl = document.getElementById('dbody_' + dk.replace(/[^a-zA-Z0-9_-]/g, '_'));
+          if (bodyEl && bodyEl.classList.contains('open') && !bodyEl.querySelector('.file-card')) {
+            var html = '';
+            for (var fi = 0; fi < docs.length; fi++) {
+              html += renderFileCard(docs[fi], basePath + '/' + date);
+            }
+            if (!docs.length) html = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+            bodyEl.innerHTML = html;
+            observeLazyThumbs(bodyEl);
+            // Update count
+            var ds = bodyEl.parentElement;
+            if (ds) {
+              var countEl = ds.querySelector('.count');
+              if (countEl) countEl.textContent = docs.length + ' archivo(s)';
+              else {
+                var td = ds.querySelector('.date-title');
+                if (td) td.insertAdjacentHTML('beforeend', '<div class="count">' + docs.length + ' archivo(s)</div>');
+              }
+            }
+          }
+        }
+      } catch (e) { /* silent preload failure */ }
+    }
+  }
+  // Run 3 parallel workers for fast preloading
+  var workers = [];
+  for (var w = 0; w < Math.min(3, toLoad.length); w++) workers.push(worker());
+  Promise.all(workers);
 }
 
 /* =========================================================
