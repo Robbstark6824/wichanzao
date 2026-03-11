@@ -1612,7 +1612,7 @@ function deleteMyFolder() {
   listAllFiles(prefix).then(function(files) {
     if (!files.length) {
       toast('La carpeta ya esta vacia', 'info');
-      return;
+      return Promise.reject({ handled: true });
     }
     // Delete all files
     var paths = files.map(function(f) { return prefix + '/' + f; });
@@ -1623,15 +1623,15 @@ function deleteMyFolder() {
       body: JSON.stringify({ prefixes: paths })
     });
   }).then(function(res) {
-    if (res && !res.ok) throw new Error('Error ' + res.status);
+    if (!res.ok) throw new Error('Error ' + res.status);
     // Clear local today files
     todayFiles = [];
     localStorage.removeItem(getTodayKey());
     updateTodayCount();
     toast('Carpeta eliminada correctamente', 'success');
   }).catch(function(e) {
-    // Delete folder error handled via toast
-    toast('Error al eliminar: ' + e.message, 'error');
+    if (e && e.handled) return;
+    toast('Error al eliminar', 'error');
   });
 }
 
@@ -1740,7 +1740,7 @@ function loadPreviousDates(forceRefresh) {
     prevDatesLoaded = true;
     if (forceRefresh) { prevDatesCache = {}; toast('Actualizado', 'success'); }
   }).catch(function(e) {
-    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--danger);font-size:12px">Error: ' + e.message + '</div>';
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--danger);font-size:12px">Error al cargar fechas anteriores</div>';
   });
 }
 
@@ -2119,9 +2119,11 @@ function adminBrowseFolder(basePath, displayName) {
     var files = items.filter(function(i) { return i.id; });
     var bp = basePath.replace(/'/g, "\\'");
 
+    function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
     var html = '<div style="margin-bottom:12px">';
     html += '<button onclick="loadAdminWorkers()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; Volver</button>';
-    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + displayName + '</div>';
+    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + escapeHtml(displayName) + '</div>';
     html += '</div>';
 
     if (!subfolders.length && !files.length) {
@@ -2134,9 +2136,9 @@ function adminBrowseFolder(basePath, displayName) {
     for (var s = 0; s < subfolders.length; s++) {
       var sub = subfolders[s].name;
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div onclick="adminBrowseSub(\'' + bp + '\',\'' + sub + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
-      html += '<div style="font-weight:600;font-size:13px;color:var(--tl)">&#128193; ' + sub + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div></div>';
-      html += '<button onclick="adminDeleteSub(\'' + bp + '\',\'' + sub + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '<div onclick="adminBrowseSub(\'' + esc(bp) + '\',\'' + esc(sub) + '\',\'' + esc(displayName) + '\')" style="cursor:pointer;flex:1">';
+      html += '<div style="font-weight:600;font-size:13px;color:var(--tl)">&#128193; ' + escapeHtml(sub) + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div></div>';
+      html += '<button onclick="adminDeleteSub(\'' + esc(bp) + '\',\'' + esc(sub) + '\',\'' + esc(displayName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
       html += '</div>';
     }
 
@@ -2145,11 +2147,11 @@ function adminBrowseFolder(basePath, displayName) {
       var file = files[f];
       var size = file.metadata && file.metadata.size ? formatFileSize(file.metadata.size) : '';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div style="flex:1"><div style="font-weight:500;font-size:12px;color:var(--t2)">' + file.name + '</div>';
+      html += '<div style="flex:1"><div style="font-weight:500;font-size:12px;color:var(--t2)">' + escapeHtml(file.name) + '</div>';
       if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
       html += '</div>';
       if (file.name !== 'profile.json') {
-        html += '<button onclick="adminDeleteFile(\'' + prefix + '/' + file.name + '\',\'' + bp + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+        html += '<button onclick="adminDeleteFile(\'' + esc(prefix + '/' + file.name) + '\',\'' + esc(bp) + '\',\'' + esc(displayName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
       }
       html += '</div>';
     }
@@ -2176,9 +2178,11 @@ function adminBrowseSub(basePath, subName, displayName) {
     var files = items.filter(function(i) { return i.id; });
     var subfolders = items.filter(function(i) { return !i.id; });
 
+    function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
     var html = '<div style="margin-bottom:12px">';
-    html += '<button onclick="adminBrowseFolder(\'' + basePath.replace(/'/g, "\\'") + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + displayName + '</button>';
-    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + subName + '</div>';
+    html += '<button onclick="adminBrowseFolder(\'' + esc(basePath) + '\',\'' + esc(displayName) + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + escapeHtml(displayName) + '</button>';
+    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + escapeHtml(subName) + '</div>';
     html += '<div style="font-size:11px;color:var(--t3)">' + files.length + ' archivo(s)</div>';
     html += '</div>';
 
@@ -2186,7 +2190,7 @@ function adminBrowseSub(basePath, subName, displayName) {
     for (var s = 0; s < subfolders.length; s++) {
       var ss = subfolders[s].name;
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--t2)">&#128193; ' + ss + '</div></div>';
+      html += '<div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--t2)">&#128193; ' + escapeHtml(ss) + '</div></div>';
       html += '</div>';
     }
 
@@ -2198,15 +2202,15 @@ function adminBrowseSub(basePath, subName, displayName) {
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
       html += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
       if (isImg) {
-        var thumbUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + '/' + file.name;
+        var thumbUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + '/' + encodeURIComponent(file.name);
         html += '<img src="' + thumbUrl + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0">';
       } else {
         html += '<div style="width:36px;height:36px;border-radius:6px;background:rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--t3)">PDF</div>';
       }
-      html += '<div style="min-width:0"><div style="font-weight:500;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + file.name + '</div>';
+      html += '<div style="min-width:0"><div style="font-weight:500;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(file.name) + '</div>';
       if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
       html += '</div></div>';
-      html += '<button onclick="adminDeleteFile(\'' + prefix + '/' + file.name + '\',\'' + basePath.replace(/'/g, "\\'") + '\',\'' + displayName.replace(/'/g, "\\'") + '\',\'' + subName + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '<button onclick="adminDeleteFile(\'' + esc(prefix + '/' + file.name) + '\',\'' + esc(basePath) + '\',\'' + esc(displayName) + '\',\'' + esc(subName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
       html += '</div>';
     }
 
@@ -2465,10 +2469,7 @@ function openTodayFile(index) {
   haptic();
 
   if (f.type === 'pdf') {
-    // PDFs can't be cropped, just preview
-    var fp = document.getElementById('fullscreenPreview');
-    document.getElementById('fullscreenImg').src = f.url;
-    fp.classList.add('on');
+    window.open(f.url, '_blank');
     return;
   }
 
@@ -3436,6 +3437,8 @@ function hideQuickName() {
 
 function confirmQuickName() {
   if (!pendingUploadData) return;
+  var uploadData = pendingUploadData;
+  pendingUploadData = null; // prevent double-tap
 
   var input = document.getElementById('quickNameInput');
   var filename = input.value.trim();
@@ -3450,10 +3453,10 @@ function confirmQuickName() {
   input.disabled = true;
   haptic(25);
 
-  if (pendingUploadData.type === 'foto') {
-    doUploadFoto(filename, pendingUploadData.data);
+  if (uploadData.type === 'foto') {
+    doUploadFoto(filename, uploadData.data);
   } else {
-    doUploadPdf(filename, pendingUploadData.data);
+    doUploadPdf(filename, uploadData.data);
   }
 }
 
