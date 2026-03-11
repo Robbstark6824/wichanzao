@@ -328,20 +328,20 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 }
 
 /* Review panel */
-.review-panel{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding-top:var(--st)}
+.review-panel{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding-top:var(--st)}
 .review-panel.open{transform:translateY(0)}
-.review-top{display:flex;align-items:center;justify-content:space-between;padding:16px 20px}
+.review-top{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0}
 .review-top h3{color:#fff;font-size:16px;font-weight:800}
 .review-close{background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .review-close svg{width:18px;height:18px;fill:#fff}
-.review-body{flex:1;position:relative;min-height:0}
+.review-body{flex:1;display:flex;align-items:center;position:relative;overflow:hidden}
 .review-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:opacity .2s}
 .review-arrow:active{transform:translateY(-50%) scale(.9)}
 .review-arrow svg{width:20px;height:20px;fill:#fff}
 .review-arrow.left{left:8px}
 .review-arrow.right{right:8px}
 .review-arrow.hidden{opacity:0;pointer-events:none}
-.review-scroll{position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;display:flex;align-items:center;gap:14px;padding:0 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.review-scroll{width:100%;overflow-x:auto;overflow-y:hidden;display:flex;align-items:center;gap:14px;padding:0 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .review-page{flex-shrink:0;width:calc(100vw - 80px);max-width:320px;scroll-snap-align:center;position:relative}
 .review-page:first-child{margin-left:auto}
 .review-page:last-child{margin-right:auto}
@@ -349,7 +349,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .review-page .rp-num{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
 .review-page .rp-del{position:absolute;top:10px;right:10px;background:var(--danger);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .review-page .rp-del svg{width:14px;height:14px;fill:#fff}
-.review-bottom{display:flex;justify-content:center;padding:12px 20px;padding-bottom:calc(12px + var(--sb))}
+.review-bottom{display:flex;justify-content:center;padding:12px 20px;padding-bottom:calc(12px + var(--sb));flex-shrink:0}
 .review-edit-btn{background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:10px;padding:10px 28px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
 .review-edit-btn:active{transform:scale(.96)}
 
@@ -892,7 +892,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v120</p>
+              <p id="settingsVersionText">v121</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -1042,7 +1042,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v120';
+var APP_VERSION = 'v121';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';

@@ -1,4 +1,4 @@
-var CACHE_NAME = 'wichanzao-v120';
+var CACHE_NAME = 'wichanzao-v121';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
