@@ -27,7 +27,7 @@
   --r1:16px; --r2:12px; --r3:8px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior:smooth; }
+html { }
 body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
 
 /* ===== HEADER ===== */
@@ -153,10 +153,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .service-card {
   background:var(--s1); border-radius:20px; padding:30px 16px 24px;
   border:1px solid var(--bd); cursor:pointer; text-align:center;
-  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s cubic-bezier(.4,0,.2,1),border-color .3s; position:relative; overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  transition:transform .2s ease-out,box-shadow .2s ease-out,border-color .2s; position:relative; overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.04); will-change:transform;
 }
-.service-card:hover { will-change:transform; }
 .service-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:3px;
   background:linear-gradient(90deg,var(--tl),var(--gd)); opacity:0;
@@ -187,12 +186,11 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .worker-card {
   background:var(--s1); border-radius:18px; padding:20px;
   border:1px solid var(--bd); cursor:pointer;
-  transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1),border-color .25s;
+  transition:transform .15s ease-out,box-shadow .15s ease-out,border-color .15s;
   display:flex; align-items:center; gap:14px;
   position:relative; overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.03);
+  box-shadow:0 2px 8px rgba(0,0,0,.03); will-change:transform;
 }
-.worker-card:hover { will-change:transform; }
 .worker-card::before {
   content:''; position:absolute; inset:0;
   background:linear-gradient(135deg,transparent 60%,rgba(78,205,196,.03));
@@ -322,14 +320,14 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .date-section {
   background:var(--s1); border-radius:16px;
   border:1px solid var(--bd); margin-bottom:12px;
-  overflow:hidden; transition:box-shadow .25s;
+  overflow:hidden; transition:box-shadow .15s;
   box-shadow:0 1px 4px rgba(0,0,0,.03);
   content-visibility:auto; contain-intrinsic-size:auto 80px;
 }
 .date-section:hover { box-shadow:0 4px 20px rgba(0,0,0,.06); }
 .date-header {
   padding:16px 20px; display:flex; align-items:center; gap:12px;
-  cursor:pointer; user-select:none; transition:background .15s;
+  cursor:pointer; user-select:none; transition:background .1s;
   border-bottom:1px solid transparent;
 }
 .date-header:hover { background:#FAFBFC; }
@@ -446,8 +444,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 .lb-close {
   position:absolute; top:16px; right:16px;
-  width:44px; height:44px; background:rgba(255,255,255,.1);
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  width:44px; height:44px; background:rgba(255,255,255,.15);
   border:1px solid rgba(255,255,255,.1);
   border-radius:50%; color:#fff; font-size:22px;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
@@ -461,7 +458,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .lb-bottom {
   position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
   display:flex; align-items:center; gap:10px;
-  background:rgba(12,31,61,.85); backdrop-filter:blur(12px);
+  background:rgba(12,31,61,.92);
   border-radius:var(--r1); padding:12px 20px;
   box-shadow:0 8px 32px rgba(0,0,0,.4);
 }
@@ -867,7 +864,10 @@ function escHtml(s) {
 
 function getInitials(name) {
   if (!name) return '?';
-  return name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
+  var r = name[0] || '';
+  var sp = name.indexOf(' ');
+  if (sp > 0 && sp < name.length - 1) r += name[sp + 1];
+  return r.toUpperCase();
 }
 
 var _todayCache = '', _todayCacheTs = 0;
@@ -879,10 +879,14 @@ function todayStr() {
   return _todayCache;
 }
 
+var _fmtDateCache = {};
+var _fmtMonths = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function formatDate(d) {
-  var months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  var dt = new Date(d + 'T12:00:00');
-  return dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + dt.getFullYear();
+  if (_fmtDateCache[d]) return _fmtDateCache[d];
+  var p = d.split('-');
+  var r = parseInt(p[2]) + ' ' + _fmtMonths[parseInt(p[1]) - 1] + ' ' + p[0];
+  _fmtDateCache[d] = r;
+  return r;
 }
 
 function fmtSize(b) {
@@ -892,10 +896,7 @@ function fmtSize(b) {
   return (b / 1048576).toFixed(1) + ' MB';
 }
 
-function timeAgo(iso) {
-  if (!iso) return 'Desconocido';
-  var diff = Date.now() - new Date(iso).getTime();
-  var m = diff / 60000;
+function timeAgoFromMin(m) {
   if (m < 1) return 'Ahora mismo';
   if (m < 2) return 'Hace 1 min';
   if (m < 60) return 'Hace ' + Math.round(m) + ' min';
@@ -907,27 +908,34 @@ function timeAgo(iso) {
   return 'Hace ' + Math.round(d) + ' dias';
 }
 
+// Cached: avoid re-parsing same ISO timestamp within 30s
+var _actCache = {};
+var _actCacheTs = 0;
 function activityInfo(iso) {
   if (!iso) return { label: 'Desconocido', color: 'gray', minutes: Infinity };
-  var m = (Date.now() - new Date(iso).getTime()) / 60000;
-  if (m < 15) return { label: 'Activo', color: 'green', minutes: m };
-  if (m < 60) return { label: timeAgo(iso), color: 'yellow', minutes: m };
-  return { label: timeAgo(iso), color: 'gray', minutes: m };
+  var now = Date.now();
+  if (now - _actCacheTs > 30000) { _actCache = {}; _actCacheTs = now; }
+  if (_actCache[iso]) return _actCache[iso];
+  var m = (now - new Date(iso).getTime()) / 60000;
+  var r;
+  if (m < 15) r = { label: 'Activo', color: 'green', minutes: m };
+  else if (m < 60) r = { label: timeAgoFromMin(m), color: 'yellow', minutes: m };
+  else r = { label: timeAgoFromMin(m), color: 'gray', minutes: m };
+  _actCache[iso] = r;
+  return r;
 }
 
+var _pubBase = SB_URL + '/storage/v1/object/public/' + BUCKET + '/';
 function pubUrl(path) {
-  var u = SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
-  if (imgCacheBuster) u += '?v=' + imgCacheBuster;
-  return u;
+  return imgCacheBuster ? _pubBase + path + '?v=' + imgCacheBuster : _pubBase + path;
 }
 
 // Generate thumbnail URL using Supabase image transforms (server-side resize)
+var _thumbParams = 'width=150&resize=contain&quality=50';
 function thumbUrl(fullUrl) {
   if (!fullUrl) return '';
-  // Convert /object/public/ to /render/image/public/ and add resize params
   var t = fullUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-  t += (t.indexOf('?') >= 0 ? '&' : '?') + 'width=150&resize=contain&quality=50';
-  return t;
+  return t + (t.indexOf('?') >= 0 ? '&' : '?') + _thumbParams;
 }
 
 /* =========================================================
@@ -1000,6 +1008,7 @@ var _reThumb = /_thumb\.(jpg|jpeg|png)$/i;
 var _rePdf = /\.pdf$/i;
 var _rePage = /^(.+)_pag(\d+)\.(jpg|jpeg|png)$/i;
 var _reImg = /\.(jpg|jpeg|png)$/i;
+var _reDateFolder = /^\d{4}-\d{2}-\d{2}$/;
 
 function groupFiles(rawFiles, pathPrefix) {
   var groups = {};
@@ -1074,8 +1083,27 @@ async function loadAllData() {
   var container = document.getElementById('workersContainer');
   var isFirstLoad = allWorkers.length === 0;
 
+  // On first load, try cached profiles for instant render
   if (isFirstLoad) {
-    container.innerHTML = buildSkeletonGrid();
+    var cachedWorkers = null;
+    try { cachedWorkers = JSON.parse(localStorage.getItem('wichanzao_pc_workers_cache')); } catch(e) {}
+    if (cachedWorkers && cachedWorkers.length) {
+      // Instant render from cache while network loads
+      allWorkers = cachedWorkers;
+      allWorkersMap = {};
+      for (var ci = 0; ci < cachedWorkers.length; ci++) {
+        var cw = cachedWorkers[ci];
+        cw._nameLower = (cw.name || '').toLowerCase();
+        cw._areaLower = (cw.area || '').toLowerCase();
+        cw._lastActiveTs = cw.last_active ? new Date(cw.last_active).getTime() : 0;
+        allWorkersMap[cw._folder || cw.worker_id] = cw;
+        if (cw._basePath) allWorkerPaths[cw._folder] = cw._basePath;
+      }
+      computeServiceCounts();
+      renderDirectory();
+    } else {
+      container.innerHTML = buildSkeletonGrid();
+    }
   }
 
   try {
@@ -1149,6 +1177,9 @@ async function loadAllData() {
       p._folder = allEntries[i].name;
       p._basePath = allEntries[i].basePath;
       p._servicio = allEntries[i].servicio || p.servicio || '';
+      p._nameLower = (p.name || '').toLowerCase();
+      p._areaLower = (p.area || '').toLowerCase();
+      p._lastActiveTs = p.last_active ? new Date(p.last_active).getTime() : 0;
       allWorkerPaths[p._folder] = p._basePath;
       workers.push(p);
     }
@@ -1167,6 +1198,16 @@ async function loadAllData() {
     }
     computeServiceCounts();
 
+    // Cache profiles for instant next load (only serializable fields)
+    try {
+      var cacheData = workers.map(function(w) {
+        return { name:w.name, area:w.area, _folder:w._folder, _basePath:w._basePath,
+                 _servicio:w._servicio, last_active:w.last_active, avatar_color:w.avatar_color,
+                 turno:w.turno, worker_id:w.worker_id, servicio:w.servicio };
+      });
+      localStorage.setItem('wichanzao_pc_workers_cache', JSON.stringify(cacheData));
+    } catch(e) {}
+
     // 4. Process preloaded date folders
     var todayS = todayStr();
 
@@ -1174,7 +1215,7 @@ async function loadAllData() {
     for (var wi = 0; wi < workers.length; wi++) {
       var wId = workers[wi]._folder || workers[wi].worker_id;
       var dateItems = dateResults[wi].filter(function(i) {
-        return i.id === null && i.name && i.name.match(/^\d{4}-\d{2}-\d{2}$/);
+        return i.id === null && i.name && _reDateFolder.test(i.name);
       });
       dateItems.sort(function(a, b) { return b.name.localeCompare(a.name); });
 
@@ -1298,12 +1339,12 @@ function renderDirectory() {
   var filtered = [];
   for (var fi = 0; fi < allWorkers.length; fi++) {
     var w = allWorkers[fi];
-    // Activity check
-    if (w.last_active && (now - new Date(w.last_active).getTime()) >= threeMonthsMs) continue;
+    // Activity check (uses pre-computed timestamp)
+    if (w._lastActiveTs && (now - w._lastActiveTs) >= threeMonthsMs) continue;
     // Servicio check
     if (hasServicio && (w._servicio || w.servicio || '') !== servicioFilter) continue;
-    // Search check
-    if (query && !w.name.toLowerCase().includes(query) && !(w.area || '').toLowerCase().includes(query)) continue;
+    // Search check (uses pre-computed lowercase)
+    if (query && !w._nameLower.includes(query) && !w._areaLower.includes(query)) continue;
     filtered.push(w);
   }
 
@@ -1514,7 +1555,7 @@ function openWorkerDetail(wId) {
   document.getElementById('viewDirectory').classList.add('hidden');
   document.getElementById('viewDetail').classList.add('visible');
   renderDetailView(wId);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 }
 
 function closeDetail() {
@@ -1951,9 +1992,13 @@ function renderFileCard(doc, pathPrefix) {
     if (doc.pdfUrl) {
       html += '<button class="dl-btn pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
     } else {
-      html += '<button class="dl-btn pdf" onclick="generatePdf(this)" data-doc="' + escHtml(JSON.stringify({ name: doc.name, pages: doc.pages.map(function(p) { return { url: p.url }; }) })) + '">&#128196; Generar PDF</button>';
+      var pdfRid = 'pdf' + (lbRegId++);
+      lbRegistry[pdfRid] = { name: doc.name, pages: doc.pages.map(function(p) { return { url: p.url }; }) };
+      html += '<button class="dl-btn pdf" onclick="generatePdfReg(\'' + pdfRid + '\',this)">&#128196; Generar PDF</button>';
     }
-    html += '<button class="dl-btn secondary" onclick="dlMultipleImages(this)" data-pages="' + escHtml(JSON.stringify(doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; }))) + '">&#128444; Imagenes</button>';
+    var dlRid = 'dl' + (lbRegId++);
+    lbRegistry[dlRid] = doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; });
+    html += '<button class="dl-btn secondary" onclick="dlMultipleImagesReg(\'' + dlRid + '\')">&#128444; Imagenes</button>';
   } else {
     html += '<button class="dl-btn primary" onclick="forceDl(\'' + doc.pages[0].url + '\',\'' + escHtml(doc.name) + '.jpg\')">&#128190; Descargar JPG</button>';
   }
@@ -2054,38 +2099,41 @@ async function fetchBatchToZip(files, zipFolder, onProgress) {
   await Promise.all(workers);
 }
 
-function dlMultipleImages(btn) {
-  try {
-    var pages = JSON.parse(btn.getAttribute('data-pages'));
-    showToast('Descargando ' + pages.length + ' imagenes...', 'info');
-    var urls = pages.map(function(p) { return p.url; });
-    fetchBatch(urls, function(done, total) {
-      if (done === total) showToast(total + ' imagenes descargadas', 'success');
-    }).then(function(blobs) {
-      for (var i = 0; i < blobs.length; i++) {
-        if (!blobs[i]) continue;
-        var blobUrl = URL.createObjectURL(blobs[i]);
-        var a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = pages[i].name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        (function(u) { setTimeout(function() { URL.revokeObjectURL(u); }, 2000); })(blobUrl);
-      }
-    });
-  } catch (e) {
-    showToast('Error al descargar', 'error');
-  }
+function dlMultipleImagesReg(regId) {
+  var pages = lbRegistry[regId];
+  if (!pages || !pages.length) return;
+  showToast('Descargando ' + pages.length + ' imagenes...', 'info');
+  var urls = pages.map(function(p) { return p.url; });
+  fetchBatch(urls, function(done, total) {
+    if (done === total) showToast(total + ' imagenes descargadas', 'success');
+  }).then(function(blobs) {
+    for (var i = 0; i < blobs.length; i++) {
+      if (!blobs[i]) continue;
+      var blobUrl = URL.createObjectURL(blobs[i]);
+      var a = document.createElement('a');
+      a.href = blobUrl; a.download = pages[i].name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      (function(u) { setTimeout(function() { URL.revokeObjectURL(u); }, 2000); })(blobUrl);
+    }
+  });
 }
 
 /* =========================================================
    PDF GENERATION
    ========================================================= */
+async function generatePdfReg(regId, btn) {
+  var docData = lbRegistry[regId];
+  if (!docData) return;
+  return generatePdf_inner(docData, btn);
+}
 async function generatePdf(btn) {
   if (!window.jspdf) { showToast('jsPDF no cargado aun', 'error'); return; }
   var docData;
   try { docData = JSON.parse(btn.getAttribute('data-doc')); } catch (e) { return; }
+  return generatePdf_inner(docData, btn);
+}
+async function generatePdf_inner(docData, btn) {
+  if (!window.jspdf) { showToast('jsPDF no cargado aun', 'error'); return; }
 
   btn.disabled = true;
   var origText = btn.innerHTML;
@@ -2770,9 +2818,9 @@ function softReloadDate(path) {
   }
 }
 
-/* PC Editor crop drag */
+/* PC Editor crop drag — throttled with RAF */
 (function() {
-  var dragType = '', handle = '', sx, sy, sl, st, sw, sh;
+  var dragType = '', handle = '', sx, sy, sl, st, sw, sh, rafId = 0, lastE = null;
 
   document.addEventListener('mousedown', function(e) {
     var crop = document.getElementById('pceCrop');
@@ -2791,12 +2839,13 @@ function softReloadDate(path) {
     e.preventDefault();
   });
 
-  document.addEventListener('mousemove', function(e) {
-    if (!dragType) return;
-    if (!document.getElementById('pcEditor').classList.contains('on')) { dragType = ''; return; }
+  function applyDrag() {
+    rafId = 0;
+    if (!dragType || !lastE) return;
     var crop = document.getElementById('pceCrop');
+    if (!crop) return;
     var b = getImgBounds();
-    var dx = e.clientX - sx, dy = e.clientY - sy;
+    var dx = lastE.clientX - sx, dy = lastE.clientY - sy;
 
     if (dragType === 'move') {
       crop.style.left = Math.max(b.l, Math.min(sl + dx, b.l + b.w - crop.offsetWidth)) + 'px';
@@ -2824,9 +2873,16 @@ function softReloadDate(path) {
         crop.style.height = nh + 'px';
       }
     }
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragType) return;
+    if (!document.getElementById('pcEditor').classList.contains('on')) { dragType = ''; return; }
+    lastE = e;
+    if (!rafId) rafId = requestAnimationFrame(applyDrag);
   });
 
-  document.addEventListener('mouseup', function() { dragType = ''; });
+  document.addEventListener('mouseup', function() { dragType = ''; lastE = null; });
 })();
 
 /* =========================================================
@@ -2897,8 +2953,8 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg) {
     // Force update check on EVERY page load
     reg.update();
-    // Check every 3 minutes (was 60s — less aggressive)
-    setInterval(function() { reg.update(); }, 180000);
+    // Check every 10 minutes
+    setInterval(function() { reg.update(); }, 600000);
     reg.addEventListener('updatefound', function() {
       var nw = reg.installing;
       if (nw) nw.addEventListener('statechange', function() {
