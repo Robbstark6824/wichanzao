@@ -7,17 +7,9 @@
 <link rel="manifest" href="./manifest-pc.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Wichanzao · Panel de Referencias</title>
-<script>
-// Nuclear SW reset: runs BEFORE anything else to ensure latest code
-(function(){
-  if (!navigator.serviceWorker) return;
-  navigator.serviceWorker.getRegistration().then(function(reg) {
-    if (!reg) return;
-    reg.update();
-  });
-})();
-</script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- SW update handled at bottom of page -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://xqphjvppfgwabfruyjae.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,8 +62,8 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .header-right { display:flex; align-items:center; gap:16px; position:relative; z-index:1; }
 .header-status {
   display:flex; align-items:center; gap:8px;
-  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
-  border-radius:10px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
   padding:9px 16px; font-size:11px; font-weight:600;
 }
 .status-dot {
@@ -162,8 +154,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   background:var(--s1); border-radius:20px; padding:30px 16px 24px;
   border:1px solid var(--bd); cursor:pointer; text-align:center;
   transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s cubic-bezier(.4,0,.2,1),border-color .3s; position:relative; overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.04); will-change:transform;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
 }
+.service-card:hover { will-change:transform; }
 .service-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:3px;
   background:linear-gradient(90deg,var(--tl),var(--gd)); opacity:0;
@@ -197,8 +190,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1),border-color .25s;
   display:flex; align-items:center; gap:14px;
   position:relative; overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.03); will-change:transform;
+  box-shadow:0 2px 8px rgba(0,0,0,.03);
 }
+.worker-card:hover { will-change:transform; }
 .worker-card::before {
   content:''; position:absolute; inset:0;
   background:linear-gradient(135deg,transparent 60%,rgba(78,205,196,.03));
@@ -328,7 +322,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .date-section {
   background:var(--s1); border-radius:16px;
   border:1px solid var(--bd); margin-bottom:12px;
-  overflow:hidden; transition:all .25s;
+  overflow:hidden; transition:box-shadow .25s;
   box-shadow:0 1px 4px rgba(0,0,0,.03);
   content-visibility:auto; contain-intrinsic-size:auto 80px;
 }
@@ -665,7 +659,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
     <div class="header-right">
       <div class="header-status">
         <span class="status-dot" id="statusDot"></span>
-        <span>Auto-refresh: <span class="refresh-countdown" id="countdown">30</span>s</span>
+        <span>Auto-refresh: <span class="refresh-countdown" id="countdown">60</span>s</span>
       </div>
     </div>
   </div>
@@ -720,7 +714,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   <div id="lbSpinner" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10002">
     <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div>
   </div>
-  <img id="lbImg" src="" style="transition:opacity .2s">
+  <img id="lbImg" src="" decoding="async" style="transition:opacity .2s">
   <div class="lb-caption" id="lbCaption"></div>
   <div class="lb-bottom" id="lbBottom" onclick="event.stopPropagation()">
     <span class="lb-counter" id="lbCounter"></span>
@@ -776,7 +770,7 @@ var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
 var HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
-var REFRESH_INTERVAL = 30;
+var REFRESH_INTERVAL = 60;
 
 /* =========================================================
    SERVICIOS
@@ -796,6 +790,7 @@ var SERVICIOS_KEYS = Object.keys(SERVICIOS);
    STATE
    ========================================================= */
 var allWorkers = [];
+var allWorkersMap = {}; // wId -> worker object (O(1) lookup)
 var allWorkerFiles = {};
 var allWorkerPaths = {}; // wId -> basePath (e.g. 'medicina/workers/maria')
 var servicioFilter = localStorage.getItem('wichanzao_pc_servicio') || 'all';
@@ -876,7 +871,14 @@ function getInitials(name) {
   return name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
 }
 
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+var _todayCache = '', _todayCacheTs = 0;
+function todayStr() {
+  var now = Date.now();
+  if (now - _todayCacheTs < 60000) return _todayCache;
+  _todayCache = new Date().toISOString().split('T')[0];
+  _todayCacheTs = now;
+  return _todayCache;
+}
 
 function formatDate(d) {
   var months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1152,6 +1154,12 @@ async function loadAllData() {
     });
 
     allWorkers = workers;
+    // Build O(1) lookup map
+    allWorkersMap = {};
+    for (var mi = 0; mi < workers.length; mi++) {
+      var mId = workers[mi]._folder || workers[mi].worker_id;
+      allWorkersMap[mId] = workers[mi];
+    }
     computeServiceCounts();
 
     // 4. Process preloaded date folders
@@ -1543,7 +1551,7 @@ function renderDetailView(wId, immediate) {
   lbRegistry = {};
   lbRegId = 0;
   var detailEl = document.getElementById('viewDetail');
-  var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
+  var w = allWorkersMap[wId];
   if (!w) {
     detailEl.innerHTML = '<div class="empty-state"><h3>Trabajador no encontrado</h3></div>';
     return;
@@ -2199,7 +2207,7 @@ async function dlDateZip(wId, date) {
   var docs = fileInfo.loaded[date];
   if (!docs.length) { showToast('Sin archivos en esta fecha', 'info'); return; }
 
-  var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
+  var w = allWorkersMap[wId];
   var wName = w ? w.name.replace(/\s+/g, '_') : wId;
   await downloadDocsAsZip(docs, wName + '_' + date);
 }
@@ -2208,7 +2216,7 @@ async function dlWorkerZip(wId) {
   var fileInfo = allWorkerFiles[wId];
   if (!fileInfo) return;
 
-  var w = allWorkers.find(function(x) { return (x._folder || x.worker_id) === wId; });
+  var w = allWorkersMap[wId];
   var wName = w ? w.name.replace(/\s+/g, '_') : wId;
 
   if (!window.JSZip) { showToast('JSZip no cargado', 'error'); return; }
@@ -2542,9 +2550,10 @@ function resetCountdown() {
   updateCountdownDisplay();
 }
 
+var _countdownEl = null;
 function updateCountdownDisplay() {
-  var el = document.getElementById('countdown');
-  if (el) el.textContent = countdownValue;
+  if (!_countdownEl) _countdownEl = document.getElementById('countdown');
+  if (_countdownEl && _countdownEl.textContent != countdownValue) _countdownEl.textContent = countdownValue;
 }
 
 function startAutoRefresh() {
@@ -2785,6 +2794,7 @@ function softReloadDate(path) {
 
   document.addEventListener('mousemove', function(e) {
     if (!dragType) return;
+    if (!document.getElementById('pcEditor').classList.contains('on')) { dragType = ''; return; }
     var crop = document.getElementById('pceCrop');
     var b = getImgBounds();
     var dx = e.clientX - sx, dy = e.clientY - sy;
