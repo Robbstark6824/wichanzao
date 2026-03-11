@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0C1F3D">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com accounts.google.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co *.googleusercontent.com; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co accounts.google.com; frame-src accounts.google.com; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <link rel="apple-touch-icon" href="./icons/icon-192.svg">
@@ -1182,7 +1184,10 @@ function loadWorker() {
 
 function saveWorker(w) {
   worker = w;
-  localStorage.setItem('wichanzao_worker', JSON.stringify(w));
+  // Strip password from localStorage — only needed during auth, not ongoing
+  var safe = {};
+  for (var k in w) { if (k !== 'pass') safe[k] = w[k]; }
+  localStorage.setItem('wichanzao_worker', JSON.stringify(safe));
 }
 
 function generateWorkerId(name) {
@@ -1254,8 +1259,20 @@ function updateAreaOptions(servicioSelectId, areaSelectId) {
   }
 }
 
+/* ===== PASSWORD HASHING ===== */
+async function hashPass(plain) {
+  var enc = new TextEncoder().encode(plain);
+  var buf = await crypto.subtle.digest('SHA-256', enc);
+  var arr = Array.from(new Uint8Array(buf));
+  return arr.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
+function isHashed(p) {
+  return p && p.length === 64 && /^[0-9a-f]+$/.test(p);
+}
+
 /* ===== REGISTRATION ===== */
-function doRegister() {
+async function doRegister() {
   var name = document.getElementById('regName').value.trim();
   var folder = document.getElementById('regFolder').value.trim().toLowerCase();
   var pass = document.getElementById('regPass').value;
@@ -1277,6 +1294,8 @@ function doRegister() {
   haptic(25);
   toast('Verificando...', 'info');
 
+  var hashed = await hashPass(pass);
+
   // Check if folder already exists in this servicio
   var checkPath = servicio + '/workers/' + folderId + '/profile.json';
   fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + checkPath, {
@@ -1293,7 +1312,7 @@ function doRegister() {
       name: name,
       servicio: servicio,
       area: area,
-      pass: pass,
+      pass: hashed,
       created: new Date().toISOString()
     };
 
@@ -1309,7 +1328,7 @@ function doRegister() {
       name: name,
       servicio: servicio,
       area: area,
-      pass: pass,
+      pass: hashed,
       created: new Date().toISOString()
     };
 
@@ -1321,7 +1340,7 @@ function doRegister() {
   });
 }
 
-function doLogin() {
+async function doLogin() {
   var folder = document.getElementById('loginFolder').value.trim().toLowerCase();
   var pass = document.getElementById('loginPass').value;
 
@@ -1348,7 +1367,8 @@ function doLogin() {
     }).catch(function() { return null; });
   });
 
-  Promise.all(fetches).then(function(results) {
+  try {
+    var results = await Promise.all(fetches);
     var profile = null;
     for (var i = 0; i < results.length; i++) {
       if (results[i]) { profile = results[i]; break; }
@@ -1357,12 +1377,27 @@ function doLogin() {
       toast('Usuario no encontrado. Verifica tu carpeta.', 'error');
       return;
     }
-    if (profile.pass && profile.pass !== pass) {
-      toast('Contrasena incorrecta', 'error');
-      return;
-    }
-    if (!profile.pass) {
-      profile.pass = pass;
+
+    // Password verification with hash migration
+    if (isHashed(profile.pass)) {
+      // Already hashed — compare hashes
+      var inputHash = await hashPass(pass);
+      if (inputHash !== profile.pass) {
+        toast('Contrasena incorrecta', 'error');
+        return;
+      }
+    } else if (profile.pass) {
+      // Legacy plaintext — compare then migrate
+      if (profile.pass !== pass) {
+        toast('Contrasena incorrecta', 'error');
+        return;
+      }
+      // Auto-migrate to hash
+      profile.pass = await hashPass(pass);
+      uploadProfileToSupabase(profile);
+    } else {
+      // No password set — set one now
+      profile.pass = await hashPass(pass);
       uploadProfileToSupabase(profile);
     }
 
@@ -1371,9 +1406,9 @@ function doLogin() {
     showView('vMain');
     toast('Bienvenido/a, ' + profile.name.split(' ')[0], 'success');
     syncTodayFromServer(true);
-  }).catch(function() {
+  } catch(e) {
     toast('Error de conexion. Verifica tu internet.', 'error');
-  });
+  }
 }
 
 /* ===== GOOGLE SIGN-IN ===== */
@@ -1532,7 +1567,7 @@ function uploadProfileToSupabase(w) {
   }).then(function(res) {
     if (!res.ok) throw new Error('Upload failed: ' + res.status);
   }).catch(function(err) {
-    console.warn('Profile upload failed, will retry later:', err);
+    // Profile upload failed silently — will retry on next save
   });
 }
 
@@ -1578,7 +1613,7 @@ function deleteMyFolder() {
     }
     // Delete all files
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    console.log('Deleting', paths.length, 'files:', paths);
+    // Deleting files from server
     return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
@@ -1592,7 +1627,7 @@ function deleteMyFolder() {
     updateTodayCount();
     toast('Carpeta eliminada correctamente', 'success');
   }).catch(function(e) {
-    console.error('Delete folder error:', e);
+    // Delete folder error handled via toast
     toast('Error al eliminar: ' + e.message, 'error');
   });
 }
@@ -2298,7 +2333,7 @@ function syncTodayFromServer(showFeedback) {
   var basePath = workerBasePath(worker);
   var prefix = basePath + '/' + dateStr + '/';
 
-  console.log('[SYNC] Syncing today files from:', prefix);
+  // Syncing today files
 
   fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
     method: 'POST',
@@ -2307,7 +2342,7 @@ function syncTodayFromServer(showFeedback) {
   }).then(function(res) { return res.json(); })
   .then(function(items) {
     if (!Array.isArray(items)) items = [];
-    console.log('[SYNC] Server returned', items.length, 'items');
+    // Server sync response received
 
     var files = items.filter(function(i) { return i.id && i.name && i.name !== 'profile.json'; });
 
@@ -2326,7 +2361,7 @@ function syncTodayFromServer(showFeedback) {
       // Check if this file's URL (or its base) exists on server
       if (serverUrls[f.url]) return true;
       // For PDFs, check if the PDF itself exists (page images are grouped under it)
-      console.log('[SYNC] Removing deleted file:', f.name, f.url);
+      // Removing file no longer on server
       removed++;
       return false;
     });
@@ -2368,7 +2403,7 @@ function syncTodayFromServer(showFeedback) {
       }
     }
 
-    console.log('[SYNC] Added', added, ', removed', removed);
+    // Sync complete
     if (added > 0 || removed > 0) {
       saveTodayFiles();
       updateTodayCount();
@@ -2382,7 +2417,7 @@ function syncTodayFromServer(showFeedback) {
       toast('Todo sincronizado', 'success');
     }
   }).catch(function(e) {
-    console.error('[SYNC] Error:', e);
+    // Sync error handled via toast
     if (showFeedback) toast('Error al sincronizar: ' + e.message, 'error');
   }).finally(function() { _syncInProgress = false; });
 }
@@ -2620,7 +2655,7 @@ function startCamera() {
     flashOn = false;
     updateFlashIcon();
   }).catch(function(err) {
-    console.error('Camera error:', err);
+    // Camera error handled via toast
     toast('No se pudo abrir la camara', 'error');
     showView('vMain');
   });
@@ -3421,7 +3456,7 @@ function doUploadFoto(filename, dataUrl) {
     hideQuickName();
     document.getElementById('quickNameInput').disabled = false;
   }).catch(function(err) {
-    console.error('Upload error:', err);
+    // Upload error — queued for offline retry
     queueOfflineUpload(filename, 'foto', [dataUrl]);
     toast('Sin conexion, se subira despues', 'info');
     addTodayFile(filename + '.jpg (pendiente)', 'foto');
@@ -3455,7 +3490,7 @@ function doUploadPdf(filename, pages) {
           hideQuickName();
           document.getElementById('quickNameInput').disabled = false;
         }).catch(function(err) {
-          console.error('PDF upload error:', err);
+          // PDF upload error — queued for offline retry
           queueOfflineUpload(filename, 'pdf', pages);
           toast('Sin conexion, se subira despues', 'info');
           addTodayFile(filename + '.pdf (pendiente)', 'pdf');
@@ -3464,7 +3499,7 @@ function doUploadPdf(filename, pages) {
           document.getElementById('quickNameInput').disabled = false;
         });
       }).catch(function(err) {
-        console.error('PDF generation error:', err);
+        // PDF generation error handled via toast
         toast('Error al generar PDF', 'error');
         hideQuickName();
         document.getElementById('quickNameInput').disabled = false;
@@ -3724,7 +3759,7 @@ function processOfflineQueue() {
       setTimeout(processOfflineQueue, 1000);
     }
   }).catch(function(err) {
-    console.warn('Offline queue upload failed, will retry:', err);
+    // Offline queue upload failed, will retry on reconnect
     isUploading = false;
   });
 }
@@ -3765,20 +3800,20 @@ function registerSW() {
   var reloading = false;
   // updateViaCache:'none' = ALWAYS fetch sw.js from network, never from HTTP cache
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg) {
-    console.log('SW registered:', reg.scope);
+    // SW registered
     // Force update check on EVERY page load
     reg.update();
     // Also check every 60 seconds
     setInterval(function() { reg.update(); }, 60000);
   }).catch(function(err) {
-    console.warn('SW registration failed:', err);
+    // SW registration failed
   });
 
   // Reload once when the controlling SW changes (covers all update scenarios)
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (!reloading) {
       reloading = true;
-      console.log('New version detected, reloading...');
+      // New version detected, reloading
       window.location.reload();
     }
   });

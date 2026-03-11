@@ -7,6 +7,8 @@
 <link rel="manifest" href="./manifest-pc.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Wichanzao · Panel de Referencias</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <!-- SW update handled at bottom of page -->
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
@@ -864,6 +866,11 @@ function escHtml(s) {
   if (!s) return '';
   return String(s).replace(_escRe, function(c) { return _escMap[c]; });
 }
+// Escape for JS string inside onclick attributes (prevents injection via filenames/URLs)
+function escJs(s) {
+  if (!s) return '';
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '\\x3c');
+}
 
 function getInitials(name) {
   if (!name) return '?';
@@ -982,22 +989,16 @@ async function sbList(prefix, skipCache) {
 }
 
 async function sbDelete(paths) {
-  console.log('Deleting:', paths);
   var res = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
     method: 'DELETE', headers: HEADERS,
     body: JSON.stringify({ prefixes: paths })
   });
-  var body = await res.clone().text();
-  console.log('Delete response:', res.status, body);
   if (!res.ok) {
     // Try alternative format without prefixes wrapper
-    console.log('Trying alternative delete format...');
     var res2 = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
       method: 'DELETE', headers: HEADERS,
       body: JSON.stringify(paths)
     });
-    var body2 = await res2.clone().text();
-    console.log('Alt delete response:', res2.status, body2);
     return res2;
   }
   return res;
@@ -1272,7 +1273,7 @@ async function loadAllData() {
     }
 
   } catch (err) {
-    console.error('Load error:', err);
+    // Load error handled below
     // On auto-refresh errors, keep current UI — don't destroy what's already shown
     if (!autoRefreshing) {
       container.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error de conexion</h3><p>' + escHtml(err.message) + '</p><button onclick="loadAllData()" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--tl);color:var(--n1);cursor:pointer;font-size:14px">Reintentar</button></div>';
@@ -1998,7 +1999,7 @@ function renderFileCard(doc, pathPrefix) {
     var rid = 'lb' + (lbRegId++);
     lbRegistry[rid] = lbData;
     var tSrc = thumbUrl(thumbSrc);
-    html += '<img class="file-thumb lazy-thumb" data-src="' + tSrc + '" onclick="openLbReg(\'' + rid + '\',0)" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src=\'' + thumbSrc + '\';}else{this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\';}">';
+    html += '<img class="file-thumb lazy-thumb" data-src="' + escHtml(tSrc) + '" onclick="openLbReg(\'' + rid + '\',0)" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src=\'' + escJs(thumbSrc) + '\';}else{this.style.background=\'var(--s2)\';this.style.border=\'1px dashed var(--bd)\';}">';
   } else {
     html += '<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3)">&#128196;</div>';
   }
@@ -2012,10 +2013,10 @@ function renderFileCard(doc, pathPrefix) {
   html += '<div class="file-actions">';
 
   if (doc.type === 'pdf-file') {
-    html += '<button class="dl-btn pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
+    html += '<button class="dl-btn pdf" onclick="forceDl(\'' + escJs(doc.pdfUrl) + '\',\'' + escJs(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
   } else if (doc.type === 'pdf') {
     if (doc.pdfUrl) {
-      html += '<button class="dl-btn pdf" onclick="forceDl(\'' + doc.pdfUrl + '\',\'' + escHtml(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
+      html += '<button class="dl-btn pdf" onclick="forceDl(\'' + escJs(doc.pdfUrl) + '\',\'' + escJs(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
     } else {
       var pdfRid = 'pdf' + (lbRegId++);
       lbRegistry[pdfRid] = { name: doc.name, pages: doc.pages.map(function(p) { return { url: p.url }; }) };
@@ -2025,7 +2026,7 @@ function renderFileCard(doc, pathPrefix) {
     lbRegistry[dlRid] = doc.pages.map(function(p) { return { url: p.url, name: doc.name + '_pag' + p.num + '.jpg' }; });
     html += '<button class="dl-btn secondary" onclick="dlMultipleImagesReg(\'' + dlRid + '\')">&#128444; Imagenes</button>';
   } else {
-    html += '<button class="dl-btn primary" onclick="forceDl(\'' + doc.pages[0].url + '\',\'' + escHtml(doc.name) + '.jpg\')">&#128190; Descargar JPG</button>';
+    html += '<button class="dl-btn primary" onclick="forceDl(\'' + escJs(doc.pages[0].url) + '\',\'' + escJs(doc.name) + '.jpg\')">&#128190; Descargar JPG</button>';
   }
 
   html += '</div>';
@@ -2057,7 +2058,7 @@ async function forceDl(url, filename) {
     setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 2000);
     showToast('Descargado: ' + filename, 'success');
   } catch (e) {
-    console.error('Download error:', e);
+    // Download error — fallback to window.open
     window.open(url, '_blank');
   }
 }
@@ -2186,7 +2187,6 @@ async function generatePdf_inner(docData, btn) {
     showToast('PDF generado: ' + docData.name, 'success');
   } catch (e) {
     showToast('Error generando PDF: ' + e.message, 'error');
-    console.error(e);
   }
 
   btn.disabled = false;
@@ -2266,7 +2266,6 @@ async function downloadDocsAsZip(docs, zipName) {
   } catch (e) {
     hideProgress();
     showToast('Error creando ZIP: ' + e.message, 'error');
-    console.error(e);
   }
 }
 
@@ -2367,7 +2366,6 @@ async function dlWorkerZip(wId) {
   } catch (e) {
     hideProgress();
     showToast('Error creando ZIP: ' + e.message, 'error');
-    console.error(e);
   }
 }
 
@@ -2396,7 +2394,7 @@ async function autoCleanup() {
 
   if (!toDelete.length) return;
 
-  console.log('Auto-cleanup: eliminando ' + toDelete.length + ' carpeta(s) de mas de 1 mes');
+  // Auto-cleanup running
 
   var deleted = 0;
   for (var j = 0; j < toDelete.length; j++) {
@@ -2417,7 +2415,7 @@ async function autoCleanup() {
         delete fi.loaded[toDelete[j].date];
       }
     } catch (e) {
-      console.warn('Auto-cleanup error:', toDelete[j], e);
+      // cleanup error, skip
     }
   }
 
@@ -2591,7 +2589,7 @@ function downloadFromLightbox() {
       setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 2000);
       showToast('Descargado: ' + filename, 'success');
     }).catch(function(e) {
-      console.error('Auth download failed, fallback:', e);
+      // Auth download failed, use public fallback
       forceDl(current.url, filename);
     });
   } else {
@@ -2795,7 +2793,6 @@ function savePcEdit() {
 
   // Clean path: remove any query params that might have leaked in
   var cleanPath = pcePath.split('?')[0];
-  console.log('Saving to:', cleanPath, 'blob size:', blob.size, 'bytes');
 
   fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + cleanPath, {
     method: 'POST',
@@ -2803,7 +2800,7 @@ function savePcEdit() {
     body: blob
   }).then(function(res) {
     if (!res.ok) return res.text().then(function(t) { throw new Error(res.status + ': ' + t); });
-    return res.text().then(function(body) { console.log('Upload OK:', cleanPath, body); });
+    return res.text();
   }).then(function() {
     showToast('Imagen guardada correctamente', 'success');
     // Store edited image in memory so downloads use it directly (limit to 20 to prevent memory leak)
@@ -2816,7 +2813,7 @@ function savePcEdit() {
     softReloadDate(cleanPath);
   }).catch(function(e) {
     showToast('Error al guardar: ' + e.message, 'error');
-    console.error('Save error:', e);
+    // Save error handled via toast
   }).finally(function() {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '&#10003; Guardar'; }
   });
@@ -2937,7 +2934,7 @@ function forceRefresh() {
     caches.keys().then(function(names) {
       return Promise.all(names.map(function(n) { return caches.delete(n); }));
     }).then(function() {
-      console.log('All caches cleared');
+      // caches cleared
     });
   }
   if ('serviceWorker' in navigator) {
@@ -3015,7 +3012,7 @@ if ('serviceWorker' in navigator) {
         }
       });
     });
-  }).catch(function(e) { console.log('SW error:', e); });
+  }).catch(function() { /* SW error */ });
   // Also listen for controllerchange (covers skipWaiting scenario)
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (!pcReloading && canSafelyReload()) {
