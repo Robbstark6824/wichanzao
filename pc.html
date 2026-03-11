@@ -27,7 +27,7 @@
   --r1:16px; --r2:12px; --r3:8px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-html { }
+html { font-size:16px; }
 body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
 
 /* ===== HEADER ===== */
@@ -712,7 +712,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
     <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div>
   </div>
   <img id="lbImg" src="" decoding="async" style="transition:opacity .2s">
-  <div class="lb-caption" id="lbCaption"></div>
+  <div class="lb-caption" id="lbCaption" onclick="event.stopPropagation()"></div>
   <div class="lb-bottom" id="lbBottom" onclick="event.stopPropagation()">
     <span class="lb-counter" id="lbCounter"></span>
     <button class="lb-action-btn lb-dl" id="lbDlBtn" onclick="downloadFromLightbox()">&#128190; Descargar</button>
@@ -2167,8 +2167,9 @@ function loadImage(url) {
   return new Promise(function(resolve, reject) {
     var img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = function() { resolve(img); };
-    img.onerror = function() { reject(new Error('No se pudo cargar imagen')); };
+    var tid = setTimeout(function() { img.src = ''; reject(new Error('Timeout cargando imagen')); }, 30000);
+    img.onload = function() { clearTimeout(tid); resolve(img); };
+    img.onerror = function() { clearTimeout(tid); reject(new Error('No se pudo cargar imagen')); };
     img.src = url;
   });
 }
@@ -2443,6 +2444,11 @@ function updateLightboxUI() {
     lbImg.style.opacity = '1';
     if (spinner) spinner.style.display = 'none';
   };
+  lbImg.onerror = function() {
+    lbImg.style.opacity = '1';
+    if (spinner) spinner.style.display = 'none';
+    showToast('No se pudo cargar la imagen', 'error');
+  };
   lbImg.src = displayUrl;
   document.getElementById('lbCaption').textContent = current.caption || '';
 
@@ -2458,16 +2464,17 @@ function updateLightboxUI() {
 }
 
 function getLbPath(current) {
-  if (current.path) return current.path;
-  // Extract path from public URL
+  if (current.path) return current.path.split('?')[0];
+  // Extract path from public URL (strip query params)
   var marker = '/storage/v1/object/public/' + BUCKET + '/';
   var idx = current.url.indexOf(marker);
-  if (idx >= 0) return current.url.substring(idx + marker.length);
+  if (idx >= 0) return current.url.substring(idx + marker.length).split('?')[0];
   return '';
 }
 
 function closeLightbox(e) {
-  if (e && e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'BUTTON')) return;
+  // Only close when clicking the backdrop itself (not child elements)
+  if (e && e.target && e.target.id !== 'lightbox') return;
   document.getElementById('lightbox').classList.remove('on');
   document.body.style.overflow = '';
   // Free memory: clear preloaded images and current lightbox image
@@ -2602,9 +2609,10 @@ function updateCountdownDisplay() {
 function startAutoRefresh() {
   if (countdownTimer) clearInterval(countdownTimer);
   countdownTimer = setInterval(function() {
-    // Skip auto-refresh if user is busy (downloading ZIP, editing image, or using lightbox)
+    // Skip auto-refresh if user is busy (downloading ZIP, editing image, using lightbox)
     var busy = document.getElementById('progressOverlay').classList.contains('on')
-            || document.getElementById('pcEditor').classList.contains('on');
+            || document.getElementById('pcEditor').classList.contains('on')
+            || document.getElementById('lightbox').classList.contains('on');
     if (busy) { countdownValue = REFRESH_INTERVAL; return; }
 
     countdownValue--;
@@ -2666,6 +2674,10 @@ function openPcEditor(url, storagePath, docName) {
 
   var img = document.getElementById('pceImg');
   img.crossOrigin = 'anonymous';
+  img.onerror = function() {
+    showToast('No se pudo cargar la imagen para editar', 'error');
+    closePcEditor();
+  };
   img.src = url;
 
   // Show editor immediately (image already preloaded from lightbox)
@@ -2725,7 +2737,8 @@ function applyCropPc() {
     sh = Math.min(sh, img.naturalHeight - sy);
 
     var c = document.createElement('canvas');
-    c.width = Math.round(sw); c.height = Math.round(sh);
+    c.width = Math.max(1, Math.round(sw)); c.height = Math.max(1, Math.round(sh));
+    if (c.width < 10 || c.height < 10) { showToast('Area de recorte demasiado pequena', 'error'); return; }
     c.getContext('2d').drawImage(img, Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh), 0, 0, c.width, c.height);
 
     pceEditedDataUrl = c.toDataURL('image/jpeg', 0.92);
@@ -2787,10 +2800,11 @@ function deletePcImage() {
 
 function doDeletePcFile(storagePath) {
   showToast('Eliminando...', 'info');
-  sbDelete([storagePath]).then(function(res) {
+  var cleanPath = storagePath.split('?')[0];
+  sbDelete([cleanPath]).then(function(res) {
     if (!res.ok) throw new Error('Error ' + res.status);
     showToast('Archivo eliminado', 'success');
-    softReloadDate(storagePath);
+    softReloadDate(cleanPath);
   }).catch(function(e) {
     showToast('Error al eliminar: ' + e.message, 'error');
   });
@@ -2952,9 +2966,10 @@ if ('serviceWorker' in navigator) {
   var pcReloading = false;
   // updateViaCache:'none' = ALWAYS fetch sw.js from network, never HTTP cache
   function canSafelyReload() {
-    // Don't reload if user is in the middle of downloading, editing, or viewing
+    // Don't reload if user is in the middle of downloading, editing, or viewing lightbox
     return !document.getElementById('progressOverlay').classList.contains('on')
-        && !document.getElementById('pcEditor').classList.contains('on');
+        && !document.getElementById('pcEditor').classList.contains('on')
+        && !document.getElementById('lightbox').classList.contains('on');
   }
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg) {
     // Force update check on EVERY page load
