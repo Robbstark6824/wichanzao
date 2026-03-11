@@ -120,6 +120,10 @@ body.dark .today-section,body.dark .prev-section{background:var(--s1)}
 body.dark .today-section{border-left-color:var(--tl)}
 body.dark .prev-date-card.expanded{box-shadow:0 2px 12px rgba(78,205,196,.05)}
 
+/* ===== CREDIT BADGE ===== */
+.credit-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--n3);background:linear-gradient(135deg,rgba(78,205,196,.1),rgba(212,168,83,.08));border:1px solid rgba(78,205,196,.2);border-radius:20px;padding:4px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+body.dark .credit-badge{color:var(--tl);background:linear-gradient(135deg,rgba(78,205,196,.12),rgba(212,168,83,.06));border-color:rgba(78,205,196,.2);text-shadow:0 0 8px rgba(78,205,196,.3)}
+
 /* ===== VIEW: SETTINGS ===== */
 #vSettings{background:var(--bg);padding-top:var(--st)}
 .settings-header{display:flex;align-items:center;gap:12px;padding:18px 16px;background:linear-gradient(135deg,#0C1F3D 0%,#142952 60%,#1B3A6B 100%);box-shadow:0 4px 20px rgba(12,31,61,.2);position:relative;overflow:hidden}
@@ -440,8 +444,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 <div class="offline-bar" id="offlineBar">Sin conexion - Los archivos se subiran cuando vuelvas a estar en linea</div>
 
 <!-- Powered -->
-<div id="creditLine" style="position:fixed;bottom:8px;left:0;right:0;text-align:center;z-index:15;pointer-events:none"><span style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.8px;opacity:.7">© NeuroArsenal</span></div>
-<script>document.addEventListener('DOMContentLoaded',function(){var c=document.getElementById('creditLine');if(c&&typeof APP_VERSION!=='undefined')c.innerHTML='<span style=\"font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.8px;opacity:.7\">© NeuroArsenal · '+APP_VERSION+'</span>';});</script>
+<div id="creditLine" style="position:fixed;bottom:calc(8px + var(--sb));left:0;right:0;text-align:center;z-index:15;pointer-events:none"><span class="credit-badge">© NeuroArsenal</span></div>
+<script>document.addEventListener('DOMContentLoaded',function(){var c=document.getElementById('creditLine');if(c&&typeof APP_VERSION!=='undefined')c.querySelector('.credit-badge').textContent='© NeuroArsenal · '+APP_VERSION;});</script>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
@@ -544,7 +548,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     </div>
   </div>
   <div style="padding:16px 0 8px;text-align:center;z-index:2">
-    <span style="font-size:10px;color:rgba(255,255,255,.25);font-weight:600;letter-spacing:.8px">© NeuroArsenal</span>
+    <span style="font-size:10px;color:rgba(78,205,196,.5);font-weight:700;letter-spacing:1.2px;text-transform:uppercase">© NeuroArsenal</span>
   </div>
 </div>
 
