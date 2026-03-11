@@ -1791,9 +1791,20 @@ function loadPrevDateFiles(dateStr) {
 
 function renderPrevFiles(container, dateStr, files) {
   if (!files.length) { container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);font-size:12px">Sin archivos</div>'; return; }
+  // Build set of PDF names to filter out their page images
+  var pdfNames = {};
+  for (var p = 0; p < files.length; p++) {
+    if (files[p].name.match(/\.pdf$/i)) {
+      pdfNames[files[p].name.replace(/^\d+_/, '').replace(/\.pdf$/i, '')] = true;
+    }
+  }
   var html = '';
   for (var i = 0; i < files.length; i++) {
     var f = files[i];
+    // Skip thumbnails and page images that belong to a PDF
+    if (f.name.match(/_thumb\./i)) continue;
+    var pageMatch = f.name.replace(/^\d+_/, '').match(/^(.+)_pag\d+\.(jpg|jpeg|png)$/i);
+    if (pageMatch && pdfNames[pageMatch[1]]) continue;
     var displayName = f.name.replace(/^\d+_/, '');
     var sizeStr = f.size ? formatFileSize(f.size) : '';
     html += '<div class="prev-file" onclick="openPrevFile(\'' + dateStr + '\',' + i + ')">';
