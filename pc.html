@@ -808,6 +808,9 @@ var imgCacheBuster = '';
 var editedImages = {}; // path -> dataUrl (edited images in memory)
 
 // Performance: pagination & debounce
+var DATE_FILES_LIMIT = 8; // Max file cards per date before "show more"
+var _dateDocsReg = {};
+var _dateDocsRegId = 0;
 var DIR_PAGE_SIZE = 50;
 var dirCurrentPage = 0;
 var dirFilteredCache = [];
@@ -1264,8 +1267,8 @@ async function loadAllData() {
     var todayClean = todayStr();
     if (lastClean !== todayClean) {
       localStorage.setItem('wichanzao_pc_lastclean', todayClean);
-      // Defer cleanup so it doesn't block initial render
-      setTimeout(autoCleanup, 5000);
+      // Defer cleanup so it doesn't block initial render or interaction
+      setTimeout(autoCleanup, 15000);
     }
 
   } catch (err) {
@@ -1334,7 +1337,7 @@ function renderDirectory() {
     return;
   }
 
-  var threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
+  var oneMonthMs = 31 * 24 * 60 * 60 * 1000;
   var now = Date.now();
   var hasServicio = servicioFilter && servicioFilter !== 'all';
 
@@ -1342,8 +1345,8 @@ function renderDirectory() {
   var filtered = [];
   for (var fi = 0; fi < allWorkers.length; fi++) {
     var w = allWorkers[fi];
-    // Activity check (uses pre-computed timestamp)
-    if (w._lastActiveTs && (now - w._lastActiveTs) >= threeMonthsMs) continue;
+    // Activity check (uses pre-computed timestamp) — hide workers inactive >1 month
+    if (w._lastActiveTs && (now - w._lastActiveTs) >= oneMonthMs) continue;
     // Servicio check
     if (hasServicio && (w._servicio || w.servicio || '') !== servicioFilter) continue;
     // Search check (uses pre-computed lowercase)
@@ -1529,15 +1532,7 @@ async function loadLegacyFolder(fname) {
 }
 
 function renderLegacyFiles(el, docs, folderName) {
-  if (!docs.length) {
-    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
-    return;
-  }
-  var html = '';
-  for (var i = 0; i < docs.length; i++) {
-    html += renderFileCard(docs[i], folderName);
-  }
-  el.innerHTML = html;
+  el.innerHTML = renderDateFilesHtml(docs, folderName);
   observeLazyThumbs(el);
 }
 
@@ -1555,8 +1550,17 @@ async function dlLegacyZip(fname) {
    OPEN WORKER DETAIL
    ========================================================= */
 var _dirScrollY = 0;
+var _prevWorkerId = null;
 function openWorkerDetail(wId) {
   _dirScrollY = window.scrollY;
+  // Free memory: clear loaded files of previous worker
+  if (_prevWorkerId && _prevWorkerId !== wId && allWorkerFiles[_prevWorkerId]) {
+    allWorkerFiles[_prevWorkerId].loaded = {};
+  }
+  _prevWorkerId = wId;
+  // Clean stale "show more" registry
+  _dateDocsReg = {};
+  _dateDocsRegId = 0;
   currentWorkerId = wId;
   document.getElementById('viewDirectory').classList.add('hidden');
   document.getElementById('viewDetail').classList.add('visible');
@@ -1680,12 +1684,7 @@ function renderDetailView(wId) {
 
           html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
           if (isOpen && loaded) {
-            for (var fi = 0; fi < loaded.length; fi++) {
-              html += renderFileCard(loaded[fi], (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
-            }
-            if (!loaded.length) {
-              html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
-            }
+            html += renderDateFilesHtml(loaded, (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
           } else if (isOpen) {
             html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
           }
@@ -1795,10 +1794,7 @@ function renderMonthDates(wId, monthKey, bodyEl) {
 
     html += '<div class="date-body' + (isOpen ? ' open' : '') + '" id="dbody_' + dateKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '">';
     if (isOpen && loaded) {
-      for (var fi = 0; fi < loaded.length; fi++) {
-        html += renderFileCard(loaded[fi], (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
-      }
-      if (!loaded.length) html += '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+      html += renderDateFilesHtml(loaded, (allWorkerPaths[wId] || 'workers/' + wId) + '/' + date);
     } else if (isOpen) {
       html += '<div style="padding:20px;text-align:center;color:var(--t3)"><div class="skel-line" style="width:60%;margin:0 auto 8px"></div><div class="skel-line" style="width:40%;margin:0 auto"></div></div>';
     }
@@ -1839,11 +1835,7 @@ function toggleDateSection(e, wId, date) {
           var docs = fileInfo.loaded[date];
           if (!body.querySelector('.file-card') && docs.length) {
             var basePath = allWorkerPaths[wId] || 'workers/' + wId;
-            var html = '';
-            for (var fi = 0; fi < docs.length; fi++) {
-              html += renderFileCard(docs[fi], basePath + '/' + date);
-            }
-            body.innerHTML = html;
+            body.innerHTML = renderDateFilesHtml(docs, basePath + '/' + date);
             observeLazyThumbs(body);
           }
         } else if (fileInfo) {
@@ -1872,14 +1864,7 @@ async function loadDateFiles(wId, date) {
       var dk = wId + '_' + date;
       var bodyEl = document.getElementById('dbody_' + dk.replace(/[^a-zA-Z0-9_-]/g, '_'));
       if (bodyEl) {
-        var html = '';
-        for (var fi = 0; fi < docs.length; fi++) {
-          html += renderFileCard(docs[fi], basePath + '/' + date);
-        }
-        if (!docs.length) {
-          html = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
-        }
-        bodyEl.innerHTML = html;
+        bodyEl.innerHTML = renderDateFilesHtml(docs, basePath + '/' + date);
         observeLazyThumbs(bodyEl);
         // Update file count in header
         var dateSection = bodyEl.parentElement;
@@ -1928,12 +1913,7 @@ function preloadMonthFiles(wId, monthDates) {
           var dk = wId + '_' + date;
           var bodyEl = document.getElementById('dbody_' + dk.replace(/[^a-zA-Z0-9_-]/g, '_'));
           if (bodyEl && bodyEl.classList.contains('open') && !bodyEl.querySelector('.file-card')) {
-            var html = '';
-            for (var fi = 0; fi < docs.length; fi++) {
-              html += renderFileCard(docs[fi], basePath + '/' + date);
-            }
-            if (!docs.length) html = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
-            bodyEl.innerHTML = html;
+            bodyEl.innerHTML = renderDateFilesHtml(docs, basePath + '/' + date);
             observeLazyThumbs(bodyEl);
             // Update count
             var ds = bodyEl.parentElement;
@@ -1950,10 +1930,45 @@ function preloadMonthFiles(wId, monthDates) {
       } catch (e) { /* silent preload failure */ }
     }
   }
-  // Run 3 parallel workers for fast preloading
+  // Run 5 parallel workers for fast preloading
   var workers = [];
-  for (var w = 0; w < Math.min(3, toLoad.length); w++) workers.push(worker());
+  for (var w = 0; w < Math.min(5, toLoad.length); w++) workers.push(worker());
   Promise.all(workers);
+}
+
+/* =========================================================
+   RENDER DATE FILES (paginated)
+   ========================================================= */
+function renderDateFilesHtml(docs, pathPrefix) {
+  if (!docs.length) return '<div style="padding:16px;text-align:center;color:var(--t3);font-size:12px">Sin archivos</div>';
+  var html = '';
+  var show = Math.min(DATE_FILES_LIMIT, docs.length);
+  for (var fi = 0; fi < show; fi++) {
+    html += renderFileCard(docs[fi], pathPrefix);
+  }
+  if (docs.length > show) {
+    var regId = 'df' + (_dateDocsRegId++);
+    _dateDocsReg[regId] = { docs: docs, pathPrefix: pathPrefix, shown: show };
+    html += '<div id="dfmore_' + regId + '" style="padding:12px 22px;text-align:center;border-top:1px dashed var(--bd)">';
+    html += '<button class="date-btn" onclick="showMoreDateFiles(\'' + regId + '\')" style="width:100%;justify-content:center">Mostrar ' + (docs.length - show) + ' archivo(s) mas</button>';
+    html += '</div>';
+  }
+  return html;
+}
+
+function showMoreDateFiles(regId) {
+  var info = _dateDocsReg[regId];
+  if (!info) return;
+  var el = document.getElementById('dfmore_' + regId);
+  if (!el) return;
+  var parent = el.parentElement;
+  var html = '';
+  for (var fi = info.shown; fi < info.docs.length; fi++) {
+    html += renderFileCard(info.docs[fi], info.pathPrefix);
+  }
+  el.outerHTML = html;
+  if (parent) observeLazyThumbs(parent);
+  delete _dateDocsReg[regId];
 }
 
 /* =========================================================
@@ -2357,11 +2372,11 @@ async function dlWorkerZip(wId) {
 }
 
 /* =========================================================
-   AUTO-CLEANUP: delete files older than 3 months
+   AUTO-CLEANUP: delete files older than 1 month
    ========================================================= */
 async function autoCleanup() {
   var cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - 3);
+  cutoff.setMonth(cutoff.getMonth() - 1);
   var cutoffStr = cutoff.toISOString().split('T')[0];
 
   var toDelete = [];
@@ -2381,7 +2396,7 @@ async function autoCleanup() {
 
   if (!toDelete.length) return;
 
-  console.log('Auto-cleanup: eliminando ' + toDelete.length + ' carpeta(s) de mas de 3 meses');
+  console.log('Auto-cleanup: eliminando ' + toDelete.length + ' carpeta(s) de mas de 1 mes');
 
   var deleted = 0;
   for (var j = 0; j < toDelete.length; j++) {
