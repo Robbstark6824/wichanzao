@@ -1370,7 +1370,7 @@ async function doRegister() {
   if (name.length < 3) { toast('Nombre muy corto', 'error'); return; }
   if (!folder) { toast('Ingresa un nombre de carpeta', 'error'); return; }
   if (folder.length < 3) { toast('Nombre de carpeta muy corto', 'error'); return; }
-  if (!pass || pass.length < 4) { toast('Contrasena minimo 4 caracteres', 'error'); return; }
+  if (!pass || pass.length < 6) { toast('Contrasena minimo 6 caracteres', 'error'); return; }
   if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
   if (!area) { toast('Selecciona un rol', 'error'); return; }
 
