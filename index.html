@@ -1604,9 +1604,6 @@ async function googleSignIn() {
 async function handleGoogleSession(session) {
   if (!session || !session.user) return;
 
-  // Ensure session is fully propagated to Supabase client before DB queries
-  await sb.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
-
   var user = session.user;
   var meta = user.user_metadata || {};
   var email = user.email || meta.email || '';
@@ -1619,28 +1616,38 @@ async function handleGoogleSession(session) {
 
   toast('Verificando cuenta...', 'info');
 
-  // Check if worker row already exists for this auth user
-  var wRow = await sb.from('workers').select('*').eq('id', user.id).single();
+  // Query workers table using direct REST call with explicit JWT token
+  // This bypasses Supabase client session propagation issues
+  var workerData = null;
+  try {
+    var resp = await fetch(SB_URL + '/rest/v1/workers?id=eq.' + user.id + '&select=*', {
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + session.access_token,
+        'Accept': 'application/json'
+      }
+    });
+    if (resp.ok) {
+      var rows = await resp.json();
+      if (rows && rows.length > 0) workerData = rows[0];
+    }
+  } catch(e) { /* will fall through to legacy check */ }
 
-  // If RLS blocked the query, retry once after a short delay
-  if (!wRow.data && wRow.error) {
-    await new Promise(function(r) { setTimeout(r, 500); });
-    wRow = await sb.from('workers').select('*').eq('id', user.id).single();
-  }
-
-  if (wRow.data) {
+  if (workerData) {
     // Existing migrated user — load and proceed
     var w = {
-      id: wRow.data.folder_id,
-      name: wRow.data.name,
-      servicio: wRow.data.servicio,
-      area: wRow.data.area,
-      picture: wRow.data.picture || picture,
-      email: wRow.data.email || email,
+      id: workerData.folder_id,
+      name: workerData.name,
+      servicio: workerData.servicio,
+      area: workerData.area,
+      picture: workerData.picture || picture,
+      email: workerData.email || email,
       google: true,
-      created: wRow.data.created_at
+      created: workerData.created_at
     };
-    if (!wRow.data.picture && picture) {
+    // Now set session on client for subsequent operations
+    await sb.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+    if (!workerData.picture && picture) {
       sb.from('workers').update({ picture: picture }).eq('id', user.id);
     }
     saveWorker(w);
