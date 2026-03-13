@@ -631,7 +631,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 </style>
 </head>
-<body style="opacity:0;transition:opacity .3s">
+<body>
 
 <!-- Install Banner -->
 <div class="pc-install-banner" id="pcInstallBanner">
@@ -759,16 +759,19 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 </div>
 
 <!-- LOGIN OVERLAY -->
-<div id="pcLoginOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--n1);display:none;align-items:center;justify-content:center">
-  <div style="background:var(--s1);border-radius:16px;padding:32px;width:360px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.3)">
-    <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--n1);margin-bottom:4px">Panel de Referencias</h2>
-    <p style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Inicia sesion para continuar</p>
-    <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">Carpeta (usuario)</label>
-    <input id="pcLoginFolder" type="text" placeholder="tu-carpeta" style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:12px;box-sizing:border-box" autocomplete="username">
-    <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">Contrasena</label>
-    <input id="pcLoginPass" type="password" placeholder="••••" style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:16px;box-sizing:border-box" autocomplete="current-password">
-    <button id="pcLoginBtn" onclick="pcDoLogin()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--tl),var(--tl2));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Iniciar sesion</button>
-    <div id="pcLoginError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:10px;display:none"></div>
+<!-- SERVICE CODE MODAL -->
+<div id="svcLockModal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:var(--s1);border-radius:16px;padding:32px;width:340px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.3);text-align:center">
+    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05));display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--tl)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h3 style="font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:var(--n1);margin-bottom:4px" id="svcLockName">Servicio</h3>
+    <p style="color:var(--t3);font-size:13px;margin-bottom:20px">Ingresa el codigo de acceso</p>
+    <input type="hidden" id="svcLockKey">
+    <input id="svcLockInput" type="password" placeholder="Codigo de acceso" style="width:100%;padding:12px 14px;border:1.5px solid var(--bd);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--t1);box-sizing:border-box;text-align:center;letter-spacing:3px;margin-bottom:12px" onkeydown="if(event.key==='Enter')submitServiceCode()">
+    <button id="svcLockBtn" onclick="submitServiceCode()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--tl),var(--tl2));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Acceder</button>
+    <div id="svcLockError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:10px;display:none"></div>
+    <button onclick="document.getElementById('svcLockModal').style.display='none'" style="background:none;border:none;color:var(--t3);font-size:13px;cursor:pointer;margin-top:12px;font-family:inherit">Cancelar</button>
   </div>
 </div>
 
@@ -1325,6 +1328,17 @@ function computeServiceCounts() {
   }
 }
 
+// Track unlocked services (sessionStorage = clears when browser closes)
+var _unlockedServices = {};
+try { _unlockedServices = JSON.parse(sessionStorage.getItem('wichanzao_pc_unlocked') || '{}'); } catch(e) {}
+
+function isServiceUnlocked(key) { return !!_unlockedServices[key]; }
+
+function unlockService(key) {
+  _unlockedServices[key] = true;
+  sessionStorage.setItem('wichanzao_pc_unlocked', JSON.stringify(_unlockedServices));
+}
+
 function renderServiceHub() {
   var html = '<div class="service-hub">';
   html += '<h2>Centro de Salud Wichanzao</h2>';
@@ -1336,16 +1350,72 @@ function renderServiceHub() {
     var s = SERVICIOS[key];
     var si = SERVICE_ICONS[key];
     var count = _serviceCounts[key] || 0;
+    var unlocked = isServiceUnlocked(key);
 
-    html += '<div class="service-card" onclick="setServicioFilter(\'' + key + '\')">';
+    html += '<div class="service-card" onclick="requestServiceAccess(\'' + key + '\')">';
     html += '<div class="service-icon" style="background:' + si.bg + '">' + si.icon + '</div>';
     html += '<div class="service-name">' + s.label + '</div>';
     html += '<div class="service-count">' + count + ' usuario' + (count !== 1 ? 's' : '') + '</div>';
+    if (!unlocked) {
+      html += '<div style="margin-top:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--t3)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>';
+    } else {
+      html += '<div style="margin-top:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--tl)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>';
+    }
     html += '</div>';
   }
 
   html += '</div></div>';
   return html;
+}
+
+function requestServiceAccess(key) {
+  if (isServiceUnlocked(key)) {
+    setServicioFilter(key);
+    return;
+  }
+  // Show code prompt modal
+  var label = SERVICIOS[key] ? SERVICIOS[key].label : key;
+  document.getElementById('svcLockName').textContent = label;
+  document.getElementById('svcLockKey').value = key;
+  document.getElementById('svcLockInput').value = '';
+  document.getElementById('svcLockError').style.display = 'none';
+  document.getElementById('svcLockModal').style.display = 'flex';
+  setTimeout(function() { document.getElementById('svcLockInput').focus(); }, 100);
+}
+
+async function submitServiceCode() {
+  var key = document.getElementById('svcLockKey').value;
+  var code = document.getElementById('svcLockInput').value.trim();
+  var errEl = document.getElementById('svcLockError');
+  var btn = document.getElementById('svcLockBtn');
+
+  if (!code) { errEl.textContent = 'Ingresa el codigo'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  errEl.style.display = 'none';
+
+  try {
+    var resp = await fetch(SB_URL + '/rest/v1/rpc/check_service_code', {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_servicio: key, p_code: code })
+    });
+    var result = await resp.json();
+
+    if (result === true) {
+      unlockService(key);
+      document.getElementById('svcLockModal').style.display = 'none';
+      setServicioFilter(key);
+    } else {
+      errEl.textContent = 'Codigo incorrecto';
+      errEl.style.display = 'block';
+    }
+  } catch(e) {
+    errEl.textContent = 'Error de conexion';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Acceder';
+  }
 }
 
 function renderDirectory() {
@@ -2970,77 +3040,9 @@ function forceRefresh() {
 /* =========================================================
    INIT — Check auth before loading data
    ========================================================= */
-var pcCurrentUser = null; // { id, folder_id, name, servicio, area, is_admin }
-
-async function pcDoLogin() {
-  var folder = document.getElementById('pcLoginFolder').value.trim().toLowerCase();
-  var pass = document.getElementById('pcLoginPass').value;
-  var errEl = document.getElementById('pcLoginError');
-  errEl.style.display = 'none';
-
-  if (!folder || !pass) { errEl.textContent = 'Ingresa carpeta y contrasena'; errEl.style.display = 'block'; return; }
-
-  var folderId = folder.replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  var btn = document.getElementById('pcLoginBtn');
-  btn.disabled = true; btn.textContent = 'Verificando...';
-
-  try {
-    // Try all servicios to find the right email for this user
-    var success = false;
-    for (var si = 0; si < SERVICIOS_KEYS.length; si++) {
-      var tryEmail = folderId + '.' + SERVICIOS_KEYS[si] + '@wichanzao.local';
-      var trySignIn = await sb.auth.signInWithPassword({ email: tryEmail, password: pass });
-      if (!trySignIn.error) { success = true; break; }
-    }
-    if (!success) { throw new Error('Usuario no encontrado o contrasena incorrecta'); }
-
-    // Load user info
-    await pcCheckSession();
-  } catch(e) {
-    errEl.textContent = e.message; errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Iniciar sesion';
-  }
-}
-
-// Add enter key support for login
-document.getElementById('pcLoginPass').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') pcDoLogin();
-});
-
-async function pcCheckSession() {
-  var sess = (await sb.auth.getSession()).data.session;
-  if (!sess) {
-    document.getElementById('pcLoginOverlay').style.display = 'flex';
-    return;
-  }
-
-  // Load user info from workers table via direct REST (bypass client session issues)
-  var wData = null;
-  try {
-    var resp = await fetch(SB_URL + '/rest/v1/workers?id=eq.' + sess.user.id + '&select=*', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + sess.access_token, 'Accept': 'application/json' }
-    });
-    if (resp.ok) {
-      var rows = await resp.json();
-      if (rows && rows.length > 0) wData = rows[0];
-    }
-  } catch(e) {}
-  if (!wData) {
-    document.getElementById('pcLoginOverlay').style.display = 'flex';
-    document.body.style.opacity = '1';
-    return;
-  }
-
-  pcCurrentUser = wData;
-  document.getElementById('pcLoginOverlay').style.display = 'none';
-  document.body.style.opacity = '1';
-  loadAllData();
-  startAutoRefresh();
-}
-
-// Check session on load
-pcCheckSession();
+// Load directly — each service is protected by its own access code
+loadAllData();
+startAutoRefresh();
 
 /* ===== PWA INSTALL ===== */
 var pcDeferredPrompt = null;
