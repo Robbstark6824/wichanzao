@@ -1,4 +1,4 @@
-var CACHE_NAME = 'wichanzao-v122';
+var CACHE_NAME = 'wichanzao-v123';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
@@ -71,7 +71,8 @@ self.addEventListener('fetch', function(e) {
           response.type === 'basic' ||
           url.hostname.includes('fonts.googleapis.com') ||
           url.hostname.includes('fonts.gstatic.com') ||
-          url.hostname.includes('cdnjs.cloudflare.com')
+          url.hostname.includes('cdnjs.cloudflare.com') ||
+          url.hostname.includes('cdn.jsdelivr.net')
         )) {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function(cache) {

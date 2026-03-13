@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0C1F3D">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com accounts.google.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co *.googleusercontent.com; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co accounts.google.com; frame-src accounts.google.com; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net accounts.google.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co *.googleusercontent.com; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co accounts.google.com; frame-src accounts.google.com; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
@@ -29,7 +29,8 @@
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Google Sign-In now handled by Supabase OAuth — no separate Google script needed -->
 <style>
 :root{
   --n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B;
@@ -1042,12 +1043,57 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v122';
+var APP_VERSION = 'v123';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var SB_BUCKET = 'documentos';
+
+/* ===== SUPABASE CLIENT ===== */
+var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: {
+    persistSession: true,
+    storageKey: 'wichanzao_sb_session',
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+/* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
+async function sbHeaders() {
+  var sess = (await sb.auth.getSession()).data.session;
+  var token = sess ? sess.access_token : SB_KEY;
+  return {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  };
+}
+
+/* Storage helpers using authenticated client */
+function sbList(prefix, opts) {
+  var options = opts || {};
+  return sb.storage.from(SB_BUCKET).list(prefix, {
+    limit: options.limit || 1000,
+    offset: options.offset || 0,
+    sortBy: options.sortBy || { column: 'name', order: 'asc' }
+  }).then(function(r) {
+    if (r.error) throw new Error(r.error.message);
+    return r.data || [];
+  });
+}
+
+function sbRemove(paths) {
+  return sb.storage.from(SB_BUCKET).remove(paths).then(function(r) {
+    if (r.error) throw new Error(r.error.message);
+    return r;
+  });
+}
+
+function sbPublicUrl(path) {
+  return sb.storage.from(SB_BUCKET).getPublicUrl(path).data.publicUrl;
+}
 
 /* ===== SERVICIOS DEL CENTRO ===== */
 var SERVICIOS = {
@@ -1101,6 +1147,18 @@ document.addEventListener('DOMContentLoaded', function() {
   processOfflineQueue();
   setupOnlineOffline();
   registerSW();
+
+  // Supabase Auth listener — handles Google OAuth redirect returns
+  var _authHandled = false;
+  sb.auth.onAuthStateChange(function(event, session) {
+    if (event === 'SIGNED_IN' && session && !_authHandled && !worker) {
+      _authHandled = true;
+      var provider = (session.user.app_metadata || {}).provider;
+      if (provider === 'google') {
+        handleGoogleSession(session);
+      }
+    }
+  });
 
   // Auto-refresh content every 60 seconds
   setInterval(function() {
@@ -1321,52 +1379,57 @@ async function doRegister() {
   if (!folderId || folderId.length < 2) { toast('Nombre de carpeta invalido', 'error'); return; }
 
   haptic(25);
-  toast('Verificando...', 'info');
+  toast('Creando cuenta...', 'info');
 
-  var hashed = await hashPass(pass);
+  try {
+    // Derive email for Supabase Auth (not a real email, just an identifier)
+    var email = folderId + '.' + servicio + '@wichanzao.local';
 
-  // Check if folder already exists in this servicio
-  var checkPath = servicio + '/workers/' + folderId + '/profile.json';
-  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + checkPath, {
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-    cache: 'no-store'
-  }).then(function(res) {
-    if (res.ok) {
-      toast('Esa carpeta ya existe. Usa Iniciar sesion.', 'error');
+    // 1. Create Supabase Auth account
+    var signUpResult = await sb.auth.signUp({ email: email, password: pass });
+    if (signUpResult.error) {
+      if (signUpResult.error.message.indexOf('already registered') !== -1) {
+        toast('Esa carpeta ya existe. Usa Iniciar sesion.', 'error');
+      } else {
+        toast('Error: ' + signUpResult.error.message, 'error');
+      }
       return;
     }
 
+    // 2. Insert into workers table
+    var insertResult = await sb.from('workers').insert({
+      id: signUpResult.data.user.id,
+      folder_id: folderId,
+      name: name,
+      servicio: servicio,
+      area: area
+    });
+
+    if (insertResult.error) {
+      toast('Error guardando perfil: ' + insertResult.error.message, 'error');
+      return;
+    }
+
+    // 3. Build worker object and save locally
     var w = {
       id: folderId,
       name: name,
       servicio: servicio,
       area: area,
-      pass: hashed,
       created: new Date().toISOString()
     };
 
     saveWorker(w);
-    uploadProfileToSupabase(w);
-    populateMain();
-    showView('vMain');
-    toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
-  }).catch(function() {
-    // If check fails (offline), create anyway
-    var w = {
-      id: folderId,
-      name: name,
-      servicio: servicio,
-      area: area,
-      pass: hashed,
-      created: new Date().toISOString()
-    };
 
-    saveWorker(w);
+    // 4. Upload profile.json as backup (backward compatibility + offline)
     uploadProfileToSupabase(w);
+
     populateMain();
     showView('vMain');
     toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
-  });
+  } catch(e) {
+    toast('Error de conexion. Verifica tu internet.', 'error');
+  }
 }
 
 async function doLogin() {
@@ -1382,21 +1445,55 @@ async function doLogin() {
   haptic(25);
   toast('Verificando...', 'info');
 
-  // Search in all servicios + legacy path in parallel
-  var paths = SERVICIOS_KEYS.map(function(s) { return s + '/workers/' + folderId + '/profile.json'; });
-  paths.push('workers/' + folderId + '/profile.json'); // legacy
-
-  var fetches = paths.map(function(p) {
-    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-      cache: 'no-store'
-    }).then(function(res) {
-      if (!res.ok) return null;
-      return res.json();
-    }).catch(function() { return null; });
-  });
-
   try {
+    // Step 1: Check if user exists in workers table (fast lookup)
+    var workerLookup = await sb.from('workers').select('servicio').eq('folder_id', folderId);
+    var existingRow = workerLookup.data && workerLookup.data.length > 0 ? workerLookup.data[0] : null;
+
+    if (existingRow) {
+      // User already migrated — sign in directly via Supabase Auth
+      var email = folderId + '.' + existingRow.servicio + '@wichanzao.local';
+      var signIn = await sb.auth.signInWithPassword({ email: email, password: pass });
+      if (signIn.error) {
+        toast('Contrasena incorrecta', 'error');
+        return;
+      }
+      // Load full worker data from DB
+      var wRow = await sb.from('workers').select('*').eq('folder_id', folderId).single();
+      if (wRow.data) {
+        var w = {
+          id: wRow.data.folder_id,
+          name: wRow.data.name,
+          servicio: wRow.data.servicio,
+          area: wRow.data.area,
+          picture: wRow.data.picture,
+          email: wRow.data.email,
+          google: wRow.data.google,
+          created: wRow.data.created_at
+        };
+        saveWorker(w);
+        populateMain();
+        showView('vMain');
+        toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
+        syncTodayFromServer(true);
+      }
+      return;
+    }
+
+    // Step 2: User not in workers table — try legacy migration via profile.json
+    var paths = SERVICIOS_KEYS.map(function(s) { return s + '/workers/' + folderId + '/profile.json'; });
+    paths.push('workers/' + folderId + '/profile.json'); // legacy
+
+    var fetches = paths.map(function(p, idx) {
+      return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+        cache: 'no-store'
+      }).then(function(res) {
+        if (!res.ok) return null;
+        return res.json();
+      }).catch(function() { return null; });
+    });
+
     var results = await Promise.all(fetches);
     var profile = null;
     for (var i = 0; i < results.length; i++) {
@@ -1407,111 +1504,144 @@ async function doLogin() {
       return;
     }
 
-    // Password verification with hash migration
+    // Verify password against old hash
+    var passOk = false;
     if (isHashed(profile.pass)) {
-      // Already hashed — compare hashes
       var inputHash = await hashPass(pass);
-      if (inputHash !== profile.pass) {
-        toast('Contrasena incorrecta', 'error');
-        return;
-      }
+      passOk = (inputHash === profile.pass);
     } else if (profile.pass) {
-      // Legacy plaintext — compare then migrate
-      if (profile.pass !== pass) {
-        toast('Contrasena incorrecta', 'error');
-        return;
-      }
-      // Auto-migrate to hash
-      profile.pass = await hashPass(pass);
-      uploadProfileToSupabase(profile);
+      passOk = (profile.pass === pass);
     } else {
-      // No password set — set one now
-      profile.pass = await hashPass(pass);
-      uploadProfileToSupabase(profile);
+      // No password set — accept any
+      passOk = true;
+    }
+    if (!passOk) {
+      toast('Contrasena incorrecta', 'error');
+      return;
     }
 
-    saveWorker(profile);
+    // Step 3: Migrate to Supabase Auth transparently
+    toast('Actualizando seguridad...', 'info');
+    var svc = profile.servicio || 'medicina';
+    var email = folderId + '.' + svc + '@wichanzao.local';
+
+    var signUpResult = await sb.auth.signUp({ email: email, password: pass });
+    if (signUpResult.error) {
+      // If already registered in Auth but not in workers table, try sign in
+      if (signUpResult.error.message.indexOf('already registered') !== -1) {
+        var retrySignIn = await sb.auth.signInWithPassword({ email: email, password: pass });
+        if (retrySignIn.error) {
+          toast('Error de migracion. Contacta al admin.', 'error');
+          return;
+        }
+        signUpResult = { data: retrySignIn.data };
+      } else {
+        toast('Error: ' + signUpResult.error.message, 'error');
+        return;
+      }
+    }
+
+    var userId = signUpResult.data.user ? signUpResult.data.user.id : signUpResult.data.session.user.id;
+
+    // Insert into workers table
+    await sb.from('workers').upsert({
+      id: userId,
+      folder_id: folderId,
+      name: profile.name || folderId,
+      servicio: svc,
+      area: profile.area || 'Medico',
+      picture: profile.picture || null,
+      email: profile.email || null,
+      google: profile.google || false
+    });
+
+    // Ensure we have a valid session
+    if (!signUpResult.data.session) {
+      await sb.auth.signInWithPassword({ email: email, password: pass });
+    }
+
+    var w = {
+      id: folderId,
+      name: profile.name || folderId,
+      servicio: svc,
+      area: profile.area || 'Medico',
+      picture: profile.picture,
+      email: profile.email,
+      google: profile.google,
+      created: profile.created
+    };
+
+    saveWorker(w);
     populateMain();
     showView('vMain');
-    toast('Bienvenido/a, ' + (profile.name || 'Usuario').split(' ')[0], 'success');
+    toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
     syncTodayFromServer(true);
   } catch(e) {
     toast('Error de conexion. Verifica tu internet.', 'error');
   }
 }
 
-/* ===== GOOGLE SIGN-IN ===== */
-var GOOGLE_CLIENT_ID = '38819146456-l09vt0gl18sbussnbcvr9fn6bjbf32bv.apps.googleusercontent.com';
+/* ===== GOOGLE SIGN-IN (via Supabase OAuth) ===== */
 var pendingGoogleUser = null;
 
-function googleSignIn() {
-  if (typeof google === 'undefined' || !google.accounts) {
-    toast('Google no disponible. Verifica tu conexion.', 'error');
-    return;
-  }
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleGoogleResponse,
-    auto_select: false
-  });
-  google.accounts.id.prompt(function(notification) {
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      // Fallback: use button flow
-      google.accounts.id.renderButton(
-        document.createElement('div'),
-        { theme: 'outline', size: 'large' }
-      );
-      // Try popup method
-      google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'profile email',
-        callback: function() {}
-      });
-      // Use One Tap redirect as final fallback
-      toast('Selecciona tu cuenta de Google', 'info');
-      google.accounts.id.renderButton(
-        createGoogleButtonContainer(),
-        { theme: 'outline', size: 'large', width: 300, text: 'continue_with' }
-      );
+async function googleSignIn() {
+  toast('Conectando con Google...', 'info');
+  var result = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname
     }
   });
+  if (result.error) {
+    toast('Error con Google: ' + result.error.message, 'error');
+  }
+  // Browser will redirect to Google, then back to our app.
+  // onAuthStateChange listener (in init) handles the return.
 }
 
-function createGoogleButtonContainer() {
-  var existing = document.getElementById('googleBtnContainer');
-  if (existing) existing.remove();
-  var container = document.createElement('div');
-  container.id = 'googleBtnContainer';
-  container.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3)';
-  var close = document.createElement('button');
-  close.textContent = 'Cerrar';
-  close.style.cssText = 'display:block;margin:12px auto 0;background:none;border:none;color:var(--t3);font-size:13px;cursor:pointer;font-family:inherit';
-  close.onclick = function() { container.remove(); };
-  container.appendChild(document.createElement('div'));
-  container.appendChild(close);
-  document.body.appendChild(container);
-  return container.firstChild;
-}
+/* Called after Google OAuth redirect returns — handles session */
+async function handleGoogleSession(session) {
+  if (!session || !session.user) return;
 
-function handleGoogleResponse(response) {
-  var el = document.getElementById('googleBtnContainer');
-  if (el) el.remove();
+  var user = session.user;
+  var meta = user.user_metadata || {};
+  var email = user.email || meta.email || '';
+  var name = meta.full_name || meta.name || email.split('@')[0];
+  var picture = meta.avatar_url || meta.picture || '';
 
-  // Decode JWT token (base64url → base64)
-  var b64 = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  while (b64.length % 4) b64 += '=';
-  var payload = JSON.parse(atob(b64));
-  var email = payload.email || '';
-  var name = payload.name || email.split('@')[0];
-  var picture = payload.picture || '';
-
-  // Generate folder ID from email
+  // Generate folder ID from email (same logic as before)
   var folderId = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   if (!folderId || folderId.length < 2) folderId = 'user-' + Date.now();
 
   toast('Verificando cuenta...', 'info');
 
-  // Search all servicios + legacy path in parallel
+  // Check if worker row already exists for this auth user
+  var wRow = await sb.from('workers').select('*').eq('id', user.id).single();
+
+  if (wRow.data) {
+    // Existing migrated user — load and proceed
+    var w = {
+      id: wRow.data.folder_id,
+      name: wRow.data.name,
+      servicio: wRow.data.servicio,
+      area: wRow.data.area,
+      picture: wRow.data.picture || picture,
+      email: wRow.data.email || email,
+      google: true,
+      created: wRow.data.created_at
+    };
+    if (!wRow.data.picture && picture) {
+      sb.from('workers').update({ picture: picture }).eq('id', user.id);
+    }
+    saveWorker(w);
+    populateMain();
+    showView('vMain');
+    toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
+    syncTodayFromServer(true);
+    return;
+  }
+
+  // Check for legacy profile.json (migration for old Google users)
   var paths = SERVICIOS_KEYS.map(function(s) { return s + '/workers/' + folderId + '/profile.json'; });
   paths.push('workers/' + folderId + '/profile.json');
 
@@ -1525,50 +1655,85 @@ function handleGoogleResponse(response) {
     }).catch(function() { return null; });
   });
 
-  Promise.all(fetches).then(function(results) {
-    var profile = null;
-    for (var i = 0; i < results.length; i++) {
-      if (results[i]) { profile = results[i]; break; }
-    }
-    if (profile) {
-      // Existing user — login directly
-      if (!profile.picture && picture) {
-        profile.picture = picture;
-        uploadProfileToSupabase(profile);
-      }
-      saveWorker(profile);
-      populateMain();
-      showView('vMain');
-      toast('Bienvenido/a, ' + (profile.name || 'Usuario').split(' ')[0], 'success');
-      syncTodayFromServer(true);
-    } else {
-      // New user — need to select servicio and area
-      pendingGoogleUser = {
-        id: folderId,
-        name: name,
-        email: email,
-        picture: picture,
-        google: true,
-        created: new Date().toISOString()
-      };
-      document.getElementById('googleWelcomeName').textContent = 'Hola, ' + name.split(' ')[0];
-      if (picture) {
-        document.getElementById('googleAvatarImg').src = picture;
-      }
-      populateServicioSelects();
-      showView('vGoogleArea');
-    }
-  }).catch(function() {
-    toast('Error de conexion', 'error');
-  });
+  var results = await Promise.all(fetches);
+  var profile = null;
+  for (var i = 0; i < results.length; i++) {
+    if (results[i]) { profile = results[i]; break; }
+  }
+
+  if (profile && profile.servicio) {
+    // Old Google user found — migrate to workers table
+    await sb.from('workers').upsert({
+      id: user.id,
+      folder_id: folderId,
+      name: profile.name || name,
+      servicio: profile.servicio,
+      area: profile.area || 'Medico',
+      picture: picture || profile.picture || null,
+      email: email,
+      google: true
+    });
+    var w = {
+      id: folderId,
+      name: profile.name || name,
+      servicio: profile.servicio,
+      area: profile.area,
+      picture: picture || profile.picture,
+      email: email,
+      google: true,
+      created: profile.created
+    };
+    saveWorker(w);
+    populateMain();
+    showView('vMain');
+    toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
+    syncTodayFromServer(true);
+    return;
+  }
+
+  // Completely new Google user — needs to pick servicio and area
+  pendingGoogleUser = {
+    authId: user.id,
+    id: folderId,
+    name: name,
+    email: email,
+    picture: picture,
+    google: true,
+    created: new Date().toISOString()
+  };
+  document.getElementById('googleWelcomeName').textContent = 'Hola, ' + name.split(' ')[0];
+  if (picture) {
+    document.getElementById('googleAvatarImg').src = picture;
+  }
+  populateServicioSelects();
+  showView('vGoogleArea');
 }
 
-function completeGoogleRegister() {
+async function completeGoogleRegister() {
   if (!pendingGoogleUser) return;
   var servicio = document.getElementById('googleServicio').value;
   var area = document.getElementById('googleArea').value;
   if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
   if (!area) { toast('Selecciona un rol', 'error'); return; }
+
+  toast('Creando cuenta...', 'info');
+
+  // Insert into workers table
+  var insertResult = await sb.from('workers').insert({
+    id: pendingGoogleUser.authId,
+    folder_id: pendingGoogleUser.id,
+    name: pendingGoogleUser.name,
+    servicio: servicio,
+    area: area,
+    picture: pendingGoogleUser.picture || null,
+    email: pendingGoogleUser.email || null,
+    google: true
+  });
+
+  if (insertResult.error) {
+    toast('Error: ' + insertResult.error.message, 'error');
+    return;
+  }
 
   pendingGoogleUser.servicio = servicio;
   pendingGoogleUser.area = area;
@@ -1586,20 +1751,13 @@ function uploadProfileToSupabase(w) {
   var body = JSON.stringify(w, null, 2);
   var blob = new Blob([body], { type: 'application/json' });
 
-  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + path, {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + SB_KEY,
-      'apikey': SB_KEY,
-      'Content-Type': 'application/json',
-      'x-upsert': 'true'
-    },
-    body: blob
-  }).then(function(res) {
-    if (!res.ok) throw new Error('Upload failed: ' + res.status);
-  }).catch(function(err) {
-    // Profile upload failed silently — will retry on next save
-  });
+  sb.storage.from(SB_BUCKET)
+    .upload(path, blob, { contentType: 'application/json', upsert: true })
+    .then(function(r) {
+      if (r.error) throw new Error(r.error.message);
+    }).catch(function(err) {
+      // Profile upload failed silently — will retry on next save
+    });
 }
 
 /* ===== MAIN VIEW ===== */
@@ -1644,14 +1802,8 @@ function deleteMyFolder() {
     }
     // Delete all files
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    // Deleting files from server
-    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefixes: paths })
-    });
-  }).then(function(res) {
-    if (!res.ok) throw new Error('Error ' + res.status);
+    return sbRemove(paths);
+  }).then(function() {
     // Clear local today files
     todayFiles = [];
     localStorage.removeItem(getTodayKey());
@@ -1664,14 +1816,7 @@ function deleteMyFolder() {
 }
 
 function listAllFiles(prefix) {
-  return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-  }).then(function(res) {
-    return res.json();
-  }).then(function(items) {
-    if (!Array.isArray(items)) return [];
+  return sbList(prefix).then(function(items) {
     var allFiles = [];
     var subfolders = [];
     for (var i = 0; i < items.length; i++) {
@@ -1681,7 +1826,6 @@ function listAllFiles(prefix) {
         subfolders.push(items[i].name);
       }
     }
-    // Recursively list subfolders
     var promises = subfolders.map(function(sub) {
       return listAllFiles(prefix + '/' + sub).then(function(subFiles) {
         return subFiles.map(function(f) { return sub + '/' + f; });
@@ -1728,12 +1872,7 @@ function loadPreviousDates(forceRefresh) {
 
   container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>';
 
-  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-    body: JSON.stringify({ prefix: workerBasePath(worker) + '/', limit: 1000, offset: 0, sortBy: { column: 'name', order: 'desc' } })
-  }).then(function(res) { return res.json(); })
+  sbList(workerBasePath(worker) + '/', { sortBy: { column: 'name', order: 'desc' } })
   .then(function(items) {
     if (!Array.isArray(items)) items = [];
     var todayStr = getTodayDateString();
@@ -1793,20 +1932,13 @@ function loadPrevDateFiles(dateStr) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);font-size:12px">Cargando...</div>';
   var prefix = workerBasePath(worker) + '/' + dateStr + '/';
 
-  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-  }).then(function(res) { return res.json(); })
-  .then(function(items) {
-    if (!Array.isArray(items)) items = [];
+  sbList(prefix).then(function(items) {
     var files = items.filter(function(i) { return !!i.id; }).map(function(f) {
       var ext = f.name.split('.').pop().toLowerCase();
       var isImg = ['jpg','jpeg','png','gif','webp'].indexOf(ext) >= 0;
       return {
         name: f.name,
-        url: SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + f.name,
+        url: sbPublicUrl(prefix + f.name),
         type: ext === 'pdf' ? 'pdf' : (isImg ? 'image' : 'other'),
         size: f.metadata && f.metadata.size ? f.metadata.size : 0
       };
@@ -1888,18 +2020,25 @@ function adminTap() {
   adminTapTimer = setTimeout(function() { adminTapCount = 0; }, 2000);
   if (adminTapCount >= 5) {
     adminTapCount = 0;
-    var pwd = prompt('Clave admin:');
-    if (pwd === null) return;
-    hashPass(pwd).then(function(h) {
-      if (h === '6b630b2b8e99ebca1fd39a7202168f59517e8e064958ab364ac0466d237956ad') {
+    // Check admin status from workers table
+    sb.auth.getSession().then(function(result) {
+      if (!result.data.session) {
+        toast('Inicia sesion primero', 'error');
+        return;
+      }
+      return sb.from('workers').select('is_admin').eq('id', result.data.session.user.id).single();
+    }).then(function(result) {
+      if (result && result.data && result.data.is_admin) {
         isAdmin = true;
         haptic(50);
         document.getElementById('mainName').textContent = worker.name + ' \uD83D\uDC51';
         toast('Modo admin activado', 'success');
         openAdmin();
-      } else {
-        toast('Clave incorrecta', 'error');
+      } else if (result) {
+        toast('No tienes permisos de admin', 'error');
       }
+    }).catch(function() {
+      toast('Error verificando permisos', 'error');
     });
   }
 }
@@ -1915,8 +2054,9 @@ function closeAdmin() {
   if (worker) document.getElementById('mainName').textContent = worker.name;
 }
 
-function doLogout() {
+async function doLogout() {
   if (!confirm('¿Cerrar sesion?')) return;
+  await sb.auth.signOut();
   localStorage.removeItem('wichanzao_worker');
   worker = null;
   isAdmin = false;
@@ -2061,13 +2201,47 @@ function changeServicio() {
   toast('Servicio actualizado a ' + SERVICIOS[newServicio].label, 'success');
 }
 
-function loadAdminWorkers() {
+async function loadAdminWorkers() {
   var container = document.getElementById('adminWorkerList');
   container.innerHTML = 'Cargando...';
 
-  // Fetch from all servicios + legacy workers/ in parallel
+  try {
+    // Load workers from DB (admin RLS policy allows reading all)
+    var result = await sb.from('workers').select('*').order('servicio');
+
+    if (result.error) throw new Error(result.error.message);
+    var workers = result.data || [];
+
+    if (!workers.length) {
+      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay trabajadores registrados</div>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < workers.length; i++) {
+      var w = workers[i];
+      var bp = (w.servicio + '/workers/' + w.folder_id).replace(/'/g, "\\'");
+      var sLabel = SERVICIOS[w.servicio] ? SERVICIOS[w.servicio].label : w.servicio;
+      var adminBadge = w.is_admin ? ' <span style="color:var(--gd);font-size:10px">&#x1F451;</span>' : '';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+      html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(w.name).replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
+      html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + escapeHtml(w.name) + adminBadge + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
+      if (w.area) html += '<div style="font-size:11px;color:var(--t3)">' + escapeHtml(w.area) + ' &middot; ' + sLabel + '</div>';
+      html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + escapeHtml(w.folder_id) + '</div></div>';
+      html += '<button onclick="adminDeleteFolder(\'' + bp + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    // Fallback to old storage-based listing if DB query fails (transition period)
+    loadAdminWorkersLegacy();
+  }
+}
+
+function loadAdminWorkersLegacy() {
+  var container = document.getElementById('adminWorkerList');
   var prefixes = SERVICIOS_KEYS.map(function(s) { return { servicio: s, prefix: s + '/workers/' }; });
-  prefixes.push({ servicio: '', prefix: 'workers/' }); // legacy
+  prefixes.push({ servicio: '', prefix: 'workers/' });
 
   var fetches = prefixes.map(function(p) {
     return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
@@ -2138,13 +2312,8 @@ function adminDeleteFolder(basePath) {
       return;
     }
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefixes: paths })
-    });
-  }).then(function(res) {
-    if (res && !res.ok) throw new Error('Error ' + res.status);
+    return sbRemove(paths);
+  }).then(function() {
     toast('Carpeta eliminada', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
@@ -2157,13 +2326,7 @@ function adminBrowseFolder(basePath, displayName) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
   var prefix = basePath;
-  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-    body: JSON.stringify({ prefix: prefix, limit: 500, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-  }).then(function(res) { return res.json(); })
-  .then(function(items) {
+  sbList(prefix, { limit: 500 }).then(function(items) {
     if (!Array.isArray(items)) { items = []; }
     var subfolders = items.filter(function(i) { return !i.id; });
     var files = items.filter(function(i) { return i.id; });
@@ -2217,13 +2380,7 @@ function adminBrowseSub(basePath, subName, displayName) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
   var prefix = basePath + '/' + subName;
-  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-    body: JSON.stringify({ prefix: prefix, limit: 500, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-  }).then(function(res) { return res.json(); })
-  .then(function(items) {
+  sbList(prefix, { limit: 500 }).then(function(items) {
     if (!Array.isArray(items)) { items = []; }
     var files = items.filter(function(i) { return i.id; });
     var subfolders = items.filter(function(i) { return !i.id; });
@@ -2281,12 +2438,7 @@ function adminDeleteFile(filePath, basePath, displayName, subName) {
   haptic(50);
   toast('Eliminando...', 'info');
 
-  fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-    method: 'DELETE',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefixes: [filePath] })
-  }).then(function(res) {
-    if (!res.ok) throw new Error('Error ' + res.status);
+  sbRemove([filePath]).then(function() {
     toast('Archivo eliminado', 'success');
     if (subName) {
       adminBrowseSub(basePath, subName, displayName);
@@ -2312,13 +2464,8 @@ function adminDeleteSub(basePath, subName, displayName) {
       return;
     }
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefixes: paths })
-    });
-  }).then(function(res) {
-    if (res && !res.ok) throw new Error('Error ' + res.status);
+    return sbRemove(paths);
+  }).then(function() {
     toast('Carpeta eliminada', 'success');
     adminBrowseFolder(basePath, displayName);
   }).catch(function(e) {
@@ -2386,14 +2533,7 @@ function syncTodayFromServer(showFeedback) {
 
   // Syncing today files
 
-  fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } }),
-    cache: 'no-store'
-  }).then(function(res) { return res.json(); })
-  .then(function(items) {
-    if (!Array.isArray(items)) items = [];
+  sbList(prefix).then(function(items) {
     // Server sync response received
 
     var files = items.filter(function(i) { return i.id && i.name && i.name !== 'profile.json'; });
@@ -2530,15 +2670,7 @@ function openTodayFile(index) {
 
 // Delete files from Supabase Storage
 function sbDeleteFiles(paths) {
-  var headers = { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' };
-  var url = SB_URL + '/storage/v1/object/' + SB_BUCKET;
-  return fetch(url, {
-    method: 'DELETE', headers: headers,
-    body: JSON.stringify({ prefixes: paths })
-  }).then(function(res) {
-    if (!res.ok) throw new Error('Delete status: ' + res.status);
-    return res.json().catch(function() { return []; });
-  });
+  return sbRemove(paths);
 }
 
 function deleteTodayFile(index) {
@@ -2609,11 +2741,7 @@ function deleteTodayFile(index) {
     var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
     var baseName = fileName.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
 
-    fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefix: folderPath, limit: 1000, offset: 0 })
-    }).then(function(res) { return res.json(); }).then(function(items) {
+    sbList(folderPath).then(function(items) {
       if (!Array.isArray(items)) items = [];
       var pathsToDelete = [];
       for (var i = 0; i < items.length; i++) {
@@ -3810,19 +3938,12 @@ function uploadIndividualImages(filename, optimizedPages, pdfTimestamp) {
 }
 
 function uploadToSupabase(path, blob, contentType) {
-  return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + path, {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + SB_KEY,
-      'apikey': SB_KEY,
-      'Content-Type': contentType,
-      'x-upsert': 'true'
-    },
-    body: blob
-  }).then(function(res) {
-    if (!res.ok) throw new Error('Upload failed: ' + res.status);
-    return res;
-  });
+  return sb.storage.from(SB_BUCKET)
+    .upload(path, blob, { contentType: contentType, upsert: true })
+    .then(function(r) {
+      if (r.error) throw new Error('Upload failed: ' + r.error.message);
+      return r;
+    });
 }
 
 /* ===== OFFLINE QUEUE ===== */

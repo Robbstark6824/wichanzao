@@ -7,7 +7,7 @@
 <link rel="manifest" href="./manifest-pc.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Wichanzao · Panel de Referencias</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <!-- SW update handled at bottom of page -->
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --n1:#0C1F3D; --n2:#142952; --n3:#1B3A6B;
@@ -757,6 +758,20 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   </div>
 </div>
 
+<!-- LOGIN OVERLAY -->
+<div id="pcLoginOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--n1);display:flex;align-items:center;justify-content:center">
+  <div style="background:var(--s1);border-radius:16px;padding:32px;width:360px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.3)">
+    <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--n1);margin-bottom:4px">Panel de Referencias</h2>
+    <p style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Inicia sesion para continuar</p>
+    <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">Carpeta (usuario)</label>
+    <input id="pcLoginFolder" type="text" placeholder="tu-carpeta" style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:12px;box-sizing:border-box" autocomplete="username">
+    <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">Contrasena</label>
+    <input id="pcLoginPass" type="password" placeholder="••••" style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:16px;box-sizing:border-box" autocomplete="current-password">
+    <button id="pcLoginBtn" onclick="pcDoLogin()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--tl),var(--tl2));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Iniciar sesion</button>
+    <div id="pcLoginError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:10px;display:none"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast info" id="toast"></div>
 
@@ -769,6 +784,27 @@ var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
 var HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+
+/* ===== SUPABASE CLIENT ===== */
+var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: {
+    persistSession: true,
+    storageKey: 'wichanzao_sb_session',
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+/* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
+async function sbHeaders() {
+  var sess = (await sb.auth.getSession()).data.session;
+  var token = sess ? sess.access_token : SB_KEY;
+  return {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  };
+}
 var REFRESH_INTERVAL = 60;
 
 /* =========================================================
@@ -966,20 +1002,14 @@ async function sbList(prefix, skipCache) {
   // Deduplicate: if same prefix is already in-flight, wait for it
   if (cached && cached.promise) return cached.promise;
 
-  var controller = new AbortController();
-  var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
-  var p = fetch(SB_URL + '/storage/v1/object/list/' + BUCKET, {
-    method: 'POST', headers: HEADERS, cache: 'no-store', signal: controller.signal,
-    body: JSON.stringify({ prefix: prefix, limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' } })
-  }).then(function(res) {
-    clearTimeout(timeoutId);
-    return res.json();
-  }).then(function(data) {
-    var result = Array.isArray(data) ? data : [];
+  var p = sb.storage.from(BUCKET).list(prefix, {
+    limit: 1000, offset: 0, sortBy: { column: 'name', order: 'asc' }
+  }).then(function(r) {
+    if (r.error) throw new Error(r.error.message);
+    var result = r.data || [];
     _sbListCache[prefix] = { data: result, ts: Date.now() };
     return result;
   }).catch(function(e) {
-    clearTimeout(timeoutId);
     delete _sbListCache[prefix];
     throw e;
   });
@@ -989,19 +1019,9 @@ async function sbList(prefix, skipCache) {
 }
 
 async function sbDelete(paths) {
-  var res = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
-    method: 'DELETE', headers: HEADERS,
-    body: JSON.stringify({ prefixes: paths })
-  });
-  if (!res.ok) {
-    // Try alternative format without prefixes wrapper
-    var res2 = await fetch(SB_URL + '/storage/v1/object/' + BUCKET, {
-      method: 'DELETE', headers: HEADERS,
-      body: JSON.stringify(paths)
-    });
-    return res2;
-  }
-  return res;
+  var r = await sb.storage.from(BUCKET).remove(paths);
+  if (r.error) throw new Error(r.error.message);
+  return r;
 }
 
 /* =========================================================
@@ -1156,13 +1176,13 @@ async function loadAllData() {
 
     // Fetch all profiles AND date folders in parallel (2 requests per worker at once)
     var profilePromises = allEntries.map(function(entry) {
-      var ctrl = new AbortController();
-      var tid = setTimeout(function() { ctrl.abort(); }, 10000);
-      return fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + entry.basePath + '/profile.json', {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-        signal: ctrl.signal
-      }).then(function(r) { clearTimeout(tid); return r.ok ? r.json() : null; })
-        .catch(function() { clearTimeout(tid); return null; });
+      return sb.storage.from(BUCKET)
+        .download(entry.basePath + '/profile.json')
+        .then(function(r) {
+          if (r.error) return null;
+          return r.data.text().then(function(t) { try { return JSON.parse(t); } catch(e) { return null; } });
+        })
+        .catch(function() { return null; });
     });
     var dateListPromises = allEntries.map(function(entry) {
       return sbList(entry.basePath + '/').catch(function() { return []; });
@@ -2572,12 +2592,9 @@ function downloadFromLightbox() {
   // Otherwise download from server (authenticated, no cache)
   if (path) {
     showToast('Descargando: ' + filename, 'info');
-    fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-      cache: 'no-store'
-    }).then(function(res) {
-      if (!res.ok) throw new Error('Error ' + res.status);
-      return res.blob();
+    sb.storage.from(BUCKET).download(path).then(function(r) {
+      if (r.error) throw new Error(r.error.message);
+      return r.data;
     }).then(function(blob) {
       var blobUrl = URL.createObjectURL(blob);
       var a = document.createElement('a');
@@ -2794,13 +2811,9 @@ function savePcEdit() {
   // Clean path: remove any query params that might have leaked in
   var cleanPath = pcePath.split('?')[0];
 
-  fetch(SB_URL + '/storage/v1/object/' + BUCKET + '/' + cleanPath, {
-    method: 'POST',
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
-    body: blob
-  }).then(function(res) {
-    if (!res.ok) return res.text().then(function(t) { throw new Error(res.status + ': ' + t); });
-    return res.text();
+  sb.storage.from(BUCKET).upload(cleanPath, blob, { contentType: 'image/jpeg', upsert: true })
+  .then(function(r) {
+    if (r.error) throw new Error(r.error.message);
   }).then(function() {
     showToast('Imagen guardada correctamente', 'success');
     // Store edited image in memory so downloads use it directly (limit to 20 to prevent memory leak)
@@ -2955,10 +2968,79 @@ function forceRefresh() {
 }
 
 /* =========================================================
-   INIT
+   INIT — Check auth before loading data
    ========================================================= */
-loadAllData();
-startAutoRefresh();
+var pcCurrentUser = null; // { id, folder_id, name, servicio, area, is_admin }
+
+async function pcDoLogin() {
+  var folder = document.getElementById('pcLoginFolder').value.trim().toLowerCase();
+  var pass = document.getElementById('pcLoginPass').value;
+  var errEl = document.getElementById('pcLoginError');
+  errEl.style.display = 'none';
+
+  if (!folder || !pass) { errEl.textContent = 'Ingresa carpeta y contrasena'; errEl.style.display = 'block'; return; }
+
+  var folderId = folder.replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  var btn = document.getElementById('pcLoginBtn');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+
+  try {
+    // Try to find user's servicio from workers table first
+    var lookup = await sb.from('workers').select('servicio').eq('folder_id', folderId);
+    var row = lookup.data && lookup.data.length > 0 ? lookup.data[0] : null;
+
+    if (row) {
+      // User exists in DB — sign in directly
+      var email = folderId + '.' + row.servicio + '@wichanzao.local';
+      var signIn = await sb.auth.signInWithPassword({ email: email, password: pass });
+      if (signIn.error) { throw new Error('Contrasena incorrecta'); }
+    } else {
+      // Try all servicios (brute force email combinations)
+      var success = false;
+      for (var si = 0; si < SERVICIOS_KEYS.length; si++) {
+        var tryEmail = folderId + '.' + SERVICIOS_KEYS[si] + '@wichanzao.local';
+        var trySignIn = await sb.auth.signInWithPassword({ email: tryEmail, password: pass });
+        if (!trySignIn.error) { success = true; break; }
+      }
+      if (!success) { throw new Error('Usuario no encontrado o contrasena incorrecta'); }
+    }
+
+    // Load user info
+    await pcCheckSession();
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Iniciar sesion';
+  }
+}
+
+// Add enter key support for login
+document.getElementById('pcLoginPass').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') pcDoLogin();
+});
+
+async function pcCheckSession() {
+  var sess = (await sb.auth.getSession()).data.session;
+  if (!sess) {
+    document.getElementById('pcLoginOverlay').style.display = 'flex';
+    return;
+  }
+
+  // Load user info from workers table
+  var wRow = await sb.from('workers').select('*').eq('id', sess.user.id).single();
+  if (!wRow.data) {
+    document.getElementById('pcLoginOverlay').style.display = 'flex';
+    return;
+  }
+
+  pcCurrentUser = wRow.data;
+  document.getElementById('pcLoginOverlay').style.display = 'none';
+  loadAllData();
+  startAutoRefresh();
+}
+
+// Check session on load
+pcCheckSession();
 
 /* ===== PWA INSTALL ===== */
 var pcDeferredPrompt = null;
