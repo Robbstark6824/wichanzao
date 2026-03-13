@@ -1343,17 +1343,32 @@ async function doRegister() {
       return;
     }
 
-    // 2. Insert into workers table
-    var insertResult = await sb.from('workers').insert({
-      id: signUpResult.data.user.id,
-      folder_id: folderId,
-      name: name,
-      servicio: servicio,
-      area: area
-    });
+    // 2. Ensure session is active, then insert into workers via direct REST
+    var session = signUpResult.data.session;
+    if (!session) {
+      var signInRetry = await sb.auth.signInWithPassword({ email: email, password: pass });
+      session = signInRetry.data.session;
+    }
+    var token = session.access_token;
 
-    if (insertResult.error) {
-      toast('Error guardando perfil: ' + insertResult.error.message, 'error');
+    var insertResp = await fetch(SB_URL + '/rest/v1/workers', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        id: session.user.id,
+        folder_id: folderId,
+        name: name,
+        servicio: servicio,
+        area: area
+      })
+    });
+    if (!insertResp.ok) {
+      toast('Error guardando perfil. Intenta de nuevo.', 'error');
       return;
     }
 
@@ -1488,14 +1503,17 @@ async function doLogin() {
       }
     }
 
-    var userId = signUpResult.data.user ? signUpResult.data.user.id : signUpResult.data.session.user.id;
-
-    // Insert into workers table (delete conflicting rows first if needed)
-    var existingCheck = await sb.from('workers').select('id').eq('folder_id', folderId).eq('servicio', svc);
-    if (existingCheck.data && existingCheck.data.length > 0 && existingCheck.data[0].id !== userId) {
-      await sb.from('workers').delete().eq('folder_id', folderId).eq('servicio', svc);
+    // Ensure we have a valid session
+    var session = signUpResult.data.session;
+    if (!session) {
+      var signInRetry = await sb.auth.signInWithPassword({ email: email, password: pass });
+      session = signInRetry.data.session;
     }
-    var upsertResult = await sb.from('workers').upsert({
+    var userId = session.user.id;
+    var token = session.access_token;
+
+    // Insert into workers table using direct REST call (bypasses client session issues)
+    var workerPayload = {
       id: userId,
       folder_id: folderId,
       name: profile.name || folderId,
@@ -1504,15 +1522,17 @@ async function doLogin() {
       picture: profile.picture || null,
       email: profile.email || null,
       google: false
+    };
+    await fetch(SB_URL + '/rest/v1/workers', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(workerPayload)
     });
-    if (upsertResult.error) {
-      console.warn('Workers upsert failed:', upsertResult.error.message);
-    }
-
-    // Ensure we have a valid session
-    if (!signUpResult.data.session) {
-      await sb.auth.signInWithPassword({ email: email, password: pass });
-    }
 
     var w = {
       id: folderId,

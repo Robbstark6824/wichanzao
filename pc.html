@@ -2985,25 +2985,14 @@ async function pcDoLogin() {
   btn.disabled = true; btn.textContent = 'Verificando...';
 
   try {
-    // Try to find user's servicio from workers table first
-    var lookup = await sb.from('workers').select('servicio').eq('folder_id', folderId);
-    var row = lookup.data && lookup.data.length > 0 ? lookup.data[0] : null;
-
-    if (row) {
-      // User exists in DB — sign in directly
-      var email = folderId + '.' + row.servicio + '@wichanzao.local';
-      var signIn = await sb.auth.signInWithPassword({ email: email, password: pass });
-      if (signIn.error) { throw new Error('Contrasena incorrecta'); }
-    } else {
-      // Try all servicios (brute force email combinations)
-      var success = false;
-      for (var si = 0; si < SERVICIOS_KEYS.length; si++) {
-        var tryEmail = folderId + '.' + SERVICIOS_KEYS[si] + '@wichanzao.local';
-        var trySignIn = await sb.auth.signInWithPassword({ email: tryEmail, password: pass });
-        if (!trySignIn.error) { success = true; break; }
-      }
-      if (!success) { throw new Error('Usuario no encontrado o contrasena incorrecta'); }
+    // Try all servicios to find the right email for this user
+    var success = false;
+    for (var si = 0; si < SERVICIOS_KEYS.length; si++) {
+      var tryEmail = folderId + '.' + SERVICIOS_KEYS[si] + '@wichanzao.local';
+      var trySignIn = await sb.auth.signInWithPassword({ email: tryEmail, password: pass });
+      if (!trySignIn.error) { success = true; break; }
     }
+    if (!success) { throw new Error('Usuario no encontrado o contrasena incorrecta'); }
 
     // Load user info
     await pcCheckSession();
@@ -3026,14 +3015,23 @@ async function pcCheckSession() {
     return;
   }
 
-  // Load user info from workers table
-  var wRow = await sb.from('workers').select('*').eq('id', sess.user.id).single();
-  if (!wRow.data) {
+  // Load user info from workers table via direct REST (bypass client session issues)
+  var wData = null;
+  try {
+    var resp = await fetch(SB_URL + '/rest/v1/workers?id=eq.' + sess.user.id + '&select=*', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + sess.access_token, 'Accept': 'application/json' }
+    });
+    if (resp.ok) {
+      var rows = await resp.json();
+      if (rows && rows.length > 0) wData = rows[0];
+    }
+  } catch(e) {}
+  if (!wData) {
     document.getElementById('pcLoginOverlay').style.display = 'flex';
     return;
   }
 
-  pcCurrentUser = wRow.data;
+  pcCurrentUser = wData;
   document.getElementById('pcLoginOverlay').style.display = 'none';
   loadAllData();
   startAutoRefresh();
