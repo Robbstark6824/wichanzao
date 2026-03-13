@@ -1523,7 +1523,7 @@ async function doLogin() {
       email: profile.email || null,
       google: false
     };
-    await fetch(SB_URL + '/rest/v1/workers', {
+    var wInsert = await fetch(SB_URL + '/rest/v1/workers', {
       method: 'POST',
       headers: {
         'apikey': SB_KEY,
@@ -1533,6 +1533,11 @@ async function doLogin() {
       },
       body: JSON.stringify(workerPayload)
     });
+    if (!wInsert.ok) {
+      var errBody = await wInsert.text();
+      console.error('Workers insert failed:', wInsert.status, errBody);
+      toast('Error guardando perfil: ' + wInsert.status, 'error');
+    }
 
     var w = {
       id: folderId,
