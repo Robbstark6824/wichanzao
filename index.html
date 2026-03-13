@@ -1090,6 +1090,18 @@ document.addEventListener('DOMContentLoaded', function() {
   populateServicioSelects();
   migrateOldProfile();
   loadWorker();
+
+  // Force migration: if worker exists locally but no Supabase session, require re-login
+  sb.auth.getSession().then(function(result) {
+    var session = result.data.session;
+    if (worker && !session) {
+      worker = null;
+      localStorage.removeItem('wichanzao_worker');
+      showView('vWelcome');
+      toast('Sesion actualizada. Ingresa nuevamente por seguridad.', 'info');
+    }
+  });
+
   loadTodayFiles();
   processOfflineQueue();
   setupOnlineOffline();
