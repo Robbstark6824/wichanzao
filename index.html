@@ -1155,7 +1155,8 @@ document.addEventListener('DOMContentLoaded', function() {
       var provider = (session.user.app_metadata || {}).provider;
       if (provider === 'google') {
         _authHandled = true;
-        handleGoogleSession(session);
+        // Small delay to let Supabase client fully process the session internally
+        setTimeout(function() { handleGoogleSession(session); }, 100);
       }
     }
   });
@@ -1603,6 +1604,9 @@ async function googleSignIn() {
 async function handleGoogleSession(session) {
   if (!session || !session.user) return;
 
+  // Ensure session is fully propagated to Supabase client before DB queries
+  await sb.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+
   var user = session.user;
   var meta = user.user_metadata || {};
   var email = user.email || meta.email || '';
@@ -1617,6 +1621,12 @@ async function handleGoogleSession(session) {
 
   // Check if worker row already exists for this auth user
   var wRow = await sb.from('workers').select('*').eq('id', user.id).single();
+
+  // If RLS blocked the query, retry once after a short delay
+  if (!wRow.data && wRow.error) {
+    await new Promise(function(r) { setTimeout(r, 500); });
+    wRow = await sb.from('workers').select('*').eq('id', user.id).single();
+  }
 
   if (wRow.data) {
     // Existing migrated user — load and proceed
