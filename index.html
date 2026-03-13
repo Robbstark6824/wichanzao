@@ -1478,8 +1478,12 @@ async function doLogin() {
 
     var userId = signUpResult.data.user ? signUpResult.data.user.id : signUpResult.data.session.user.id;
 
-    // Insert into workers table
-    await sb.from('workers').upsert({
+    // Insert into workers table (delete conflicting rows first if needed)
+    var existingCheck = await sb.from('workers').select('id').eq('folder_id', folderId).eq('servicio', svc);
+    if (existingCheck.data && existingCheck.data.length > 0 && existingCheck.data[0].id !== userId) {
+      await sb.from('workers').delete().eq('folder_id', folderId).eq('servicio', svc);
+    }
+    var upsertResult = await sb.from('workers').upsert({
       id: userId,
       folder_id: folderId,
       name: profile.name || folderId,
@@ -1487,8 +1491,11 @@ async function doLogin() {
       area: profile.area || 'Medico',
       picture: profile.picture || null,
       email: profile.email || null,
-      google: profile.google || false
+      google: false
     });
+    if (upsertResult.error) {
+      console.warn('Workers upsert failed:', upsertResult.error.message);
+    }
 
     // Ensure we have a valid session
     if (!signUpResult.data.session) {
