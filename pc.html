@@ -759,6 +759,20 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 </div>
 
 <!-- LOGIN OVERLAY -->
+<!-- PC AUTH OVERLAY -->
+<div id="pcAuthOverlay" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,#080E1A 0%,#0C1F3D 40%,#142952 100%);display:none;align-items:center;justify-content:center">
+  <div style="background:var(--s1);border-radius:20px;padding:36px 32px;width:360px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.4);text-align:center">
+    <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05));border:1px solid rgba(78,205,196,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#4ECDC4" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:4px">Panel de Referencias</h2>
+    <p style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Ingresa la contrasena del panel</p>
+    <input id="pcAuthPass" type="password" placeholder="Contrasena del panel" style="width:100%;padding:14px;border:1.5px solid var(--bd);border-radius:12px;font-size:15px;font-family:inherit;background:var(--bg);color:var(--t1);box-sizing:border-box;text-align:center;letter-spacing:2px;margin-bottom:14px" onkeydown="if(event.key==='Enter')pcAuthSubmit()">
+    <button id="pcAuthBtn" onclick="pcAuthSubmit()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4ECDC4,#3BB8B0);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Entrar</button>
+    <div id="pcAuthError" style="color:#e74c3c;font-size:12px;text-align:center;margin-top:12px;display:none"></div>
+  </div>
+</div>
+
 <!-- SERVICE CODE MODAL -->
 <div id="svcLockModal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
   <div style="background:var(--s1);border-radius:16px;padding:32px;width:340px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.3);text-align:center">
@@ -3038,11 +3052,64 @@ function forceRefresh() {
 }
 
 /* =========================================================
-   INIT — Check auth before loading data
+   INIT — Authenticate before loading data
    ========================================================= */
-// Load directly — each service is protected by its own access code
-loadAllData();
-startAutoRefresh();
+var PC_AUTH_EMAIL = 'pc-panel@wichanzao.local';
+
+async function pcInit() {
+  // Check if already authenticated
+  var sess = (await sb.auth.getSession()).data.session;
+  if (sess) {
+    // Already signed in — load directly
+    loadAllData();
+    startAutoRefresh();
+    return;
+  }
+  // No session — show password prompt
+  document.getElementById('pcAuthOverlay').style.display = 'flex';
+}
+
+async function pcAuthSubmit() {
+  var pass = document.getElementById('pcAuthPass').value.trim();
+  var errEl = document.getElementById('pcAuthError');
+  var btn = document.getElementById('pcAuthBtn');
+  errEl.style.display = 'none';
+
+  if (!pass) { errEl.textContent = 'Ingresa la contrasena'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando...';
+
+  try {
+    // Try sign in first (account already exists)
+    var result = await sb.auth.signInWithPassword({ email: PC_AUTH_EMAIL, password: pass });
+    if (result.error) {
+      // If account doesn't exist yet, create it (first time setup)
+      if (result.error.message.indexOf('Invalid login') !== -1) {
+        var signUp = await sb.auth.signUp({ email: PC_AUTH_EMAIL, password: pass });
+        if (signUp.error) {
+          errEl.textContent = 'Contrasena incorrecta';
+          errEl.style.display = 'block';
+          return;
+        }
+      } else {
+        errEl.textContent = 'Contrasena incorrecta';
+        errEl.style.display = 'block';
+        return;
+      }
+    }
+    // Success — hide overlay and load data
+    document.getElementById('pcAuthOverlay').style.display = 'none';
+    loadAllData();
+    startAutoRefresh();
+  } catch(e) {
+    errEl.textContent = 'Error de conexion';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+pcInit();
 
 /* ===== PWA INSTALL ===== */
 var pcDeferredPrompt = null;
