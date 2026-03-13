@@ -1151,10 +1151,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Supabase Auth listener — handles Google OAuth redirect returns
   var _authHandled = false;
   sb.auth.onAuthStateChange(function(event, session) {
-    if (event === 'SIGNED_IN' && session && !_authHandled && !worker) {
-      _authHandled = true;
+    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !_authHandled && !worker) {
       var provider = (session.user.app_metadata || {}).provider;
       if (provider === 'google') {
+        _authHandled = true;
         handleGoogleSession(session);
       }
     }
