@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0C1F3D">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net accounts.google.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co *.googleusercontent.com; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co accounts.google.com; frame-src accounts.google.com; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' xqphjvppfgwabfruyjae.supabase.co; frame-src 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
@@ -30,7 +30,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Google Sign-In now handled by Supabase OAuth — no separate Google script needed -->
 <style>
 :root{
   --n1:#0C1F3D;--n2:#142952;--n3:#1B3A6B;
@@ -181,35 +180,26 @@ body.dark .auth-card{background:var(--s1);box-shadow:0 8px 48px rgba(0,0,0,.6),0
 .auth-card h3{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
 .auth-card .auth-desc{font-size:13px;color:var(--t2);margin-bottom:20px}
 .auth-btns{display:flex;flex-direction:column;gap:10px}
-.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;width:100%;box-sizing:border-box}
-body.dark .btn-google{background:var(--s2);color:var(--t1);border-color:var(--bd)}
-.btn-google:active{transform:scale(.98);background:#f5f5f5}
-.btn-google svg{width:20px;height:20px;flex-shrink:0}
-.auth-btns .btn-manual{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.06);color:var(--t1);border:1.5px solid var(--bd);border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
-.auth-btns .btn-manual:active{transform:scale(.98)}
-.auth-btns .btn-manual svg{width:18px;height:18px;flex-shrink:0;opacity:.5}
+.btn-auth-primary{display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,var(--tl),var(--tl2));color:#fff;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;width:100%;box-sizing:border-box;box-shadow:0 4px 16px rgba(78,205,196,.3)}
+.btn-auth-primary:active{transform:scale(.97);box-shadow:0 2px 8px rgba(78,205,196,.2)}
+.btn-auth-primary svg{width:20px;height:20px;flex-shrink:0}
+.btn-auth-secondary{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(78,205,196,.08);color:var(--tl);border:1.5px solid rgba(78,205,196,.25);border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;width:100%;box-sizing:border-box}
+.btn-auth-secondary:active{transform:scale(.97);background:rgba(78,205,196,.15)}
+.btn-auth-secondary svg{width:18px;height:18px;flex-shrink:0}
 .auth-divider{display:flex;align-items:center;gap:12px;color:var(--t3);font-size:12px;font-weight:600;margin:4px 0}
 .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
 .auth-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--t3)}
 .auth-footer a{color:var(--tl);font-weight:700;cursor:pointer;text-decoration:none}
 /* Login/Register specific */
-#vLogin,#vRegister,#vGoogleArea{justify-content:flex-start}
-#vLogin .auth-top,#vRegister .auth-top,#vGoogleArea .auth-top{margin-top:calc(50px + var(--st));padding:0 24px 16px;flex:none}
-#vLogin .auth-card,#vRegister .auth-card,#vGoogleArea .auth-card{flex:none;margin-bottom:40px}
+#vLogin,#vRegister{justify-content:flex-start}
+#vLogin .auth-top,#vRegister .auth-top{margin-top:calc(50px + var(--st));padding:0 24px 16px;flex:none}
+#vLogin .auth-card,#vRegister .auth-card{flex:none;margin-bottom:40px}
 .auth-card .field{margin-bottom:14px}
 .auth-card .btn-primary{width:100%;border-radius:12px;padding:15px;font-size:15px}
 .auth-card .btn-back{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:8px}
 .auth-top-back{position:absolute;top:calc(16px + var(--st));left:16px;z-index:3}
 .auth-top-back button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .auth-top-back button svg{width:22px;height:22px;fill:#fff}
-/* regCard kept for Google Area select */
-.regCard{background:var(--s1);border-radius:var(--r1);padding:28px 22px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:authCardUp .5s cubic-bezier(.16,1,.3,1)}
-.regCard .top{text-align:center;margin-bottom:24px}
-.regCard .top .logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--tl),var(--tl2));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
-.regCard .top .logo-icon svg{width:32px;height:32px;fill:#fff}
-.regCard .top h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--n1)}
-.regCard .top p{font-size:13px;color:var(--t2);margin-top:4px}
-.regCard .btn-primary{width:100%;margin-top:8px}
 
 /* ===== VIEW: MAIN ===== */
 #vMain{background:var(--bg);padding-top:var(--st)}
@@ -548,53 +538,20 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   </div>
   <div class="auth-card">
     <h3>Bienvenido</h3>
-    <div class="auth-desc">Inicia sesion para gestionar tus documentos</div>
+    <div class="auth-desc">Sistema seguro de gestion documental</div>
     <div class="auth-btns">
-      <button class="btn-google" onclick="googleSignIn()">
-        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Continuar con Google
+      <button class="btn-auth-primary" onclick="showView('vLogin')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Iniciar sesion
       </button>
-      <div class="auth-divider">o</div>
-      <button class="btn-manual" onclick="showView('vLogin')">
-        <svg viewBox="0 0 24 24" fill="var(--t2)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-        Iniciar con usuario
+      <button class="btn-auth-secondary" onclick="showView('vRegister')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Crear cuenta nueva
       </button>
-    </div>
-    <div class="auth-footer">
-      ¿No tienes cuenta? <a onclick="showView('vRegister')">Crear una</a>
     </div>
   </div>
   <div style="padding:16px 0 8px;text-align:center;z-index:2">
     <span style="font-size:10px;color:rgba(78,205,196,.5);font-weight:700;letter-spacing:1.2px;text-transform:uppercase">© NeuroArsenal</span>
-  </div>
-</div>
-
-<!-- ===== VIEW: GOOGLE AREA SELECT ===== -->
-<div class="V auth-bg" id="vGoogleArea">
-  <div class="auth-top-back"><button onclick="showView('vWelcome')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button></div>
-  <div class="auth-top">
-    <div id="googleAvatar" style="width:80px;height:80px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--tl),var(--tl2));display:flex;align-items:center;justify-content:center">
-      <img id="googleAvatarImg" src="" style="width:100%;height:100%;object-fit:cover">
-    </div>
-    <h1 id="googleWelcomeName" style="font-size:22px;margin-top:16px">Bienvenido</h1>
-    <div class="auth-subtitle">Un paso mas para completar tu cuenta</div>
-  </div>
-  <div class="auth-card">
-    <h3>Completa tu perfil</h3>
-    <div class="auth-desc">Esto nos ayuda a organizar tus documentos</div>
-    <div class="field">
-      <label>Servicio</label>
-      <select id="googleServicio" onchange="updateAreaOptions('googleServicio','googleArea')">
-        <option value="">Seleccionar servicio...</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Rol</label>
-      <select id="googleArea" disabled>
-        <option value="">Selecciona un servicio primero</option>
-      </select>
-    </div>
-    <button class="btn btn-primary" onclick="completeGoogleRegister()" style="border-radius:12px;padding:15px;font-size:15px">Comenzar</button>
   </div>
 </div>
 
@@ -618,11 +575,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
       <input type="password" id="loginPass" placeholder="Tu contrasena" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
-    <div class="auth-divider" style="margin:12px 0">o</div>
-    <button class="btn-google" onclick="googleSignIn()" style="width:100%">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Continuar con Google
-    </button>
     <div class="auth-footer">
       ¿No tienes cuenta? <a onclick="showView('vRegister')">Crear una</a>
     </div>
@@ -663,14 +615,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     </div>
     <div class="field">
       <label>Contrasena</label>
-      <input type="password" id="regPass" placeholder="Minimo 4 caracteres" autocomplete="new-password">
+      <input type="password" id="regPass" placeholder="Minimo 6 caracteres" autocomplete="new-password">
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
-    <div class="auth-divider" style="margin:12px 0">o</div>
-    <button class="btn-google" onclick="googleSignIn()" style="width:100%">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Registrarse con Google
-    </button>
     <div class="auth-footer">
       ¿Ya tienes cuenta? <a onclick="showView('vLogin')">Iniciar sesion</a>
     </div>
@@ -1148,19 +1095,6 @@ document.addEventListener('DOMContentLoaded', function() {
   setupOnlineOffline();
   registerSW();
 
-  // Supabase Auth listener — handles Google OAuth redirect returns
-  var _authHandled = false;
-  sb.auth.onAuthStateChange(function(event, session) {
-    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !_authHandled && !worker) {
-      var provider = (session.user.app_metadata || {}).provider;
-      if (provider === 'google') {
-        _authHandled = true;
-        // Small delay to let Supabase client fully process the session internally
-        setTimeout(function() { handleGoogleSession(session); }, 100);
-      }
-    }
-  });
-
   // Auto-refresh content every 60 seconds
   setInterval(function() {
     if (worker && document.getElementById('vMain').classList.contains('on')) {
@@ -1304,7 +1238,7 @@ function avatarColor(name) {
 
 /* ===== SERVICIO/AREA HELPERS ===== */
 function populateServicioSelects() {
-  var selects = ['regServicio', 'googleServicio'];
+  var selects = ['regServicio'];
   for (var s = 0; s < selects.length; s++) {
     var sel = document.getElementById(selects[s]);
     if (!sel) continue;
@@ -1582,186 +1516,6 @@ async function doLogin() {
   }
 }
 
-/* ===== GOOGLE SIGN-IN (via Supabase OAuth) ===== */
-var pendingGoogleUser = null;
-
-async function googleSignIn() {
-  toast('Conectando con Google...', 'info');
-  var result = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin + window.location.pathname
-    }
-  });
-  if (result.error) {
-    toast('Error con Google: ' + result.error.message, 'error');
-  }
-  // Browser will redirect to Google, then back to our app.
-  // onAuthStateChange listener (in init) handles the return.
-}
-
-/* Called after Google OAuth redirect returns — handles session */
-async function handleGoogleSession(session) {
-  if (!session || !session.user) return;
-
-  var user = session.user;
-  var meta = user.user_metadata || {};
-  var email = user.email || meta.email || '';
-  var name = meta.full_name || meta.name || email.split('@')[0];
-  var picture = meta.avatar_url || meta.picture || '';
-
-  // Generate folder ID from email (same logic as before)
-  var folderId = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  if (!folderId || folderId.length < 2) folderId = 'user-' + Date.now();
-
-  toast('Verificando cuenta...', 'info');
-
-  // Query workers table using direct REST call with explicit JWT token
-  // This bypasses Supabase client session propagation issues
-  var workerData = null;
-  try {
-    var resp = await fetch(SB_URL + '/rest/v1/workers?id=eq.' + user.id + '&select=*', {
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + session.access_token,
-        'Accept': 'application/json'
-      }
-    });
-    if (resp.ok) {
-      var rows = await resp.json();
-      if (rows && rows.length > 0) workerData = rows[0];
-    }
-  } catch(e) { /* will fall through to legacy check */ }
-
-  if (workerData) {
-    // Existing migrated user — load and proceed
-    var w = {
-      id: workerData.folder_id,
-      name: workerData.name,
-      servicio: workerData.servicio,
-      area: workerData.area,
-      picture: workerData.picture || picture,
-      email: workerData.email || email,
-      google: true,
-      created: workerData.created_at
-    };
-    // Now set session on client for subsequent operations
-    await sb.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
-    if (!workerData.picture && picture) {
-      sb.from('workers').update({ picture: picture }).eq('id', user.id);
-    }
-    saveWorker(w);
-    populateMain();
-    showView('vMain');
-    toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
-    syncTodayFromServer(true);
-    return;
-  }
-
-  // Check for legacy profile.json (migration for old Google users)
-  var paths = SERVICIOS_KEYS.map(function(s) { return s + '/workers/' + folderId + '/profile.json'; });
-  paths.push('workers/' + folderId + '/profile.json');
-
-  var fetches = paths.map(function(p) {
-    return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
-      cache: 'no-store'
-    }).then(function(res) {
-      if (!res.ok) return null;
-      return res.json();
-    }).catch(function() { return null; });
-  });
-
-  var results = await Promise.all(fetches);
-  var profile = null;
-  for (var i = 0; i < results.length; i++) {
-    if (results[i]) { profile = results[i]; break; }
-  }
-
-  if (profile && profile.servicio) {
-    // Old Google user found — migrate to workers table
-    await sb.from('workers').upsert({
-      id: user.id,
-      folder_id: folderId,
-      name: profile.name || name,
-      servicio: profile.servicio,
-      area: profile.area || 'Medico',
-      picture: picture || profile.picture || null,
-      email: email,
-      google: true
-    });
-    var w = {
-      id: folderId,
-      name: profile.name || name,
-      servicio: profile.servicio,
-      area: profile.area,
-      picture: picture || profile.picture,
-      email: email,
-      google: true,
-      created: profile.created
-    };
-    saveWorker(w);
-    populateMain();
-    showView('vMain');
-    toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
-    syncTodayFromServer(true);
-    return;
-  }
-
-  // Completely new Google user — needs to pick servicio and area
-  pendingGoogleUser = {
-    authId: user.id,
-    id: folderId,
-    name: name,
-    email: email,
-    picture: picture,
-    google: true,
-    created: new Date().toISOString()
-  };
-  document.getElementById('googleWelcomeName').textContent = 'Hola, ' + name.split(' ')[0];
-  if (picture) {
-    document.getElementById('googleAvatarImg').src = picture;
-  }
-  populateServicioSelects();
-  showView('vGoogleArea');
-}
-
-async function completeGoogleRegister() {
-  if (!pendingGoogleUser) return;
-  var servicio = document.getElementById('googleServicio').value;
-  var area = document.getElementById('googleArea').value;
-  if (!servicio) { toast('Selecciona un servicio', 'error'); return; }
-  if (!area) { toast('Selecciona un rol', 'error'); return; }
-
-  toast('Creando cuenta...', 'info');
-
-  // Insert into workers table
-  var insertResult = await sb.from('workers').insert({
-    id: pendingGoogleUser.authId,
-    folder_id: pendingGoogleUser.id,
-    name: pendingGoogleUser.name,
-    servicio: servicio,
-    area: area,
-    picture: pendingGoogleUser.picture || null,
-    email: pendingGoogleUser.email || null,
-    google: true
-  });
-
-  if (insertResult.error) {
-    toast('Error: ' + insertResult.error.message, 'error');
-    return;
-  }
-
-  pendingGoogleUser.servicio = servicio;
-  pendingGoogleUser.area = area;
-  saveWorker(pendingGoogleUser);
-  uploadProfileToSupabase(pendingGoogleUser);
-  populateMain();
-  showView('vMain');
-  toast('Cuenta creada. Bienvenido/a, ' + pendingGoogleUser.name.split(' ')[0], 'success');
-  syncTodayFromServer(true);
-  pendingGoogleUser = null;
-}
 
 function uploadProfileToSupabase(w) {
   var path = workerBasePath(w) + '/profile.json';
