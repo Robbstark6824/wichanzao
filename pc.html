@@ -631,7 +631,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 </style>
 </head>
-<body>
+<body style="opacity:0;transition:opacity .3s">
 
 <!-- Install Banner -->
 <div class="pc-install-banner" id="pcInstallBanner">
@@ -759,7 +759,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 </div>
 
 <!-- LOGIN OVERLAY -->
-<div id="pcLoginOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--n1);display:flex;align-items:center;justify-content:center">
+<div id="pcLoginOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--n1);display:none;align-items:center;justify-content:center">
   <div style="background:var(--s1);border-radius:16px;padding:32px;width:360px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.3)">
     <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--n1);margin-bottom:4px">Panel de Referencias</h2>
     <p style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Inicia sesion para continuar</p>
@@ -3028,11 +3028,13 @@ async function pcCheckSession() {
   } catch(e) {}
   if (!wData) {
     document.getElementById('pcLoginOverlay').style.display = 'flex';
+    document.body.style.opacity = '1';
     return;
   }
 
   pcCurrentUser = wData;
   document.getElementById('pcLoginOverlay').style.display = 'none';
+  document.body.style.opacity = '1';
   loadAllData();
   startAutoRefresh();
 }
