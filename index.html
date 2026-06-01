@@ -191,6 +191,45 @@ body.dark .placeholder-card h3{color:var(--t1)}
 .history-item .hi-delete:hover{opacity:1;color:var(--danger)}
 .no-history{text-align:center;padding:20px;color:var(--t3);font-size:12px}
 
+/* KDIGO CKD Risk Matrix (heat map) */
+.kdigo-matrix{margin-top:24px;max-width:640px;margin-left:auto;margin-right:auto}
+.kdigo-matrix-card{background:var(--card);border-radius:var(--r1);padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--bd);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.kdigo-matrix-card h5{font-size:13px;font-weight:700;color:var(--t1);margin:0 0 4px}
+.kdigo-matrix-card .km-sub{font-size:11px;color:var(--t3);margin:0 0 14px}
+.kdigo-matrix-table{border-collapse:collapse;width:100%;min-width:420px;font-size:12px}
+.kdigo-matrix-table th,.kdigo-matrix-table td{border:1.5px solid var(--bd);padding:10px 8px;text-align:center;font-weight:600;transition:all .3s}
+.kdigo-matrix-table th{font-size:11px;background:var(--s2);color:var(--t2);white-space:nowrap}
+.kdigo-matrix-table .km-header{background:var(--n1);color:#fff;font-size:13px;font-weight:700;letter-spacing:.3px}
+.kdigo-matrix-table .km-tfg-col{text-align:left;font-size:11px;white-space:nowrap;background:var(--s2);color:var(--t2);min-width:70px}
+.kdigo-matrix-table .km-cell{position:relative;font-size:11px;transition:all .3s}
+.kdigo-matrix-table .km-cell.risk-low{background:#C8E6C9;color:#1B5E20}
+.kdigo-matrix-table .km-cell.risk-mod{background:#FFECB3;color:#E65100}
+.kdigo-matrix-table .km-cell.risk-high{background:#FFCC80;color:#BF360C}
+.kdigo-matrix-table .km-cell.risk-vhigh{background:#EF9A9A;color:#B71C1C}
+.kdigo-matrix-table .km-cell.patient-active{outline:3px solid var(--n1);outline-offset:-2px;z-index:2;animation:kdigoPulse 2s infinite;transform:scale(1.05);border-radius:2px;font-weight:800;position:relative}
+.kdigo-matrix-table .km-cell.patient-active::after{content:'📍';position:absolute;top:-8px;right:-4px;font-size:14px;animation:bounce .6s infinite alternate}
+.kdigo-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--bd)}
+.kdigo-legend-item{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:var(--t2)}
+.kdigo-legend-dot{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.kdigo-legend-dot.low{background:#C8E6C9;border:1px solid #66BB6A}
+.kdigo-legend-dot.mod{background:#FFECB3;border:1px solid #FFC107}
+.kdigo-legend-dot.high{background:#FFCC80;border:1px solid #FF9800}
+.kdigo-legend-dot.vhigh{background:#EF9A9A;border:1px solid #E53935}
+.kdigo-albumin{display:flex;align-items:center;gap:10px;margin-top:16px;padding:12px 16px;background:var(--s2);border-radius:var(--r3);font-size:12px}
+.kdigo-albumin label{font-weight:700;color:var(--t2);white-space:nowrap}
+.kdigo-albumin select{padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;font-family:inherit;background:var(--s1);color:var(--t1);cursor:pointer}
+.kdigo-albumin select:focus{border-color:var(--tl);outline:none}
+
+@keyframes kdigoPulse{0%,100%{box-shadow:0 0 0 2px rgba(12,31,61,.4)}50%{box-shadow:0 0 0 6px rgba(12,31,61,.1)}}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+
+/* Dark mode KDIGO */
+body.dark .kdigo-matrix-card{background:var(--s1);border-color:var(--bd)}
+body.dark .kdigo-matrix-table th{background:var(--s2);color:var(--t2)}
+body.dark .kdigo-matrix-table .km-tfg-col{background:var(--s2);color:var(--t2)}
+body.dark .kdigo-matrix-table .km-cell.patient-active{outline-color:var(--tl)}
+body.dark .kdigo-albumin{background:var(--s2)}
+
 /* KDIGO stage colors */
 .stage-G1{background:#4CAF50}    .stage-G1-text{color:#2E7D32}
 .stage-G2{background:#8BC34A}    .stage-G2-text{color:#558B2F}
@@ -1073,6 +1112,15 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
                 </div>
               </div>
             </div>
+            <div class="renal-field" style="margin-bottom:14px">
+              <label>Albuminuria (cociente albúmina/creatinina)</label>
+              <select id="renalAlbumin" onchange="renalLiveCalc()" style="padding:12px 14px;border:1.5px solid var(--bd);border-radius:var(--r3);font-size:15px;font-family:inherit;background:var(--s1);color:var(--t1);cursor:pointer">
+                <option value="">No especificada</option>
+                <option value="A1">A1 — Normal a leve (&lt;30 mg/g)</option>
+                <option value="A2">A2 — Moderada (30-300 mg/g)</option>
+                <option value="A3">A3 — Severa (&gt;300 mg/g)</option>
+              </select>
+            </div>
             <div class="renal-actions">
               <button class="btn-calc" onclick="calcRenal()">Calcular TFG</button>
               <button class="btn-reset" onclick="resetRenal()">Limpiar</button>
@@ -1125,6 +1173,83 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
                 <div class="kdigo-labels">
                   <span>≥90</span><span>60</span><span>45</span><span>30</span><span>15</span><span>&lt;15</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KDIGO CKD Risk Matrix -->
+          <div class="kdigo-matrix" id="kdigoMatrix" style="display:none">
+            <div class="kdigo-matrix-card">
+              <h5>📊 Clasificacion KDIGO — ERC</h5>
+              <div class="km-sub">Pronostico segun TFG y Albuminuria (KDIGO 2024)</div>
+              <div class="kdigo-albumin" id="kdigoAlbuminBox">
+                <label>🔬 Albuminuria del paciente:</label>
+                <select id="kdigoAlbuminSelect" onchange="updateKDIGOMatrix()">
+                  <option value="">No especificada</option>
+                  <option value="A1">A1 — Normal a leve (&lt;30 mg/g)</option>
+                  <option value="A2">A2 — Moderada (30-300 mg/g)</option>
+                  <option value="A3">A3 — Severa (&gt;300 mg/g)</option>
+                </select>
+              </div>
+              <div style="overflow-x:auto;margin-top:4px">
+                <table class="kdigo-matrix-table">
+                  <thead>
+                    <tr>
+                      <th class="km-header" colspan="4">Cociente Albumina/Creatinina (mg/g)</th>
+                    </tr>
+                    <tr>
+                      <th>TFG (mL/min/1.73m²)</th>
+                      <th>A1<br><span style="font-weight:400;font-size:9px">Normal a leve</span><br><span style="font-weight:400;font-size:9px">&lt;30</span></th>
+                      <th>A2<br><span style="font-weight:400;font-size:9px">Moderada</span><br><span style="font-weight:400;font-size:9px">30-300</span></th>
+                      <th>A3<br><span style="font-weight:400;font-size:9px">Severa</span><br><span style="font-weight:400;font-size:9px">&gt;300</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="km-tfg-col">G1<br><span style="font-weight:400;font-size:9px">Normal o alto</span><br><span style="font-weight:400;font-size:9px">≥90</span></td>
+                      <td class="km-cell risk-low" id="km-G1-A1"><span>Bajo</span></td>
+                      <td class="km-cell risk-mod" id="km-G1-A2"><span>Moderado</span></td>
+                      <td class="km-cell risk-high" id="km-G1-A3"><span>Alto</span></td>
+                    </tr>
+                    <tr>
+                      <td class="km-tfg-col">G2<br><span style="font-weight:400;font-size:9px">Leve</span><br><span style="font-weight:400;font-size:9px">60-89</span></td>
+                      <td class="km-cell risk-low" id="km-G2-A1"><span>Bajo</span></td>
+                      <td class="km-cell risk-mod" id="km-G2-A2"><span>Moderado</span></td>
+                      <td class="km-cell risk-high" id="km-G2-A3"><span>Alto</span></td>
+                    </tr>
+                    <tr>
+                      <td class="km-tfg-col">G3a<br><span style="font-weight:400;font-size:9px">Leve-moderado</span><br><span style="font-weight:400;font-size:9px">45-59</span></td>
+                      <td class="km-cell risk-mod" id="km-G3a-A1"><span>Moderado</span></td>
+                      <td class="km-cell risk-high" id="km-G3a-A2"><span>Alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G3a-A3"><span>Muy alto</span></td>
+                    </tr>
+                    <tr>
+                      <td class="km-tfg-col">G3b<br><span style="font-weight:400;font-size:9px">Moderado-severo</span><br><span style="font-weight:400;font-size:9px">30-44</span></td>
+                      <td class="km-cell risk-high" id="km-G3b-A1"><span>Alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G3b-A2"><span>Muy alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G3b-A3"><span>Muy alto</span></td>
+                    </tr>
+                    <tr>
+                      <td class="km-tfg-col">G4<br><span style="font-weight:400;font-size:9px">Severo</span><br><span style="font-weight:400;font-size:9px">15-29</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G4-A1"><span>Muy alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G4-A2"><span>Muy alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G4-A3"><span>Muy alto</span></td>
+                    </tr>
+                    <tr>
+                      <td class="km-tfg-col">G5<br><span style="font-weight:400;font-size:9px">Falla renal</span><br><span style="font-weight:400;font-size:9px">&lt;15</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G5-A1"><span>Muy alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G5-A2"><span>Muy alto</span></td>
+                      <td class="km-cell risk-vhigh" id="km-G5-A3"><span>Muy alto</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="kdigo-legend">
+                <div class="kdigo-legend-item"><div class="kdigo-legend-dot low"></div> Bajo riesgo</div>
+                <div class="kdigo-legend-item"><div class="kdigo-legend-dot mod"></div> Moderado</div>
+                <div class="kdigo-legend-item"><div class="kdigo-legend-dot high"></div> Alto riesgo</div>
+                <div class="kdigo-legend-item"><div class="kdigo-legend-dot vhigh"></div> Muy alto riesgo</div>
+                <div class="kdigo-legend-item" style="margin-left:auto"><span style="font-size:14px">📍</span> Paciente</div>
               </div>
             </div>
           </div>
@@ -2606,6 +2731,9 @@ function calcRenal() {
   // Highlight KDIGO bar
   highlightKDIGOBar(kdigo.stage);
 
+  // Update KDIGO matrix
+  updateKDIGOMatrix();
+
   // Scroll to result
   resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -2666,6 +2794,60 @@ function highlightKDIGOBar(stage) {
   }
 }
 
+function updateKDIGOMatrix() {
+  // Sync albuminuria selects
+  var formSel = document.getElementById('renalAlbumin');
+  var matrixSel = document.getElementById('kdigoAlbuminSelect');
+  if (matrixSel && formSel && matrixSel.value !== formSel.value) {
+    formSel.value = matrixSel.value;
+  } else if (formSel && matrixSel && formSel.value !== matrixSel.value) {
+    matrixSel.value = formSel.value;
+  }
+  var albumin = formSel ? formSel.value : '';
+
+  // Remove all active highlights
+  var allCells = document.querySelectorAll('.km-cell.patient-active');
+  allCells.forEach(function(c) { c.classList.remove('patient-active'); });
+
+  // Get current eGFR from gauge
+  var gaugeNum = document.getElementById('gaugeNum');
+  var egfrText = gaugeNum ? gaugeNum.textContent : '--';
+  var egfr = parseFloat(egfrText);
+  if (isNaN(egfr)) return;
+
+  // Determine G stage
+  var gStage;
+  if (egfr >= 90) gStage = 'G1';
+  else if (egfr >= 60) gStage = 'G2';
+  else if (egfr >= 45) gStage = 'G3a';
+  else if (egfr >= 30) gStage = 'G3b';
+  else if (egfr >= 15) gStage = 'G4';
+  else gStage = 'G5';
+
+  // Show matrix
+  var matrix = document.getElementById('kdigoMatrix');
+  if (matrix) matrix.style.display = 'block';
+
+  // Highlight cell if albumin is selected
+  if (albumin && gStage) {
+    var cellId = 'km-' + gStage + '-' + albumin;
+    var cell = document.getElementById(cellId);
+    if (cell) {
+      cell.classList.add('patient-active');
+    }
+  }
+
+  // Scroll matrix into view if we have albumin data
+  if (albumin && matrix) {
+    setTimeout(function() {
+      var activeCell = document.querySelector('.km-cell.patient-active');
+      if (activeCell) {
+        activeCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+    }, 300);
+  }
+}
+
 function renalLiveCalc() {
   var age = parseInt(document.getElementById('renalAge').value);
   var cr = getCrMgDl();
@@ -2697,6 +2879,7 @@ function renalLiveCalc() {
       badge.style.color = '#fff';
     }
     highlightKDIGOBar(kdigo.stage);
+    updateKDIGOMatrix();
   }
 }
 
@@ -2713,6 +2896,10 @@ function resetRenal() {
   document.getElementById('renalStageBadge').textContent = '--';
   document.getElementById('renalInterpretation').innerHTML = '';
   document.querySelectorAll('.kdigo-bar div').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('renalAlbumin').value = '';
+  document.getElementById('kdigoAlbuminSelect').value = '';
+  document.getElementById('kdigoMatrix').style.display = 'none';
+  document.querySelectorAll('.km-cell.patient-active').forEach(function(c) { c.classList.remove('patient-active'); });
 }
 
 function saveRenalHistory() {
