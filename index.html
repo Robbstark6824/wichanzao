@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <link rel="apple-touch-icon" href="./icons/icon-192.svg">
-<title>C.S. Wichanzao</title>
+<title>Medicina Interna - Hospital de Laredo</title>
 <script>
 // Nuclear SW reset: runs BEFORE anything else to ensure latest code
 (function(){
@@ -47,9 +47,108 @@
 html,body{height:100%;overflow:hidden}
 body{font-family:'Manrope',sans-serif;background:#080E1A;color:var(--t1);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
+/* ===== DASHBOARD SHELL + SIDEBAR ===== */
+.dashboard-shell{display:flex;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:var(--bg)}
+#sidebar{width:260px;min-width:260px;height:100vh;height:100dvh;background:linear-gradient(180deg,#080E1A 0%,var(--n1) 30%,var(--n2) 70%,var(--n3) 100%);display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:200;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.3);overflow:hidden}
+#sidebar.open{transform:translateX(0)}
+.sidebar-brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.sidebar-brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--tl),var(--tl2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sidebar-brand-text h3{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:#fff;line-height:1.15;margin:0}
+.sidebar-brand-text span{font-size:10px;color:var(--t3);font-weight:500;letter-spacing:.5px}
+.sidebar-nav{flex:1;overflow-y:auto;padding:12px 0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+.sidebar-nav::-webkit-scrollbar{width:4px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+.sidebar-nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;margin:2px 10px;border-radius:10px;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;border-left:3px solid transparent;text-decoration:none;user-select:none}
+.sidebar-nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.sidebar-nav-item.active{background:rgba(78,205,196,.12);color:#fff;border-left-color:var(--tl);font-weight:600}
+.sidebar-nav-item .sni-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.sidebar-nav-item .sni-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.sidebar-user-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.sidebar-user-info{flex:1;min-width:0}
+.sidebar-user-info .su-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-info .su-area{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-logout{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:6px;border-radius:8px;font-size:16px;transition:all .2s;line-height:1}
+.sidebar-user-logout:hover{color:#e74c3c;background:rgba(231,76,60,.1)}
+#sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199;opacity:0;pointer-events:none;transition:opacity .3s}
+#sidebarOverlay.show{opacity:1;pointer-events:auto}
+.hamburger-btn{width:36px;height:36px;display:none;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;border-radius:8px;flex-direction:column;gap:5px;padding:8px;z-index:10}
+.hamburger-btn span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
+.hamburger-btn.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger-btn.open span:nth-child(2){opacity:0}
+.hamburger-btn.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+#moduleContent{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.module-panel{display:none;flex-direction:column;height:100%;overflow:hidden}
+.module-panel.active{display:flex}
+.module-header{background:linear-gradient(135deg,#080E1A,var(--n1),var(--n2));padding:14px 20px;color:#fff;display:flex;align-items:center;gap:14px;flex-shrink:0;min-height:52px;box-shadow:0 2px 12px rgba(0,0,0,.15);position:relative;z-index:5}
+.module-header h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin:0;color:#fff}
+.module-header .mh-breadcrumb{font-size:13px;color:rgba(255,255,255,.8)}
+.module-header .mh-breadcrumb a{color:var(--tl);cursor:pointer;text-decoration:none;font-weight:600}
+.module-header .mh-breadcrumb a:hover{text-decoration:underline}
+.module-body{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.module-body::-webkit-scrollbar{width:6px}
+.module-body::-webkit-scrollbar-thumb{background:var(--bd);border-radius:6px}
+
+/* ===== DASHBOARD HOME CARDS ===== */
+.welcome-card{background:var(--card);border-radius:var(--r1);padding:24px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--bd)}
+.welcome-card h3{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--t1);margin:0 0 4px}
+.welcome-card .wc-sub{font-size:13px;color:var(--t2);margin-bottom:4px}
+.welcome-card .wc-badge{display:inline-block;background:var(--tl);color:#fff;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-top:6px}
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);border-radius:var(--r2);padding:18px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid var(--bd)}
+.stat-card .stat-num{font-family:'Playfair Display',serif;font-size:28px;font-weight:800;color:var(--n1);line-height:1}
+.stat-card .stat-label{font-size:11px;color:var(--t2);font-weight:500;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.stat-card.s-accent .stat-num{color:var(--tl)}
+.module-cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.module-card{background:var(--card);border-radius:var(--r2);padding:22px 18px;cursor:pointer;border:1px solid var(--bd);transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.04);text-align:center}
+.module-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1);border-color:var(--tl)}
+.module-card .mc-icon{font-size:36px;margin-bottom:10px;display:block}
+.module-card .mc-title{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.module-card .mc-desc{font-size:11px;color:var(--t2);line-height:1.4}
+.module-card .mc-badge-prox{display:inline-block;margin-top:8px;padding:3px 10px;background:var(--s2);color:var(--t2);border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.5px}
+.placeholder-card{background:var(--card);border-radius:var(--r1);padding:40px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--bd);max-width:500px;margin:0 auto}
+.placeholder-card .ph-icon{font-size:56px;margin-bottom:16px}
+.placeholder-card h3{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--t1);margin:0 0 8px}
+.placeholder-card p{font-size:13px;color:var(--t2);margin:0 0 16px;line-height:1.5}
+.placeholder-card .ph-badge{display:inline-block;background:linear-gradient(135deg,var(--gd),var(--gd2));color:#fff;padding:6px 18px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.section-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--t1);margin:0 0 12px}
+
+/* ===== DASHBOARD SCAN MODULE WRAPPER ===== */
+.scan-modes-wrap{margin-bottom:20px}
+.scan-modes-wrap .mode-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.scan-modes-wrap .mode-card{padding:18px 12px}
+
+/* ===== DARK MODE OVERRIDES ===== */
+body.dark .dashboard-shell{background:var(--bg)}
+body.dark .module-body{background:var(--bg)}
+body.dark #moduleContent{background:var(--bg)}
+body.dark .welcome-card{background:var(--s1);border-color:var(--bd)}
+body.dark .stat-card{background:var(--s1);border-color:var(--bd)}
+body.dark .stat-card .stat-num{color:#E6EDF3}
+body.dark .module-card{background:var(--s1);border-color:var(--bd)}
+body.dark .module-card .mc-title{color:var(--t1)}
+body.dark .placeholder-card{background:var(--s1);border-color:var(--bd)}
+body.dark .placeholder-card h3{color:var(--t1)}
+
+/* ===== RESPONSIVE ===== */
+@media (min-width:769px){
+  #sidebar{transform:translateX(0);position:relative;z-index:auto;box-shadow:none}
+  #sidebarOverlay{display:none!important}
+  .hamburger-btn{display:none!important}
+  .module-body{padding:28px 32px}
+}
+@media (max-width:768px){
+  .hamburger-btn{display:flex}
+  .module-header{padding-left:16px}
+  .module-body{padding:14px}
+  .module-cards-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .stats-row{grid-template-columns:1fr 1fr;gap:10px}
+}
+
 /* ===== VIEW SYSTEM ===== */
 .V{position:fixed;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .3s cubic-bezier(.4,0,.2,1),transform .3s cubic-bezier(.4,0,.2,1);z-index:1;will-change:opacity,transform}
 .V.on{opacity:1;pointer-events:auto;z-index:10;transform:translateY(0)}
+#vCam.on,#vSettings.on,.author-overlay.on{z-index:250}
 
 /* ===== OFFLINE BAR ===== */
 .offline-bar{position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;text-align:center;padding:6px;font-size:11px;font-weight:700;z-index:500;transform:translateY(-100%);transition:transform .3s}
@@ -532,13 +631,13 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     <div class="auth-logo">
       <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" fill="rgba(78,205,196,.3)"/><path d="M14 2v6h6" stroke="#4ECDC4" stroke-width="1.5" fill="none"/><rect x="8" y="13" width="8" height="1.5" rx=".75" fill="#4ECDC4" opacity=".6"/><rect x="8" y="16" width="5" height="1.5" rx=".75" fill="#4ECDC4" opacity=".4"/></svg>
     </div>
-    <h1>CSW Scan</h1>
-    <div class="auth-subtitle">Centro de Salud Wichanzao</div>
-    <div class="auth-badge"><span class="pulse"></span> Digitalizacion de documentos</div>
+    <h1>Medicina Interna</h1>
+    <div class="auth-subtitle">Hospital de Laredo</div>
+    <div class="auth-badge"><span class="pulse"></span> Plataforma Medica Integral</div>
   </div>
   <div class="auth-card">
     <h3>Bienvenido</h3>
-    <div class="auth-desc">Sistema seguro de gestion documental</div>
+    <div class="auth-desc">Plataforma medica integral</div>
     <div class="auth-btns">
       <button class="btn-auth-primary" onclick="showView('vLogin')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -624,100 +723,262 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   </div>
 </div>
 
-<!-- ===== VIEW: MAIN ===== -->
+<!-- ===== VIEW: MAIN (DASHBOARD) ===== -->
 <div class="V" id="vMain">
-  <div class="main-header">
-    <div class="avatar md" id="mainAvatar" style="background:var(--tl)"></div>
-    <div class="info">
-      <div id="mainGreeting" style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.3px"></div>
-      <h3 id="mainName" onclick="adminTap()">---</h3>
-      <div class="sub">
-        <span class="dot"></span>
-        <span id="mainArea">---</span>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:2px">
-      <button onclick="window.location.reload()" style="background:none;border:none;padding:8px;cursor:pointer;opacity:.7">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-      </button>
-      <button onclick="openSettings()" style="background:none;border:none;padding:8px;cursor:pointer;opacity:.7">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
-      </button>
-    </div>
-  </div>
-  <div class="main-content" id="mainContent">
-    <div class="mode-cards">
-      <!-- FOTO card -->
-      <div class="mode-card" onclick="openCamera('foto')">
-        <div class="mc-icon foto">
-          <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+  <div class="dashboard-shell">
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="18" rx="1" fill="#fff" opacity=".9"/><rect x="13" y="3" width="8" height="18" rx="1" fill="#fff" opacity=".6"/><line x1="11" y1="8" x2="13" y2="8" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="11" y1="12" x2="13" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="11" y1="16" x2="13" y2="16" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
         </div>
-        <div class="mc-text">
-          <h4>Foto</h4>
-          <p>Captura una imagen individual</p>
-        </div>
-        <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
-      <!-- PDF card -->
-      <div class="mode-card" onclick="openCamera('pdf')">
-        <div class="mc-icon pdf">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM6 20V4h5v7h7v9H6z"/><path d="M8 15h8v1.5H8zM8 12h8v1.5H8z"/></svg>
-        </div>
-        <div class="mc-text">
-          <h4>PDF</h4>
-          <p>Varias paginas en un documento</p>
-        </div>
-        <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
-      <!-- 2 en 1 card -->
-      <div class="mode-card" onclick="openCamera('dosEnUno')">
-        <div class="mc-icon dosEnUno">
-          <svg viewBox="0 0 24 24"><path d="M4 4h16v7H4V4zm0 9h16v7H4v-7z" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="10" cy="7.5" r="1.5"/><circle cx="10" cy="16.5" r="1.5"/><path d="M13.5 6h3M13.5 9h2M13.5 15h3M13.5 18h2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </div>
-        <div class="mc-text">
-          <h4>2 en 1</h4>
-          <p>Combina 2 fotos en una pagina PDF</p>
-        </div>
-        <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-      </div>
-    </div>
-    <!-- Today section -->
-    <div class="today-section">
-      <div class="ts-header">
-        <h4>Archivos de hoy</h4>
-        <button onclick="forceSyncToday()" style="background:none;border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:11px;font-family:inherit;font-weight:600;color:var(--tl);cursor:pointer;display:flex;align-items:center;gap:4px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-3-6.74"/><polyline points="21 3 21 9 15 9"/></svg>
-          Sincronizar
-        </button>
-      </div>
-      <div class="ts-count" id="todayCount">0</div>
-      <div class="ts-label">documentos digitalizados</div>
-      <div class="today-files" id="todayFiles"></div>
-    </div>
-    <!-- Previous Files -->
-    <div class="prev-section" id="prevSection">
-      <div class="ps-header">
-        <h4>Archivos anteriores</h4>
-      </div>
-      <div id="prevDatesContainer">
-        <div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>
-      </div>
-    </div>
-    <!-- Admin Panel (hidden by default) -->
-    <div id="adminPanel" style="display:none;margin-top:24px;padding:0 16px 24px">
-      <div style="background:var(--s1);border-radius:var(--r1);padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <h4 style="font-size:14px;font-weight:800;color:var(--t1)">Panel Admin</h4>
-          <button onclick="closeAdmin()" style="background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer">&times;</button>
-        </div>
-        <div id="adminWorkerList" style="font-size:13px;color:var(--t2)">Cargando...</div>
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08);text-align:center">
-          <button onclick="adminForceReload()" style="background:var(--n1);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;width:100%">Recargar todo</button>
+        <div class="sidebar-brand-text">
+          <h3>Medicina Interna</h3>
+          <span>Hospital de Laredo</span>
         </div>
       </div>
-    </div>
-    <!-- Credit at bottom of scroll -->
-    <div id="creditLine" style="text-align:center;padding:12px 0 20px"><span class="credit-badge">© NeuroArsenal</span></div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-nav-item active" data-module="dashboard" onclick="showModule('dashboard')">
+          <span class="sni-icon">🏠</span>
+          <span class="sni-label">Inicio</span>
+        </a>
+        <a class="sidebar-nav-item" data-module="scan" onclick="showModule('scan')">
+          <span class="sni-icon">📸</span>
+          <span class="sni-label">Wichanzao Scan</span>
+        </a>
+        <a class="sidebar-nav-item" data-module="historias" onclick="showModule('historias')">
+          <span class="sni-icon">🏥</span>
+          <span class="sni-label">Historias Clinicas</span>
+        </a>
+        <a class="sidebar-nav-item" data-module="renal" onclick="showModule('renal')">
+          <span class="sni-icon">🩺</span>
+          <span class="sni-label">Calculadora Renal</span>
+        </a>
+        <a class="sidebar-nav-item" data-module="cie" onclick="showModule('cie')">
+          <span class="sni-icon">📋</span>
+          <span class="sni-label">CIE Medicina Interna</span>
+        </a>
+      </nav>
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebarAvatar" style="background:var(--tl)"></div>
+        <div class="sidebar-user-info">
+          <div class="su-name" id="sidebarName" onclick="adminTap()">---</div>
+          <div class="su-area" id="sidebarArea">---</div>
+        </div>
+        <button class="sidebar-user-logout" onclick="openSettings()" title="Configuracion" style="margin-right:2px">⚙</button>
+        <button class="sidebar-user-logout" onclick="doLogout()" title="Cerrar sesion">⏻</button>
+      </div>
+    </aside>
+
+    <!-- SIDEBAR OVERLAY (mobile) -->
+    <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- MODULE CONTENT AREA -->
+    <main id="moduleContent">
+      <!-- === MODULE: DASHBOARD HOME === -->
+      <div class="module-panel active" id="moduleDashboard">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <h2>Inicio</h2>
+        </div>
+        <div class="module-body">
+          <div class="welcome-card">
+            <h3 id="wcGreeting">Bienvenido</h3>
+            <div class="wc-sub" id="wcName">---</div>
+            <div class="wc-sub" id="wcRole" style="color:var(--t3);font-size:11px">---</div>
+            <span class="wc-badge">Plataforma Medica Integral</span>
+          </div>
+          <div class="stats-row">
+            <div class="stat-card s-accent" onclick="showModule('scan')" style="cursor:pointer">
+              <div class="stat-num" id="statToday">0</div>
+              <div class="stat-label">Docs Hoy</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="statTotal">0</div>
+              <div class="stat-label">Total Archivos</div>
+            </div>
+          </div>
+          <div class="section-title">Modulos</div>
+          <div class="module-cards-grid">
+            <div class="module-card" onclick="showModule('scan')">
+              <span class="mc-icon">📸</span>
+              <div class="mc-title">Wichanzao Scan</div>
+              <div class="mc-desc">Digitaliza documentos, PDFs y combina fotos</div>
+            </div>
+            <div class="module-card" onclick="showModule('historias')">
+              <span class="mc-icon">🏥</span>
+              <div class="mc-title">Historias Clinicas</div>
+              <div class="mc-desc">Gestion de historias clinicas electronicas</div>
+              <span class="mc-badge-prox">Proximamente</span>
+            </div>
+            <div class="module-card" onclick="showModule('renal')">
+              <span class="mc-icon">🩺</span>
+              <div class="mc-title">Calculadora Renal</div>
+              <div class="mc-desc">TFG, estadificacion y mas</div>
+              <span class="mc-badge-prox">Proximamente</span>
+            </div>
+            <div class="module-card" onclick="showModule('cie')">
+              <span class="mc-icon">📋</span>
+              <div class="mc-title">CIE Medicina Interna</div>
+              <div class="mc-desc">Referencia rapida de codigos CIE-10</div>
+              <span class="mc-badge-prox">Proximamente</span>
+            </div>
+          </div>
+          <!-- Credit -->
+          <div style="text-align:center;padding:16px 0 8px"><span class="credit-badge">© NeuroArsenal</span></div>
+        </div>
+      </div>
+
+      <!-- === MODULE: WICHANZAO SCAN === -->
+      <div class="module-panel" id="moduleScan">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / Wichanzao Scan
+          </div>
+        </div>
+        <div class="module-body" id="moduleScanBody">
+          <div class="scan-modes-wrap">
+            <div class="mode-cards">
+              <!-- FOTO card -->
+              <div class="mode-card" onclick="openCamera('foto')">
+                <div class="mc-icon foto">
+                  <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+                </div>
+                <div class="mc-text">
+                  <h4>Foto</h4>
+                  <p>Captura una imagen individual</p>
+                </div>
+                <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+              </div>
+              <!-- PDF card -->
+              <div class="mode-card" onclick="openCamera('pdf')">
+                <div class="mc-icon pdf">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM6 20V4h5v7h7v9H6z"/><path d="M8 15h8v1.5H8zM8 12h8v1.5H8z"/></svg>
+                </div>
+                <div class="mc-text">
+                  <h4>PDF</h4>
+                  <p>Varias paginas en un documento</p>
+                </div>
+                <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+              </div>
+              <!-- 2 en 1 card -->
+              <div class="mode-card" onclick="openCamera('dosEnUno')">
+                <div class="mc-icon dosEnUno">
+                  <svg viewBox="0 0 24 24"><path d="M4 4h16v7H4V4zm0 9h16v7H4v-7z" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="10" cy="7.5" r="1.5"/><circle cx="10" cy="16.5" r="1.5"/><path d="M13.5 6h3M13.5 9h2M13.5 15h3M13.5 18h2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="mc-text">
+                  <h4>2 en 1</h4>
+                  <p>Combina 2 fotos en una pagina PDF</p>
+                </div>
+                <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+              </div>
+            </div>
+          </div>
+          <!-- Today section -->
+          <div class="today-section">
+            <div class="ts-header">
+              <h4>Archivos de hoy</h4>
+              <button onclick="forceSyncToday()" style="background:none;border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:11px;font-family:inherit;font-weight:600;color:var(--tl);cursor:pointer;display:flex;align-items:center;gap:4px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-3-6.74"/><polyline points="21 3 21 9 15 9"/></svg>
+                Sincronizar
+              </button>
+            </div>
+            <div class="ts-count" id="todayCount">0</div>
+            <div class="ts-label">documentos digitalizados</div>
+            <div class="today-files" id="todayFiles"></div>
+          </div>
+          <!-- Previous Files -->
+          <div class="prev-section" id="prevSection">
+            <div class="ps-header">
+              <h4>Archivos anteriores</h4>
+            </div>
+            <div id="prevDatesContainer">
+              <div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>
+            </div>
+          </div>
+          <!-- Admin Panel (hidden by default) -->
+          <div id="adminPanel" style="display:none;margin-top:24px;padding:0 0 24px">
+            <div style="background:var(--s1);border-radius:var(--r1);padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <h4 style="font-size:14px;font-weight:800;color:var(--t1)">Panel Admin</h4>
+                <button onclick="closeAdmin()" style="background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer">&times;</button>
+              </div>
+              <div id="adminWorkerList" style="font-size:13px;color:var(--t2)">Cargando...</div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08);text-align:center">
+                <button onclick="adminForceReload()" style="background:var(--n1);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;width:100%">Recargar todo</button>
+              </div>
+            </div>
+          </div>
+          <!-- Credit -->
+          <div style="text-align:center;padding:12px 0 20px"><span class="credit-badge">© NeuroArsenal</span></div>
+        </div>
+      </div>
+
+      <!-- === MODULE: HISTORIAS CLINICAS (placeholder) === -->
+      <div class="module-panel" id="moduleHistorias">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / Historias Clinicas
+          </div>
+        </div>
+        <div class="module-body">
+          <div class="placeholder-card">
+            <span class="ph-icon">🏥</span>
+            <h3>Historias Clinicas</h3>
+            <p>Gestion de historias clinicas electronicas con busqueda por paciente, fecha y servicio</p>
+            <span class="ph-badge">Proximamente</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === MODULE: CALCULADORA RENAL (placeholder) === -->
+      <div class="module-panel" id="moduleRenal">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / Calculadora Renal
+          </div>
+        </div>
+        <div class="module-body">
+          <div class="placeholder-card">
+            <span class="ph-icon">🩺</span>
+            <h3>Calculadora de Funcion Renal</h3>
+            <p>Calculo de TFG (CKD-EPI, MDRD, Cockcroft-Gault), estadificacion de ERC, proteinuria y mas</p>
+            <span class="ph-badge">Proximamente</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === MODULE: CIE MEDICINA INTERNA (placeholder) === -->
+      <div class="module-panel" id="moduleCIE">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / CIE Medicina Interna
+          </div>
+        </div>
+        <div class="module-body">
+          <div class="placeholder-card">
+            <span class="ph-icon">📋</span>
+            <h3>CIE Medicina Interna</h3>
+            <p>Referencia rapida de codigos CIE-10 para enfermedades comunes en medicina interna</p>
+            <span class="ph-badge">Proximamente</span>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 </div>
 
@@ -840,7 +1101,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v122</p>
+              <p id="settingsVersionText">v200</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -900,7 +1161,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <svg viewBox="0 0 24 24" width="28" height="28" fill="var(--gd)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
       </div>
       <h4 class="author-ded-title">Dedicatoria</h4>
-      <p class="author-ded-text">Este sistema es una contribución técnica desarrollada en gratitud al <strong>C.S.M.I. Wichanzao</strong> por la formación recibida durante el internado médico.</p>
+      <p class="author-ded-text">Este sistema es una contribución técnica desarrollada en gratitud al <strong>Hospital de Laredo</strong> por la formación recibida durante el internado médico.</p>
       <p class="author-ded-text">Un reconocimiento especial a los <strong>doctores</strong>, <strong>enfermeras</strong>, <strong>obstetras</strong>, <strong>técnicos</strong> y a todo el personal <strong>administrativo</strong>, de <strong>servicios</strong> y <strong>seguridad</strong>. Gracias por compartir su experiencia diaria y permitirme entender que la medicina se fortalece con la colaboración de cada integrante del equipo de salud.</p>
       <p class="author-ded-quote">"La medicina es una vocación que se aprende al lado de quienes la viven cada día."</p>
       <p class="author-ded-signature"><strong>Robert Macedo Rios</strong></p>
@@ -985,12 +1246,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 
 <script>
 /* ===========================================================
-   C.S. WICHANZAO — Document Digitization PWA
+   MEDICINA INTERNA HOSPITAL DE LAREDO — Medical Platform PWA
    Production build — Vanilla JS, single file
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v123';
+var APP_VERSION = 'v200';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -1155,6 +1416,99 @@ function showView(id) {
     views[i].classList.remove('on');
   }
   document.getElementById(id).classList.add('on');
+  // Dashboard hook: ensure sidebar state on vMain
+  if (id === 'vMain') {
+    if (window.innerWidth < 769) closeSidebar();
+    if (typeof populateDashboard === 'function') populateDashboard();
+  }
+}
+
+/* ===== SIDEBAR + MODULE NAVIGATION ===== */
+function toggleSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  var btn = document.querySelector('.hamburger-btn');
+  var isOpen = sidebar.classList.contains('open');
+  if (isOpen) {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+    if (btn) btn.classList.remove('open');
+  } else {
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('show');
+    if (btn) btn.classList.add('open');
+  }
+  haptic(10);
+}
+
+function closeSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  var btn = document.querySelector('.hamburger-btn');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('show');
+  if (btn) btn.classList.remove('open');
+}
+
+var currentModule = 'dashboard';
+
+function showModule(moduleName) {
+  // Hide all module panels
+  var panels = document.querySelectorAll('.module-panel');
+  for (var i = 0; i < panels.length; i++) {
+    panels[i].classList.remove('active');
+  }
+  // Show target panel
+  var targetId = 'module' + moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
+  var target = document.getElementById(targetId);
+  if (target) {
+    target.classList.add('active');
+  }
+  // Update sidebar nav active states
+  var navItems = document.querySelectorAll('.sidebar-nav-item');
+  for (var j = 0; j < navItems.length; j++) {
+    navItems[j].classList.toggle('active', navItems[j].getAttribute('data-module') === moduleName);
+  }
+  // On mobile: close sidebar after selection
+  if (window.innerWidth < 769) {
+    closeSidebar();
+  }
+  currentModule = moduleName;
+  haptic(10);
+}
+
+function populateDashboard() {
+  if (!worker) return;
+  // Welcome card
+  var wcG = document.getElementById('wcGreeting');
+  var wcN = document.getElementById('wcName');
+  var wcR = document.getElementById('wcRole');
+  if (wcG) wcG.textContent = getGreeting();
+  if (wcN) wcN.textContent = worker.name;
+  var sLabel = worker.servicio && SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : '';
+  if (wcR) wcR.textContent = worker.area + (sLabel ? ' · ' + sLabel : '');
+  // Stats
+  var todayCount = document.getElementById('todayCount');
+  if (todayCount) {
+    var tcNum = parseInt(todayCount.textContent) || 0;
+    var stToday = document.getElementById('statToday');
+    if (stToday) stToday.textContent = tcNum;
+  }
+  // Sidebar user section
+  var sbAv = document.getElementById('sidebarAvatar');
+  var sbNm = document.getElementById('sidebarName');
+  var sbAr = document.getElementById('sidebarArea');
+  if (sbAv) {
+    sbAv.textContent = getInitials(worker.name);
+    sbAv.style.background = avatarColor(worker.name);
+  }
+  if (sbNm) sbNm.textContent = worker.name;
+  if (sbAr) sbAr.textContent = worker.area + (sLabel ? ' · ' + sLabel : '');
+  // Total files count
+  if (typeof allDates !== 'undefined' && allDates.length > 0) {
+    var stTotal = document.getElementById('statTotal');
+    if (stTotal) stTotal.textContent = allDates.length;
+  }
 }
 
 /* ===== TOAST SYSTEM ===== */
@@ -1389,6 +1743,7 @@ async function doRegister() {
 
     populateMain();
     showView('vMain');
+    showModule('dashboard');
     toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
   } catch(e) {
     toast('Error de conexion. Verifica tu internet.', 'error');
@@ -1437,6 +1792,7 @@ async function doLogin() {
         saveWorker(w);
         populateMain();
         showView('vMain');
+        showModule('dashboard');
         toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
         syncTodayFromServer(true);
       }
@@ -1554,6 +1910,7 @@ async function doLogin() {
     saveWorker(w);
     populateMain();
     showView('vMain');
+    showModule('dashboard');
     toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
     syncTodayFromServer(true);
   } catch(e) {
@@ -1586,13 +1943,19 @@ function getGreeting() {
 
 function populateMain() {
   if (!worker) return;
-  document.getElementById('mainGreeting').textContent = getGreeting();
-  document.getElementById('mainName').textContent = worker.name;
   var servicioLabel = worker.servicio && SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : '';
-  document.getElementById('mainArea').textContent = worker.area + (servicioLabel ? ' · ' + servicioLabel : '');
-  var av = document.getElementById('mainAvatar');
-  av.textContent = getInitials(worker.name);
-  av.style.background = avatarColor(worker.name);
+  // Sidebar user section (replaces old main-header)
+  var sbAv = document.getElementById('sidebarAvatar');
+  var sbNm = document.getElementById('sidebarName');
+  var sbAr = document.getElementById('sidebarArea');
+  if (sbAv) {
+    sbAv.textContent = getInitials(worker.name);
+    sbAv.style.background = avatarColor(worker.name);
+  }
+  if (sbNm) sbNm.textContent = worker.name;
+  if (sbAr) sbAr.textContent = worker.area + (servicioLabel ? ' · ' + servicioLabel : '');
+  // Populate dashboard home if visible
+  populateDashboard();
   loadTodayFiles();
   updateTodayCount();
   loadPreviousDates();
@@ -1847,8 +2210,9 @@ function adminTap() {
       if (result && result.data && result.data.is_admin) {
         isAdmin = true;
         haptic(50);
-        document.getElementById('mainName').textContent = worker.name + ' \uD83D\uDC51';
+        document.getElementById('sidebarName').textContent = worker.name + ' \uD83D\uDC51';
         toast('Modo admin activado', 'success');
+        showModule('scan');
         openAdmin();
       } else if (result) {
         toast('No tienes permisos de admin', 'error');
@@ -1867,7 +2231,7 @@ function openAdmin() {
 function closeAdmin() {
   document.getElementById('adminPanel').style.display = 'none';
   isAdmin = false;
-  if (worker) document.getElementById('mainName').textContent = worker.name;
+  if (worker) document.getElementById('sidebarName').textContent = worker.name;
 }
 
 async function doLogout() {

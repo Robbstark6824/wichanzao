@@ -1,7 +1,7 @@
 {
-  "name": "C.S. Wichanzao - Digitalizacion",
-  "short_name": "Wichanzao",
-  "description": "Digitaliza documentos del Centro de Salud Materno Infantil Wichanzao",
+  "name": "Medicina Interna - Hospital de Laredo",
+  "short_name": "MIHL",
+  "description": "Plataforma medica integral del Hospital de Laredo",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
