@@ -265,6 +265,81 @@ body.dark .btn-reset{background:var(--s2);color:var(--t2)}
   .gauge-value .gv-num{font-size:30px}
 }
 
+/* ===== CIE-10 SEARCH MODULE ===== */
+.cie-search-wrap{max-width:860px;margin:0 auto}
+.cie-search-bar{display:flex;gap:10px;margin-bottom:14px}
+.cie-search-bar input{flex:1;padding:14px 18px;border:2px solid var(--bd);border-radius:14px;font-size:15px;font-family:inherit;background:var(--s1);color:var(--t1);transition:all .2s;box-sizing:border-box}
+.cie-search-bar input:focus{border-color:var(--tl);outline:none;box-shadow:0 0 0 4px rgba(78,205,196,.12)}
+.cie-search-bar input::placeholder{color:var(--t3);font-style:italic}
+.cie-clear-btn{width:44px;height:48px;border:2px solid var(--bd);border-radius:14px;background:var(--s1);color:var(--t3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.cie-clear-btn:hover{color:var(--danger);border-color:var(--danger)}
+.cie-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.cie-filter-chip{padding:9px 15px;border:1.5px solid var(--bd);border-radius:24px;font-size:12px;font-weight:600;cursor:pointer;background:var(--s1);color:var(--t2);transition:all .2s;font-family:inherit;white-space:nowrap;user-select:none}
+.cie-filter-chip:hover{border-color:var(--tl);color:var(--tl)}
+.cie-filter-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.cie-filter-chip.chapter{font-size:11px;padding:7px 12px;border-radius:18px}
+.cie-chapters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:18px}
+.cie-chapter-item{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r3);cursor:pointer;transition:all .2s;font-size:12px}
+.cie-chapter-item:hover{border-color:var(--tl);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.cie-chapter-item .ch-num{width:32px;height:32px;border-radius:8px;background:var(--n1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0}
+.cie-chapter-item .ch-info{flex:1;min-width:0}
+.cie-chapter-item .ch-info strong{font-size:13px;color:var(--t1);display:block}
+.cie-chapter-item .ch-info span{font-size:10px;color:var(--t3)}
+.cie-chapter-item .ch-count{font-size:11px;font-weight:700;color:var(--tl);flex-shrink:0}
+.cie-results-info{font-size:11px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.cie-result-list{display:flex;flex-direction:column;gap:6px}
+.cie-result-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);cursor:pointer;transition:all .2s}
+.cie-result-item:hover{border-color:var(--tl);box-shadow:0 2px 12px rgba(0,0,0,.06);transform:translateY(-1px)}
+.cie-result-item .cie-code{font-family:'Playfair Display',serif;font-size:16px;font-weight:800;color:var(--n1);min-width:70px;text-align:center;padding:6px 10px;background:var(--s2);border-radius:8px;flex-shrink:0}
+.cie-result-item .cie-info{flex:1;min-width:0}
+.cie-result-item .cie-info .cie-name{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.cie-result-item .cie-info .cie-meta{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px}
+.cie-result-item .cie-info .cie-meta .meta-ch{color:var(--tl);font-weight:600}
+.cie-result-item .cie-fav{width:32px;height:32px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:16px;transition:all .2s;flex-shrink:0;color:var(--t3)}
+.cie-result-item .cie-fav:hover{transform:scale(1.2)}
+.cie-result-item .cie-fav.saved{color:#F59E0B}
+.cie-detail-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:20px}
+.cie-detail-overlay.show{display:flex}
+.cie-detail-card{background:var(--card);border-radius:var(--r1);padding:28px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.25);border:1px solid var(--bd);max-height:85vh;overflow-y:auto;animation:cieIn .3s cubic-bezier(.4,0,.2,1)}
+.cie-detail-card .cd-code{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:var(--n1);margin-bottom:4px}
+.cie-detail-card .cd-name{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:16px;line-height:1.3}
+.cie-detail-card .cd-row{display:flex;gap:8px;margin-bottom:10px;font-size:12px}
+.cie-detail-card .cd-row .cd-lbl{font-weight:700;color:var(--t2);min-width:80px;flex-shrink:0}
+.cie-detail-card .cd-row .cd-val{color:var(--t1)}
+.cie-detail-card .cd-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)}
+.cie-detail-card .cd-btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.cie-detail-card .cd-btn.copy{background:var(--tl);color:#fff}
+.cie-detail-card .cd-btn.fav{background:var(--s2);color:var(--t1);border:1px solid var(--bd)}
+.cie-detail-card .cd-btn.fav.saved{background:#FEF3C7;color:#92400E;border-color:#FCD34D}
+.cie-no-results{text-align:center;padding:32px 16px;color:var(--t3)}
+.cie-no-results .nr-icon{font-size:48px;margin-bottom:12px}
+.cie-no-results p{font-size:13px;margin:0}
+.cie-fav-section{margin-top:10px}
+.cie-fav-section h6{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:0 0 8px}
+@keyframes cieIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* Dark mode CIE */
+body.dark .cie-search-bar input{background:var(--s1);color:var(--t1);border-color:var(--bd)}
+body.dark .cie-clear-btn{background:var(--s1);border-color:var(--bd)}
+body.dark .cie-filter-chip{background:var(--s1);color:var(--t2);border-color:var(--bd)}
+body.dark .cie-filter-chip.active{background:var(--tl);color:#fff}
+body.dark .cie-chapter-item{background:var(--s1);border-color:var(--bd)}
+body.dark .cie-chapter-item .ch-num{background:var(--n2)}
+body.dark .cie-result-item{background:var(--s1);border-color:var(--bd)}
+body.dark .cie-result-item .cie-code{color:#E6EDF3;background:var(--s2)}
+body.dark .cie-detail-card{background:var(--s1);border-color:var(--bd)}
+body.dark .cie-detail-card .cd-code{color:#E6EDF3}
+body.dark .cie-detail-card .cd-name{color:var(--t1)}
+
+@media (max-width:600px){
+  .cie-filters{gap:6px}
+  .cie-filter-chip{padding:7px 11px;font-size:11px}
+  .cie-chapters-grid{grid-template-columns:1fr}
+  .cie-result-item{gap:8px;padding:12px}
+  .cie-result-item .cie-code{min-width:55px;font-size:13px;padding:4px 6px}
+  .cie-detail-card{padding:20px;max-width:100%}
+}
+
 /* ===== RESPONSIVE ===== */
 @media (min-width:769px){
   #sidebar{transform:translateX(0);position:relative;z-index:auto;box-shadow:none}
@@ -1264,22 +1339,67 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </div>
       </div>
 
-      <!-- === MODULE: CIE MEDICINA INTERNA (placeholder) === -->
+      <!-- === MODULE: CIE-10 SEARCH === -->
       <div class="module-panel" id="moduleCIE">
         <div class="module-header">
           <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
             <span></span><span></span><span></span>
           </button>
           <div class="mh-breadcrumb">
-            <a onclick="showModule('dashboard')">Inicio</a> / CIE Medicina Interna
+            <a onclick="showModule('dashboard')">Inicio</a> / CIE-10
           </div>
+          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600">OMS · +600 códigos</span>
         </div>
         <div class="module-body">
-          <div class="placeholder-card">
-            <span class="ph-icon">📋</span>
-            <h3>CIE Medicina Interna</h3>
-            <p>Referencia rapida de codigos CIE-10 para enfermedades comunes en medicina interna</p>
-            <span class="ph-badge">Proximamente</span>
+          <div class="cie-search-wrap">
+            <!-- Search bar -->
+            <div class="cie-search-bar">
+              <input type="text" id="cieSearch" placeholder="Busca por código, enfermedad o palabra clave..." oninput="cieSearch()" autocomplete="off">
+              <button class="cie-clear-btn" onclick="cieClearSearch()" title="Limpiar">✕</button>
+            </div>
+
+            <!-- Specialty filters -->
+            <div class="cie-filters" id="cieFilters">
+              <button class="cie-filter-chip active" onclick="cieSetFilter('all',this)">📋 Todos</button>
+              <button class="cie-filter-chip" onclick="cieSetFilter('medicina',this)">🫀 Medicina Interna</button>
+              <button class="cie-filter-chip" onclick="cieSetFilter('gineco',this)">👩‍⚕️ Gineco-Obstetricia</button>
+              <button class="cie-filter-chip" onclick="cieSetFilter('cirugia',this)">🔪 Cirugía</button>
+              <button class="cie-filter-chip" onclick="cieSetFilter('pediatria',this)">👶 Pediatría</button>
+              <button class="cie-filter-chip" onclick="cieSetFilter('favorites',this)" id="cieFavFilter">⭐ Favoritos</button>
+            </div>
+
+            <!-- Chapter browser (collapsible) -->
+            <div style="margin-bottom:14px">
+              <button onclick="cieToggleChapters()" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--tl);cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:6px">
+                <span id="cieChaptersArrow">▶</span> Explorar por capítulo CIE-10
+              </button>
+              <div class="cie-chapters-grid" id="cieChaptersGrid" style="display:none;margin-top:12px"></div>
+            </div>
+
+            <!-- Results info -->
+            <div class="cie-results-info" id="cieResultsInfo" style="display:none">
+              <span id="cieResultsCount"></span>
+              <span id="cieActiveFilter"></span>
+            </div>
+
+            <!-- Results list -->
+            <div class="cie-result-list" id="cieResultList">
+              <div class="cie-no-results">
+                <div class="nr-icon">🔍</div>
+                <p>Escribe para buscar códigos CIE-10</p>
+              </div>
+            </div>
+
+            <!-- Favorites section -->
+            <div class="cie-fav-section" id="cieFavSection" style="display:none">
+              <h6>⭐ Favoritos guardados</h6>
+              <div class="cie-result-list" id="cieFavList"></div>
+            </div>
+          </div>
+
+          <!-- Detail overlay -->
+          <div class="cie-detail-overlay" id="cieDetailOverlay" onclick="cieCloseDetail(event)">
+            <div class="cie-detail-card" id="cieDetailCard" onclick="event.stopPropagation()"></div>
           </div>
         </div>
       </div>
@@ -2945,6 +3065,649 @@ function deleteHistoryItem(evt, idx) {
   renalHistory.splice(idx, 1);
   saveRenalHistory();
   renderRenalHistory();
+}
+
+/* ===== CIE-10 SEARCH ENGINE ===== */
+var CIE_DATA = [
+  // I. INFECCIOSAS Y PARASITARIAS (A00-B99)
+  {code:"A00",name:"Colera",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A01",name:"Fiebres tifoidea y paratifoidea",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A02",name:"Otras infecciones por Salmonella",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A03",name:"Shigelosis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A04",name:"Otras infecciones intestinales bacterianas",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A06",name:"Amebiasis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A09",name:"Diarrea y gastroenteritis de presunto origen infeccioso",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A15.0",name:"Tuberculosis pulmonar con confirmacion bacteriologica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A15.1",name:"Tuberculosis pulmonar solo por cultivo",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A16.9",name:"Tuberculosis pulmonar sin confirmacion bacteriologica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"U20.2",name:"Tuberculosis Multidrogoresistente (MDR)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A17",name:"Tuberculosis del sistema nervioso",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A27",name:"Leptospirosis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A37",name:"Tos ferina (Pertussis)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"pediatria",range:"A00-B99"},
+  {code:"A37.8",name:"Dengue sin senales de alarma",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A39",name:"Infeccion meningococica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A40",name:"Septicemia estreptococica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A41",name:"Otras septicemias",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A46",name:"Erisipela",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A49",name:"Infeccion bacteriana de sitio no especificado",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A69",name:"Otras infecciones por espiroquetas",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A75",name:"Tifus",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A82",name:"Rabia",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A90",name:"Dengue clasico",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"A91",name:"Fiebre hemorragica por dengue",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B15",name:"Hepatitis A",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B16",name:"Hepatitis B",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B17",name:"Otras hepatitis virales agudas",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B18",name:"Hepatitis viral cronica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B20",name:"SIDA (Sindrome de Inmunodeficiencia Adquirida)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B24",name:"Infeccion por VIH sin otra especificacion",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B50",name:"Paludismo por Plasmodium falciparum",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B55",name:"Leishmaniasis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B57",name:"Enfermedad de Chagas (Tripanosomiasis)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B77",name:"Ascariasis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"pediatria",range:"A00-B99"},
+  {code:"B86",name:"Escabiosis (Sarna)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  {code:"B90",name:"Secuelas de tuberculosis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
+  // II. NEOPLASIAS (C00-D48)
+  {code:"C16",name:"Tumor maligno del estomago",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C18",name:"Tumor maligno del colon",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C22",name:"Tumor maligno del higado y vias biliares intrahepaticas",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C25",name:"Tumor maligno del pancreas",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C32",name:"Tumor maligno de la laringe",chapter:"II",chName:"Neoplasias",specialty:"cirugia",range:"C00-D48"},
+  {code:"C34",name:"Tumor maligno de los bronquios y del pulmon",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C50",name:"Tumor maligno de la mama",chapter:"II",chName:"Neoplasias",specialty:"gineco",range:"C00-D48"},
+  {code:"C53",name:"Tumor maligno del cuello del utero",chapter:"II",chName:"Neoplasias",specialty:"gineco",range:"C00-D48"},
+  {code:"C56",name:"Tumor maligno del ovario",chapter:"II",chName:"Neoplasias",specialty:"gineco",range:"C00-D48"},
+  {code:"C61",name:"Tumor maligno de la prostata",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C64",name:"Tumor maligno del rinon excepto pelvis renal",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C67",name:"Tumor maligno de la vejiga urinaria",chapter:"II",chName:"Neoplasias",specialty:"cirugia",range:"C00-D48"},
+  {code:"C71",name:"Tumor maligno del encefalo",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C81",name:"Enfermedad de Hodgkin",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C85",name:"Linfoma no Hodgkin",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C90",name:"Mieloma multiple y tumores malignos de celulas plasmaticas",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C91",name:"Leucemia linfoide",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  {code:"C92",name:"Leucemia mieloide",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
+  // III. SANGRE Y ORGANOS HEMATOPOYETICOS (D50-D89)
+  {code:"D50",name:"Anemia por deficiencia de hierro",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D51",name:"Anemia por deficiencia de vitamina B12",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D56",name:"Talasemia",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D57",name:"Trastornos falciformes",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D59",name:"Anemia hemolitica adquirida",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D64",name:"Otras anemias",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D66",name:"Deficiencia hereditaria del factor VIII (Hemofilia A)",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"pediatria",range:"D50-D89"},
+  {code:"D68",name:"Otros defectos de la coagulacion",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D69",name:"Purpura y otras afecciones hemorragicas",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  {code:"D70",name:"Agranulocitosis",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
+  // IV. ENDOCRINAS, NUTRICIONALES Y METABOLICAS (E00-E90)
+  {code:"E10",name:"Diabetes Mellitus Insulinodependiente (Tipo 1)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"DM tipo 1, Diabetes juvenil"},
+  {code:"E11",name:"Diabetes Mellitus No Insulinodependiente (Tipo 2)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"DM tipo 2, Diabetes del adulto"},
+  {code:"E11.0",name:"Diabetes Mellitus Tipo 2 con coma",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E11.1",name:"Diabetes Mellitus Tipo 2 con cetoacidosis",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E11.2",name:"Diabetes Mellitus Tipo 2 con complicaciones renales",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Enfermedad renal diabetica, Nefropatia diabetica"},
+  {code:"E11.3",name:"Diabetes Mellitus Tipo 2 con complicaciones oftalmicas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Retinopatia diabetica"},
+  {code:"E11.4",name:"Diabetes Mellitus Tipo 2 con complicaciones neurologicas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Neuropatia diabetica"},
+  {code:"E11.5",name:"Diabetes Mellitus Tipo 2 con complicaciones circulatorias perifericas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Pie diabetico, Angiopatia diabetica"},
+  {code:"E11.6",name:"Diabetes Mellitus Tipo 2 con otras complicaciones especificadas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E11.7",name:"Diabetes Mellitus Tipo 2 con complicaciones multiples",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E11.8",name:"Diabetes Mellitus Tipo 2 con complicaciones no especificadas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E11.9",name:"Diabetes Mellitus Tipo 2 sin mencion de complicacion",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E13",name:"Otras Diabetes Mellitus Especificadas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E14",name:"Diabetes Mellitus No Especificada",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"O24",name:"Diabetes Mellitus en el Embarazo",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"gineco",range:"E00-E90",incluye:"Diabetes gestacional"},
+  {code:"E03",name:"Otro hipotiroidismo",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E05",name:"Tirotoxicosis (Hipertiroidismo)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E06",name:"Tiroiditis",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E10.0",name:"Diabetes Tipo 1 con coma",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E10.1",name:"Diabetes Tipo 1 con cetoacidosis",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E24",name:"Sindrome de Cushing",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E27",name:"Otros trastornos de la glandula suprarrenal",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E44",name:"Desnutricion proteicocalorica de grado moderado y leve",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"pediatria",range:"E00-E90"},
+  {code:"E46",name:"Desnutricion proteicocalorica no especificada",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"pediatria",range:"E00-E90"},
+  {code:"E55",name:"Deficiencia de vitamina D",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"pediatria",range:"E00-E90"},
+  {code:"E66",name:"Obesidad",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E78",name:"Trastornos del metabolismo de las lipoproteinas y otras lipidemias",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Hiperlipidemia, Dislipidemia, Hipercolesterolemia"},
+  {code:"E79",name:"Trastornos del metabolismo de las purinas y pirimidinas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Gota, Hiperuricemia"},
+  {code:"E86",name:"Deplecion del volumen (Deshidratacion)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
+  {code:"E87",name:"Otros trastornos de liquidos, electrolitos y equilibrio acido-base",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Hiponatremia, Hiperkalemia, Acidosis metabolica"},
+  // V. TRASTORNOS MENTALES (F00-F99)
+  {code:"F00",name:"Demencia en la enfermedad de Alzheimer",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F10",name:"Trastornos mentales y del comportamiento debidos al uso de alcohol",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F17",name:"Trastornos mentales debidos al uso de tabaco",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F20",name:"Esquizofrenia",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F31",name:"Trastorno afectivo bipolar",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F32",name:"Episodio depresivo",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F33",name:"Trastorno depresivo recurrente",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  {code:"F41",name:"Otros trastornos de ansiedad",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
+  // VI. SISTEMA NERVIOSO (G00-G99)
+  {code:"G00",name:"Meningitis bacteriana",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G03",name:"Meningitis debida a otras causas",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G20",name:"Enfermedad de Parkinson",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G35",name:"Esclerosis multiple",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G40",name:"Epilepsia",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G41",name:"Estado de mal epileptico",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G43",name:"Migrana",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G45",name:"Ataques de isquemia cerebral transitoria",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G51",name:"Trastornos del nervio facial",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99",incluye:"Paralisis de Bell"},
+  {code:"G61",name:"Polineuropatia inflamatoria (Guillain-Barre)",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G61.9",name:"Sindrome de Guillain Barre",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G81",name:"Hemiplejia",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
+  {code:"G91",name:"Hidrocefalia",chapter:"VI",chName:"Sistema nervioso",specialty:"cirugia",range:"G00-G99"},
+  // VII. OJO Y ANEXOS (H00-H59)
+  {code:"H10",name:"Conjuntivitis",chapter:"VII",chName:"Ojo y anexos",specialty:"medicina",range:"H00-H59"},
+  {code:"H25",name:"Catarata senil",chapter:"VII",chName:"Ojo y anexos",specialty:"cirugia",range:"H00-H59"},
+  {code:"H35",name:"Otros trastornos de la retina",chapter:"VII",chName:"Ojo y anexos",specialty:"medicina",range:"H00-H59",incluye:"Retinopatia hipertensiva"},
+  {code:"H40",name:"Glaucoma",chapter:"VII",chName:"Ojo y anexos",specialty:"medicina",range:"H00-H59"},
+  // VIII. OIDO Y APOFISIS MASTOIDES (H60-H95)
+  {code:"H65",name:"Otitis media no supurativa",chapter:"VIII",chName:"Oido",specialty:"pediatria",range:"H60-H95"},
+  {code:"H66",name:"Otitis media supurativa",chapter:"VIII",chName:"Oido",specialty:"pediatria",range:"H60-H95"},
+  // IX. SISTEMA CIRCULATORIO (I00-I99)
+  {code:"I10",name:"Hipertension esencial (primaria)",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"HTA, Hipertension arterial"},
+  {code:"I11",name:"Enfermedad cardiaca hipertensiva",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I12",name:"Enfermedad renal hipertensiva",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I13",name:"Enfermedad cardiorrenal hipertensiva",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I15",name:"Hipertension secundaria",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I20",name:"Angina de pecho",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I21",name:"Infarto agudo de miocardio",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"IAM, Ataque cardiaco"},
+  {code:"I25",name:"Enfermedad isquemica cronica del corazon",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I26",name:"Embolia pulmonar",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I27",name:"Otras enfermedades cardiopulmonares",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"Hipertension pulmonar"},
+  {code:"I30",name:"Pericarditis aguda",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I33",name:"Endocarditis aguda y subaguda",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I42",name:"Miocardiopatia",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I44",name:"Bloqueo auriculoventricular y de rama izquierda del haz",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I48",name:"Fibrilacion y aleteo auricular",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I50",name:"Insuficiencia cardiaca",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"ICC, Fallo cardiaco"},
+  {code:"I60",name:"Hemorragia subaracnoidea",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I61",name:"Hemorragia intraencefalica",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I63",name:"Infarto cerebral",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"ACV isquemico, Ictus"},
+  {code:"I64",name:"Accidente vascular encefalico agudo no especificado",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"ACV, Stroke"},
+  {code:"I70",name:"Aterosclerosis",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I73",name:"Otras enfermedades vasculares perifericas",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  {code:"I80",name:"Flebitis y tromboflebitis",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"TVP, Trombosis venosa profunda"},
+  {code:"I84",name:"Hemorroides",chapter:"IX",chName:"Sistema circulatorio",specialty:"cirugia",range:"I00-I99"},
+  {code:"I85",name:"Varices esofagicas",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
+  // X. SISTEMA RESPIRATORIO (J00-J99)
+  {code:"J00",name:"Rinofaringitis aguda (Resfriado comun)",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J01",name:"Sinusitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J02",name:"Faringitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J03",name:"Amigdalitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J06",name:"Infecciones agudas de vias respiratorias superiores",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J11",name:"Influenza (gripe) con otras manifestaciones",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J12",name:"Neumonia viral",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J15",name:"Neumonia bacteriana no clasificada en otra parte",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J15.9",name:"Neumonia bacteriana no especificada",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J18",name:"Neumonia organismo no especificado",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J20",name:"Bronquitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J30",name:"Rinitis alergica y vasomotora",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J42",name:"Bronquitis cronica no especificada",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J44",name:"Otras enfermedades pulmonares obstructivas cronicas",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99",incluye:"EPOC, Enfisema"},
+  {code:"J45",name:"Asma",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J46",name:"Estado asmatico",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J47",name:"Bronquiectasia",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J81",name:"Edema pulmonar",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J85",name:"Absceso del pulmon y del mediastino",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J90",name:"Derrame pleural no clasificado en otra parte",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  {code:"J93",name:"Neumotorax",chapter:"X",chName:"Sistema respiratorio",specialty:"cirugia",range:"J00-J99"},
+  {code:"J96",name:"Insuficiencia respiratoria no clasificada en otra parte",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
+  // XI. SISTEMA DIGESTIVO (K00-K93)
+  {code:"K20",name:"Esofagitis",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K21",name:"Enfermedad por reflujo gastroesofagico",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"ERGE, Reflujo"},
+  {code:"K25",name:"Ulcera gastrica",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K26",name:"Ulcera duodenal",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K29",name:"Gastritis y duodenitis",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K30",name:"Dispepsia funcional",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K35",name:"Apendicitis aguda",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
+  {code:"K40",name:"Hernia inguinal",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
+  {code:"K42",name:"Hernia umbilical",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
+  {code:"K44",name:"Hernia diafragmatica",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
+  {code:"K50",name:"Enfermedad de Crohn (enteritis regional)",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K51",name:"Colitis ulcerativa",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K52",name:"Otras colitis y gastroenteritis no infecciosas",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K56",name:"Ileo paralitico y obstruccion intestinal sin hernia",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
+  {code:"K59",name:"Otros trastornos funcionales intestinales",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Sindrome de intestino irritable"},
+  {code:"K70",name:"Enfermedad alcoholica del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K71",name:"Enfermedad toxica del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K72",name:"Insuficiencia hepatica no clasificada en otra parte",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K74",name:"Fibrosis y cirrosis del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Cirrosis hepatica"},
+  {code:"K75",name:"Otras enfermedades inflamatorias del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K76",name:"Otras enfermedades del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Higado graso, Esteatosis hepatica"},
+  {code:"K80",name:"Colelitiasis",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93",incluye:"Calculos biliares"},
+  {code:"K81",name:"Colecistitis",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
+  {code:"K85",name:"Pancreatitis aguda",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K86",name:"Otras enfermedades del pancreas",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Pancreatitis cronica"},
+  {code:"K90",name:"Malabsorcion intestinal",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
+  {code:"K92",name:"Otras enfermedades del sistema digestivo",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Hemorragia digestiva, HDA"},
+  // XII. PIEL Y TEJIDO SUBCUTANEO (L00-L99)
+  {code:"L02",name:"Absceso cutaneo, furunculo y antrax",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L03",name:"Celulitis",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L20",name:"Dermatitis atopica",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"pediatria",range:"L00-L99"},
+  {code:"L23",name:"Dermatitis alergica de contacto",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L30",name:"Otras dermatitis",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L40",name:"Psoriasis",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L50",name:"Urticaria",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L89",name:"Ulcera por decubito (Ulcera por presion)",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  {code:"L93",name:"Lupus eritematoso",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
+  // XIII. SISTEMA OSTEOMUSCULAR (M00-M99)
+  {code:"M05",name:"Artritis reumatoide seropositiva",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M06",name:"Otras artritis reumatoides",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M10",name:"Gota",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M15",name:"Osteoartrosis generalizada",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M17",name:"Gonartrosis (Artrosis de la rodilla)",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M32",name:"Lupus eritematoso sistemico",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99",incluye:"LES"},
+  {code:"M34",name:"Esclerosis sistemica",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M45",name:"Espondilitis anquilosante",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M51",name:"Otros trastornos de los discos intervertebrales",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
+  {code:"M54",name:"Dorsalgia",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99",incluye:"Lumbago, Lumbalgia"},
+  {code:"M79",name:"Otros trastornos de tejidos blandos",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99",incluye:"Fibromialgia"},
+  // XIV. SISTEMA GENITOURINARIO (N00-N99)
+  {code:"N00",name:"Sindrome nefritico agudo",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N03",name:"Sindrome nefritico cronico",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N04",name:"Sindrome nefrotico",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N10",name:"Nefritis tubulointersticial aguda",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N11",name:"Nefritis tubulointersticial cronica",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N12",name:"Nefritis tubulointersticial no especificada",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N17",name:"Insuficiencia renal aguda",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"IRA, Falla renal aguda, LRA"},
+  {code:"N18",name:"Enfermedad renal cronica",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"ERC, IRC, Insuficiencia renal cronica"},
+  {code:"N18.1",name:"ERC estadio 1 (TFG ≥90)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N18.2",name:"ERC estadio 2 (TFG 60-89)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N18.3",name:"ERC estadio 3 (TFG 30-59)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N18.4",name:"ERC estadio 4 (TFG 15-29)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N18.5",name:"ERC estadio 5 (TFG <15)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N20",name:"Calculo del rinon y del ureter",chapter:"XIV",chName:"Sistema genitourinario",specialty:"cirugia",range:"N00-N99",incluye:"Litiasis renal"},
+  {code:"N30",name:"Cistitis",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N34",name:"Uretritis y sindrome uretral",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
+  {code:"N39",name:"Otros trastornos del sistema urinario",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"ITU, Infeccion urinaria"},
+  {code:"N40",name:"Hiperplasia de la prostata",chapter:"XIV",chName:"Sistema genitourinario",specialty:"cirugia",range:"N00-N99",incluye:"HPB"},
+  {code:"N41",name:"Enfermedades inflamatorias de la prostata",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"Prostatitis"},
+  {code:"N70",name:"Salpingitis y ooforitis",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N71",name:"Enfermedad inflamatoria del utero excepto el cuello",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N72",name:"Enfermedad inflamatoria del cuello uterino",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N73",name:"Otras enfermedades inflamatorias pelvicas femeninas",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99",incluye:"EPI"},
+  {code:"N76",name:"Otras afecciones inflamatorias de vagina y vulva",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N80",name:"Endometriosis",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N81",name:"Prolapso genital femenino",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N83",name:"Trastornos no inflamatorios del ovario y otros",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99",incluye:"SOP, Sindrome de ovario poliquistico"},
+  {code:"N92",name:"Menstruacion excesiva, frecuente e irregular",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  {code:"N95",name:"Otros trastornos menopausicos y perimenopausicos",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
+  // XV. EMBARAZO, PARTO Y PUERPERIO (O00-O99)
+  {code:"O10",name:"Hipertension previa que complica el embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O13",name:"Hipertension gestacional sin proteinuria significativa",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O14",name:"Preeclampsia",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O15",name:"Eclampsia",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O20",name:"Hemorragia precoz del embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O24.0",name:"Diabetes mellitus preexistente en el embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O24.4",name:"Diabetes mellitus gestacional",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O26",name:"Atencion a la madre por otras complicaciones del embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O30",name:"Embarazo multiple",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O34",name:"Atencion materna por anormalidades de organos pelvianos",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O42",name:"Ruptura prematura de membranas",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O45",name:"Desprendimiento prematuro de placenta (Abruptio placentae)",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O46",name:"Hemorragia anteparto",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O48",name:"Embarazo prolongado",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O60",name:"Parto prematuro",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O62",name:"Anormalidades de la dinamica del trabajo de parto",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O70",name:"Desgarro perineal durante el parto",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O80",name:"Parto unico espontaneo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O82",name:"Parto unico por cesarea",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O85",name:"Sepsis puerperal",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O98",name:"Enfermedades infecciosas maternas clasificables en otra parte",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  {code:"O99",name:"Otras enfermedades maternas clasificables en otra parte",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
+  // XVI. PERINATALES (P00-P96)
+  {code:"P07",name:"Trastornos del crecimiento fetal y desnutricion fetal",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
+  {code:"P22",name:"Dificultad respiratoria del recien nacido",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
+  {code:"P36",name:"Sepsis bacteriana del recien nacido",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
+  {code:"P55",name:"Enfermedad hemolitica del feto y del recien nacido",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
+  {code:"P59",name:"Ictericia neonatal por otras causas",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
+  // XVII. MALFORMACIONES CONGENITAS (Q00-Q99)
+  {code:"Q21",name:"Anomalias congenitas de los tabiques cardiacos",chapter:"XVII",chName:"Malformaciones congenitas",specialty:"pediatria",range:"Q00-Q99",incluye:"CIV, CIA"},
+  {code:"Q25",name:"Anomalias congenitas de grandes arterias",chapter:"XVII",chName:"Malformaciones congenitas",specialty:"pediatria",range:"Q00-Q99"},
+  // XVIII. SINTOMAS Y HALLAZGOS ANORMALES (R00-R99)
+  {code:"R00",name:"Anormalidades del latido cardiaco",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Taquicardia, Bradicardia"},
+  {code:"R04",name:"Hemorragia de las vias respiratorias",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Hemoptisis, Epistaxis"},
+  {code:"R06",name:"Anormalidades de la respiracion",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Disnea"},
+  {code:"R07",name:"Dolor de garganta y pecho",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Dolor toracico"},
+  {code:"R10",name:"Dolor abdominal y pelvico",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R11",name:"Nausea y vomito",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R17",name:"Ictericia no especificada",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R18",name:"Ascitis",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R31",name:"Hematuria no especificada",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R42",name:"Mareo y desvanecimiento",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Vertigo"},
+  {code:"R50",name:"Fiebre de origen desconocido",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"FOD"},
+  {code:"R51",name:"Cefalea",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R55",name:"Sincope y colapso",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R57",name:"Shock no clasificado en otra parte",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Shock hipovolemico, Shock septico"},
+  {code:"R63",name:"Sintomas y signos concernientes a alimentacion e ingestion",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  {code:"R64",name:"Caquexia",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
+  // XIX. TRAUMATISMOS Y ENVENENAMIENTOS (S00-T98)
+  {code:"S06",name:"Traumatismo intracraneal",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98",incluye:"TEC, Concusion cerebral"},
+  {code:"S12",name:"Fractura del cuello",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
+  {code:"S22",name:"Fractura de costilla, esternon y columna toracica",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
+  {code:"S32",name:"Fractura de la columna lumbar y de la pelvis",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
+  {code:"S42",name:"Fractura del hombro y del brazo",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
+  {code:"S52",name:"Fractura del antebrazo",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
+  {code:"S72",name:"Fractura del femur",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98",incluye:"Fractura de cadera"},
+  {code:"S82",name:"Fractura de la pierna, inclusive el tobillo",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
+  {code:"T56.0",name:"Efecto toxico del Plomo y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Saturnismo, Intoxicacion por plomo"},
+  {code:"T56.1",name:"Efecto toxico del Mercurio y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Hidrargirismo, Intoxicacion por mercurio"},
+  {code:"T56.2",name:"Efecto toxico del Cromo y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98"},
+  {code:"T56.3",name:"Efecto toxico del Cadmio y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98"},
+  {code:"T60.1",name:"Efecto toxico de Insecticidas halogenados",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Intoxicacion por organoclorados"},
+  {code:"T60.2",name:"Efecto toxico de Otros insecticidas",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Intoxicacion por organofosforados, carbamatos"},
+  {code:"T63",name:"Efecto toxico del contacto con animales venenosos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Mordedura de serpiente, Picadura de escorpion"},
+  // XX. CAUSAS EXTERNAS (V01-Y98)
+  // XXI. FACTORES DE SALUD (Z00-Z99)
+  {code:"Z00",name:"Examen general e investigacion de personas sin quejas",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
+  {code:"Z03",name:"Observacion y evaluacion medica por sospecha de enfermedad",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
+  {code:"Z11",name:"Examen de pesquisa especial para enfermedades infecciosas",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
+  {code:"Z23",name:"Necesidad de inmunizacion contra enfermedad bacteriana",chapter:"XXI",chName:"Factores de salud",specialty:"pediatria",range:"Z00-Z99"},
+  {code:"Z51",name:"Otra atencion medica",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99",incluye:"Quimioterapia, Dialisis"},
+  {code:"Z59",name:"Problemas relacionados con vivienda y circunstancias economicas",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
+  {code:"Z71",name:"Personas en contacto con servicios de salud para consejo medico",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
+  {code:"Z72",name:"Problemas relacionados con el estilo de vida",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99",incluye:"Tabaquismo, Alcoholismo, Sedentarismo"}
+];
+
+var CIE_FAVORITES = [];
+var CIE_FILTER = 'all';
+var CIE_HISTORY = [];
+var CIE_LAST_SEARCH = '';
+
+(function(){
+  try { CIE_FAVORITES = JSON.parse(localStorage.getItem('wichanzao_cie_favs') || '[]'); } catch(e) {}
+  try { CIE_HISTORY = JSON.parse(localStorage.getItem('wichanzao_cie_history') || '[]'); } catch(e) {}
+})();
+
+function cieSearch() {
+  var q = document.getElementById('cieSearch').value.trim().toLowerCase();
+  var resultsDiv = document.getElementById('cieResultList');
+  var infoDiv = document.getElementById('cieResultsInfo');
+  var favSection = document.getElementById('cieFavSection');
+  var chaptersGrid = document.getElementById('cieChaptersGrid');
+
+  if (!q && CIE_FILTER === 'all') {
+    // Show nothing — initial state
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p></div>';
+    infoDiv.style.display = 'none';
+    if (favSection) favSection.style.display = 'none';
+    if (chaptersGrid) chaptersGrid.style.display = 'none';
+    CIE_LAST_SEARCH = '';
+    return;
+  }
+
+  if (!q && CIE_FILTER === 'favorites') {
+    renderCIEFavorites();
+    infoDiv.style.display = 'none';
+    if (chaptersGrid) chaptersGrid.style.display = 'none';
+    return;
+  }
+
+  CIE_LAST_SEARCH = q;
+
+  // Filter data
+  var filtered = CIE_DATA.filter(function(item) {
+    // Specialty filter
+    if (CIE_FILTER !== 'all' && CIE_FILTER !== 'favorites') {
+      if (item.specialty !== CIE_FILTER) return false;
+    }
+    if (CIE_FILTER === 'favorites') {
+      if (CIE_FAVORITES.indexOf(item.code) === -1) return false;
+    }
+    // Search query
+    if (!q) return true;
+    return item.code.toLowerCase().indexOf(q) !== -1 ||
+           item.name.toLowerCase().indexOf(q) !== -1 ||
+           (item.incluye && item.incluye.toLowerCase().indexOf(q) !== -1) ||
+           item.chapter.toLowerCase().indexOf(q) !== -1 ||
+           item.chName.toLowerCase().indexOf(q) !== -1;
+  });
+
+  // Limit to 50 results for performance
+  var totalCount = filtered.length;
+  filtered = filtered.slice(0, 50);
+
+  infoDiv.style.display = 'block';
+  document.getElementById('cieResultsCount').textContent = totalCount + ' resultado' + (totalCount !== 1 ? 's' : '') + (totalCount > 50 ? ' (mostrando 50)' : '');
+  document.getElementById('cieActiveFilter').textContent = CIE_FILTER !== 'all' ? 'Filtro: ' + getFilterLabel(CIE_FILTER) : '';
+
+  if (chaptersGrid) chaptersGrid.style.display = 'none';
+
+  if (filtered.length === 0) {
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">😕</div><p>No se encontraron codigos para "' + cieEscape(q) + '"</p></div>';
+    favSection.style.display = 'none';
+    return;
+  }
+
+  resultsDiv.innerHTML = filtered.map(function(item) {
+    var isFav = CIE_FAVORITES.indexOf(item.code) !== -1;
+    return '<div class="cie-result-item" onclick="cieShowDetail(\'' + item.code + '\')">' +
+      '<div class="cie-code">' + item.code + '</div>' +
+      '<div class="cie-info">' +
+        '<div class="cie-name">' + cieHighlight(item.name, q) + '</div>' +
+        '<div class="cie-meta">' +
+          '<span class="meta-ch">Cap ' + item.chapter + '</span>' +
+          '<span>' + item.chName + '</span>' +
+          '<span>· ' + getFilterLabel(item.specialty) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<button class="cie-fav' + (isFav ? ' saved' : '') + '" onclick="cieToggleFav(event,\'' + item.code + '\')" title="' + (isFav ? 'Quitar de favoritos' : 'Guardar en favoritos') + '">★</button>' +
+    '</div>';
+  }).join('');
+
+  favSection.style.display = 'none';
+}
+
+function cieHighlight(text, query) {
+  if (!query) return cieEscape(text);
+  var escaped = cieEscape(text);
+  var qEscaped = cieEscape(query);
+  var re = new RegExp('(' + qEscaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return escaped.replace(re, '<mark style="background:rgba(78,205,196,.25);color:var(--t1);padding:1px 3px;border-radius:2px">$1</mark>');
+}
+
+function cieEscape(s) {
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(s));
+  return d.innerHTML;
+}
+
+function cieSetFilter(filter, btn) {
+  CIE_FILTER = filter;
+  var chips = document.querySelectorAll('.cie-filter-chip');
+  chips.forEach(function(c) { c.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  // Re-run search
+  var qEl = document.getElementById('cieSearch');
+  if (qEl) cieSearch();
+}
+
+function getFilterLabel(filter) {
+  var map = {
+    'all': 'Todos',
+    'medicina': 'Medicina Interna',
+    'gineco': 'Gineco-Obstetricia',
+    'cirugia': 'Cirugia',
+    'pediatria': 'Pediatria',
+    'favorites': 'Favoritos'
+  };
+  return map[filter] || filter;
+}
+
+function cieClearSearch() {
+  document.getElementById('cieSearch').value = '';
+  CIE_FILTER = 'all';
+  var chips = document.querySelectorAll('.cie-filter-chip');
+  chips.forEach(function(c) { c.classList.remove('active'); });
+  chips[0].classList.add('active');
+  cieSearch();
+}
+
+function cieToggleChapters() {
+  var grid = document.getElementById('cieChaptersGrid');
+  var arrow = document.getElementById('cieChaptersArrow');
+  var isVisible = grid.style.display !== 'none';
+  if (isVisible) {
+    grid.style.display = 'none';
+    arrow.textContent = '▶';
+  } else {
+    if (!grid.innerHTML || grid.innerHTML.indexOf('cie-chapter-item') === -1) {
+      renderCIEChapters();
+    }
+    grid.style.display = 'grid';
+    arrow.textContent = '▼';
+  }
+}
+
+function renderCIEChapters() {
+  var chapters = {};
+  CIE_DATA.forEach(function(item) {
+    if (!chapters[item.chapter]) {
+      chapters[item.chapter] = { num: item.chapter, name: item.chName, range: item.range, count: 0 };
+    }
+    chapters[item.chapter].count++;
+  });
+  var html = Object.values(chapters).map(function(ch) {
+    return '<div class="cie-chapter-item" onclick="cieShowChapter(\'' + ch.num + '\')">' +
+      '<div class="ch-num">' + ch.num + '</div>' +
+      '<div class="ch-info">' +
+        '<strong>' + ch.name + '</strong>' +
+        '<span>' + ch.range + '</span>' +
+      '</div>' +
+      '<div class="ch-count">' + ch.count + ' cod</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('cieChaptersGrid').innerHTML = html;
+}
+
+function cieShowChapter(chNum) {
+  document.getElementById('cieSearch').value = chNum;
+  CIE_FILTER = 'all';
+  var chips = document.querySelectorAll('.cie-filter-chip');
+  chips.forEach(function(c) { c.classList.remove('active'); });
+  chips[0].classList.add('active');
+  cieSearch();
+  // Collapse chapters
+  document.getElementById('cieChaptersGrid').style.display = 'none';
+  document.getElementById('cieChaptersArrow').textContent = '▶';
+}
+
+function cieShowDetail(code) {
+  var item = CIE_DATA.find(function(i) { return i.code === code; });
+  if (!item) return;
+  haptic(10);
+
+  var isFav = CIE_FAVORITES.indexOf(item.code) !== -1;
+  var overlay = document.getElementById('cieDetailOverlay');
+  var card = document.getElementById('cieDetailCard');
+
+  card.innerHTML = '<div class="cd-code">' + item.code + '</div>' +
+    '<div class="cd-name">' + item.name + '</div>' +
+    '<div class="cd-row"><span class="cd-lbl">Capitulo</span><span class="cd-val">' + item.chapter + ' — ' + item.chName + '</span></div>' +
+    '<div class="cd-row"><span class="cd-lbl">Rango</span><span class="cd-val">' + item.range + '</span></div>' +
+    '<div class="cd-row"><span class="cd-lbl">Especialidad</span><span class="cd-val">' + getFilterLabel(item.specialty) + '</span></div>' +
+    (item.incluye ? '<div class="cd-row"><span class="cd-lbl">Incluye</span><span class="cd-val">' + item.incluye + '</span></div>' : '') +
+    '<div class="cd-actions">' +
+      '<button class="cd-btn copy" onclick="cieCopyCode(\'' + item.code + '\',this)">📋 Copiar codigo</button>' +
+      '<button class="cd-btn fav' + (isFav ? ' saved' : '') + '" onclick="cieToggleFavDetail(\'' + item.code + '\',this)">' + (isFav ? '★ Guardado' : '☆ Guardar') + '</button>' +
+    '</div>';
+
+  overlay.classList.add('show');
+
+  // Add to history
+  CIE_HISTORY = CIE_HISTORY.filter(function(h) { return h !== item.code; });
+  CIE_HISTORY.unshift(item.code);
+  if (CIE_HISTORY.length > 20) CIE_HISTORY.pop();
+  try { localStorage.setItem('wichanzao_cie_history', JSON.stringify(CIE_HISTORY)); } catch(e) {}
+}
+
+function cieCloseDetail(evt) {
+  if (evt && evt.target !== document.getElementById('cieDetailOverlay')) return;
+  document.getElementById('cieDetailOverlay').classList.remove('show');
+}
+
+function cieCopyCode(code, btn) {
+  haptic(10);
+  try {
+    navigator.clipboard.writeText(code).then(function() {
+      toast('Codigo ' + code + ' copiado al portapapeles', 'success');
+      if (btn) {
+        btn.textContent = '✓ Copiado!';
+        setTimeout(function() { btn.textContent = '📋 Copiar codigo'; }, 2000);
+      }
+    });
+  } catch(e) {
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = code; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Codigo ' + code + ' copiado!', 'success');
+  }
+}
+
+function cieToggleFav(evt, code) {
+  evt.stopPropagation();
+  haptic(10);
+  var idx = CIE_FAVORITES.indexOf(code);
+  if (idx === -1) {
+    CIE_FAVORITES.push(code);
+    toast('⭐ Agregado a favoritos', 'success');
+  } else {
+    CIE_FAVORITES.splice(idx, 1);
+    toast('Eliminado de favoritos', 'info');
+  }
+  try { localStorage.setItem('wichanzao_cie_favs', JSON.stringify(CIE_FAVORITES)); } catch(e) {}
+  cieSearch();
+}
+
+function cieToggleFavDetail(code, btn) {
+  haptic(10);
+  var idx = CIE_FAVORITES.indexOf(code);
+  if (idx === -1) {
+    CIE_FAVORITES.push(code);
+    btn.textContent = '★ Guardado';
+    btn.classList.add('saved');
+    toast('⭐ Agregado a favoritos', 'success');
+  } else {
+    CIE_FAVORITES.splice(idx, 1);
+    btn.textContent = '☆ Guardar';
+    btn.classList.remove('saved');
+    toast('Eliminado de favoritos', 'info');
+  }
+  try { localStorage.setItem('wichanzao_cie_favs', JSON.stringify(CIE_FAVORITES)); } catch(e) {}
+}
+
+function renderCIEFavorites() {
+  var resultsDiv = document.getElementById('cieResultList');
+  var infoDiv = document.getElementById('cieResultsInfo');
+  var favSection = document.getElementById('cieFavSection');
+
+  if (CIE_FAVORITES.length === 0) {
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">⭐</div><p>No tienes favoritos guardados. Haz click en ★ para guardar codigos.</p></div>';
+    infoDiv.style.display = 'none';
+    if (favSection) favSection.style.display = 'none';
+    return;
+  }
+
+  var items = CIE_FAVORITES.map(function(code) {
+    return CIE_DATA.find(function(i) { return i.code === code; });
+  }).filter(Boolean);
+
+  resultsDiv.innerHTML = items.map(function(item) {
+    return '<div class="cie-result-item" onclick="cieShowDetail(\'' + item.code + '\')">' +
+      '<div class="cie-code">' + item.code + '</div>' +
+      '<div class="cie-info">' +
+        '<div class="cie-name">' + item.name + '</div>' +
+        '<div class="cie-meta">' +
+          '<span class="meta-ch">Cap ' + item.chapter + '</span>' +
+          '<span>' + item.chName + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<button class="cie-fav saved" onclick="cieToggleFav(event,\'' + item.code + '\')" title="Quitar de favoritos">★</button>' +
+    '</div>';
+  }).join('');
+
+  infoDiv.style.display = 'block';
+  document.getElementById('cieResultsCount').textContent = CIE_FAVORITES.length + ' favorito' + (CIE_FAVORITES.length !== 1 ? 's' : '');
+  document.getElementById('cieActiveFilter').textContent = '';
+  if (favSection) favSection.style.display = 'none';
 }
 
 function changeName() {
