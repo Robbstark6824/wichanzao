@@ -85,7 +85,7 @@ body{font-family:'Manrope',sans-serif;background:#080E1A;color:var(--t1);-webkit
 .module-header .mh-breadcrumb{font-size:13px;color:rgba(255,255,255,.8)}
 .module-header .mh-breadcrumb a{color:var(--tl);cursor:pointer;text-decoration:none;font-weight:600}
 .module-header .mh-breadcrumb a:hover{text-decoration:underline}
-.module-body{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.module-body{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;background:var(--bg);color:var(--t1)}
 .module-body::-webkit-scrollbar{width:6px}
 .module-body::-webkit-scrollbar-thumb{background:var(--bd);border-radius:6px}
 
@@ -330,6 +330,9 @@ body.dark .cie-result-item .cie-code{color:#E6EDF3;background:var(--s2)}
 body.dark .cie-detail-card{background:var(--s1);border-color:var(--bd)}
 body.dark .cie-detail-card .cd-code{color:#E6EDF3}
 body.dark .cie-detail-card .cd-name{color:var(--t1)}
+body.dark .cie-no-results{color:var(--t2)}
+body.dark .cie-results-info{color:var(--t2)}
+body.dark .cie-fav-section h6{color:var(--t2)}
 
 @media (max-width:600px){
   .cie-filters{gap:6px}
@@ -1354,7 +1357,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="cie-search-wrap">
             <!-- Search bar -->
             <div class="cie-search-bar">
-              <input type="text" id="cieSearch" placeholder="Busca por código, enfermedad o palabra clave..." oninput="cieSearch()" autocomplete="off">
+              <input type="text" id="cieSearch" placeholder="Busca por código, enfermedad o palabra clave..." oninput="doCieSearch()" autocomplete="off">
               <button class="cie-clear-btn" onclick="cieClearSearch()" title="Limpiar">✕</button>
             </div>
 
@@ -3415,7 +3418,7 @@ var CIE_LAST_SEARCH = '';
   try { CIE_HISTORY = JSON.parse(localStorage.getItem('wichanzao_cie_history') || '[]'); } catch(e) {}
 })();
 
-function cieSearch() {
+function doCieSearch() {
   var q = document.getElementById('cieSearch').value.trim().toLowerCase();
   var resultsDiv = document.getElementById('cieResultList');
   var infoDiv = document.getElementById('cieResultsInfo');
@@ -3515,7 +3518,7 @@ function cieSetFilter(filter, btn) {
   if (btn) btn.classList.add('active');
   // Re-run search
   var qEl = document.getElementById('cieSearch');
-  if (qEl) cieSearch();
+  if (qEl) doCieSearch();
 }
 
 function getFilterLabel(filter) {
@@ -3536,7 +3539,7 @@ function cieClearSearch() {
   var chips = document.querySelectorAll('.cie-filter-chip');
   chips.forEach(function(c) { c.classList.remove('active'); });
   chips[0].classList.add('active');
-  cieSearch();
+  doCieSearch();
 }
 
 function cieToggleChapters() {
@@ -3582,7 +3585,7 @@ function cieShowChapter(chNum) {
   var chips = document.querySelectorAll('.cie-filter-chip');
   chips.forEach(function(c) { c.classList.remove('active'); });
   chips[0].classList.add('active');
-  cieSearch();
+  doCieSearch();
   // Collapse chapters
   document.getElementById('cieChaptersGrid').style.display = 'none';
   document.getElementById('cieChaptersArrow').textContent = '▶';
@@ -3654,7 +3657,7 @@ function cieToggleFav(evt, code) {
     toast('Eliminado de favoritos', 'info');
   }
   try { localStorage.setItem('wichanzao_cie_favs', JSON.stringify(CIE_FAVORITES)); } catch(e) {}
-  cieSearch();
+  doCieSearch();
 }
 
 function cieToggleFavDetail(code, btn) {
