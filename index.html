@@ -130,6 +130,102 @@ body.dark .module-card .mc-title{color:var(--t1)}
 body.dark .placeholder-card{background:var(--s1);border-color:var(--bd)}
 body.dark .placeholder-card h3{color:var(--t1)}
 
+/* ===== CKD-EPI CALCULATOR ===== */
+.renal-form{max-width:640px;margin:0 auto}
+.renal-sex-toggle{display:flex;gap:8px;margin-bottom:18px}
+.renal-sex-btn{flex:1;padding:14px;border:2px solid var(--bd);border-radius:var(--r2);text-align:center;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;background:var(--s1);color:var(--t2);transition:all .2s}
+.renal-sex-btn.active{border-color:var(--tl);background:rgba(78,205,196,.08);color:var(--tl)}
+.renal-sex-btn .sex-icon{font-size:24px;display:block;margin-bottom:4px}
+.renal-field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.renal-field{display:flex;flex-direction:column;gap:6px}
+.renal-field label{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px}
+.renal-field input,.renal-field select{padding:12px 14px;border:1.5px solid var(--bd);border-radius:var(--r3);font-size:15px;font-family:inherit;background:var(--s1);color:var(--t1);transition:border .2s;box-sizing:border-box;width:100%}
+.renal-field input:focus,.renal-field select:focus{border-color:var(--tl);outline:none;box-shadow:0 0 0 3px rgba(78,205,196,.15)}
+.renal-unit-row{display:flex;align-items:center;gap:8px}
+.renal-unit-row input{flex:1}
+.renal-unit-row select{width:100px}
+.renal-actions{display:flex;gap:10px;margin-top:20px}
+.renal-actions button{flex:1;padding:14px;border:none;border-radius:var(--r2);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-calc{background:linear-gradient(135deg,var(--tl),var(--tl2));color:#fff;box-shadow:0 4px 16px rgba(78,205,196,.35)}
+.btn-calc:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(78,205,196,.45)}
+.btn-calc:active{transform:scale(.97)}
+.btn-reset{background:var(--s2);color:var(--t2);border:1px solid var(--bd)!important}
+.btn-reset:hover{background:var(--bd)}
+
+/* Gauge & Result */
+.renal-result{max-width:640px;margin:24px auto 0;animation:renalIn .5s cubic-bezier(.4,0,.2,1)}
+.renal-result-card{background:var(--card);border-radius:var(--r1);padding:28px 24px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);border:1px solid var(--bd)}
+.gauge-wrap{position:relative;width:180px;height:180px;margin:0 auto 16px}
+.gauge-svg{transform:rotate(-90deg);width:180px;height:180px}
+.gauge-bg{fill:none;stroke:var(--s2);stroke-width:14}
+.gauge-fill{fill:none;stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.25,.1,.25,1),stroke .6s}
+.gauge-value{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-value .gv-num{font-family:'Playfair Display',serif;font-size:38px;font-weight:900;color:var(--t1);line-height:1}
+.gauge-value .gv-unit{font-size:11px;color:var(--t2);font-weight:600;margin-top:2px}
+.renal-stage{display:inline-block;padding:8px 20px;border-radius:24px;font-size:13px;font-weight:700;letter-spacing:.5px;margin-top:10px}
+.renal-interp{font-size:12px;color:var(--t2);margin-top:6px;line-height:1.5}
+.renal-details{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid var(--bd)}
+.renal-detail-item{text-align:center}
+.renal-detail-item .rd-val{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:var(--t1)}
+.renal-detail-item .rd-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* KDIGO table */
+.kdigo-mini{margin-top:18px;padding-top:18px;border-top:1px solid var(--bd)}
+.kdigo-mini h5{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:0 0 8px}
+.kdigo-bar{display:flex;border-radius:8px;overflow:hidden;height:24px;margin-bottom:4px}
+.kdigo-bar div{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;transition:all .3s}
+.kdigo-bar div.active{outline:2px solid #fff;outline-offset:-2px;z-index:2}
+.kdigo-labels{display:flex;font-size:9px;color:var(--t3);justify-content:space-between;padding:0 2px}
+
+/* History */
+.renal-history{margin-top:24px;max-width:640px;margin-left:auto;margin-right:auto}
+.renal-history h5{font-size:13px;font-weight:700;color:var(--t1);margin:0 0 10px}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-radius:var(--r2);border:1px solid var(--bd);cursor:pointer;transition:all .2s}
+.history-item:hover{border-color:var(--tl);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.history-item .hi-stage{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.history-item .hi-info{flex:1;min-width:0}
+.history-item .hi-info .hi-val{font-size:14px;font-weight:700;color:var(--t1)}
+.history-item .hi-info .hi-date{font-size:10px;color:var(--t3);margin-top:1px}
+.history-item .hi-delete{background:none;border:none;color:var(--t3);cursor:pointer;padding:6px;font-size:16px;opacity:.5;transition:opacity .2s}
+.history-item .hi-delete:hover{opacity:1;color:var(--danger)}
+.no-history{text-align:center;padding:20px;color:var(--t3);font-size:12px}
+
+/* KDIGO stage colors */
+.stage-G1{background:#4CAF50}    .stage-G1-text{color:#2E7D32}
+.stage-G2{background:#8BC34A}    .stage-G2-text{color:#558B2F}
+.stage-G3a{background:#FFC107}   .stage-G3a-text{color:#F57F17}
+.stage-G3b{background:#FF9800}   .stage-G3b-text{color:#E65100}
+.stage-G4{background:#F44336}    .stage-G4-text{color:#C62828}
+.stage-G5{background:#B71C1C}    .stage-G5-text{color:#B71C1C}
+.stage-outline-G1{outline-color:#4CAF50}.stage-outline-G2{outline-color:#8BC34A}
+.stage-outline-G3a{outline-color:#FFC107}.stage-outline-G3b{outline-color:#FF9800}
+.stage-outline-G4{outline-color:#F44336}.stage-outline-G5{outline-color:#B71C1C}
+
+@keyframes renalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gaugePulse{0%,100%{filter:drop-shadow(0 0 6px currentColor)}50%{filter:drop-shadow(0 0 18px currentColor)}}
+
+/* Dark mode */
+body.dark .renal-sex-btn{background:var(--s1);color:var(--t2);border-color:var(--bd)}
+body.dark .renal-sex-btn.active{background:rgba(78,205,196,.12);color:var(--tl)}
+body.dark .renal-field input,body.dark .renal-field select{background:var(--s1);color:var(--t1);border-color:var(--bd)}
+body.dark .renal-result-card{background:var(--s1);border-color:var(--bd)}
+body.dark .gauge-value .gv-num{color:#E6EDF3}
+body.dark .renal-detail-item .rd-val{color:#E6EDF3}
+body.dark .history-item{background:var(--s1);border-color:var(--bd)}
+body.dark .btn-reset{background:var(--s2);color:var(--t2)}
+
+/* Responsive */
+@media (max-width:480px){
+  .renal-field-row{grid-template-columns:1fr}
+  .renal-details{grid-template-columns:repeat(3,1fr);gap:8px}
+  .renal-detail-item .rd-val{font-size:16px}
+  .renal-result-card{padding:20px 16px}
+  .gauge-wrap{width:150px;height:150px}
+  .gauge-svg{width:150px;height:150px}
+  .gauge-value .gv-num{font-size:30px}
+}
+
 /* ===== RESPONSIVE ===== */
 @media (min-width:769px){
   #sidebar{transform:translateX(0);position:relative;z-index:auto;box-shadow:none}
@@ -939,7 +1035,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </div>
       </div>
 
-      <!-- === MODULE: CALCULADORA RENAL (placeholder) === -->
+      <!-- === MODULE: CALCULADORA RENAL === -->
       <div class="module-panel" id="moduleRenal">
         <div class="module-header">
           <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
@@ -948,13 +1044,97 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="mh-breadcrumb">
             <a onclick="showModule('dashboard')">Inicio</a> / Calculadora Renal
           </div>
+          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600">CKD-EPI 2021</span>
         </div>
         <div class="module-body">
-          <div class="placeholder-card">
-            <span class="ph-icon">🩺</span>
-            <h3>Calculadora de Funcion Renal</h3>
-            <p>Calculo de TFG (CKD-EPI, MDRD, Cockcroft-Gault), estadificacion de ERC, proteinuria y mas</p>
-            <span class="ph-badge">Proximamente</span>
+          <!-- Input Form -->
+          <div class="renal-form" id="renalForm">
+            <div class="renal-sex-toggle">
+              <div class="renal-sex-btn active" id="sexFemale" onclick="setRenalSex('female')">
+                <span class="sex-icon">♀</span> Mujer
+              </div>
+              <div class="renal-sex-btn" id="sexMale" onclick="setRenalSex('male')">
+                <span class="sex-icon">♂</span> Hombre
+              </div>
+            </div>
+            <div class="renal-field-row">
+              <div class="renal-field">
+                <label>Edad (años)</label>
+                <input type="number" id="renalAge" placeholder="Ej: 55" min="18" max="120" oninput="renalLiveCalc()">
+              </div>
+              <div class="renal-field">
+                <label>Creatinina sérica</label>
+                <div class="renal-unit-row">
+                  <input type="number" id="renalCr" placeholder="Ej: 1.2" min="0.1" max="30" step="any" oninput="renalLiveCalc()">
+                  <select id="renalUnit" onchange="switchCrUnit()">
+                    <option value="mgdl">mg/dL</option>
+                    <option value="umol">µmol/L</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="renal-actions">
+              <button class="btn-calc" onclick="calcRenal()">Calcular TFG</button>
+              <button class="btn-reset" onclick="resetRenal()">Limpiar</button>
+            </div>
+          </div>
+
+          <!-- Result (hidden until calculation) -->
+          <div class="renal-result" id="renalResult" style="display:none">
+            <div class="renal-result-card">
+              <!-- Gauge -->
+              <div class="gauge-wrap">
+                <svg class="gauge-svg" viewBox="0 0 180 180">
+                  <circle class="gauge-bg" cx="90" cy="90" r="78"/>
+                  <circle class="gauge-fill" id="gaugeFill" cx="90" cy="90" r="78" stroke-dasharray="490" stroke-dashoffset="490"/>
+                </svg>
+                <div class="gauge-value">
+                  <div class="gv-num" id="gaugeNum">--</div>
+                  <div class="gv-unit">mL/min/1.73m²</div>
+                </div>
+              </div>
+              <!-- Stage -->
+              <div class="renal-stage" id="renalStageBadge">--</div>
+              <div class="renal-interp" id="renalInterpretation"></div>
+              <!-- Detail row -->
+              <div class="renal-details">
+                <div class="renal-detail-item">
+                  <div class="rd-val" id="rdCreatinine">--</div>
+                  <div class="rd-lbl">Creatinina</div>
+                </div>
+                <div class="renal-detail-item">
+                  <div class="rd-val" id="rdFormula">CKD-EPI</div>
+                  <div class="rd-lbl">Fórmula</div>
+                </div>
+                <div class="renal-detail-item">
+                  <div class="rd-val" id="rdEq">2021</div>
+                  <div class="rd-lbl">Ecuación</div>
+                </div>
+              </div>
+              <!-- KDIGO bar -->
+              <div class="kdigo-mini">
+                <h5>Estadio KDIGO</h5>
+                <div class="kdigo-bar">
+                  <div style="flex:60;background:#4CAF50" title="G1 ≥90">G1</div>
+                  <div style="flex:30;background:#8BC34A" title="G2 60-89">G2</div>
+                  <div style="flex:15;background:#FFC107" title="G3a 45-59">G3a</div>
+                  <div style="flex:15;background:#FF9800" title="G3b 30-44">G3b</div>
+                  <div style="flex:15;background:#F44336" title="G4 15-29">G4</div>
+                  <div style="flex:15;background:#B71C1C" title="G5 <15">G5</div>
+                </div>
+                <div class="kdigo-labels">
+                  <span>≥90</span><span>60</span><span>45</span><span>30</span><span>15</span><span>&lt;15</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div class="renal-history" id="renalHistory">
+            <h5>📋 Historial reciente</h5>
+            <div class="history-list" id="historyList">
+              <div class="no-history">No hay calculos guardados</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2290,6 +2470,294 @@ function toggleDarkMode() {
   if (document.querySelector('meta[name="theme-color"]')) {
     document.querySelector('meta[name="theme-color"]').content = isDark ? '#0D1117' : '#0C1F3D';
   }
+}
+
+/* ===== CKD-EPI 2021 RENAL CALCULATOR ===== */
+var renalSex = 'female';
+var renalCrUnit = 'mgdl';
+var renalHistory = [];
+
+// Load history from localStorage
+(function(){
+  try {
+    var saved = localStorage.getItem('wichanzao_renal_history');
+    if (saved) renalHistory = JSON.parse(saved);
+    renderRenalHistory();
+  } catch(e) {}
+})();
+
+function setRenalSex(sex) {
+  renalSex = sex;
+  document.getElementById('sexFemale').classList.toggle('active', sex === 'female');
+  document.getElementById('sexMale').classList.toggle('active', sex === 'male');
+  renalLiveCalc();
+}
+
+function switchCrUnit() {
+  var sel = document.getElementById('renalUnit');
+  var crInput = document.getElementById('renalCr');
+  var oldUnit = renalCrUnit;
+  renalCrUnit = sel.value;
+  var val = parseFloat(crInput.value);
+  if (!isNaN(val) && val > 0) {
+    if (oldUnit === 'mgdl' && renalCrUnit === 'umol') {
+      crInput.value = (val * 88.42).toFixed(1);
+    } else if (oldUnit === 'umol' && renalCrUnit === 'mgdl') {
+      crInput.value = (val / 88.42).toFixed(3);
+    }
+  }
+  renalLiveCalc();
+}
+
+function getCrMgDl() {
+  var val = parseFloat(document.getElementById('renalCr').value);
+  if (isNaN(val) || val <= 0) return null;
+  return renalCrUnit === 'umol' ? val / 88.42 : val;
+}
+
+function ckdEpi2021(cr, age, isFemale) {
+  // CKD-EPI 2021 (race-free) — NKF/ASN
+  var k = isFemale ? 0.7 : 0.9;
+  var alpha = isFemale ? (cr <= k ? -0.241 : -1.200) : (cr <= k ? -0.302 : -1.200);
+  var sexFactor = isFemale ? 1.012 : 1.0;
+  var egfr = 142 * Math.pow(cr / k, alpha) * Math.pow(0.9938, age) * sexFactor;
+  return Math.round(egfr * 10) / 10;
+}
+
+function getKDIGO(egfr) {
+  if (egfr >= 90) return { stage: 'G1', label: 'Normal o alto', color: '#4CAF50', textColor: '#2E7D32', category: 'Normal' };
+  if (egfr >= 60) return { stage: 'G2', label: 'Levemente disminuido', color: '#8BC34A', textColor: '#558B2F', category: 'Leve' };
+  if (egfr >= 45) return { stage: 'G3a', label: 'Leve-moderadamente ↓', color: '#FFC107', textColor: '#F57F17', category: 'Moderado' };
+  if (egfr >= 30) return { stage: 'G3b', label: 'Moderado-severamente ↓', color: '#FF9800', textColor: '#E65100', category: 'Moderado-Severo' };
+  if (egfr >= 15) return { stage: 'G4', label: 'Severamente disminuido', color: '#F44336', textColor: '#C62828', category: 'Severo' };
+  return { stage: 'G5', label: 'Falla renal', color: '#B71C1C', textColor: '#B71C1C', category: 'Falla renal' };
+}
+
+function getGaugePercent(egfr) {
+  // Maps eGFR to gauge percentage (clamped to 0-100)
+  // eGFR of 90+ = 100%, eGFR of 0 = 0%, roughly linear
+  var pct = Math.min(100, Math.max(0, (egfr / 90) * 100));
+  return pct;
+}
+
+function calcRenal() {
+  haptic(20);
+  var age = parseInt(document.getElementById('renalAge').value);
+  var cr = getCrMgDl();
+
+  if (!age || age < 18 || age > 120) {
+    toast('Ingresa una edad valida (18-120)', 'error');
+    return;
+  }
+  if (!cr) {
+    toast('Ingresa la creatinina serica', 'error');
+    return;
+  }
+  if (cr > 30) {
+    toast('Valor de creatinina fuera de rango', 'error');
+    return;
+  }
+
+  var isFemale = renalSex === 'female';
+  var egfr = ckdEpi2021(cr, age, isFemale);
+  var kdigo = getKDIGO(egfr);
+  var gaugePct = getGaugePercent(egfr);
+
+  // Show result
+  var resultDiv = document.getElementById('renalResult');
+  resultDiv.style.display = 'block';
+  resultDiv.style.animation = 'none';
+  resultDiv.offsetHeight; // reflow
+  resultDiv.style.animation = 'renalIn .5s cubic-bezier(.4,0,.2,1)';
+
+  // Gauge animation
+  var circumference = 2 * Math.PI * 78; // ~490
+  var offset = circumference - (circumference * gaugePct / 100);
+  var gaugeFill = document.getElementById('gaugeFill');
+  gaugeFill.style.strokeDashoffset = circumference;
+  gaugeFill.style.stroke = kdigo.color;
+  gaugeFill.style.filter = 'drop-shadow(0 0 8px ' + kdigo.color + ')';
+  setTimeout(function() {
+    gaugeFill.style.strokeDashoffset = offset;
+  }, 50);
+
+  // Animate number counting up
+  animateGaugeNumber(egfr);
+
+  // Stage badge
+  var badge = document.getElementById('renalStageBadge');
+  badge.textContent = kdigo.stage + ' — ' + kdigo.label;
+  badge.style.background = kdigo.color;
+  badge.style.color = '#fff';
+
+  // Interpretation
+  var interp = document.getElementById('renalInterpretation');
+  var crDisplay = renalCrUnit === 'umol' ? (cr * 88.42).toFixed(1) + ' µmol/L' : cr.toFixed(2) + ' mg/dL';
+  interp.innerHTML = '<strong>TFG estimada:</strong> ' + egfr + ' mL/min/1.73m²<br>' +
+    '<strong>Estadio KDIGO:</strong> ' + kdigo.stage + ' (' + kdigo.category + ')<br>' +
+    '<strong>Creatinina:</strong> ' + crDisplay + ' | <strong>Edad:</strong> ' + age + ' años' +
+    (isFemale ? ' | ♀ Mujer' : ' | ♂ Hombre');
+
+  // Details row
+  document.getElementById('rdCreatinine').textContent = crDisplay;
+  document.getElementById('rdFormula').textContent = 'CKD-EPI';
+  document.getElementById('rdEq').textContent = '2021';
+
+  // Highlight KDIGO bar
+  highlightKDIGOBar(kdigo.stage);
+
+  // Scroll to result
+  resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Save to history (avoid duplicates within 1 min)
+  var now = Date.now();
+  var lastEntry = renalHistory[0];
+  if (!lastEntry || Math.abs(lastEntry.egfr - egfr) > 0.1 || (now - lastEntry.ts) > 60000) {
+    renalHistory.unshift({
+      egfr: egfr,
+      cr: parseFloat(cr.toFixed(3)),
+      crUnit: 'mgdl',
+      displayCr: crDisplay,
+      age: age,
+      sex: renalSex,
+      stage: kdigo.stage,
+      label: kdigo.label,
+      color: kdigo.color,
+      ts: now,
+      date: new Date().toLocaleString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    });
+    // Keep last 20
+    if (renalHistory.length > 20) renalHistory.pop();
+    saveRenalHistory();
+    renderRenalHistory();
+  }
+
+  toast('TFG: ' + egfr + ' mL/min/1.73m² — ' + kdigo.stage, 'info');
+}
+
+function animateGaugeNumber(target) {
+  var el = document.getElementById('gaugeNum');
+  var start = 0;
+  var duration = 900;
+  var startTime = null;
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    var progress = Math.min((timestamp - startTime) / duration, 1);
+    // ease-out cubico
+    var eased = 1 - Math.pow(1 - progress, 3);
+    var current = start + (target - start) * eased;
+    el.textContent = current.toFixed(1);
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      el.textContent = target.toFixed(1);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function highlightKDIGOBar(stage) {
+  var bars = document.querySelectorAll('.kdigo-bar div');
+  bars.forEach(function(b) { b.classList.remove('active'); });
+  var stageOrder = { G1:0, G2:1, 'G3a':2, 'G3b':3, G4:4, G5:5 };
+  var idx = stageOrder[stage];
+  if (idx !== undefined && bars[idx]) {
+    bars[idx].classList.add('active');
+  }
+}
+
+function renalLiveCalc() {
+  var age = parseInt(document.getElementById('renalAge').value);
+  var cr = getCrMgDl();
+  if (age && cr && age >= 18 && age <= 120 && cr > 0) {
+    var egfr = ckdEpi2021(cr, age, renalSex === 'female');
+    var kdigo = getKDIGO(egfr);
+    // Show quick preview in gauge area without full animation
+    var el = document.getElementById('gaugeNum');
+    if (el) el.textContent = egfr.toFixed(1);
+    var resultDiv = document.getElementById('renalResult');
+    if (resultDiv && resultDiv.style.display === 'none') {
+      resultDiv.style.display = 'block';
+      resultDiv.style.animation = 'none';
+      resultDiv.offsetHeight;
+      resultDiv.style.animation = 'renalIn .5s cubic-bezier(.4,0,.2,1)';
+    }
+    var gaugePct = getGaugePercent(egfr);
+    var circumference = 2 * Math.PI * 78;
+    var offset = circumference - (circumference * gaugePct / 100);
+    var gaugeFill = document.getElementById('gaugeFill');
+    if (gaugeFill) {
+      gaugeFill.style.strokeDashoffset = offset;
+      gaugeFill.style.stroke = kdigo.color;
+    }
+    var badge = document.getElementById('renalStageBadge');
+    if (badge) {
+      badge.textContent = kdigo.stage + ' — ' + kdigo.label;
+      badge.style.background = kdigo.color;
+      badge.style.color = '#fff';
+    }
+    highlightKDIGOBar(kdigo.stage);
+  }
+}
+
+function resetRenal() {
+  haptic(10);
+  document.getElementById('renalAge').value = '';
+  document.getElementById('renalCr').value = '';
+  document.getElementById('renalUnit').value = 'mgdl';
+  renalCrUnit = 'mgdl';
+  renalSex = 'female';
+  setRenalSex('female');
+  document.getElementById('renalResult').style.display = 'none';
+  document.getElementById('gaugeNum').textContent = '--';
+  document.getElementById('renalStageBadge').textContent = '--';
+  document.getElementById('renalInterpretation').innerHTML = '';
+  document.querySelectorAll('.kdigo-bar div').forEach(function(b) { b.classList.remove('active'); });
+}
+
+function saveRenalHistory() {
+  try {
+    localStorage.setItem('wichanzao_renal_history', JSON.stringify(renalHistory));
+  } catch(e) {}
+}
+
+function renderRenalHistory() {
+  var list = document.getElementById('historyList');
+  if (!list) return;
+  if (renalHistory.length === 0) {
+    list.innerHTML = '<div class="no-history">No hay calculos guardados</div>';
+    return;
+  }
+  list.innerHTML = renalHistory.map(function(h, i) {
+    return '<div class="history-item" onclick="loadHistoryItem(' + i + ')">' +
+      '<div class="hi-stage" style="background:' + h.color + '">' + h.stage + '</div>' +
+      '<div class="hi-info">' +
+        '<div class="hi-val">' + h.egfr + ' mL/min/1.73m² — ' + h.label + '</div>' +
+        '<div class="hi-date">' + h.date + ' · Cr ' + h.displayCr + ' · ' + h.age + 'a' + (h.sex==='female'?' ♀':' ♂') + '</div>' +
+      '</div>' +
+      '<button class="hi-delete" onclick="deleteHistoryItem(event,' + i + ')" title="Eliminar">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+function loadHistoryItem(idx) {
+  haptic(10);
+  var h = renalHistory[idx];
+  if (!h) return;
+  setRenalSex(h.sex);
+  document.getElementById('renalAge').value = h.age;
+  document.getElementById('renalCr').value = h.cr;
+  renalCrUnit = 'mgdl';
+  document.getElementById('renalUnit').value = 'mgdl';
+  calcRenal();
+}
+
+function deleteHistoryItem(evt, idx) {
+  evt.stopPropagation();
+  haptic(10);
+  renalHistory.splice(idx, 1);
+  saveRenalHistory();
+  renderRenalHistory();
 }
 
 function changeName() {
