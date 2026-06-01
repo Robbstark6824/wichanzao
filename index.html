@@ -948,6 +948,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Medicina Interna</h3>
           <span>Hospital de Laredo</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v201</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -1353,8 +1354,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           </div>
           <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600">OMS · +600 códigos</span>
         </div>
-        <div class="module-body" style="outline:3px solid red">
-          <div style="background:#FF6B6B;color:#FFF;padding:8px 14px;border-radius:8px;font-weight:700;margin-bottom:12px;font-family:monospace;font-size:13px">🔴 DEBUG: Modulo CIE-10 cargado — moduleCie activo</div>
+        <div class="module-body">
           <div class="cie-search-wrap">
             <!-- Search bar -->
             <div class="cie-search-bar">
@@ -1680,7 +1680,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v200';
+var APP_VERSION = 'v201';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -1849,6 +1849,9 @@ function showView(id) {
   if (id === 'vMain') {
     if (window.innerWidth < 769) closeSidebar();
     if (typeof populateDashboard === 'function') populateDashboard();
+    // Update version badge
+    var badge = document.getElementById('appVersionBadge');
+    if (badge) badge.textContent = APP_VERSION;
   }
 }
 
@@ -1882,24 +1885,16 @@ function closeSidebar() {
 var currentModule = 'dashboard';
 
 function showModule(moduleName) {
-  console.log('[showModule] Switching to:', moduleName);
   // Hide all module panels
   var panels = document.querySelectorAll('.module-panel');
-  console.log('[showModule] Panels found:', panels.length);
   for (var i = 0; i < panels.length; i++) {
     panels[i].classList.remove('active');
   }
   // Show target panel
   var targetId = 'module' + moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
-  console.log('[showModule] Target ID:', targetId);
   var target = document.getElementById(targetId);
-  console.log('[showModule] Target element found:', !!target);
   if (target) {
     target.classList.add('active');
-    console.log('[showModule] Active class added. Has active?', target.classList.contains('active'));
-    console.log('[showModule] Computed display:', getComputedStyle(target).display);
-  } else {
-    console.error('[showModule] TARGET NOT FOUND:', targetId);
   }
   // Update sidebar nav active states
   var navItems = document.querySelectorAll('.sidebar-nav-item');
@@ -3428,7 +3423,6 @@ var CIE_LAST_SEARCH = '';
 })();
 
 function doCieSearch() {
-  console.log('[doCieSearch] Called. Filter:', CIE_FILTER);
   var q = document.getElementById('cieSearch').value.trim().toLowerCase();
   var resultsDiv = document.getElementById('cieResultList');
   var infoDiv = document.getElementById('cieResultsInfo');
