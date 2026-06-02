@@ -955,7 +955,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Medicina Interna</h3>
           <span>Hospital de Laredo</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v203</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v204</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -1538,7 +1538,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v203</p>
+              <p id="settingsVersionText">v204</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -1688,7 +1688,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v203';
+var APP_VERSION = 'v204';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -3130,14 +3130,26 @@ function cieWords(str) {
 }
 
 // ── Check if token matches a word (prefix overlap ≥ minLen) ──
-function cieTokenMatch(token, haystackNorm, words) {
-  // 1) Substring anywhere in full haystack
-  if (haystackNorm.indexOf(token) !== -1) return true;
-  // 2) Check each word: substring OR prefix overlap ≥ 5 chars
+function cieTokenMatch(token, haystackNorm, words, code) {
+  // 0) Always allow match in code field (prefix or substring)
+  var codeNorm = cieNormalize(code);
+  if (codeNorm.indexOf(token) !== -1) return true;
+  // 1) For tokens > 4 chars: substring anywhere in full haystack
+  if (token.length > 4 && haystackNorm.indexOf(token) !== -1) return true;
+  // 2) Check each word
   for (var i = 0; i < words.length; i++) {
     var w = words[i];
     if (w.length < 2) continue;
-    if (w.indexOf(token) !== -1 || token.indexOf(w) !== -1) return true;
+    // Short tokens (≤4 chars): require PREFIX match (not arbitrary substring)
+    // This prevents 'itu' matching 'situ', 'amo' matching 'examen', etc.
+    if (token.length <= 4) {
+      if (w.indexOf(token) === 0) return true;
+      // Also allow if word is embedded in token (e.g. token='dm2', word='diabetes')
+      if (token.indexOf(w) !== -1) return true;
+    } else {
+      // Longer tokens: substring match allowed
+      if (w.indexOf(token) !== -1 || token.indexOf(w) !== -1) return true;
+    }
     // Prefix overlap: at least 5 chars shared from start
     var minLen = Math.min(token.length, w.length);
     if (minLen >= 5) {
@@ -3700,7 +3712,7 @@ function _doCieSearch() {
       var words = idx ? idx.w : cieWords(item.name);
       var allMatch = true;
       for (var t = 0; t < tokens.length; t++) {
-        if (!cieTokenMatch(tokens[t], haystackNorm, words)) { allMatch = false; break; }
+        if (!cieTokenMatch(tokens[t], haystackNorm, words, item.code)) { allMatch = false; break; }
       }
       if (!allMatch) continue;
     }

@@ -80,6 +80,189 @@ function main() {
     name = name.replace(/\s+especificada(s)?\s*$/, ' especificada$1');
 
     const ch = assignChapter(code);
+
+    // ── Fix truncated names ────────────────────────────
+    // Per-code completions (most common)
+    const COMP = {
+      // O — Embarazo
+      'O07.0':'Falla de la induccion medica del aborto, complicado por infeccion genital y pelviana',
+      'O07.1':'Falla de la induccion medica del aborto, complicado por hemorragia excesiva o tardia',
+      'O07.2':'Falla de la induccion medica del aborto, complicado por embolia',
+      'O08':'Complicaciones consecutivas al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.0':'Infeccion genital y pelviana consecutiva al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.1':'Hemorragia excesiva o tardia consecutiva al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.2':'Embolia consecutiva al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.3':'Choque consecutivo al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.6':'Lesion de organos o tejidos de la pelvis consecutivo al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.7':'Otras complicaciones venosas consecutivas al aborto, al embarazo ectopico y al embarazo molar',
+      'O08.9':'Complicacion no especificada consecutiva al aborto, al embarazo ectopico y al embarazo molar',
+      'O10':'Hipertension preexistente que complica el embarazo, el parto y el puerperio',
+      'O10.0':'Hipertension esencial preexistente que complica el embarazo, el parto y el puerperio',
+      'O10.1':'Enfermedad cardiaca hipertensiva preexistente que complica el embarazo, el parto y el puerperio',
+      'O10.3':'Enfermedad cardiorrenal hipertensiva preexistente que complica el embarazo, el parto y el puerperio',
+      'O10.4':'Hipertension secundaria preexistente que complica el embarazo, el parto y el puerperio',
+      'O10.9':'Hipertension preexistente no especificada, que complica el embarazo, el parto y el puerperio',
+      'O11':'Trastornos hipertensivos preexistentes, con proteinuria agregada',
+      'O12':'Edema y proteinuria gestacionales [inducidos por el embarazo], sin hipertension',
+      'O13':'Hipertension gestacional [inducida por el embarazo], sin proteinuria significativa',
+      'O14':'Hipertension gestacional [inducida por el embarazo], con proteinuria significativa',
+      'O23':'Infeccion de las vias genitourinarias en el embarazo',
+      'O23.3':'Infeccion de otras partes de las vias urinarias en el embarazo',
+      'O23.4':'Infeccion no especificada de las vias urinarias en el embarazo',
+      'O24.0':'Diabetes mellitus preexistente insulinodependiente, en el embarazo',
+      'O24.1':'Diabetes mellitus preexistente no insulinodependiente, en el embarazo',
+      'O24.2':'Diabetes mellitus preexistente relacionada con desnutricion, en el embarazo',
+      'O24.3':'Diabetes mellitus preexistente, sin otra especificacion, en el embarazo',
+      'O26.3':'Retencion de dispositivo anticonceptivo intrauterino en el embarazo',
+      'O26.6':'Trastornos del higado en el embarazo, el parto y el puerperio',
+      'O26.7':'Subluxacion de la sinfisis (del pubis) en el embarazo, el parto y el puerperio',
+      'O26.8':'Otras complicaciones especificadas relacionadas con el embarazo',
+      'O28':'Hallazgos anormales en el examen prenatal de la madre',
+      'O28.0':'Hallazgo hematologico anormal en el examen prenatal de la madre',
+      'O28.1':'Hallazgo bioquimico anormal en el examen prenatal de la madre',
+      'O28.2':'Hallazgo citologico anormal en el examen prenatal de la madre',
+      'O28.3':'Hallazgo ultrasonico anormal en el examen prenatal de la madre',
+      'O28.4':'Hallazgo radiologico anormal en el examen prenatal de la madre',
+      'O28.8':'Otros hallazgos anormales en el examen prenatal de la madre',
+      'O28.9':'Hallazgo anormal no especificado en el examen prenatal de la madre',
+      'O29.2':'Complicaciones del sistema nervioso central debidas a la anestesia durante el embarazo',
+      'O31.1':'Embarazo que continua despues del aborto de un feto o mas',
+      'O32':'Atencion materna por presentacion anormal del feto',
+      'O32.3':'Atencion materna por presentacion de cara, de frente o de menton del feto',
+      'O32.8':'Atencion materna por otras presentaciones anormales del feto',
+      'O33':'Atencion materna por desproporcion conocida o presunta',
+      'O34':'Atencion materna por anormalidades conocidas o presuntas de los organos pelvianos',
+      'O34.9':'Atencion materna por anormalidad no especificada de organo pelviano',
+      'O35.2':'Atencion materna por (presunta) enfermedad hereditaria en el feto',
+      'O35.4':'Atencion materna por (presunta) lesion al feto debida al alcohol',
+      'O35.8':'Atencion materna por otras (presuntas) anormalidades y lesiones del feto',
+      'O41':'Otros trastornos del liquido amniotico y de las membranas',
+      'O41.8':'Otros trastornos especificados del liquido amniotico y de las membranas',
+      'O45.0':'Desprendimiento prematuro de la placenta con defecto de la coagulacion',
+      'O61.9':'Fracaso no especificado de la induccion del trabajo de parto',
+      'O62':'Anormalidades de la dinamica del trabajo de parto',
+      'O62.4':'Contracciones uterinas hipertonicas, incoordinadas y prolongadas del trabajo de parto',
+      'O64.0':'Trabajo de parto obstruido debido a rotacion incompleta de la cabeza fetal',
+      'O64.4':'Trabajo de parto obstruido debido a presentacion de hombro',
+      'O65.0':'Trabajo de parto obstruido debido a deformidad de la pelvis osea',
+      'O65.1':'Trabajo de parto obstruido debido a estrechez general de la pelvis',
+      'O65.2':'Trabajo de parto obstruido debido a disminucion del estrecho superior de la pelvis',
+      'O65.3':'Trabajo de parto obstruido debido a disminucion del estrecho inferior de la pelvis',
+      'O65.5':'Trabajo de parto obstruido debido a anomalias de los organos pelvianos de la madre',
+      'O66.5':'Fracaso no especificado de la aplicacion de forceps o de ventosa extractora',
+      'O67':'Trabajo de parto y parto complicados por hemorragia intraparto, no clasificados en otra parte',
+      'O68':'Trabajo de parto y parto complicados por sufrimiento fetal',
+      'O68.0':'Trabajo de parto y parto complicados por anomalia de la frecuencia cardiaca fetal',
+      'O68.1':'Trabajo de parto y parto complicados por la presencia de meconio en el liquido amniotico',
+      'O68.2':'Trabajo de parto y parto complicados por anomalia de la frecuencia cardiaca fetal con presencia de meconio en el liquido amniotico',
+      'O69':'Trabajo de parto y parto complicados por problemas del cordon umbilical',
+      'O69.0':'Trabajo de parto y parto complicados por prolapso del cordon umbilical',
+      'O69.2':'Trabajo de parto y parto complicados por otros enredos del cordon umbilical',
+      'O73.1':'Retencion de fragmentos de la placenta o de las membranas, sin hemorragia',
+      'O74.3':'Complicaciones del sistema nervioso central por la anestesia durante el trabajo de parto y el parto',
+      'O74.7':'Falla o dificultad en la intubacion durante el trabajo de parto y el parto',
+      'O75':'Otras complicaciones del trabajo de parto y del parto, no clasificadas en otra parte',
+      'O75.5':'Retraso del parto despues de la ruptura artificial de las membranas',
+      'O75.9':'Complicacion no especificada del trabajo de parto y del parto',
+      'O89.2':'Complicaciones del sistema nervioso central debidas a la anestesia durante el puerperio',
+      'O90':'Complicaciones del puerperio, no clasificadas en otra parte',
+      'O94':'Secuelas de complicaciones del embarazo, del parto y del puerperio',
+      'O98':'Enfermedades maternas infecciosas y parasitarias clasificables en otra parte, que complican el embarazo, el parto y el puerperio',
+      'O98.0':'Tuberculosis que complica el embarazo, el parto y el puerperio',
+      'O98.4':'Hepatitis viral que complica el embarazo, el parto y el puerperio',
+      'O98.5':'Otras enfermedades virales que complican el embarazo, el parto y el puerperio',
+      'O98.6':'Enfermedades causadas por protozoarios que complican el embarazo, el parto y el puerperio',
+      'O99':'Otras enfermedades maternas clasificables en otra parte, que complican el embarazo, el parto y el puerperio',
+      'O99.2':'Enfermedades endocrinas, de la nutricion y del metabolismo que complican el embarazo, el parto y el puerperio',
+      'O99.4':'Enfermedades del sistema circulatorio que complican el embarazo, el parto y el puerperio',
+      'O99.5':'Enfermedades del sistema respiratorio que complican el embarazo, el parto y el puerperio',
+      'O99.6':'Enfermedades del sistema digestivo que complican el embarazo, el parto y el puerperio',
+      'O99.7':'Enfermedades de la piel y del tejido subcutaneo que complican el embarazo, el parto y el puerperio',
+      'O99.8':'Otras enfermedades especificadas y afecciones que complican el embarazo, el parto y el puerperio',
+      // Common truncations across all chapters
+      'A15.1':'Tuberculosis del pulmon, confirmada unicamente por cultivo',
+      'A16.7':'Tuberculosis respiratoria primaria, sin mencion de confirmacion bacteriologica o histologica',
+      'A16.8':'Otras tuberculosis respiratorias, sin mencion de confirmacion bacteriologica o histologica',
+      'A16.9':'Tuberculosis respiratoria no especificada, sin mencion de confirmacion bacteriologica o histologica',
+      'A48.2':'Enfermedad de los legionarios no neumonica [fiebre de Pontiac]',
+      'A54.1':'Infeccion gonococica del tracto genitourinario inferior con absceso periuretral y de glandulas accesorias',
+      'A77':'Fiebre maculosa [rickettsiosis transmitida por garrapatas]',
+      'A81':'Infecciones del sistema nervioso central por virus lento',
+      'A92.8':'Otras fiebres virales especificadas transmitidas por mosquitos',
+      'A93.8':'Otras fiebres virales especificadas transmitidas por artropodos',
+      'B08':'Otras infecciones viricas caracterizadas por lesiones de la piel y de las membranas mucosas',
+      'B08.8':'Otras infecciones virales especificadas, caracterizadas por lesiones de la piel y de las membranas mucosas',
+      'B09':'Infeccion viral no especificada, caracterizada por lesiones de la piel y de las membranas mucosas',
+      'B17.0':'Infeccion (superinfeccion) aguda por agente delta en el portador de hepatitis B',
+      'B20.0':'Enfermedad por VIH, resultante en infeccion por micobacterias',
+      'B20.2':'Enfermedad por VIH, resultante en enfermedad por citomegalovirus',
+      'B20.6':'Enfermedad por VIH, resultante en neumonia por Pneumocystis jirovecii',
+      'B20.9':'Enfermedad por VIH, resultante en enfermedad infecciosa o parasitaria no especificada',
+      'B33':'Otras enfermedades virales, no clasificadas en otra parte',
+      'B50.0':'Paludismo debido a Plasmodium falciparum con complicaciones cerebrales',
+      'B81':'Otras helmintiasis intestinales, no clasificadas en otra parte',
+      'B94':'Secuelas de otras enfermedades infecciosas y parasitarias y de las no especificadas',
+      'B95':'Estreptococos y estafilococos como causa de enfermedades clasificadas en otros capitulos',
+      'B95.5':'Estreptococo no especificado como causa de enfermedades clasificadas en otros capitulos',
+      'B95.8':'Estafilococo no especificado, como causa de enfermedades clasificadas en otros capitulos',
+      'B96':'Otros agentes bacterianos como causa de enfermedades clasificadas en otros capitulos',
+      'B96.0':'Mycoplasma pneumoniae [M. pneumoniae] como causa de enfermedades clasificadas en otros capitulos',
+      'B96.1':'Klebsiella pneumoniae [K. pneumoniae] como causa de enfermedades clasificadas en otros capitulos',
+      'B96.3':'Haemophilus influenzae [H. influenzae] como causa de enfermedades clasificadas en otros capitulos',
+      'B96.5':'Pseudomonas (aeruginosa) (mallei) (pseudomallei) como causa de enfermedades clasificadas en otros capitulos',
+      'D00':'Carcinoma in situ de la cavidad bucal, del esofago y del estomago',
+      'D00.0':'Carcinoma in situ del labio, de la cavidad bucal y de la faringe',
+      'D01':'Carcinoma in situ de otros organos digestivos y de los no especificados',
+      'D21':'Otros tumores benignos del tejido conjuntivo y de los tejidos blandos',
+    };
+    if (COMP[code]) { name = COMP[code]; }
+
+    // Heuristic completions for common truncation patterns
+    if (!COMP[code]) {
+      // O chapter completions
+      if (ch === 'XV') {
+        // 'en el' at end → 'en el embarazo'
+        if (/\ben el\s*$/.test(name)) name = name.replace(/\ben el\s*$/, 'en el embarazo');
+        // 'en el embarazo, el' at end → full phrase
+        else if (/\ben el embarazo, el\s*$/.test(name)) name = name.replace(/\ben el embarazo, el\s*$/, 'en el embarazo, el parto y el puerperio');
+        // 'que complica el' at end → full phrase
+        else if (/\bque complica el\s*$/.test(name)) name = name.replace(/\bque complica el\s*$/, 'que complica el embarazo, el parto y el puerperio');
+        // 'el embarazo, el parto y el' at end → full phrase
+        else if (/\bel embarazo, el parto y el\s*$/.test(name)) name = name.replace(/\bel embarazo, el parto y el\s*$/, 'el embarazo, el parto y el puerperio');
+        // 'del embarazo, del' at end → full phrase
+        else if (/\bdel embarazo, del\s*$/.test(name)) name = name.replace(/\bdel embarazo, del\s*$/, 'del embarazo, del parto y del puerperio');
+        // 'trabajo de' at end → 'trabajo de parto'
+        else if (/\btrabajo de\s*$/.test(name)) name = name.replace(/\btrabajo de\s*$/, 'trabajo de parto');
+        // 'examen prenatal de la' at end → 'examen prenatal de la madre'
+        else if (/\bexamen prenatal de la\s*$/.test(name)) name = name.replace(/\bexamen prenatal de la\s*$/, 'examen prenatal de la madre');
+        // 'del trabajo de' at end → 'del trabajo de parto'
+        else if (/\bdel trabajo de\s*$/.test(name)) name = name.replace(/\bdel trabajo de\s*$/, 'del trabajo de parto');
+        // 'trabajo de parto y del' at end → 'trabajo de parto y del parto'
+        else if (/\btrabajo de parto y del\s*$/.test(name)) name = name.replace(/\btrabajo de parto y del\s*$/, 'trabajo de parto y del parto');
+        // 'del embarazo' at end (needs puerperio too)
+        else if (/\bdel embarazo\s*$/.test(name) && name.includes('complica')) name += ', el parto y el puerperio';
+        // 'en el examen prenatal' at end → 'en el examen prenatal de la madre'
+        else if (/\ben el examen prenatal\s*$/.test(name)) name = name.replace(/\ben el examen prenatal\s*$/, 'en el examen prenatal de la madre');
+        // 'embarazo, el parto y el' at end → full
+        else if (/\bembarazo, el parto y el\s*$/.test(name)) name = name.replace(/\bembarazo, el parto y el\s*$/, 'embarazo, el parto y el puerperio');
+      }
+      // Generic completions
+      // 'y del' at end → 'y del puerperio' (only for O chapter)
+      if (ch === 'XV' && /\by del\s*$/.test(name) && !COMP[code]) {
+        if (!/\by del puerperio\b/.test(name)) name += ' puerperio';
+      }
+      // 'no clasificadas en' at end → 'no clasificadas en otra parte'
+      if (/\bno clasificadas en\s*$/.test(name)) name = name.replace(/\bno clasificadas en\s*$/, 'no clasificadas en otra parte');
+      // 'no clasificados en' at end → 'no clasificados en otra parte'
+      else if (/\bno clasificados en\s*$/.test(name)) name = name.replace(/\bno clasificados en\s*$/, 'no clasificados en otra parte');
+      // 'clasificadas en' at end → 'clasificadas en otra parte'
+      if (/\bclasificadas en\s*$/.test(name) && !/\bclasificadas en otra parte\b/.test(name)) name = name.replace(/\bclasificadas en\s*$/, 'clasificadas en otra parte');
+      // 'causa de' at end → 'causa de enfermedades clasificadas en otros capitulos' (for B95-B97)
+      if (/\bcausa de\s*$/.test(name) && ch === 'I') name = name.replace(/\bcausa de\s*$/, 'causa de enfermedades clasificadas en otros capitulos');
+      // 'caracterizadas por' at end → 'caracterizadas por lesiones de la piel' (for B08-B09)
+      if (/\bcaracterizadas por\s*$/.test(name) && ch === 'I') name = name.replace(/\bcaracterizadas por\s*$/, 'caracterizadas por lesiones de la piel y de las membranas mucosas');
+    }
+
     const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
 
     codes.push({
