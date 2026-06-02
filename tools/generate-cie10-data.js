@@ -441,6 +441,33 @@ function main() {
     compactCodes.push([code,name,ch]);
   }
 
+  // ── Inject missing abortion subcategories (O03-O06) ──
+  const ABORT_BASE = ['O03','O04','O05','O06'];
+  const ABORT_NAMES = {'O03':'Aborto espontaneo','O04':'Aborto medico','O05':'Otro aborto','O06':'Aborto no especificado'};
+  const ABORT_COMP = [
+    ['.0','incompleto, complicado con infeccion genital y pelviana'],
+    ['.1','incompleto, complicado con hemorragia excesiva o tardia'],
+    ['.2','incompleto, complicado con embolia'],
+    ['.3','incompleto, con otras complicaciones y las no especificadas'],
+    ['.4','incompleto, sin complicacion'],
+    ['.5','completo o no especificado, complicado con infeccion genital y pelviana'],
+    ['.6','completo o no especificado, complicado con hemorragia excesiva o tardia'],
+    ['.7','completo o no especificado, complicado con embolia'],
+    ['.8','completo o no especificado, con otras complicaciones y las no especificadas'],
+    ['.9','completo o no especificado, sin complicacion'],
+  ];
+  const topAbort = new Set(ABORT_BASE);
+  codes = codes.filter(c => !topAbort.has(c.code));
+  compactCodes = compactCodes.filter(c => !topAbort.has(c[0]));
+  for (const base of ABORT_BASE) {
+    for (const [suffix, compName] of ABORT_COMP) {
+      const code = base + suffix, name = ABORT_NAMES[base] + ', ' + compName, ch = 'XV';
+      const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+      codes.push({code,name,chapter:ch,chName:chInfo[3],range:chInfo[4],specialty:chInfo[5]});
+      compactCodes.push([code,name,ch]);
+    }
+  }
+
   // Sort
   const sorter = (a, b) => {
     const [aBase, aSub] = (typeof a === 'string' ? a : a.code || a[0]).split('.');
