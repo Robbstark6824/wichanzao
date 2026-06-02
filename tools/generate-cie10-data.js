@@ -349,6 +349,98 @@ function main() {
     }
   }
 
+  // ── Inject missing substance use disorder subcategories (F10-F19) ──
+  const F_SUBSTANCES = [
+    ['F10','Trastornos mentales y del comportamiento debidos al uso de alcohol'],
+    ['F11','Trastornos mentales y del comportamiento debidos al uso de opioides'],
+    ['F12','Trastornos mentales y del comportamiento debidos al uso de cannabinoides'],
+    ['F13','Trastornos mentales y del comportamiento debidos al uso de sedantes o hipnoticos'],
+    ['F14','Trastornos mentales y del comportamiento debidos al uso de cocaina'],
+    ['F15','Trastornos mentales y del comportamiento debidos al uso de otros estimulantes (incluyendo cafeina)'],
+    ['F16','Trastornos mentales y del comportamiento debidos al uso de alucinogenos'],
+    ['F17','Trastornos mentales y del comportamiento debidos al uso de tabaco'],
+    ['F18','Trastornos mentales y del comportamiento debidos al uso de disolventes volatiles'],
+    ['F19','Trastornos mentales y del comportamiento debidos al uso de multiples drogas y otras sustancias psicoactivas'],
+  ];
+  const F_COMPLICATIONS = [
+    ['.0','intoxicacion aguda'],['.1','consumo perjudicial'],['.2','sindrome de dependencia'],
+    ['.3','sindrome de abstinencia'],['.4','sindrome de abstinencia con delirium'],
+    ['.5','trastorno psicotico'],['.6','sindrome amnesico'],
+    ['.7','trastorno psicotico residual y de comienzo tardio'],
+    ['.8','otros trastornos mentales y del comportamiento'],
+    ['.9','trastorno mental y del comportamiento, no especificado'],
+  ];
+  const topF = new Set(['F10','F11','F12','F13','F14','F15','F16','F17','F18','F19']);
+  codes = codes.filter(c => !topF.has(c.code));
+  compactCodes = compactCodes.filter(c => !topF.has(c[0]));
+  for (const [base, baseName] of F_SUBSTANCES) {
+    for (const [suffix, compName] of F_COMPLICATIONS) {
+      const code = base + suffix, name = baseName + ', ' + compName, ch = 'V';
+      const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+      codes.push({code,name,chapter:ch,chName:chInfo[3],range:chInfo[4],specialty:chInfo[5]});
+      compactCodes.push([code,name,ch]);
+    }
+  }
+
+  // ── Inject missing glomerular disease subcategories (N00-N07) ──
+  const N_BASE = [
+    ['N00','Sindrome nefritico agudo'],['N01','Sindrome nefritico rapidamente progresivo'],
+    ['N02','Hematuria recurrente y persistente'],['N03','Sindrome nefritico cronico'],
+    ['N04','Sindrome nefrotico'],['N05','Sindrome nefritico no especificado'],
+    ['N06','Proteinuria aislada con lesion morfologica especificada'],
+    ['N07','Nefropatia hereditaria no clasificada en otra parte'],
+  ];
+  const N_MORPH = [
+    ['.0','anormalidad glomerular minima'],['.1','lesiones glomerulares focales y segmentarias'],
+    ['.2','glomerulonefritis membranosa difusa'],['.3','glomerulonefritis proliferativa mesangial difusa'],
+    ['.4','glomerulonefritis proliferativa endocapilar difusa'],['.5','glomerulonefritis mesangiocapilar difusa'],
+    ['.6','enfermedad por depositos densos'],['.7','glomerulonefritis difusa en media luna'],
+    ['.8','otras lesiones morfologicas'],['.9','lesion morfologica no especificada'],
+  ];
+  const topN = new Set(['N00','N01','N02','N03','N04','N05','N06','N07']);
+  codes = codes.filter(c => !topN.has(c.code));
+  compactCodes = compactCodes.filter(c => !topN.has(c[0]));
+  for (const [base, baseName] of N_BASE) {
+    for (const [suffix, morphName] of N_MORPH) {
+      const code = base + suffix, name = baseName + ', ' + morphName, ch = 'XIV';
+      const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+      codes.push({code,name,chapter:ch,chName:chInfo[3],range:chInfo[4],specialty:chInfo[5]});
+      compactCodes.push([code,name,ch]);
+    }
+  }
+
+  // ── Inject L89 ulceras de decubito / presion ──
+  const topL89 = new Set(['L89']);
+  codes = codes.filter(c => !topL89.has(c.code));
+  compactCodes = compactCodes.filter(c => !topL89.has(c[0]));
+  const L89_ENTRIES = [
+    ['L89.0','Ulcera de decubito y zona de presion, estadio 1','XII'],
+    ['L89.1','Ulcera de decubito y zona de presion, estadio 2','XII'],
+    ['L89.2','Ulcera de decubito y zona de presion, estadio 3','XII'],
+    ['L89.3','Ulcera de decubito y zona de presion, estadio 4','XII'],
+    ['L89.9','Ulcera de decubito y zona de presion, no especificada','XII'],
+  ];
+  for (const [code, name, ch] of L89_ENTRIES) {
+    const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+    codes.push({code,name,chapter:ch,chName:chInfo[3],range:chInfo[4],specialty:chInfo[5]});
+    compactCodes.push([code,name,ch]);
+  }
+
+  // ── Inject K20 esofagitis ──
+  const topK20 = new Set(['K20']);
+  codes = codes.filter(c => !topK20.has(c.code));
+  compactCodes = compactCodes.filter(c => !topK20.has(c[0]));
+  const K20_ENTRIES = [
+    ['K20.0','Esofagitis eosinofilica','XI'],
+    ['K20.8','Otras esofagitis especificadas','XI'],
+    ['K20.9','Esofagitis, no especificada','XI'],
+  ];
+  for (const [code, name, ch] of K20_ENTRIES) {
+    const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+    codes.push({code,name,chapter:ch,chName:chInfo[3],range:chInfo[4],specialty:chInfo[5]});
+    compactCodes.push([code,name,ch]);
+  }
+
   // Sort
   const sorter = (a, b) => {
     const [aBase, aSub] = (typeof a === 'string' ? a : a.code || a[0]).split('.');
