@@ -276,6 +276,79 @@ function main() {
     compactCodes.push([code, name, ch]);
   }
 
+  // ── Inject missing diabetes subcategories ─────────────────
+  // The markdown only has top-level E10-E14 headers without complication codes.
+  // Real CIE-10 specifies .0–.9 subcategories for each diabetes type.
+  const DIABETES_BASE = [
+    ['E10', 'Diabetes mellitus insulinodependiente'],
+    ['E11', 'Diabetes mellitus no insulinodependiente'],
+    ['E12', 'Diabetes mellitus asociada con desnutricion'],
+    ['E13', 'Otras diabetes mellitus especificadas'],
+    ['E14', 'Diabetes mellitus, no especificada'],
+  ];
+  const DIABETES_COMP = [
+    ['.0', 'con coma'],
+    ['.1', 'con cetoacidosis'],
+    ['.2', 'con complicaciones renales'],
+    ['.3', 'con complicaciones oftalmicas'],
+    ['.4', 'con complicaciones neurologicas'],
+    ['.5', 'con alteraciones de la circulacion periferica'],
+    ['.6', 'con otras complicaciones especificadas'],
+    ['.7', 'con complicaciones multiples'],
+    ['.8', 'con complicaciones no especificadas'],
+    ['.9', 'sin mencion de complicacion'],
+  ];
+  const topLevelDiabetes = new Set(['E10','E11','E12','E13','E14']);
+
+  // Remove top-level headers — we'll replace with detailed subcategories
+  codes = codes.filter(c => !topLevelDiabetes.has(c.code));
+  compactCodes = compactCodes.filter(c => !topLevelDiabetes.has(c[0]));
+
+  for (const [base, baseName] of DIABETES_BASE) {
+    for (const [suffix, compName] of DIABETES_COMP) {
+      const code = base + suffix;
+      const name = baseName + ', ' + compName;
+      const ch = 'IV';
+      const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+      codes.push({ code, name, chapter: ch, chName: chInfo[3], range: chInfo[4], specialty: chInfo[5] });
+      compactCodes.push([code, name, ch]);
+    }
+  }
+
+  // ── Inject missing ulcer subcategories ─────────────────
+  // K25-K28 also only have top-level headers in the markdown.
+  const ULCER_BASE = [
+    ['K25', 'Ulcera gastrica'],
+    ['K26', 'Ulcera duodenal'],
+    ['K27', 'Ulcera peptica, de sitio no especificado'],
+    ['K28', 'Ulcera gastroyeyunal'],
+  ];
+  const ULCER_COMP = [
+    ['.0', 'aguda con hemorragia'],
+    ['.1', 'aguda con perforacion'],
+    ['.2', 'aguda con hemorragia y perforacion'],
+    ['.3', 'aguda sin hemorragia ni perforacion'],
+    ['.4', 'cronica o no especificada con hemorragia'],
+    ['.5', 'cronica o no especificada con perforacion'],
+    ['.6', 'cronica o no especificada con hemorragia y perforacion'],
+    ['.7', 'cronica sin hemorragia ni perforacion'],
+    ['.9', 'no especificada como aguda ni cronica, sin hemorragia ni perforacion'],
+  ];
+  const topLevelUlcer = new Set(['K25','K26','K27','K28']);
+  codes = codes.filter(c => !topLevelUlcer.has(c.code));
+  compactCodes = compactCodes.filter(c => !topLevelUlcer.has(c[0]));
+
+  for (const [base, baseName] of ULCER_BASE) {
+    for (const [suffix, compName] of ULCER_COMP) {
+      const code = base + suffix;
+      const name = baseName + ', ' + compName;
+      const ch = 'XI';
+      const chInfo = CHAPTERS.find(c => c[2] === ch) || CHAPTERS[0];
+      codes.push({ code, name, chapter: ch, chName: chInfo[3], range: chInfo[4], specialty: chInfo[5] });
+      compactCodes.push([code, name, ch]);
+    }
+  }
+
   // Sort
   const sorter = (a, b) => {
     const [aBase, aSub] = (typeof a === 'string' ? a : a.code || a[0]).split('.');

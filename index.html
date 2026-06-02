@@ -3168,7 +3168,8 @@ function cieInitFullData() {
   try {
     // Limpiar cache vieja v1
     try { localStorage.removeItem('wichanzao_cie10_v1'); } catch(e) {}
-    var raw = localStorage.getItem('wichanzao_cie10_v2');
+    try { localStorage.removeItem('wichanzao_cie10_v2'); } catch(e) {}
+    var raw = localStorage.getItem('wichanzao_cie10_v3');
     if (raw) {
       var parsed = JSON.parse(raw);
       if (parsed && parsed.d && parsed.d.length > 5000) {
@@ -3190,7 +3191,7 @@ function cieLoadFromNetwork() {
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && data.d && data.d.length > 5000) {
-        try { localStorage.setItem('wichanzao_cie10_v2', JSON.stringify(data)); } catch(e) {}
+        try { localStorage.setItem('wichanzao_cie10_v3', JSON.stringify(data)); } catch(e) {}
         cieSetFullData(data);
       }
     }).catch(function(){
@@ -3637,7 +3638,7 @@ function _doCieSearch() {
   var chaptersGrid = document.getElementById('cieChaptersGrid');
 
   if (!rawQ && CIE_FILTER === 'all') {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,543 codigos disponibles · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,620 codigos disponibles · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
     infoDiv.style.display = 'none';
     if (favSection) favSection.style.display = 'none';
     if (chaptersGrid) chaptersGrid.style.display = 'none';
