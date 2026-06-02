@@ -1359,7 +1359,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="mh-breadcrumb">
             <a onclick="showModule('dashboard')">Inicio</a> / CIE-10
           </div>
-          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="cieBadge">OMS · 10,543 códigos</span>
+          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="cieBadge">OMS · 10,620 códigos · 380 sinónimos</span>
         </div>
         <div class="module-body">
           <div class="cie-search-wrap">
@@ -1391,7 +1391,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <div class="cie-results-info" id="cieResultsInfo" style="display:none">
               <span id="cieResultsCount"></span>
               <span id="cieActiveFilter"></span>
-              <span class="cie-data-badge" id="cieDataBadge" style="display:none" title="Catalogo completo de codigos CIE-10">📦 10,543 codigos</span>
+              <span class="cie-data-badge" id="cieDataBadge" style="display:none" title="Catalogo completo de codigos CIE-10">📦 10,620 códigos + 380 sinónimos</span>
             </div>
 
             <!-- Results list -->
@@ -3145,10 +3145,13 @@ function cieTokenMatch(token, haystackNorm, words, code) {
     if (token.length <= 4) {
       if (w.indexOf(token) === 0) return true;
       // Also allow if word is embedded in token (e.g. token='dm2', word='diabetes')
-      if (token.indexOf(w) !== -1) return true;
+      if (w.length >= 4 && token.indexOf(w) !== -1) return true;
     } else {
-      // Longer tokens: substring match allowed
-      if (w.indexOf(token) !== -1 || token.indexOf(w) !== -1) return true;
+      // Word contains token (e.g. token='diabet', word='diabetes')
+      if (w.indexOf(token) !== -1) return true;
+      // Token contains word ONLY if word is substantial (>=5 chars)
+      // Prevents "diabetes" matching "Di George" via "de"/"di" substring
+      if (w.length >= 5 && token.indexOf(w) !== -1) return true;
     }
     // Prefix overlap: at least 5 chars shared from start
     var minLen = Math.min(token.length, w.length);
@@ -3263,7 +3266,7 @@ function cieSetFullData(compact) {
   var badge = document.getElementById('cieDataBadge');
   if (badge) { badge.style.display = 'inline-flex'; badge.classList.add('ready'); }
   var badge2 = document.getElementById('cieBadge');
-  if (badge2) badge2.textContent = 'OMS · 10,620 códigos';
+  if (badge2) badge2.textContent = 'OMS · 10,620 códigos · 380 sinónimos';
   // Refresh UI if module is visible
   var mod = document.getElementById('moduleCie');
   if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) {
@@ -3638,7 +3641,7 @@ function _doCieSearch() {
   var chaptersGrid = document.getElementById('cieChaptersGrid');
 
   if (!rawQ && CIE_FILTER === 'all') {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,620 codigos disponibles · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,620 codigos + 380 sinonimos · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
     infoDiv.style.display = 'none';
     if (favSection) favSection.style.display = 'none';
     if (chaptersGrid) chaptersGrid.style.display = 'none';
@@ -3758,8 +3761,9 @@ function _doCieSearch() {
     if (CIE_FILTER === 'favorites') {
       if (CIE_FAVORITES.indexOf(item.code) === -1) continue;
     }
-    // Token matching
-    if (q && tokens.length > 0) {
+    // Token matching — bypass if matched via synonym
+    var isSynCode = synMatches[item.code];
+    if (q && tokens.length > 0 && !isSynCode) {
       var idx = useIndex ? searchIdx[i] : null;
       var haystackNorm = idx ? idx.h : cieNormalize(item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter);
       var words = idx ? idx.w : cieWords(item.name);
