@@ -1,9 +1,10 @@
-var CACHE_NAME = 'mihl-v201';
+var CACHE_NAME = 'mihl-v202';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
   './icons/icon-192.svg',
-  './icons/icon-512.svg'
+  './icons/icon-512.svg',
+  './icons/cie10-data-compact.json'
 ];
 
 // Install: cache only small static files — NEVER fail install

@@ -268,9 +268,9 @@ body.dark .btn-reset{background:var(--s2);color:var(--t2)}
 /* ===== CIE-10 SEARCH MODULE ===== */
 .cie-search-wrap{max-width:860px;margin:0 auto}
 .cie-search-bar{display:flex;gap:10px;margin-bottom:14px}
-.cie-search-bar input{flex:1;padding:14px 18px;border:2px solid var(--bd);border-radius:14px;font-size:15px;font-family:inherit;background:var(--s1);color:var(--t1);transition:all .2s;box-sizing:border-box}
+.cie-search-bar input{flex:1;padding:14px 18px;border:2px solid var(--bd);border-radius:14px;font-size:16px;font-family:inherit;font-weight:500;background:var(--s1);color:var(--t1);transition:all .2s;box-sizing:border-box;letter-spacing:.01em}
 .cie-search-bar input:focus{border-color:var(--tl);outline:none;box-shadow:0 0 0 4px rgba(78,205,196,.12)}
-.cie-search-bar input::placeholder{color:var(--t3);font-style:italic}
+.cie-search-bar input::placeholder{color:var(--t3);font-style:italic;font-weight:400}
 .cie-clear-btn{width:44px;height:48px;border:2px solid var(--bd);border-radius:14px;background:var(--s1);color:var(--t3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
 .cie-clear-btn:hover{color:var(--danger);border-color:var(--danger)}
 .cie-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
@@ -290,10 +290,10 @@ body.dark .btn-reset{background:var(--s2);color:var(--t2)}
 .cie-result-list{display:flex;flex-direction:column;gap:6px}
 .cie-result-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);cursor:pointer;transition:all .2s}
 .cie-result-item:hover{border-color:var(--tl);box-shadow:0 2px 12px rgba(0,0,0,.06);transform:translateY(-1px)}
-.cie-result-item .cie-code{font-family:'Playfair Display',serif;font-size:16px;font-weight:800;color:var(--n1);min-width:70px;text-align:center;padding:6px 10px;background:var(--s2);border-radius:8px;flex-shrink:0}
+.cie-result-item .cie-code{font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:15px;font-weight:700;color:var(--n1);min-width:72px;text-align:center;padding:7px 10px;background:var(--s2);border-radius:8px;flex-shrink:0;letter-spacing:.02em;line-height:1.3}
 .cie-result-item .cie-info{flex:1;min-width:0}
-.cie-result-item .cie-info .cie-name{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px}
-.cie-result-item .cie-info .cie-meta{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px}
+.cie-result-item .cie-info .cie-name{font-size:14.5px;font-weight:600;color:var(--t1);margin-bottom:3px;line-height:1.35}
+.cie-result-item .cie-info .cie-meta{font-size:10.5px;color:var(--t3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .cie-result-item .cie-info .cie-meta .meta-ch{color:var(--tl);font-weight:600}
 .cie-result-item .cie-fav{width:32px;height:32px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:16px;transition:all .2s;flex-shrink:0;color:var(--t3)}
 .cie-result-item .cie-fav:hover{transform:scale(1.2)}
@@ -301,10 +301,10 @@ body.dark .btn-reset{background:var(--s2);color:var(--t2)}
 .cie-detail-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:20px}
 .cie-detail-overlay.show{display:flex}
 .cie-detail-card{background:var(--card);border-radius:var(--r1);padding:28px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.25);border:1px solid var(--bd);max-height:85vh;overflow-y:auto;animation:cieIn .3s cubic-bezier(.4,0,.2,1)}
-.cie-detail-card .cd-code{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:var(--n1);margin-bottom:4px}
-.cie-detail-card .cd-name{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:16px;line-height:1.3}
-.cie-detail-card .cd-row{display:flex;gap:8px;margin-bottom:10px;font-size:12px}
-.cie-detail-card .cd-row .cd-lbl{font-weight:700;color:var(--t2);min-width:80px;flex-shrink:0}
+.cie-detail-card .cd-code{font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:30px;font-weight:800;color:var(--n1);margin-bottom:4px;letter-spacing:.03em}
+.cie-detail-card .cd-name{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:16px;line-height:1.35}
+.cie-detail-card .cd-row{display:flex;gap:8px;margin-bottom:10px;font-size:13px}
+.cie-detail-card .cd-row .cd-lbl{font-weight:700;color:var(--t2);min-width:85px;flex-shrink:0}
 .cie-detail-card .cd-row .cd-val{color:var(--t1)}
 .cie-detail-card .cd-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)}
 .cie-detail-card .cd-btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
@@ -317,6 +317,12 @@ body.dark .btn-reset{background:var(--s2);color:var(--t2)}
 .cie-fav-section{margin-top:10px}
 .cie-fav-section h6{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:0 0 8px}
 @keyframes cieIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes ciePulse{0%,100%{opacity:1}50%{opacity:.4}}
+.cie-loading-dot{animation:ciePulse 1.4s infinite;font-size:20px;line-height:1}
+.cie-loading-dot:nth-child(2){animation-delay:.2s}
+.cie-loading-dot:nth-child(3){animation-delay:.4s}
+.cie-data-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(78,205,196,.15);color:var(--tl);font-weight:600;margin-left:8px;white-space:nowrap}
+.cie-data-badge.ready{background:rgba(78,205,196,.2);color:#4ECDC4}
 
 /* Dark mode CIE */
 body.dark .cie-search-bar input{background:var(--s1);color:var(--t1);border-color:var(--bd)}
@@ -333,6 +339,7 @@ body.dark .cie-detail-card .cd-name{color:var(--t1)}
 body.dark .cie-no-results{color:var(--t2)}
 body.dark .cie-results-info{color:var(--t2)}
 body.dark .cie-fav-section h6{color:var(--t2)}
+body.dark .cie-data-badge{background:rgba(78,205,196,.12);color:var(--tl)}
 
 @media (max-width:600px){
   .cie-filters{gap:6px}
@@ -1352,7 +1359,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="mh-breadcrumb">
             <a onclick="showModule('dashboard')">Inicio</a> / CIE-10
           </div>
-          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600">OMS · +600 códigos</span>
+          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="cieBadge">OMS · 10,543 códigos</span>
         </div>
         <div class="module-body">
           <div class="cie-search-wrap">
@@ -1384,6 +1391,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <div class="cie-results-info" id="cieResultsInfo" style="display:none">
               <span id="cieResultsCount"></span>
               <span id="cieActiveFilter"></span>
+              <span class="cie-data-badge" id="cieDataBadge" style="display:none" title="Catalogo completo de codigos CIE-10">📦 10,543 codigos</span>
             </div>
 
             <!-- Results list -->
@@ -3075,6 +3083,111 @@ function deleteHistoryItem(evt, idx) {
 }
 
 /* ===== CIE-10 SEARCH ENGINE ===== */
+
+// ── Chapter metadata (shared) ──────────────────────────────
+var CIE_CHAPTERS = {
+  'I':   ['Ciertas enfermedades infecciosas y parasitarias','A00-B99','medicina'],
+  'II':  ['Neoplasias','C00-D49','medicina'],
+  'III': ['Enfermedades de la sangre y organos hematopoyeticos','D50-D89','medicina'],
+  'IV':  ['Enfermedades endocrinas, nutricionales y metabolicas','E00-E90','medicina'],
+  'V':   ['Trastornos mentales y del comportamiento','F00-F99','medicina'],
+  'VI':  ['Enfermedades del sistema nervioso','G00-G99','medicina'],
+  'VII': ['Enfermedades del ojo y sus anexos','H00-H59','medicina'],
+  'VIII':['Enfermedades del oido y de la apofisis mastoides','H60-H95','medicina'],
+  'IX':  ['Enfermedades del sistema circulatorio','I00-I99','medicina'],
+  'X':   ['Enfermedades del sistema respiratorio','J00-J99','medicina'],
+  'XI':  ['Enfermedades del sistema digestivo','K00-K93','medicina'],
+  'XII': ['Enfermedades de la piel y el tejido subcutaneo','L00-L99','medicina'],
+  'XIII':['Enfermedades del sistema osteomuscular','M00-M99','medicina'],
+  'XIV': ['Enfermedades del sistema genitourinario','N00-N99','medicina'],
+  'XV':  ['Embarazo, parto y puerperio','O00-O99','gineco'],
+  'XVI': ['Ciertas afecciones originadas en el periodo perinatal','P00-P96','pediatria'],
+  'XVII':['Malformaciones congenitas y anomalias cromosomicas','Q00-Q99','pediatria'],
+  'XVIII':['Sintomas, signos y hallazgos anormales clinicos','R00-R99','medicina'],
+  'XIX': ['Traumatismos, envenenamientos y causas externas','S00-T98','cirugia'],
+  'XX':  ['Causas externas de morbilidad y de mortalidad','V01-Y98','medicina'],
+  'XXI': ['Factores que influyen en el estado de salud','Z00-Z99','medicina'],
+  'XXII':['Codigos para situaciones especiales','U00-U99','medicina']
+};
+
+// ── Async full-data loader ─────────────────────────────────
+var CIE_DATA_FULL = null;
+var CIE_LOADED = false;
+var CIE_LOADING = false;
+var CIE_SEARCH_CACHE = null;  // lowercase search strings per item
+var CIE_DEBOUNCE = null;
+
+(function(){ cieInitFullData(); })();
+
+function cieInitFullData() {
+  // 1) localStorage cache
+  try {
+    var raw = localStorage.getItem('wichanzao_cie10_v1');
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.d && parsed.d.length > 5000) {
+        cieSetFullData(parsed);
+        return;
+      }
+    }
+  } catch(e) {}
+  // 2) fetch from network (SW caches it)
+  cieLoadFromNetwork();
+}
+
+function cieLoadFromNetwork() {
+  if (CIE_LOADING) return;
+  CIE_LOADING = true;
+  fetch('./icons/cie10-data-compact.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data && data.d && data.d.length > 5000) {
+        try { localStorage.setItem('wichanzao_cie10_v1', JSON.stringify(data)); } catch(e) {}
+        cieSetFullData(data);
+      }
+    }).catch(function(){
+      CIE_LOADING = false;
+    });
+}
+
+function cieSetFullData(compact) {
+  var ch = compact.ch;
+  var full = new Array(compact.d.length);
+  var searchIdx = new Array(compact.d.length);
+  for (var i = 0; i < compact.d.length; i++) {
+    var e = compact.d[i];
+    var cinfo = ch[e[2]] || ['Sin clasificar','?','medicina'];
+    full[i] = {
+      code: e[0],
+      name: e[1],
+      chapter: e[2],
+      chName: cinfo[0],
+      range: cinfo[1],
+      specialty: cinfo[2]
+    };
+    searchIdx[i] = (e[0] + '|' + e[1] + '|' + cinfo[0] + '|' + e[2]).toLowerCase();
+  }
+  CIE_DATA_FULL = full;
+  CIE_SEARCH_CACHE = searchIdx;
+  CIE_LOADED = true;
+  CIE_LOADING = false;
+  // Actualizar badge
+  var badge = document.getElementById('cieDataBadge');
+  if (badge) { badge.style.display = 'inline-flex'; badge.classList.add('ready'); }
+  var badge2 = document.getElementById('cieBadge');
+  if (badge2) badge2.textContent = 'OMS · 10,543 códigos';
+  // Refresh UI if module is visible
+  var mod = document.getElementById('moduleCie');
+  if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) {
+    _doCieSearch();
+  }
+}
+
+function cieGetActiveData() {
+  return CIE_DATA_FULL || CIE_DATA;
+}
+
+// ── INLINE FALLBACK DATA (usado antes de cargar el JSON) ───
 var CIE_DATA = [
   // I. INFECCIOSAS Y PARASITARIAS (A00-B99)
   {code:"A00",name:"Colera",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
@@ -3423,6 +3536,12 @@ var CIE_LAST_SEARCH = '';
 })();
 
 function doCieSearch() {
+  // Debounce: espera 200ms despues de la ultima tecla
+  clearTimeout(CIE_DEBOUNCE);
+  CIE_DEBOUNCE = setTimeout(_doCieSearch, 200);
+}
+
+function _doCieSearch() {
   var q = document.getElementById('cieSearch').value.trim().toLowerCase();
   var resultsDiv = document.getElementById('cieResultList');
   var infoDiv = document.getElementById('cieResultsInfo');
@@ -3430,8 +3549,7 @@ function doCieSearch() {
   var chaptersGrid = document.getElementById('cieChaptersGrid');
 
   if (!q && CIE_FILTER === 'all') {
-    // Show nothing — initial state
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p></div>';
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,543 codigos disponibles' : 'Cargando catalogo completo...') + '</p></div>';
     infoDiv.style.display = 'none';
     if (favSection) favSection.style.display = 'none';
     if (chaptersGrid) chaptersGrid.style.display = 'none';
@@ -3448,37 +3566,47 @@ function doCieSearch() {
 
   CIE_LAST_SEARCH = q;
 
-  // Filter data
-  var filtered = CIE_DATA.filter(function(item) {
+  // Usar datos completos si ya cargaron, sino fallback
+  var data = cieGetActiveData();
+  var searchIdx = CIE_SEARCH_CACHE; // puede ser null si usamos fallback
+
+  // Filter data con indice precalculado si disponible
+  var filtered = [];
+  var totalCount = 0;
+  var MAX_SHOW = 60;
+
+  for (var i = 0; i < data.length; i++) {
+    var item = data[i];
     // Specialty filter
     if (CIE_FILTER !== 'all' && CIE_FILTER !== 'favorites') {
-      if (item.specialty !== CIE_FILTER) return false;
+      if (item.specialty !== CIE_FILTER) continue;
     }
     if (CIE_FILTER === 'favorites') {
-      if (CIE_FAVORITES.indexOf(item.code) === -1) return false;
+      if (CIE_FAVORITES.indexOf(item.code) === -1) continue;
     }
-    // Search query
-    if (!q) return true;
-    return item.code.toLowerCase().indexOf(q) !== -1 ||
-           item.name.toLowerCase().indexOf(q) !== -1 ||
-           (item.incluye && item.incluye.toLowerCase().indexOf(q) !== -1) ||
-           item.chapter.toLowerCase().indexOf(q) !== -1 ||
-           item.chName.toLowerCase().indexOf(q) !== -1;
-  });
-
-  // Limit to 50 results for performance
-  var totalCount = filtered.length;
-  filtered = filtered.slice(0, 50);
+    // Search query — usa indice si disponible
+    if (q) {
+      var haystack = searchIdx ? searchIdx[i] : (item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter).toLowerCase();
+      if (haystack.indexOf(q) === -1) continue;
+    }
+    totalCount++;
+    if (filtered.length < MAX_SHOW) filtered.push(item);
+  }
 
   infoDiv.style.display = 'block';
-  document.getElementById('cieResultsCount').textContent = totalCount + ' resultado' + (totalCount !== 1 ? 's' : '') + (totalCount > 50 ? ' (mostrando 50)' : '');
+  document.getElementById('cieResultsCount').textContent = totalCount + ' resultado' + (totalCount !== 1 ? 's' : '') + (totalCount > MAX_SHOW ? ' (mostrando ' + MAX_SHOW + ')' : '');
   document.getElementById('cieActiveFilter').textContent = CIE_FILTER !== 'all' ? 'Filtro: ' + getFilterLabel(CIE_FILTER) : '';
+  var badge = document.getElementById('cieDataBadge');
+  if (badge) badge.style.display = CIE_LOADED ? 'inline-flex' : 'none';
+  if (!CIE_LOADED) {
+    document.getElementById('cieActiveFilter').textContent += ' · Cargando catalogo completo...';
+  }
 
   if (chaptersGrid) chaptersGrid.style.display = 'none';
 
   if (filtered.length === 0) {
     resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">😕</div><p>No se encontraron codigos para "' + cieEscape(q) + '"</p></div>';
-    favSection.style.display = 'none';
+    if (favSection) favSection.style.display = 'none';
     return;
   }
 
@@ -3498,7 +3626,7 @@ function doCieSearch() {
     '</div>';
   }).join('');
 
-  favSection.style.display = 'none';
+  if (favSection) favSection.style.display = 'none';
 }
 
 function cieHighlight(text, query) {
@@ -3520,9 +3648,9 @@ function cieSetFilter(filter, btn) {
   var chips = document.querySelectorAll('.cie-filter-chip');
   chips.forEach(function(c) { c.classList.remove('active'); });
   if (btn) btn.classList.add('active');
-  // Re-run search
+  // Re-run search inmediato (sin debounce para filtros)
   var qEl = document.getElementById('cieSearch');
-  if (qEl) doCieSearch();
+  if (qEl) { clearTimeout(CIE_DEBOUNCE); _doCieSearch(); }
 }
 
 function getFilterLabel(filter) {
@@ -3543,7 +3671,8 @@ function cieClearSearch() {
   var chips = document.querySelectorAll('.cie-filter-chip');
   chips.forEach(function(c) { c.classList.remove('active'); });
   chips[0].classList.add('active');
-  doCieSearch();
+  clearTimeout(CIE_DEBOUNCE);
+  _doCieSearch();
 }
 
 function cieToggleChapters() {
@@ -3563,14 +3692,19 @@ function cieToggleChapters() {
 }
 
 function renderCIEChapters() {
+  var data = cieGetActiveData();
   var chapters = {};
-  CIE_DATA.forEach(function(item) {
+  data.forEach(function(item) {
     if (!chapters[item.chapter]) {
       chapters[item.chapter] = { num: item.chapter, name: item.chName, range: item.range, count: 0 };
     }
     chapters[item.chapter].count++;
   });
-  var html = Object.values(chapters).map(function(ch) {
+  // Sort by roman numeral
+  var romanOrder = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII'];
+  var html = romanOrder.map(function(rn) {
+    var ch = chapters[rn];
+    if (!ch) return '';
     return '<div class="cie-chapter-item" onclick="cieShowChapter(\'' + ch.num + '\')">' +
       '<div class="ch-num">' + ch.num + '</div>' +
       '<div class="ch-info">' +
@@ -3589,14 +3723,15 @@ function cieShowChapter(chNum) {
   var chips = document.querySelectorAll('.cie-filter-chip');
   chips.forEach(function(c) { c.classList.remove('active'); });
   chips[0].classList.add('active');
-  doCieSearch();
+  clearTimeout(CIE_DEBOUNCE);
+  _doCieSearch();
   // Collapse chapters
   document.getElementById('cieChaptersGrid').style.display = 'none';
   document.getElementById('cieChaptersArrow').textContent = '▶';
 }
 
 function cieShowDetail(code) {
-  var item = CIE_DATA.find(function(i) { return i.code === code; });
+  var item = cieGetActiveData().find(function(i) { return i.code === code; });
   if (!item) return;
   haptic(10);
 
@@ -3694,7 +3829,7 @@ function renderCIEFavorites() {
   }
 
   var items = CIE_FAVORITES.map(function(code) {
-    return CIE_DATA.find(function(i) { return i.code === code; });
+    return cieGetActiveData().find(function(i) { return i.code === code; });
   }).filter(Boolean);
 
   resultsDiv.innerHTML = items.map(function(item) {
