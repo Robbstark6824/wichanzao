@@ -955,7 +955,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Medicina Interna</h3>
           <span>Hospital de Laredo</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v202</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v203</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -1538,7 +1538,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v202</p>
+              <p id="settingsVersionText">v203</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -1688,7 +1688,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v202';
+var APP_VERSION = 'v203';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -3114,8 +3114,40 @@ var CIE_CHAPTERS = {
 var CIE_DATA_FULL = null;
 var CIE_LOADED = false;
 var CIE_LOADING = false;
-var CIE_SEARCH_CACHE = null;  // lowercase search strings per item
+var CIE_SEARCH_CACHE = null;  // {haystack, words}[] — normalized index
 var CIE_DEBOUNCE = null;
+var CIE_SYNONYMS = null;       // loaded from cie10-synonyms.json
+var CIE_SYN_LOADED = false;
+
+// ── Normalize: strip accents + lowercase ──────────────────
+function cieNormalize(str) {
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+// ── Split into words (normalized) ─────────────────────────
+function cieWords(str) {
+  return cieNormalize(str).split(/[\s,;:.()\[\]|/\\\-—–]+/).filter(function(w){ return w.length > 0; });
+}
+
+// ── Check if token matches a word (prefix overlap ≥ minLen) ──
+function cieTokenMatch(token, haystackNorm, words) {
+  // 1) Substring anywhere in full haystack
+  if (haystackNorm.indexOf(token) !== -1) return true;
+  // 2) Check each word: substring OR prefix overlap ≥ 5 chars
+  for (var i = 0; i < words.length; i++) {
+    var w = words[i];
+    if (w.length < 2) continue;
+    if (w.indexOf(token) !== -1 || token.indexOf(w) !== -1) return true;
+    // Prefix overlap: at least 5 chars shared from start
+    var minLen = Math.min(token.length, w.length);
+    if (minLen >= 5) {
+      var shared = 0;
+      while (shared < minLen && token[shared] === w[shared]) shared++;
+      if (shared >= 5) return true;
+    }
+  }
+  return false;
+}
 
 (function(){ cieInitFullData(); })();
 
@@ -3129,12 +3161,14 @@ function cieInitFullData() {
       var parsed = JSON.parse(raw);
       if (parsed && parsed.d && parsed.d.length > 5000) {
         cieSetFullData(parsed);
+        cieLoadSynonyms();
         return;
       }
     }
   } catch(e) {}
   // 2) fetch from network (SW caches it)
   cieLoadFromNetwork();
+  cieLoadSynonyms();
 }
 
 function cieLoadFromNetwork() {
@@ -3149,6 +3183,43 @@ function cieLoadFromNetwork() {
       }
     }).catch(function(){
       CIE_LOADING = false;
+    });
+}
+
+// ── Synonyms loader ───────────────────────────────────────
+var CIE_SYN_FALLBACK = {
+  "itu":["N39.0"],"ivu":["N39.0"],"hta":["I10"],"dm":["E11.9","E10.9"],"dm2":["E11.9"],"dm1":["E10.9"],
+  "epoc":["J44.9"],"erc":["N18.9"],"irc":["N18.9"],"ira":["N17.9","J06.9"],"tbc":["A16.9"],"tb":["A16.9"],
+  "bk":["A16.9"],"vih":["B24"],"sida":["B20"],"icc":["I50.9"],"iam":["I21.9"],"acv":["I64"],"eca":["I25.9"],
+  "fa":["I48"],"tvp":["I82.9"],"rge":["K21.9"],"erge":["K21.9"],"sii":["K58.9"],"eda":["A09.9"],"nac":["J18.9"],
+  "oma":["H66.0"],"hbp":["N40"],"hpb":["N40"],"sop":["E28.2"],"dip":["N73.9"],"epi":["N73.9"],"ets":["A64"],
+  "les":["M32.9"],"ar":["M06.9"],"oa":["M19.9"],"tag":["F41.1"],"cov":["U07.1"],"covid":["U07.1"],
+  "covid19":["U07.1"],"coronavirus":["U07.1"],"infeccion urinaria":["N39.0"],
+  "presion alta":["I10"],"hipertension arterial":["I10"],"azucar alta":["E11.9"],
+  "colesterol alto":["E78.0"],"derrame cerebral":["I64"],"infarto al corazon":["I21.9"],
+  "dolor de cabeza":["R51"],"dolor de espalda":["M54.9"],"dolor lumbar":["M54.5"],
+  "dolor de garganta":["J02.9"],"dolor de estomago":["R10.1"],"dolor abdominal":["R10.4"],
+  "dolor de pecho":["R07.4"],"fiebre alta":["R50.9"],"falta de aire":["R06.0"],
+  "diarrea aguda":["A09.9"],"ardor al orinar":["N39.0"],"disuria":["R30.9"],
+  "colico renal":["N23"],"gripe":["J11.1"],"resfrio":["J00"],"asma bronquial":["J45.9"]
+};
+
+function cieLoadSynonyms() {
+  if (CIE_SYN_LOADED) return;
+  fetch('./icons/cie10-synonyms.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data && Object.keys(data).length > 50) {
+        CIE_SYNONYMS = data;
+        CIE_SYN_LOADED = true;
+        var mod = document.getElementById('moduleCie');
+        if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) _doCieSearch();
+        return;
+      }
+      throw new Error('synonyms too small');
+    }).catch(function(){
+      CIE_SYNONYMS = CIE_SYN_FALLBACK;
+      CIE_SYN_LOADED = true;
     });
 }
 
@@ -3167,7 +3238,9 @@ function cieSetFullData(compact) {
       range: cinfo[1],
       specialty: cinfo[2]
     };
-    searchIdx[i] = (e[0] + '|' + e[1] + '|' + cinfo[0] + '|' + e[2]).toLowerCase();
+    // Precompute normalized haystack + word list
+    var haystackNorm = cieNormalize(e[0] + '|' + e[1] + '|' + cinfo[0] + '|' + e[2]);
+    searchIdx[i] = { h: haystackNorm, w: cieWords(e[1]) };
   }
   CIE_DATA_FULL = full;
   CIE_SEARCH_CACHE = searchIdx;
@@ -3544,14 +3617,15 @@ function doCieSearch() {
 }
 
 function _doCieSearch() {
-  var q = document.getElementById('cieSearch').value.trim().toLowerCase();
+  var rawQ = document.getElementById('cieSearch').value.trim();
+  var q = cieNormalize(rawQ);
   var resultsDiv = document.getElementById('cieResultList');
   var infoDiv = document.getElementById('cieResultsInfo');
   var favSection = document.getElementById('cieFavSection');
   var chaptersGrid = document.getElementById('cieChaptersGrid');
 
-  if (!q && CIE_FILTER === 'all') {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,543 codigos disponibles' : 'Cargando catalogo completo...') + '</p></div>';
+  if (!rawQ && CIE_FILTER === 'all') {
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,543 codigos disponibles · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
     infoDiv.style.display = 'none';
     if (favSection) favSection.style.display = 'none';
     if (chaptersGrid) chaptersGrid.style.display = 'none';
@@ -3559,7 +3633,7 @@ function _doCieSearch() {
     return;
   }
 
-  if (!q && CIE_FILTER === 'favorites') {
+  if (!rawQ && CIE_FILTER === 'favorites') {
     renderCIEFavorites();
     infoDiv.style.display = 'none';
     if (chaptersGrid) chaptersGrid.style.display = 'none';
@@ -3568,14 +3642,47 @@ function _doCieSearch() {
 
   CIE_LAST_SEARCH = q;
 
-  // Usar datos completos si ya cargaron, sino fallback
   var data = cieGetActiveData();
-  var searchIdx = CIE_SEARCH_CACHE; // puede ser null si usamos fallback
+  var searchIdx = CIE_SEARCH_CACHE;
+  var tokens = q ? cieWords(rawQ) : [];
+  var syns = CIE_SYNONYMS || CIE_SYN_FALLBACK || {};
 
-  // Filter data con indice precalculado si disponible
+  // ── Find synonym matches ──────────────────────────────────
+  var synMatches = {}; // code → {type: 'sigla'|'alias', label: key}
+  var synCodesSeen = {};
+  if (q && tokens.length > 0) {
+    var synKeys = Object.keys(syns);
+    for (var sk = 0; sk < synKeys.length; sk++) {
+      var key = synKeys[sk];
+      var keyNorm = cieNormalize(key);
+      // Match: full synonym key matches query, OR all synonym words are in query tokens
+      var synMatch = keyNorm.indexOf(q) !== -1 || q.indexOf(keyNorm) !== -1;
+      if (!synMatch && tokens.length > 0 && keyNorm.split(/\s+/).length >= tokens.length) {
+        synMatch = true;
+        for (var tk = 0; tk < tokens.length; tk++) {
+          if (keyNorm.indexOf(tokens[tk]) === -1) { synMatch = false; break; }
+        }
+      }
+      if (synMatch) {
+        var codes = syns[key];
+        var type = key.length <= 5 ? 'sigla' : 'alias';
+        for (var ci = 0; ci < codes.length; ci++) {
+          var sc = codes[ci];
+          if (!synCodesSeen[sc]) {
+            synCodesSeen[sc] = true;
+            synMatches[sc] = { type: type, label: key };
+          }
+        }
+      }
+    }
+  }
+
+  // ── Token-match main data ─────────────────────────────────
   var filtered = [];
+  var synFiltered = [];
   var totalCount = 0;
   var MAX_SHOW = 60;
+  var useIndex = searchIdx && searchIdx.length === data.length;
 
   for (var i = 0; i < data.length; i++) {
     var item = data[i];
@@ -3586,13 +3693,26 @@ function _doCieSearch() {
     if (CIE_FILTER === 'favorites') {
       if (CIE_FAVORITES.indexOf(item.code) === -1) continue;
     }
-    // Search query — usa indice si disponible
-    if (q) {
-      var haystack = searchIdx ? searchIdx[i] : (item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter).toLowerCase();
-      if (haystack.indexOf(q) === -1) continue;
+    // Token matching
+    if (q && tokens.length > 0) {
+      var idx = useIndex ? searchIdx[i] : null;
+      var haystackNorm = idx ? idx.h : cieNormalize(item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter);
+      var words = idx ? idx.w : cieWords(item.name);
+      var allMatch = true;
+      for (var t = 0; t < tokens.length; t++) {
+        if (!cieTokenMatch(tokens[t], haystackNorm, words)) { allMatch = false; break; }
+      }
+      if (!allMatch) continue;
     }
     totalCount++;
-    if (filtered.length < MAX_SHOW) filtered.push(item);
+    // Separate synonym matches to show first
+    if (synMatches[item.code]) {
+      item._synType = synMatches[item.code].type;
+      item._synLabel = synMatches[item.code].label;
+      if (synFiltered.length < MAX_SHOW) synFiltered.push(item);
+    } else if (filtered.length < MAX_SHOW) {
+      filtered.push(item);
+    }
   }
 
   infoDiv.style.display = 'block';
@@ -3606,18 +3726,27 @@ function _doCieSearch() {
 
   if (chaptersGrid) chaptersGrid.style.display = 'none';
 
-  if (filtered.length === 0) {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">😕</div><p>No se encontraron codigos para "' + cieEscape(q) + '"</p></div>';
+  // Merge: synonym results first
+  var allResults = synFiltered.concat(filtered).slice(0, MAX_SHOW);
+
+  if (allResults.length === 0) {
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">😕</div><p>No se encontraron codigos para "' + cieEscape(rawQ) + '"</p><p style="font-size:11px;color:var(--t3);margin-top:4px">Prueba con otra palabra, sinonimo o sigla</p></div>';
     if (favSection) favSection.style.display = 'none';
     return;
   }
 
-  resultsDiv.innerHTML = filtered.map(function(item) {
+  resultsDiv.innerHTML = allResults.map(function(item) {
     var isFav = CIE_FAVORITES.indexOf(item.code) !== -1;
+    var synBadge = '';
+    if (item._synType) {
+      var badgeColor = item._synType === 'sigla' ? 'rgba(212,168,83,.2)' : 'rgba(78,205,196,.2)';
+      var badgeText = item._synType === 'sigla' ? 'Sigla: ' + item._synLabel : 'Sinonimo';
+      synBadge = '<span style="display:inline-block;background:' + badgeColor + ';color:var(--t2);font-size:9px;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle">' + badgeText + '</span>';
+    }
     return '<div class="cie-result-item" onclick="cieShowDetail(\'' + item.code + '\')">' +
       '<div class="cie-code">' + item.code + '</div>' +
       '<div class="cie-info">' +
-        '<div class="cie-name">' + cieHighlight(item.name, q) + '</div>' +
+        '<div class="cie-name">' + cieHighlightNew(item.name, rawQ, q) + synBadge + '</div>' +
         '<div class="cie-meta">' +
           '<span class="meta-ch">Cap ' + item.chapter + '</span>' +
           '<span>' + item.chName + '</span>' +
@@ -3631,12 +3760,34 @@ function _doCieSearch() {
   if (favSection) favSection.style.display = 'none';
 }
 
-function cieHighlight(text, query) {
-  if (!query) return cieEscape(text);
+// ── Highlight: accent-insensitive ──────────────────────────
+function cieHighlightNew(text, rawQ, qNorm) {
+  if (!rawQ) return cieEscape(text);
   var escaped = cieEscape(text);
-  var qEscaped = cieEscape(query);
-  var re = new RegExp('(' + qEscaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-  return escaped.replace(re, '<mark style="background:rgba(78,205,196,.25);color:var(--t1);padding:1px 3px;border-radius:2px">$1</mark>');
+  // Find matching substrings using normalized comparison
+  var textNorm = cieNormalize(text);
+  var tokens = cieWords(rawQ);
+  var seen = {};
+  for (var t = 0; t < tokens.length; t++) {
+    var token = tokens[t];
+    if (token.length < 2) continue;
+    var pos = 0;
+    while ((pos = textNorm.indexOf(token, pos)) !== -1) {
+      var key = pos + '|' + token.length;
+      if (seen[key]) { pos++; continue; }
+      seen[key] = true;
+      pos += token.length;
+    }
+  }
+  // Apply highlights (sorted backwards to preserve positions)
+  var ranges = Object.keys(seen).map(function(k){ var p = k.split('|'); return {pos: parseInt(p[0]), len: parseInt(p[1])}; });
+  ranges.sort(function(a,b){ return b.pos - a.pos; });
+  for (var r = 0; r < ranges.length; r++) {
+    var range = ranges[r];
+    var original = escaped.substring(range.pos, range.pos + range.len);
+    escaped = escaped.substring(0, range.pos) + '<mark style="background:rgba(78,205,196,.25);color:var(--t1);padding:1px 3px;border-radius:2px">' + original + '</mark>' + escaped.substring(range.pos + range.len);
+  }
+  return escaped;
 }
 
 function cieEscape(s) {
