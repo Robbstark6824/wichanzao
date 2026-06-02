@@ -3263,7 +3263,7 @@ function cieSetFullData(compact) {
   var badge = document.getElementById('cieDataBadge');
   if (badge) { badge.style.display = 'inline-flex'; badge.classList.add('ready'); }
   var badge2 = document.getElementById('cieBadge');
-  if (badge2) badge2.textContent = 'OMS · 10,543 códigos';
+  if (badge2) badge2.textContent = 'OMS · 10,620 códigos';
   // Refresh UI if module is visible
   var mod = document.getElementById('moduleCie');
   if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) {
@@ -3690,11 +3690,63 @@ function _doCieSearch() {
     }
   }
 
+  // ── Relevance scoring function ────────────────────────────
+  // Higher score = better match. Orders results by similarity.
+  function cieScoreResult(item, tokens, qNorm, hasSyn) {
+    var score = 0;
+    var codeNorm = cieNormalize(item.code);
+    var nameNorm = cieNormalize(item.name);
+    var nameWords = (item._words || cieWords(item.name));
+    item._words = nameWords;
+
+    // ── Code matching (most specific, highest weight) ──
+    if (codeNorm === qNorm)           { score += 200; }        // exact code
+    else if (codeNorm.indexOf(qNorm) === 0) { score += 150; }  // code prefix (E11 matches E11.0)
+    else if (codeNorm.indexOf(qNorm) !== -1) { score += 100; } // code contains query
+
+    // ── Per-token name matching ──
+    for (var ti = 0; ti < tokens.length; ti++) {
+      var token = tokens[ti];
+      if (token.length < 2) { score += 1; continue; }
+
+      // Whole name starts with token (e.g. "diabetes" matches "Diabetes mellitus...")
+      if (nameNorm.indexOf(token) === 0) { score += 70; }
+
+      // Check each word in the name
+      var bestWordScore = 0;
+      for (var wi = 0; wi < nameWords.length; wi++) {
+        var word = nameWords[wi];
+        if (word.length < 2) continue;
+
+        if (word === token)               { bestWordScore = Math.max(bestWordScore, 60); }  // exact word
+        else if (word.indexOf(token) === 0) { bestWordScore = Math.max(bestWordScore, 45); } // word prefix
+        else if (word.indexOf(token) !== -1) { bestWordScore = Math.max(bestWordScore, 20); } // substring in word
+      }
+      score += bestWordScore;
+
+      // Fallback: token appears anywhere in name
+      if (nameNorm.indexOf(token) !== -1) { score += 10; }
+    }
+
+    // ── Synonym bonus ──
+    if (hasSyn) { score += 80; }
+
+    // ── Prefer shorter names (more specific) when scores are close ──
+    // Excess length beyond query gets a tiny penalty
+    var excess = nameNorm.length - Math.max(qNorm.length, 3);
+    if (excess > 40) { score -= Math.floor((excess - 40) / 30); }
+
+    // ── Exact name match is ideal ──
+    if (nameNorm === qNorm) { score += 100; }
+
+    return Math.max(score, 1);
+  }
+
   // ── Token-match main data ─────────────────────────────────
-  var filtered = [];
-  var synFiltered = [];
+  var allMatches = [];
   var totalCount = 0;
   var MAX_SHOW = 60;
+  var MAX_COLLECT = 300; // collect more than we show for good ranking
   var useIndex = searchIdx && searchIdx.length === data.length;
 
   for (var i = 0; i < data.length; i++) {
@@ -3718,15 +3770,28 @@ function _doCieSearch() {
       if (!allMatch) continue;
     }
     totalCount++;
-    // Separate synonym matches to show first
+
+    // Attach synonym info
     if (synMatches[item.code]) {
       item._synType = synMatches[item.code].type;
       item._synLabel = synMatches[item.code].label;
-      if (synFiltered.length < MAX_SHOW) synFiltered.push(item);
-    } else if (filtered.length < MAX_SHOW) {
-      filtered.push(item);
+    }
+
+    // Score & collect
+    item._words = words;
+    if (allMatches.length < MAX_COLLECT) {
+      item._score = cieScoreResult(item, tokens, q, !!synMatches[item.code]);
+      allMatches.push(item);
     }
   }
+
+  // ── Sort by relevance score (highest first) ──────────────
+  allMatches.sort(function(a, b) {
+    return (b._score || 0) - (a._score || 0);
+  });
+
+  // ── Show top results ─────────────────────────────────────
+  var topResults = allMatches.slice(0, MAX_SHOW);
 
   infoDiv.style.display = 'block';
   document.getElementById('cieResultsCount').textContent = totalCount + ' resultado' + (totalCount !== 1 ? 's' : '') + (totalCount > MAX_SHOW ? ' (mostrando ' + MAX_SHOW + ')' : '');
@@ -3739,16 +3804,13 @@ function _doCieSearch() {
 
   if (chaptersGrid) chaptersGrid.style.display = 'none';
 
-  // Merge: synonym results first
-  var allResults = synFiltered.concat(filtered).slice(0, MAX_SHOW);
-
-  if (allResults.length === 0) {
+  if (topResults.length === 0) {
     resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">😕</div><p>No se encontraron codigos para "' + cieEscape(rawQ) + '"</p><p style="font-size:11px;color:var(--t3);margin-top:4px">Prueba con otra palabra, sinonimo o sigla</p></div>';
     if (favSection) favSection.style.display = 'none';
     return;
   }
 
-  resultsDiv.innerHTML = allResults.map(function(item) {
+  resultsDiv.innerHTML = topResults.map(function(item) {
     var isFav = CIE_FAVORITES.indexOf(item.code) !== -1;
     var synBadge = '';
     if (item._synType) {
