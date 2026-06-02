@@ -955,7 +955,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Medicina Interna</h3>
           <span>Hospital de Laredo</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v201</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v202</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -1538,7 +1538,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v200</p>
+              <p id="settingsVersionText">v202</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -1688,7 +1688,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v201';
+var APP_VERSION = 'v202';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -3122,7 +3122,9 @@ var CIE_DEBOUNCE = null;
 function cieInitFullData() {
   // 1) localStorage cache
   try {
-    var raw = localStorage.getItem('wichanzao_cie10_v1');
+    // Limpiar cache vieja v1
+    try { localStorage.removeItem('wichanzao_cie10_v1'); } catch(e) {}
+    var raw = localStorage.getItem('wichanzao_cie10_v2');
     if (raw) {
       var parsed = JSON.parse(raw);
       if (parsed && parsed.d && parsed.d.length > 5000) {
@@ -3142,7 +3144,7 @@ function cieLoadFromNetwork() {
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && data.d && data.d.length > 5000) {
-        try { localStorage.setItem('wichanzao_cie10_v1', JSON.stringify(data)); } catch(e) {}
+        try { localStorage.setItem('wichanzao_cie10_v2', JSON.stringify(data)); } catch(e) {}
         cieSetFullData(data);
       }
     }).catch(function(){
