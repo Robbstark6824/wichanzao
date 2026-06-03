@@ -2208,20 +2208,30 @@ function migrateOldProfile() {
   }
 }
 
-/* ===== WORKER STORAGE ===== */
+/* ===== WORKER STORAGE (doble capa: localStorage + sessionStorage) ===== */
 function loadWorker() {
+  // 1) Intentar localStorage
   var raw = localStorage.getItem('wichanzao_worker');
+  // 2) Si no hay, intentar sessionStorage (respaldo)
+  if (!raw) raw = sessionStorage.getItem('wichanzao_worker');
   if (raw) {
     try { worker = JSON.parse(raw); } catch(e) { worker = null; }
+  }
+  // 3) Si encontro worker, asegurar que ambas copias existan
+  if (worker && raw) {
+    if (!localStorage.getItem('wichanzao_worker')) localStorage.setItem('wichanzao_worker', raw);
+    if (!sessionStorage.getItem('wichanzao_worker')) sessionStorage.setItem('wichanzao_worker', raw);
   }
 }
 
 function saveWorker(w) {
   worker = w;
-  // Strip password from localStorage — only needed during auth, not ongoing
   var safe = {};
   for (var k in w) { if (k !== 'pass') safe[k] = w[k]; }
-  localStorage.setItem('wichanzao_worker', JSON.stringify(safe));
+  var json = JSON.stringify(safe);
+  // Guardar en AMBOS storages para maxima resistencia
+  localStorage.setItem('wichanzao_worker', json);
+  try { sessionStorage.setItem('wichanzao_worker', json); } catch(e) {}
 }
 
 function generateWorkerId(name) {
@@ -2884,6 +2894,7 @@ async function doLogout() {
   if (!confirm('¿Cerrar sesion?')) return;
   await sb.auth.signOut();
   localStorage.removeItem('wichanzao_worker');
+  sessionStorage.removeItem('wichanzao_worker');
   worker = null;
   isAdmin = false;
   prevDatesLoaded = false;
@@ -6263,11 +6274,10 @@ function registerSW() {
     // SW registration failed
   });
 
-  // Reload once when the controlling SW changes (covers all update scenarios)
+  // Reload once when the controlling SW changes — only if user is logged in
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (!reloading) {
+    if (!reloading && worker) {
       reloading = true;
-      // New version detected, reloading
       window.location.reload();
     }
   });
