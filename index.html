@@ -4359,11 +4359,11 @@ async function loadAdminWorkers() {
     var html = '';
     for (var i = 0; i < workers.length; i++) {
       var w = workers[i];
-      var bp = (w.servicio + '/workers/' + w.folder_id).replace(/'/g, "\\'");
+      var bp = (w.servicio + '/workers/' + w.folder_id).replace(/'/g, "\'");
       var sLabel = SERVICIOS[w.servicio] ? SERVICIOS[w.servicio].label : w.servicio;
       var adminBadge = w.is_admin ? ' <span style="color:var(--gd);font-size:10px">&#x1F451;</span>' : '';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(w.name).replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
+      html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(w.name).replace(/'/g, "\'") + '\')" style="cursor:pointer;flex:1">';
       html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + escapeHtml(w.name) + adminBadge + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
       if (w.area) html += '<div style="font-size:11px;color:var(--t3)">' + escapeHtml(w.area) + ' &middot; ' + sLabel + '</div>';
       html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + escapeHtml(w.folder_id) + '</div></div>';
@@ -4419,9 +4419,9 @@ function loadAdminWorkersLegacy() {
         var displayName = p ? p.name : af.name;
         var area = p ? p.area || '' : '';
         var sLabel = af.servicio ? (SERVICIOS[af.servicio] ? SERVICIOS[af.servicio].label : af.servicio) : 'Legacy';
-        var bp = af.basePath.replace(/'/g, "\\'");
+        var bp = af.basePath.replace(/'/g, "\'");
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-        html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + displayName.replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1">';
+        html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + displayName.replace(/'/g, "\'") + '\')" style="cursor:pointer;flex:1">';
         html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + escapeHtml(displayName) + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
         if (area) html += '<div style="font-size:11px;color:var(--t3)">' + escapeHtml(area) + ' &middot; ' + sLabel + '</div>';
         html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + escapeHtml(af.name) + '</div></div>';
@@ -4469,9 +4469,9 @@ function adminBrowseFolder(basePath, displayName) {
     if (!Array.isArray(items)) { items = []; }
     var subfolders = items.filter(function(i) { return !i.id; });
     var files = items.filter(function(i) { return i.id; });
-    var bp = basePath.replace(/'/g, "\\'");
+    var bp = basePath.replace(/'/g, "\'");
 
-    function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+    function esc(s) { return String(s).replace(/\\/g,'\\\').replace(/'/g,"\'"); }
 
     var html = '<div style="margin-bottom:12px">';
     html += '<button onclick="loadAdminWorkers()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; Volver</button>';
@@ -4524,7 +4524,7 @@ function adminBrowseSub(basePath, subName, displayName) {
     var files = items.filter(function(i) { return i.id; });
     var subfolders = items.filter(function(i) { return !i.id; });
 
-    function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+    function esc(s) { return String(s).replace(/\\/g,'\\\').replace(/'/g,"\'"); }
 
     var html = '<div style="margin-bottom:12px">';
     html += '<button onclick="adminBrowseFolder(\'' + esc(basePath) + '\',\'' + esc(displayName) + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + escapeHtml(displayName) + '</button>';
@@ -6470,7 +6470,7 @@ function hospiLoadTimelineOverlay(ingresoId) {
     var html = '', di = 0;
     Object.keys(groups).forEach(function(dl) {
       var evs = groups[dl], did = 'hoviDay-' + (di++);
-      html += '<div class="hospi-day-group"><div class="hospi-day-header" onclick="hospiToggleDay(\\'' + did + '\\')"><span class="hospi-day-arrow" id="' + did + '-arrow">▶</span><span class="hospi-day-label">📅 ' + dl + '</span><span class="hospi-day-count">' + evs.length + ' evol.</span></div><div class="hospi-day-body" id="' + did + '" style="display:none">';
+      html += '<div class="hospi-day-group"><div class="hospi-day-header" onclick="hospiToggleDay(\'' + did + '\')"><span class="hospi-day-arrow" id="' + did + '-arrow">▶</span><span class="hospi-day-label">📅 ' + dl + '</span><span class="hospi-day-count">' + evs.length + ' evol.</span></div><div class="hospi-day-body" id="' + did + '" style="display:none">';
       evs.forEach(function(ev) {
         var time = new Date(ev.created_at).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
         var tc = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : ev.tipo === 'Imagen' ? 'img' : '';
@@ -6480,9 +6480,9 @@ function hospiLoadTimelineOverlay(ingresoId) {
         var ar = hospiEsc(ap[1] || '');
         var imgs = '';
         if (ev.image_urls && ev.image_urls.length) {
-          imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){ return '<img class="hospi-tl-img" src="'+u+'" onclick="event.stopPropagation();hospiZoomImage(\\''+hospiEscAttr(u)+'\\')" loading="lazy">'; }).join('') + '</div>';
+          imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){ return '<img class="hospi-tl-img" src="'+u+'" onclick="event.stopPropagation();hospiZoomImage(\''+hospiEscAttr(u)+'\')" loading="lazy">'; }).join('') + '</div>';
         }
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\\'' + eid + '\\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '</div></div></div>';
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '</div></div></div>';
       });
       html += '</div></div>';
     });
@@ -6829,7 +6829,7 @@ function hospiEsc(s) {
 }
 
 function hospiEscAttr(s) {
-  return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return s.replace(/'/g, "\'").replace(/"/g, '&quot;');
 }
 
 function hospiTimeAgo(ts) {
