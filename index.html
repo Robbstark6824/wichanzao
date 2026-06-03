@@ -848,8 +848,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .hospi-filter-chip{padding:6px 14px;border-radius:16px;font-size:11px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s}
 .hospi-filter-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
-.hospi-date-input{background:rgba(255,255,255,.08);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;color:#fff;font-size:11px;font-family:inherit;width:120px}
+.hospi-date-input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 10px;color:#fff;font-size:11px;font-family:inherit;width:125px;color-scheme:dark;-webkit-color-scheme:dark}
 .hospi-date-input:focus{outline:none;border-color:var(--tl)}
+.hospi-date-input::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer}
+.hospi-date-input::-webkit-datetime-edit{color:#fff}
+.hospi-date-input::-webkit-datetime-edit-fields-wrapper{color:#fff}
+.hospi-date-input::-webkit-datetime-edit-text{color:rgba(255,255,255,.6)}
 
 /* Image Zoom */
 .hospi-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
