@@ -6445,7 +6445,7 @@ function hospiRenderDashboard(ingresos) {
 }
 
 function hospiLoadPerfil(ingresoId) {
-  sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
+  sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(id,dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
     if (r.error) { toast('Error al cargar perfil', 'error'); return; }
     HOSPI_CURRENT_INGRESO = r.data;
     var ing = r.data;
@@ -6465,7 +6465,7 @@ function hospiLoadPerfil(ingresoId) {
     overlay.innerHTML =
       '<div class="hospi-form-header">' +
         '<button class="hospi-back-btn" onclick="hospiCerrarPerfil()">← Pacientes</button>' +
-        '<button class="hospi-btn outline small" onclick="hospiEditarPaciente()" style="margin-left:auto;margin-right:8px">✏️ Editar</button>' +
+        '<button class="hospi-btn outline small" onclick="hospiEditarPaciente()" style="margin-left:auto;margin-right:8px">✏️ Editar datos</button>' +
         '<button onclick="hospiCerrarPerfil()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
       '</div>' +
       '<div class="hospi-form-body" id="hospiPerfilBody">' +
@@ -6541,10 +6541,11 @@ async function hospiGuardarEdicionPaciente() {
   if (!nombres || !apellidos || !dni || !cama) { toast('Nombres, apellidos, DNI y cama son obligatorios', 'error'); return; }
 
   try {
+    var pacienteId = (p && p.id) || ing.paciente_id;
     var updPac = await sb.from('pacientes').update({
       nombres: nombres, apellidos: apellidos, dni: dni, fecha_nacimiento: fnac || null,
       sexo: sexo || null, alergias: alergias || null
-    }).eq('id', p.id);
+    }).eq('id', pacienteId);
     if (updPac.error) throw updPac.error;
 
     var updIng = await sb.from('ingresos').update({
@@ -6625,7 +6626,7 @@ function hospiLoadTimelineOverlay(ingresoId) {
         if (ev.image_urls && ev.image_urls.length) {
           imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){ return '<img class="hospi-tl-img" src="'+u+'" onclick="event.stopPropagation();hospiZoomImage(\''+hospiEscAttr(u)+'\')" loading="lazy">'; }).join('') + '</div>';
         }
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '<div style="margin-top:6px"><button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar</button></div></div></div></div>';
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '<div style="margin-top:6px"><button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar nota</button></div></div></div></div>';
       });
       html += '</div></div>';
     });
