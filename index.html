@@ -1951,24 +1951,15 @@ document.addEventListener('DOMContentLoaded', function() {
   migrateOldProfile();
   loadWorker();
 
-  // Ensure Supabase session is valid; try refresh before forcing re-login
-  sb.auth.getSession().then(async function(result) {
-    var session = result.data.session;
-    if (worker && !session) {
-      // Try refreshing the session first (token might have expired)
-      try {
-        var refresh = await sb.auth.refreshSession();
-        session = refresh.data.session;
-      } catch(e) {}
-      if (!session) {
-        // Session truly gone — only then force re-login
-        worker = null;
-        localStorage.removeItem('wichanzao_worker');
-        showView('vWelcome');
-        toast('Sesion expirada. Ingresa de nuevo.', 'info');
-      }
-    }
-  });
+  // Si hay worker guardado, mostrar la app directamente
+  // La sesion de Supabase se refresca sola en background (autoRefreshToken: true)
+  // Solo se fuerza re-login si una llamada real a la API falla con 401
+  if (worker) {
+    populateMain();
+    showView('vMain');
+    showModule('dashboard');
+    syncTodayFromServer(true);
+  }
 
   loadTodayFiles();
   processOfflineQueue();
