@@ -795,8 +795,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 #hospiDashboard,#hospiPerfil{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 /* Patient Profile */
 .hospi-back-bar{display:flex;align-items:center;padding:0 0 10px;margin-bottom:12px;flex-shrink:0}
-.hospi-back-btn{background:none;border:none;padding:4px 0;color:var(--tl);cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;transition:all .2s;opacity:.8}
-.hospi-back-btn:hover{opacity:1}
+.hospi-back-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 12px;color:var(--tl);cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;transition:all .2s}
+.hospi-back-btn:active{background:rgba(78,205,196,.15);border-color:var(--tl)}
 .hospi-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
 .hospi-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
 .hospi-profile-card .cp-info{font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
@@ -861,8 +861,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;z-index:2}
 
 /* Evolution Form */
-.hospi-form-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;flex-direction:column;overflow-y:auto}
-.hospi-form-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd)}
+.hospi-form-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto}
+.hospi-form-header{display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top,16px)) 20px 12px;border-bottom:1px solid var(--bd);min-height:52px}
 .hospi-form-header h3{color:#fff;font-size:16px;font-weight:700}
 .hospi-form-body{flex:1;padding:20px;overflow-y:auto}
 .hospi-form-body label{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
@@ -6415,7 +6415,7 @@ function hospiLoadPerfil(ingresoId) {
     overlay.className = 'hospi-form-overlay';
     overlay.id = 'hospiPerfilOverlay';
     overlay.innerHTML =
-      '<div class="hospi-form-header" style="background:var(--n1)">' +
+      '<div class="hospi-form-header">' +
         '<button class="hospi-back-btn" onclick="hospiCerrarPerfil()">← Pacientes</button>' +
         '<span style="font-size:11px;color:var(--t3);margin-left:auto">' + hospiEsc(p.nombres.split(' ')[0]) + '</span>' +
         '<button onclick="hospiCerrarPerfil()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
