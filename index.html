@@ -1953,12 +1953,50 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Si hay worker guardado, mostrar la app directamente
   // La sesion de Supabase se refresca sola en background (autoRefreshToken: true)
-  // Solo se fuerza re-login si una llamada real a la API falla con 401
   if (worker) {
     populateMain();
     showView('vMain');
     showModule('dashboard');
     syncTodayFromServer(true);
+  } else {
+    // No worker in localStorage — try recovering from Supabase session
+    sb.auth.getSession().then(async function(result) {
+      var session = result.data.session;
+      if (session && session.user) {
+        try {
+          var refresh = await sb.auth.refreshSession();
+          session = refresh.data.session || session;
+        } catch(e) {}
+        if (session && session.user) {
+          // Have valid session but lost worker — recover from DB
+          var u = session.user;
+          var email = u.email || '';
+          var folderId = email.split('@')[0] || '';
+          // Try to find worker by email
+          var wf = await sb.from('workers').select('*').eq('email', email).maybeSingle();
+          if (wf.data) {
+            var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, created: wf.data.created_at };
+            saveWorker(w);
+            populateMain();
+            showView('vMain');
+            showModule('dashboard');
+            syncTodayFromServer(true);
+            return;
+          }
+          // Try by folder_id from email
+          var wf2 = await sb.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
+          if (wf2.data) {
+            var w2 = { id: wf2.data.folder_id, name: wf2.data.name, servicio: wf2.data.servicio, area: wf2.data.area, picture: wf2.data.picture, email: wf2.data.email, google: wf2.data.google, created: wf2.data.created_at };
+            saveWorker(w2);
+            populateMain();
+            showView('vMain');
+            showModule('dashboard');
+            syncTodayFromServer(true);
+            return;
+          }
+        }
+      }
+    });
   }
 
   loadTodayFiles();
