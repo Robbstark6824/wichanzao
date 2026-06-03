@@ -1951,14 +1951,22 @@ document.addEventListener('DOMContentLoaded', function() {
   migrateOldProfile();
   loadWorker();
 
-  // Force migration: if worker exists locally but no Supabase session, require re-login
-  sb.auth.getSession().then(function(result) {
+  // Ensure Supabase session is valid; try refresh before forcing re-login
+  sb.auth.getSession().then(async function(result) {
     var session = result.data.session;
     if (worker && !session) {
-      worker = null;
-      localStorage.removeItem('wichanzao_worker');
-      showView('vWelcome');
-      toast('Ingresa tus datos para continuar', 'info');
+      // Try refreshing the session first (token might have expired)
+      try {
+        var refresh = await sb.auth.refreshSession();
+        session = refresh.data.session;
+      } catch(e) {}
+      if (!session) {
+        // Session truly gone — only then force re-login
+        worker = null;
+        localStorage.removeItem('wichanzao_worker');
+        showView('vWelcome');
+        toast('Sesion expirada. Ingresa de nuevo.', 'info');
+      }
     }
   });
 
