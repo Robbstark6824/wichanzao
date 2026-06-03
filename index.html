@@ -837,6 +837,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-tl-tipo.soap{background:rgba(212,168,83,.15);color:#D4A853}
 .hospi-tl-tipo.lab{background:rgba(100,149,237,.15);color:#6495ED}
 .hospi-tl-tipo.img{background:rgba(147,112,219,.15);color:#9370DB}
+.hospi-tl-tipo.indicaciones{background:rgba(255,165,0,.15);color:#FFA500}
 .hospi-tl-author{font-size:11px;color:var(--t2);font-weight:600}
 .hospi-tl-arrow{font-size:9px;color:var(--t3);margin-left:auto;flex-shrink:0}
 .hospi-tl-detail{margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
@@ -6627,7 +6628,7 @@ function hospiLoadTimelineOverlay(ingresoId) {
       html += '<div class="hospi-day-group"><div class="hospi-day-header" onclick="hospiToggleDay(\'' + did + '\')"><span class="hospi-day-arrow" id="' + did + '-arrow">▶</span><span class="hospi-day-label">📅 ' + dl + '</span><span class="hospi-day-count">' + evs.length + ' evol.</span></div><div class="hospi-day-body" id="' + did + '" style="display:none">';
       evs.forEach(function(ev) {
         var time = new Date(ev.created_at).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
-        var tc = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : ev.tipo === 'Imagen' ? 'img' : '';
+        var tc = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : ev.tipo === 'Imagen' ? 'img' : ev.tipo === 'Indicaciones' ? 'indicaciones' : '';
         var eid = 'ov-' + ev.id.substring(0,8);
         var ap = (ev.author_name || 'Interno').split('|');
         var an = hospiEsc(ap[0] || 'Interno');
@@ -6801,7 +6802,7 @@ function hospiNuevaEvolucion() {
       '<input type="file" id="hospiFileInput" accept="image/*" multiple style="display:none" onchange="hospiHandleFiles(this)">' +
       '<div class="hospi-preview-grid" id="hospiPreviewGrid"></div>' +
       '<label>Tipo</label>' +
-      '<select id="hospiETipo"><option value="Foto">📸 Foto</option><option value="SOAP">🩺 SOAP</option><option value="Laboratorio">🧪 Laboratorio</option><option value="Imagen">🖼️ Imagen</option><option value="Procedimiento">💉 Procedimiento</option><option value="Interconsulta">📞 Interconsulta</option><option value="Nota">📝 Nota</option></select>' +
+      '<select id="hospiETipo"><option value="Foto">📸 Foto</option><option value="SOAP">🩺 SOAP</option><option value="Laboratorio">🧪 Laboratorio</option><option value="Imagen">🖼️ Imagen</option><option value="Procedimiento">💉 Procedimiento</option><option value="Indicaciones">📋 Indicaciones</option><option value="Interconsulta">📞 Interconsulta</option><option value="Nota">📝 Nota</option></select>' +
       '<label>Nota (opcional)</label>' +
       '<textarea id="hospiENota" placeholder="Describe brevemente la evolucion..." rows="3"></textarea>' +
     '</div>' +
