@@ -886,6 +886,17 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-realtime-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:6px;animation:hospi-pulse 2s infinite}
 @keyframes hospi-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 [hidden]{display:none!important}
+
+/* Sidebar collapse */
+.sidebar-collapse-btn{position:absolute;top:12px;right:8px;background:rgba(255,255,255,.08);border:none;border-radius:6px;color:rgba(255,255,255,.5);cursor:pointer;font-size:10px;padding:4px 7px;transition:all .2s;z-index:2}
+.sidebar-collapse-btn:hover{color:#fff;background:rgba(255,255,255,.15)}
+#sidebar.collapsed .sidebar-brand-text,
+#sidebar.collapsed .sni-label,
+#sidebar.collapsed .sidebar-user-info,
+#sidebar.collapsed .sidebar-user-logout{display:none}
+#sidebar.collapsed .sidebar-nav-item{padding:11px 12px;justify-content:center}
+#sidebar.collapsed .sni-icon{margin:0}
+#sidebar.collapsed .sidebar-collapse-btn{right:4px;transform:rotate(180deg)}
 </style>
 </head>
 <body>
@@ -1082,6 +1093,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span>Hospital de Laredo</span>
           <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v206</span>
         </div>
+        <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Colapsar menu">◀</button>
       </div>
       <nav class="sidebar-nav">
         <a class="sidebar-nav-item active" data-module="dashboard" onclick="showModule('dashboard')">
@@ -1560,15 +1572,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="hospi-list" id="hospiList"></div>
           </div>
-          <!-- VIEW: Patient Profile -->
-          <div id="hospiPerfil" hidden>
-            <div class="hospi-back-bar">
-              <button class="hospi-back-btn" onclick="hospiBackToDashboard()">← Pacientes</button>
-            </div>
-            <div id="hospiProfileCard"></div>
-            <h4 style="font-size:13px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">Linea de Tiempo — Evoluciones</h4>
-            <div class="hospi-timeline" id="hospiTimeline"></div>
-          </div>
         </div>
         <!-- FAB: New Admission -->
         <button class="hospi-fab" id="hospiFAB" onclick="hospiNuevoIngreso()" title="Nuevo Ingreso">+</button>
@@ -2036,6 +2039,12 @@ function toggleSidebar() {
     if (overlay) overlay.classList.add('show');
     if (btn) btn.classList.add('open');
   }
+  haptic(10);
+}
+
+function toggleSidebarCollapse() {
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.toggle('collapsed');
   haptic(10);
 }
 
@@ -6387,111 +6396,97 @@ function hospiRenderDashboard(ingresos) {
 }
 
 function hospiLoadPerfil(ingresoId) {
-  // Hide dashboard + all its children completely
-  var dash = document.getElementById('hospiDashboard');
-  var perfil = document.getElementById('hospiPerfil');
-  var fab = document.getElementById('hospiFAB');
-  var header = document.getElementById('hospiModuleHeader');
-  if (dash) dash.setAttribute('hidden','');
-  // Clear dashboard children to prevent any stale visible content
-  ['hospiStats','hospiServiceTabs','hospiList'].forEach(function(id){ var el=document.getElementById(id); if(el)el.innerHTML=''; });
-  if (perfil) { perfil.removeAttribute('hidden'); perfil.scrollTop = 0; }
-  if (fab) fab.setAttribute('hidden','');
-  if (header) header.setAttribute('hidden','');
-
   sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
-    if (r.error) { toast('Error al cargar perfil', 'error'); hospiBackToDashboard(); return; }
+    if (r.error) { toast('Error al cargar perfil', 'error'); return; }
     HOSPI_CURRENT_INGRESO = r.data;
     var ing = r.data;
     var p = ing.pacientes;
     var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
 
-    // Profile card
     var alertHtml = p.alergias ? '<div class="cp-alert">⚠ Alergias: ' + hospiEsc(p.alergias) + '</div>' : '';
     var actionsHtml = '';
     if (ing.estado === 'Activo') {
       actionsHtml = '<button class="hospi-btn outline small" onclick="hospiNuevaEvolucion()">+ Evolucion</button>' +
                     '<button class="hospi-btn danger small" onclick="hospiDarAlta()">Dar de Alta</button>';
     }
-    document.getElementById('hospiProfileCard').innerHTML =
-      '<div class="hospi-profile-card">' +
-        '<div class="cp-name">' + hospiEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
-        '<div class="cp-info">' +
-          '<span>DNI: ' + hospiEsc(p.dni) + '</span>' +
-          '<span>' + edad + ' años</span>' +
-          '<span>' + (p.sexo || '?') + '</span>' +
-          '<span>🛏️ ' + hospiEsc(ing.cama) + '</span>' +
-          '<span>🏥 ' + hospiEsc(ing.servicios.nombre) + '</span>' +
-          '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
-        '</div>' +
-        alertHtml +
-        (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
-        '<div style="font-size:10px;color:var(--t3)">Ingreso: ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</div>' +
-        '<div class="cp-actions">' + actionsHtml + '</div>' +
-      '</div>';
 
-    // Load timeline
-    hospiLoadTimeline(ingresoId);
+    // Build as a fullscreen overlay — bulletproof, nothing leaks through
+    var overlay = document.createElement('div');
+    overlay.className = 'hospi-form-overlay';
+    overlay.id = 'hospiPerfilOverlay';
+    overlay.innerHTML =
+      '<div class="hospi-form-header" style="background:var(--n1)">' +
+        '<button class="hospi-back-btn" onclick="hospiCerrarPerfil()">← Pacientes</button>' +
+        '<span style="font-size:11px;color:var(--t3);margin-left:auto">' + hospiEsc(p.nombres.split(' ')[0]) + '</span>' +
+        '<button onclick="hospiCerrarPerfil()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div class="hospi-form-body" id="hospiPerfilBody">' +
+        '<div class="hospi-profile-card">' +
+          '<div class="cp-name">' + hospiEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
+          '<div class="cp-info">' +
+            '<span>DNI: ' + hospiEsc(p.dni) + '</span>' +
+            '<span>' + edad + ' a</span>' +
+            '<span>' + (p.sexo || '?') + '</span>' +
+            '<span>🛏️ ' + hospiEsc(ing.cama) + '</span>' +
+            '<span>🏥 ' + hospiEsc(ing.servicios.nombre) + '</span>' +
+            '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
+          '</div>' +
+          alertHtml +
+          (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
+          '<div style="font-size:10px;color:var(--t3)">Ingreso: ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</div>' +
+          '<div class="cp-actions" style="margin-top:10px">' + actionsHtml + '</div>' +
+        '</div>' +
+        '<h4 style="font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">Linea de Tiempo</h4>' +
+        '<div class="hospi-timeline" id="hospiTimelineOverlay"></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    // Load timeline into overlay
+    hospiLoadTimelineOverlay(ingresoId);
   });
 }
 
-function hospiLoadTimeline(ingresoId) {
+function hospiCerrarPerfil() {
+  var ov = document.getElementById('hospiPerfilOverlay');
+  if (ov) ov.remove();
+  HOSPI_CURRENT_INGRESO = null;
+  hospiUnsubscribeEvoluciones();
+}
+
+function hospiLoadTimelineOverlay(ingresoId) {
   sb.from('evoluciones').select('*').eq('ingreso_id', ingresoId).order('created_at', {ascending: false}).then(function(r) {
-    var timeline = document.getElementById('hospiTimeline');
+    var tl = document.getElementById('hospiTimelineOverlay');
+    if (!tl) return;
     if (!r.data || !r.data.length) {
-      timeline.innerHTML = '<div class="hospi-empty"><div class="ce-icon">📝</div><p>Sin evoluciones aun</p></div>';
+      tl.innerHTML = '<div class="hospi-empty"><div class="ce-icon">📝</div><p>Sin evoluciones aun</p></div>';
       return;
     }
-    // Group by date
     var groups = {};
     r.data.forEach(function(ev) {
-      var dayKey = new Date(ev.created_at).toLocaleDateString('es-PE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
-      if (!groups[dayKey]) groups[dayKey] = [];
-      groups[dayKey].push(ev);
+      var dk = new Date(ev.created_at).toLocaleDateString('es-PE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      if (!groups[dk]) groups[dk] = [];
+      groups[dk].push(ev);
     });
-
-    var html = '';
-    var dayIdx = 0;
-    Object.keys(groups).forEach(function(dayLabel) {
-      var evs = groups[dayLabel];
-      var dayId = 'hospiDay-' + (dayIdx++);
-      html += '<div class="hospi-day-group">' +
-        '<div class="hospi-day-header" onclick="hospiToggleDay(\'' + dayId + '\')">' +
-          '<span class="hospi-day-arrow" id="' + dayId + '-arrow">▶</span>' +
-          '<span class="hospi-day-label">📅 ' + dayLabel + '</span>' +
-          '<span class="hospi-day-count">' + evs.length + ' evol.</span>' +
-        '</div>' +
-        '<div class="hospi-day-body" id="' + dayId + '" style="display:none">';
-
+    var html = '', di = 0;
+    Object.keys(groups).forEach(function(dl) {
+      var evs = groups[dl], did = 'hoviDay-' + (di++);
+      html += '<div class="hospi-day-group"><div class="hospi-day-header" onclick="hospiToggleDay(\\'' + did + '\\')"><span class="hospi-day-arrow" id="' + did + '-arrow">▶</span><span class="hospi-day-label">📅 ' + dl + '</span><span class="hospi-day-count">' + evs.length + ' evol.</span></div><div class="hospi-day-body" id="' + did + '" style="display:none">';
       evs.forEach(function(ev) {
         var time = new Date(ev.created_at).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
-        var tipoClass = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : ev.tipo === 'Imagen' ? 'img' : '';
-        var evId = 'ev-' + ev.id.substring(0,8);
-        var imagesHtml = '';
+        var tc = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : ev.tipo === 'Imagen' ? 'img' : '';
+        var eid = 'ov-' + ev.id.substring(0,8);
+        var ap = (ev.author_name || 'Interno').split('|');
+        var an = hospiEsc(ap[0] || 'Interno');
+        var ar = hospiEsc(ap[1] || '');
+        var imgs = '';
         if (ev.image_urls && ev.image_urls.length) {
-          imagesHtml = '<div class="hospi-tl-images">' + ev.image_urls.map(function(url) {
-            return '<img class="hospi-tl-img" src="' + url + '" onclick="event.stopPropagation();hospiZoomImage(\'' + hospiEscAttr(url) + '\')" loading="lazy">';
-          }).join('') + '</div>';
+          imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){ return '<img class="hospi-tl-img" src="'+u+'" onclick="event.stopPropagation();hospiZoomImage(\\''+hospiEscAttr(u)+'\\')" loading="lazy">'; }).join('') + '</div>';
         }
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + evId + '\')">' +
-          '<div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div>' +
-          '<div class="hospi-tl-content">' +
-            '<div class="hospi-tl-header-compact">' +
-              '<span class="hospi-tl-tipo ' + tipoClass + '">' + ev.tipo + '</span>' +
-              '<span class="hospi-tl-author">' + hospiEsc(ev.author_name) + '</span>' +
-              '<span class="hospi-tl-arrow" id="' + evId + '-arrow">▶</span>' +
-            '</div>' +
-            '<div class="hospi-tl-detail" id="' + evId + '" style="display:none">' +
-              (ev.nota ? '<div class="hospi-tl-nota">' + hospiEsc(ev.nota) + '</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') +
-              imagesHtml +
-            '</div>' +
-          '</div>' +
-        '</div>';
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\\'' + eid + '\\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '</div></div></div>';
       });
-
       html += '</div></div>';
     });
-    timeline.innerHTML = html;
+    tl.innerHTML = html;
     hospiSubscribeEvoluciones(ingresoId);
   });
 }
@@ -6499,39 +6494,17 @@ function hospiLoadTimeline(ingresoId) {
 function hospiToggleDay(dayId) {
   var body = document.getElementById(dayId);
   var arrow = document.getElementById(dayId + '-arrow');
-  if (body.style.display === 'none') {
-    body.style.display = 'block';
-    if (arrow) arrow.textContent = '▼';
-  } else {
-    body.style.display = 'none';
-    if (arrow) arrow.textContent = '▶';
-  }
+  if (!body) return;
+  if (body.style.display === 'none') { body.style.display = 'block'; if (arrow) arrow.textContent = '▼'; }
+  else { body.style.display = 'none'; if (arrow) arrow.textContent = '▶'; }
 }
 
 function hospiToggleEv(evId) {
   var detail = document.getElementById(evId);
   var arrow = document.getElementById(evId + '-arrow');
-  if (detail.style.display === 'none') {
-    detail.style.display = 'block';
-    if (arrow) arrow.textContent = '▼';
-  } else {
-    detail.style.display = 'none';
-    if (arrow) arrow.textContent = '▶';
-  }
-}
-
-function hospiBackToDashboard() {
-  var dash = document.getElementById('hospiDashboard');
-  var perfil = document.getElementById('hospiPerfil');
-  var fab = document.getElementById('hospiFAB');
-  var header = document.getElementById('hospiModuleHeader');
-  if (dash) { dash.removeAttribute('hidden'); dash.scrollTop = 0; }
-  if (perfil) perfil.setAttribute('hidden','');
-  if (fab) fab.removeAttribute('hidden');
-  if (header) header.removeAttribute('hidden');
-  HOSPI_CURRENT_INGRESO = null;
-  hospiUnsubscribeEvoluciones();
-  hospiLoadDashboard();
+  if (!detail) return;
+  if (detail.style.display === 'none') { detail.style.display = 'block'; if (arrow) arrow.textContent = '▼'; }
+  else { detail.style.display = 'none'; if (arrow) arrow.textContent = '▶'; }
 }
 
 /* ===== NUEVO INGRESO ===== */
