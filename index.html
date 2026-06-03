@@ -761,6 +761,96 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 
 /* ===== THUMBNAIL ANIMATION HELPER ===== */
 .thumb-anim{position:fixed;z-index:50;object-fit:cover;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;will-change:transform,width,height,top,left,border-radius}
+
+/* ===== CENSO HOSPITALARIO ===== */
+.censo-stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.censo-stat{flex:1;min-width:90px;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--bd)}
+.censo-stat .stat-num{font-size:24px;font-weight:800;color:var(--tl)}
+.censo-stat .stat-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.censo-service-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.censo-service-tab{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s}
+.censo-service-tab.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.censo-service-tab .cs-badge{display:inline-block;background:rgba(0,0,0,.2);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700}
+.censo-toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.censo-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none}
+.censo-toggle input{display:none}
+.censo-toggle .toggle-track{width:40px;height:22px;background:var(--bd);border-radius:11px;position:relative;transition:background .2s}
+.censo-toggle .toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.censo-toggle input:checked+.toggle-track{background:var(--tl)}
+.censo-toggle input:checked+.toggle-track::after{transform:translateX(18px)}
+.censo-list{display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.censo-card{background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid var(--bd);cursor:pointer;transition:all .2s}
+.censo-card:active,.censo-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)}
+.censo-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.censo-bed{font-size:11px;font-weight:700;color:var(--tl);background:rgba(78,205,196,.12);padding:3px 10px;border-radius:12px}
+.censo-name{font-size:15px;font-weight:700;color:var(--t1)}
+.censo-dni{font-size:11px;color:var(--t3)}
+.censo-dx{font-size:12px;color:var(--t2);margin:6px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.censo-meta{display:flex;gap:12px;font-size:10px;color:var(--t3)}
+.censo-meta span{display:flex;align-items:center;gap:4px}
+.censo-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--tl);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(78,205,196,.3);z-index:10;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.censo-fab:active{transform:scale(.9)}
+
+/* Patient Profile */
+.censo-back-bar{display:flex;align-items:center;gap:12px;padding:8px 0;margin-bottom:12px}
+.censo-back-btn{background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:8px 12px;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px}
+.censo-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
+.censo-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
+.censo-profile-card .cp-info{font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
+.censo-profile-card .cp-info span{background:rgba(255,255,255,.05);padding:3px 10px;border-radius:10px}
+.censo-profile-card .cp-alert{font-size:11px;color:#D4A853;background:rgba(212,168,83,.1);padding:6px 10px;border-radius:8px;margin-bottom:8px}
+.censo-profile-card .cp-actions{display:flex;gap:8px;margin-top:10px}
+.censo-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;transition:all .2s}
+.censo-btn.primary{background:var(--tl);color:#fff}
+.censo-btn.danger{background:var(--danger);color:#fff}
+.censo-btn.outline{background:transparent;border:1px solid var(--bd);color:var(--t2)}
+.censo-btn.small{padding:6px 12px;font-size:11px}
+
+/* Timeline */
+.censo-timeline{position:relative;padding-left:24px}
+.censo-timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--bd)}
+.censo-tl-item{position:relative;margin-bottom:16px;padding-left:16px}
+.censo-tl-dot{position:absolute;left:-21px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--tl);border:2px solid var(--bg)}
+.censo-tl-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.censo-tl-tipo{font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:6px;letter-spacing:.5px}
+.censo-tl-tipo.foto{background:rgba(78,205,196,.15);color:var(--tl)}
+.censo-tl-tipo.soap{background:rgba(212,168,83,.15);color:#D4A853}
+.censo-tl-tipo.lab{background:rgba(100,149,237,.15);color:#6495ED}
+.censo-tl-tipo.img{background:rgba(147,112,219,.15);color:#9370DB}
+.censo-tl-author{font-size:11px;color:var(--t2);font-weight:600}
+.censo-tl-time{font-size:10px;color:var(--t3)}
+.censo-tl-nota{font-size:13px;color:var(--t1);line-height:1.5;white-space:pre-wrap}
+.censo-tl-images{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.censo-tl-img{width:100%;max-width:280px;border-radius:10px;cursor:pointer;border:1px solid var(--bd);transition:transform .2s;object-fit:cover;max-height:200px}
+.censo-tl-img:active{transform:scale(.98)}
+
+/* Image Zoom */
+.censo-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.censo-zoom-overlay img{max-width:100vw;max-height:100vh;object-fit:contain;touch-action:pinch-zoom}
+.censo-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;z-index:2}
+
+/* Evolution Form */
+.censo-form-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;flex-direction:column;overflow-y:auto}
+.censo-form-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd)}
+.censo-form-header h3{color:#fff;font-size:16px;font-weight:700}
+.censo-form-body{flex:1;padding:20px;overflow-y:auto}
+.censo-form-body label{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
+.censo-form-body select,.censo-form-body input[type=text],.censo-form-body textarea{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit}
+.censo-form-body textarea{resize:vertical;min-height:60px}
+.censo-photo-area{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;background:rgba(255,255,255,.04);border:2px dashed var(--bd);border-radius:16px;cursor:pointer;margin:12px 0}
+.censo-photo-area .cpa-icon{font-size:40px}
+.censo-photo-area .cpa-text{font-size:13px;color:var(--t2);font-weight:600}
+.censo-photo-area .cpa-sub{font-size:10px;color:var(--t3)}
+.censo-preview-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.censo-preview-thumb{width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid var(--bd);position:relative}
+.censo-preview-del{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer}
+.censo-form-footer{display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--bd)}
+.censo-form-footer button{flex:1}
+.censo-empty{text-align:center;padding:40px 20px;color:var(--t3)}
+.censo-empty .ce-icon{font-size:48px;margin-bottom:12px}
+.censo-empty p{font-size:14px}
+.censo-realtime-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:6px;animation:censo-pulse 2s infinite}
+@keyframes censo-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
@@ -955,7 +1045,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Medicina Interna</h3>
           <span>Hospital de Laredo</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v204</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v205</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -978,6 +1068,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <a class="sidebar-nav-item" data-module="cie" onclick="showModule('cie')">
           <span class="sni-icon">📋</span>
           <span class="sni-label">CIE Medicina Interna</span>
+        </a>
+        <a class="sidebar-nav-item" data-module="censo" onclick="showModule('censo')">
+          <span class="sni-icon">🛏️</span>
+          <span class="sni-label">Censo Hospitalario</span>
         </a>
       </nav>
       <div class="sidebar-user">
@@ -1044,6 +1138,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <span class="mc-icon">📋</span>
               <div class="mc-title">CIE-10</div>
               <div class="mc-desc">+600 codigos · Busqueda · Favoritos · 21 capitulos OMS</div>
+              <span class="mc-badge-prox" style="background:rgba(78,205,196,.15);color:var(--tl)">✓ Disponible</span>
+            </div>
+            <div class="module-card" onclick="showModule('censo')">
+              <span class="mc-icon">🛏️</span>
+              <div class="mc-title">Censo Hospitalario</div>
+              <div class="mc-desc">Gestion de camas · Evoluciones · Tiempo real · Fotos</div>
               <span class="mc-badge-prox" style="background:rgba(78,205,196,.15);color:var(--tl)">✓ Disponible</span>
             </div>
           </div>
@@ -1415,6 +1515,48 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           </div>
         </div>
       </div>
+
+      <!-- ===== MODULE: CENSO HOSPITALARIO ===== -->
+      <div class="module-panel" id="moduleCenso">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / Censo Hospitalario
+          </div>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+            <span class="censo-realtime-dot" id="censoRTDot" style="display:none" title="Conexion en tiempo real"></span>
+            <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="censoBadge">Internos</span>
+          </span>
+        </div>
+        <div class="module-body" id="censoBody">
+          <!-- VIEW: Dashboard -->
+          <div id="censoDashboard">
+            <div class="censo-stats" id="censoStats"></div>
+            <div class="censo-service-tabs" id="censoServiceTabs"></div>
+            <div class="censo-toggle-row">
+              <label class="censo-toggle">
+                <input type="checkbox" id="censoActivosToggle" checked onchange="censoLoadDashboard()">
+                <span class="toggle-track"></span>
+                Solo pacientes activos
+              </label>
+            </div>
+            <div class="censo-list" id="censoList"></div>
+          </div>
+          <!-- VIEW: Patient Profile -->
+          <div id="censoPerfil" style="display:none">
+            <div class="censo-back-bar">
+              <button class="censo-back-btn" onclick="censoBackToDashboard()">← Volver al censo</button>
+            </div>
+            <div id="censoProfileCard"></div>
+            <h4 style="font-size:13px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">Linea de Tiempo — Evoluciones</h4>
+            <div class="censo-timeline" id="censoTimeline"></div>
+          </div>
+        </div>
+        <!-- FAB: New Admission -->
+        <button class="censo-fab" id="censoFAB" onclick="censoNuevoIngreso()" title="Nuevo Ingreso">+</button>
+      </div>
     </main>
   </div>
 </div>
@@ -1538,7 +1680,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Version</h5>
-              <p id="settingsVersionText">v204</p>
+              <p id="settingsVersionText">v205</p>
             </div>
           </div>
           <span class="settings-version-badge">Ultima</span>
@@ -1688,7 +1830,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v204';
+var APP_VERSION = 'v205';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -6097,6 +6239,515 @@ window.addEventListener('appinstalled', function() {
   dismissInstall();
   deferredPrompt = null;
 });
+
+/* ===== CENSO HOSPITALARIO ===== */
+var CENSO_SERVICIO = 1;       // 1=Medicina, 2=Cirugía, 3=Gineco
+var CENSO_INGRESOS = [];
+var CENSO_CURRENT_INGRESO = null;
+var CENSO_RT_CHANNELS = [];
+var CENSO_PENDING_PHOTOS = [];  // File objects pending upload
+
+function censoInit() {
+  if (!worker) { toast('Inicia sesion para usar el Censo', 'error'); return; }
+  CENSO_SERVICIO = 1;
+  CENSO_CURRENT_INGRESO = null;
+  censoLoadDashboard();
+  censoRealtimeSetup();
+}
+
+function censoLoadDashboard() {
+  var soloActivos = document.getElementById('censoActivosToggle')?.checked !== false;
+  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', CENSO_SERVICIO).order('created_at', {ascending: false});
+  if (soloActivos) query = query.eq('estado', 'Activo');
+
+  // Render service tabs
+  sb.from('servicios').select('*').order('id').then(function(r) {
+    if (r.data) {
+      var tabsHtml = r.data.map(function(s) {
+        return '<button class="censo-service-tab' + (s.id === CENSO_SERVICIO ? ' active' : '') + '" onclick="censoSwitchService(' + s.id + ')">' + s.nombre + '</button>';
+      }).join('');
+      document.getElementById('censoServiceTabs').innerHTML = tabsHtml;
+    }
+  });
+
+  query.then(function(r) {
+    if (r.error) { console.error(r.error); return; }
+    CENSO_INGRESOS = r.data || [];
+    censoRenderDashboard(r.data || []);
+  });
+
+  // Stats
+  sb.from('ingresos').select('id,estado', {count:'exact', head:true}).eq('servicio_id', CENSO_SERVICIO).then(function(r) {
+    var total = r.count || 0;
+    sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', CENSO_SERVICIO).eq('estado', 'Activo').then(function(r2) {
+      var activos = r2.count || 0;
+      document.getElementById('censoStats').innerHTML =
+        '<div class="censo-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
+        '<div class="censo-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total Ingresos</div></div>';
+    });
+  });
+}
+
+function censoSwitchService(servId) {
+  CENSO_SERVICIO = servId;
+  document.querySelectorAll('.censo-service-tab').forEach(function(t,i){ t.classList.toggle('active', i+1 === servId); });
+  censoLoadDashboard();
+}
+
+function censoRenderDashboard(ingresos) {
+  var list = document.getElementById('censoList');
+  if (!ingresos.length) {
+    list.innerHTML = '<div class="censo-empty"><div class="ce-icon">🛏️</div><p>No hay ingresos en este servicio</p><p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p></div>';
+    return;
+  }
+  list.innerHTML = ingresos.map(function(ing) {
+    var p = ing.pacientes;
+    var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
+    return '<div class="censo-card" onclick="censoLoadPerfil(\'' + ing.id + '\')">' +
+      '<div class="censo-card-top">' +
+        '<div><span class="censo-bed">🛏️ ' + censoEsc(ing.cama) + '</span></div>' +
+        '<span style="font-size:10px;color:var(--t3)">' + censoTimeAgo(ing.fecha_ingreso) + '</span>' +
+      '</div>' +
+      '<div class="censo-name">' + censoEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
+      '<div class="censo-dni">DNI ' + censoEsc(p.dni) + ' · ' + edad + ' años · ' + (p.sexo || '?') + '</div>' +
+      (ing.dx_ingreso ? '<div class="censo-dx">📋 ' + censoEsc(ing.dx_ingreso) + '</div>' : '') +
+      '<div class="censo-meta">' +
+        '<span>📅 ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</span>' +
+        '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function censoLoadPerfil(ingresoId) {
+  sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
+    if (r.error) { toast('Error al cargar perfil', 'error'); return; }
+    CENSO_CURRENT_INGRESO = r.data;
+    var ing = r.data;
+    var p = ing.pacientes;
+    var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
+
+    document.getElementById('censoDashboard').style.display = 'none';
+    document.getElementById('censoPerfil').style.display = 'block';
+    document.getElementById('censoFAB').style.display = 'none';
+
+    // Profile card
+    var alertHtml = p.alergias ? '<div class="cp-alert">⚠ Alergias: ' + censoEsc(p.alergias) + '</div>' : '';
+    var actionsHtml = '';
+    if (ing.estado === 'Activo') {
+      actionsHtml = '<button class="censo-btn outline small" onclick="censoNuevaEvolucion()">+ Evolucion</button>' +
+                    '<button class="censo-btn danger small" onclick="censoDarAlta()">Dar de Alta</button>';
+    }
+    document.getElementById('censoProfileCard').innerHTML =
+      '<div class="censo-profile-card">' +
+        '<div class="cp-name">' + censoEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
+        '<div class="cp-info">' +
+          '<span>DNI: ' + censoEsc(p.dni) + '</span>' +
+          '<span>' + edad + ' años</span>' +
+          '<span>' + (p.sexo || '?') + '</span>' +
+          '<span>🛏️ ' + censoEsc(ing.cama) + '</span>' +
+          '<span>🏥 ' + censoEsc(ing.servicios.nombre) + '</span>' +
+          '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
+        '</div>' +
+        alertHtml +
+        (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + censoEsc(ing.dx_ingreso) + '</div>' : '') +
+        '<div style="font-size:10px;color:var(--t3)">Ingreso: ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</div>' +
+        '<div class="cp-actions">' + actionsHtml + '</div>' +
+      '</div>';
+
+    // Load timeline
+    censoLoadTimeline(ingresoId);
+  });
+}
+
+function censoLoadTimeline(ingresoId) {
+  sb.from('evoluciones').select('*').eq('ingreso_id', ingresoId).order('created_at', {ascending: false}).then(function(r) {
+    var timeline = document.getElementById('censoTimeline');
+    if (!r.data || !r.data.length) {
+      timeline.innerHTML = '<div class="censo-empty"><div class="ce-icon">📝</div><p>Sin evoluciones aun</p></div>';
+      return;
+    }
+    timeline.innerHTML = r.data.map(function(ev) {
+      var tipoClass = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : 'img';
+      var imagesHtml = '';
+      if (ev.image_urls && ev.image_urls.length) {
+        imagesHtml = '<div class="censo-tl-images">' + ev.image_urls.map(function(url) {
+          return '<img class="censo-tl-img" src="' + url + '" onclick="event.stopPropagation();censoZoomImage(\'' + censoEscAttr(url) + '\')" loading="lazy">';
+        }).join('') + '</div>';
+      }
+      return '<div class="censo-tl-item">' +
+        '<div class="censo-tl-dot"></div>' +
+        '<div class="censo-tl-header">' +
+          '<span class="censo-tl-tipo ' + tipoClass + '">' + ev.tipo + '</span>' +
+          '<span class="censo-tl-author">' + censoEsc(ev.author_name) + '</span>' +
+          '<span class="censo-tl-time">' + censoTimeAgo(ev.created_at) + '</span>' +
+        '</div>' +
+        (ev.nota ? '<div class="censo-tl-nota">' + censoEsc(ev.nota) + '</div>' : '') +
+        imagesHtml +
+      '</div>';
+    }).join('');
+    // Realtime: subscribe to new evoluciones for this ingreso
+    censoSubscribeEvoluciones(ingresoId);
+  });
+}
+
+function censoBackToDashboard() {
+  document.getElementById('censoDashboard').style.display = 'block';
+  document.getElementById('censoPerfil').style.display = 'none';
+  document.getElementById('censoFAB').style.display = 'flex';
+  CENSO_CURRENT_INGRESO = null;
+  censoUnsubscribeEvoluciones();
+  censoLoadDashboard();
+}
+
+/* ===== NUEVO INGRESO ===== */
+function censoNuevoIngreso() {
+  if (!worker) { toast('Inicia sesion primero', 'error'); return; }
+  var overlay = document.createElement('div');
+  overlay.className = 'censo-form-overlay';
+  overlay.id = 'censoFormIngreso';
+  overlay.innerHTML =
+    '<div class="censo-form-header">' +
+      '<h3>Nuevo Ingreso</h3>' +
+      '<button onclick="document.getElementById(\'censoFormIngreso\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+    '</div>' +
+    '<div class="censo-form-body">' +
+      '<label>Buscar Paciente por DNI</label>' +
+      '<input type="text" id="censoBuscarDNI" placeholder="Ingresa el DNI..." oninput="censoBuscarPaciente()" autocomplete="off">' +
+      '<div id="censoBuscarResult" style="margin-top:8px"></div>' +
+      '<div id="censoPacienteNuevo" style="display:none">' +
+        '<label>Nombres</label><input type="text" id="censoPNombres">' +
+        '<label>Apellidos</label><input type="text" id="censoPApellidos">' +
+        '<label>Fecha de Nacimiento</label><input type="text" id="censoPFechaNac" placeholder="YYYY-MM-DD">' +
+        '<label>Sexo</label><select id="censoPSexo"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option></select>' +
+        '<label>Alergias</label><input type="text" id="censoPAlergias" placeholder="ej. Penicilina, Sulfa...">' +
+      '</div>' +
+      '<div id="censoIngresoFields" style="display:none">' +
+        '<label>Servicio</label><select id="censoIServicio">' +
+          '<option value="1">Medicina Interna</option>' +
+          '<option value="2">Cirugia</option>' +
+          '<option value="3">Gineco-Obstetricia</option>' +
+        '</select>' +
+        '<label>Cama</label><input type="text" id="censoICama" placeholder="ej. Cama 4, Pasillo...">' +
+        '<label>Diagnostico de Ingreso (opcional)</label>' +
+        '<input type="text" id="censoIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
+      '</div>' +
+    '</div>' +
+    '<div class="censo-form-footer">' +
+      '<button class="censo-btn outline" onclick="document.getElementById(\'censoFormIngreso\').remove()">Cancelar</button>' +
+      '<button class="censo-btn primary" id="censoBtnGuardarIngreso" onclick="censoGuardarIngreso()" disabled>Guardar Ingreso</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+var CENSO_PACIENTE_SEL = null;
+
+function censoBuscarPaciente() {
+  var dni = document.getElementById('censoBuscarDNI').value.trim();
+  var resultDiv = document.getElementById('censoBuscarResult');
+  var nuevoDiv = document.getElementById('censoPacienteNuevo');
+  var ingFields = document.getElementById('censoIngresoFields');
+  var btnGuardar = document.getElementById('censoBtnGuardarIngreso');
+
+  ingFields.style.display = 'none';
+  btnGuardar.disabled = true;
+  CENSO_PACIENTE_SEL = null;
+
+  if (dni.length < 6) {
+    resultDiv.innerHTML = '';
+    nuevoDiv.style.display = 'none';
+    return;
+  }
+
+  sb.from('pacientes').select('*').eq('dni', dni).maybeSingle().then(function(r) {
+    if (r.data) {
+      CENSO_PACIENTE_SEL = r.data;
+      resultDiv.innerHTML = '<div style="background:rgba(78,205,196,.1);padding:10px;border-radius:10px;color:var(--tl);font-size:13px;font-weight:600">✓ ' + censoEsc(r.data.nombres + ' ' + r.data.apellidos) + '</div>';
+      nuevoDiv.style.display = 'none';
+      ingFields.style.display = 'block';
+      btnGuardar.disabled = false;
+    } else {
+      resultDiv.innerHTML = '<div style="color:var(--t3);font-size:12px;margin-top:6px">Paciente nuevo — completa los datos:</div>';
+      nuevoDiv.style.display = 'block';
+      ingFields.style.display = 'block';
+      btnGuardar.disabled = false;
+    }
+  });
+}
+
+function censoGuardarIngreso() {
+  var dni = document.getElementById('censoBuscarDNI').value.trim();
+  var cama = document.getElementById('censoICama').value.trim();
+  var dx = document.getElementById('censoIDx').value.trim();
+  var servicio = parseInt(document.getElementById('censoIServicio').value);
+
+  if (!dni || !cama) { toast('DNI y Cama son obligatorios', 'error'); return; }
+
+  function crearIngreso(pacienteId) {
+    sb.from('ingresos').insert({
+      paciente_id: pacienteId,
+      servicio_id: servicio,
+      cama: cama,
+      dx_ingreso: dx || null,
+      created_by: worker.id
+    }).select().single().then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
+      toast('Ingreso registrado ✓', 'success');
+      document.getElementById('censoFormIngreso').remove();
+      censoLoadDashboard();
+    });
+  }
+
+  if (CENSO_PACIENTE_SEL) {
+    crearIngreso(CENSO_PACIENTE_SEL.id);
+  } else {
+    // Create new patient
+    var pNombres = document.getElementById('censoPNombres').value.trim();
+    var pApellidos = document.getElementById('censoPApellidos').value.trim();
+    if (!pNombres || !pApellidos) { toast('Completa nombres y apellidos', 'error'); return; }
+    sb.from('pacientes').insert({
+      dni: dni,
+      nombres: pNombres,
+      apellidos: pApellidos,
+      fecha_nacimiento: document.getElementById('censoPFechaNac').value || null,
+      sexo: document.getElementById('censoPSexo').value || null,
+      alergias: document.getElementById('censoPAlergias').value || null
+    }).select().single().then(function(r) {
+      if (r.error) { toast('Error paciente: ' + r.error.message, 'error'); return; }
+      crearIngreso(r.data.id);
+    });
+  }
+}
+
+/* ===== NUEVA EVOLUCION ===== */
+function censoNuevaEvolucion() {
+  if (!CENSO_CURRENT_INGRESO) return;
+  CENSO_PENDING_PHOTOS = [];
+  var overlay = document.createElement('div');
+  overlay.className = 'censo-form-overlay';
+  overlay.id = 'censoFormEvolucion';
+  overlay.innerHTML =
+    '<div class="censo-form-header">' +
+      '<h3>Nueva Evolucion</h3>' +
+      '<button onclick="document.getElementById(\'censoFormEvolucion\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+    '</div>' +
+    '<div class="censo-form-body">' +
+      '<div class="censo-photo-area" onclick="censoTakePhoto()">' +
+        '<div class="cpa-icon">📸</div>' +
+        '<div class="cpa-text">Tomar foto de la evolucion</div>' +
+        '<div class="cpa-sub">o selecciona de la galeria</div>' +
+      '</div>' +
+      '<input type="file" id="censoFileInput" accept="image/*" multiple style="display:none" onchange="censoHandleFiles(this)">' +
+      '<div class="censo-preview-grid" id="censoPreviewGrid"></div>' +
+      '<label>Tipo</label>' +
+      '<select id="censoETipo"><option value="Foto">📸 Foto</option><option value="SOAP">🩺 SOAP</option><option value="Laboratorio">🧪 Laboratorio</option><option value="Imagen">🖼️ Imagen</option><option value="Procedimiento">💉 Procedimiento</option><option value="Interconsulta">📞 Interconsulta</option><option value="Nota">📝 Nota</option></select>' +
+      '<label>Nota (opcional)</label>' +
+      '<textarea id="censoENota" placeholder="Describe brevemente la evolucion..." rows="3"></textarea>' +
+    '</div>' +
+    '<div class="censo-form-footer">' +
+      '<button class="censo-btn outline" onclick="document.getElementById(\'censoFormEvolucion\').remove()">Cancelar</button>' +
+      '<button class="censo-btn primary" onclick="censoGuardarEvolucion()">💾 Guardar</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function censoTakePhoto() {
+  var input = document.getElementById('censoFileInput');
+  if (input) input.click();
+}
+
+function censoHandleFiles(input) {
+  var files = input.files;
+  for (var i = 0; i < files.length; i++) {
+    CENSO_PENDING_PHOTOS.push(files[i]);
+  }
+  censoRenderPreviews();
+}
+
+function censoRenderPreviews() {
+  var grid = document.getElementById('censoPreviewGrid');
+  if (!grid) return;
+  grid.innerHTML = CENSO_PENDING_PHOTOS.map(function(f, idx) {
+    return '<div style="position:relative;display:inline-block">' +
+      '<img class="censo-preview-thumb" src="' + URL.createObjectURL(f) + '" alt="preview">' +
+      '<button class="censo-preview-del" onclick="censoRemovePhoto(' + idx + ')">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+function censoRemovePhoto(idx) {
+  CENSO_PENDING_PHOTOS.splice(idx, 1);
+  censoRenderPreviews();
+}
+
+async function censoGuardarEvolucion() {
+  if (!CENSO_CURRENT_INGRESO) return;
+  var tipo = document.getElementById('censoETipo').value;
+  var nota = document.getElementById('censoENota').value.trim();
+  var btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  // Upload photos if any
+  var urls = [];
+  if (CENSO_PENDING_PHOTOS.length > 0) {
+    for (var i = 0; i < CENSO_PENDING_PHOTOS.length; i++) {
+      var file = CENSO_PENDING_PHOTOS[i];
+      // Compress image
+      var compressed = await censoCompressImage(file);
+      var path = 'censo/' + CENSO_CURRENT_INGRESO.id + '/' + Date.now() + '_' + i + '.jpg';
+      try {
+        var uploadResult = await sb.storage.from(SB_BUCKET).upload(path, compressed, { contentType: 'image/jpeg', upsert: true });
+        if (uploadResult.error) throw uploadResult.error;
+        var urlData = sb.storage.from(SB_BUCKET).getPublicUrl(path);
+        urls.push(urlData.data.publicUrl);
+      } catch(e) {
+        toast('Error al subir foto: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar';
+        return;
+      }
+    }
+  }
+
+  // Save evolucion
+  sb.from('evoluciones').insert({
+    ingreso_id: CENSO_CURRENT_INGRESO.id,
+    tipo: tipo,
+    nota: nota || null,
+    image_urls: urls.length > 0 ? urls : null,
+    author_id: worker.id,
+    author_name: worker.name || worker.email || 'Interno'
+  }).select().single().then(function(r) {
+    if (r.error) {
+      toast('Error: ' + r.error.message, 'error');
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar';
+      return;
+    }
+    toast('Evolucion guardada ✓', 'success');
+    document.getElementById('censoFormEvolucion').remove();
+    censoLoadTimeline(CENSO_CURRENT_INGRESO.id);
+  });
+}
+
+// Image compression via canvas
+function censoCompressImage(file) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var maxW = 1200;
+      var scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) { resolve(blob); }, 'image/jpeg', 0.75);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* ===== DAR DE ALTA ===== */
+function censoDarAlta() {
+  if (!CENSO_CURRENT_INGRESO) return;
+  if (!confirm('¿Dar de alta a este paciente? Se registrara la fecha de egreso.')) return;
+  sb.from('ingresos').update({
+    estado: 'Alta',
+    fecha_egreso: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).eq('id', CENSO_CURRENT_INGRESO.id).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
+    toast('Paciente dado de alta ✓', 'success');
+    CENSO_CURRENT_INGRESO.estado = 'Alta';
+    CENSO_CURRENT_INGRESO.fecha_egreso = new Date().toISOString();
+    censoLoadPerfil(CENSO_CURRENT_INGRESO.id);
+  });
+}
+
+/* ===== IMAGE ZOOM ===== */
+function censoZoomImage(url) {
+  var overlay = document.createElement('div');
+  overlay.className = 'censo-zoom-overlay';
+  overlay.id = 'censoZoom';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = '<button class="censo-zoom-close" onclick="document.getElementById(\'censoZoom\').remove()">✕</button><img src="' + url + '" alt="zoom">';
+  document.body.appendChild(overlay);
+}
+
+/* ===== REAL-TIME ===== */
+function censoRealtimeSetup() {
+  // Cleanup old channels
+  censoCleanupRT();
+  // Subscribe to ingresos changes
+  var ch1 = sb.channel('censo-ingresos')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ingresos', filter: 'servicio_id=eq.' + CENSO_SERVICIO },
+      function() { censoLoadDashboard(); })
+    .subscribe(function(status) {
+      if (status === 'SUBSCRIBED') document.getElementById('censoRTDot').style.display = 'inline-block';
+    });
+  CENSO_RT_CHANNELS.push(ch1);
+}
+
+function censoSubscribeEvoluciones(ingresoId) {
+  censoUnsubscribeEvoluciones();
+  var ch2 = sb.channel('censo-evoluciones-' + ingresoId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'evoluciones', filter: 'ingreso_id=eq.' + ingresoId },
+      function() { censoLoadTimeline(ingresoId); })
+    .subscribe();
+  CENSO_RT_CHANNELS.push(ch2);
+}
+
+function censoUnsubscribeEvoluciones() {
+  CENSO_RT_CHANNELS = CENSO_RT_CHANNELS.filter(function(ch) {
+    if (ch.topic && ch.topic.indexOf('censo-evoluciones') === 0) {
+      sb.removeChannel(ch); return false;
+    }
+    return true;
+  });
+}
+
+function censoCleanupRT() {
+  CENSO_RT_CHANNELS.forEach(function(ch) { sb.removeChannel(ch); });
+  CENSO_RT_CHANNELS = [];
+}
+
+/* ===== HELPERS ===== */
+function censoEsc(s) {
+  if (!s) return '';
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(s));
+  return div.innerHTML;
+}
+
+function censoEscAttr(s) {
+  return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function censoTimeAgo(ts) {
+  if (!ts) return '';
+  var diff = Date.now() - new Date(ts).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return 'hace ' + mins + ' min';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return 'hace ' + hrs + ' h';
+  var dias = Math.floor(hrs / 24);
+  if (dias < 7) return 'hace ' + dias + ' d';
+  return new Date(ts).toLocaleDateString('es-PE');
+}
+
+// Hook: censo init & cleanup on module switch
+(function(){
+  var _orig = showModule;
+  showModule = function(name) {
+    var wasCenso = currentModule === 'censo';
+    _orig(name);
+    if (wasCenso && name !== 'censo') censoCleanupRT();
+    if (name === 'censo') censoInit();
+  };
+})();
 </script>
 </body>
 </html>
