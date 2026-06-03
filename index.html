@@ -763,94 +763,117 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .thumb-anim{position:fixed;z-index:50;object-fit:cover;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;will-change:transform,width,height,top,left,border-radius}
 
 /* ===== CENSO HOSPITALARIO ===== */
-.censo-stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.censo-stat{flex:1;min-width:90px;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--bd)}
-.censo-stat .stat-num{font-size:24px;font-weight:800;color:var(--tl)}
-.censo-stat .stat-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
-.censo-service-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-.censo-service-tab{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s}
-.censo-service-tab.active{background:var(--tl);color:#fff;border-color:var(--tl)}
-.censo-service-tab .cs-badge{display:inline-block;background:rgba(0,0,0,.2);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700}
-.censo-toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.censo-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none}
-.censo-toggle input{display:none}
-.censo-toggle .toggle-track{width:40px;height:22px;background:var(--bd);border-radius:11px;position:relative;transition:background .2s}
-.censo-toggle .toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
-.censo-toggle input:checked+.toggle-track{background:var(--tl)}
-.censo-toggle input:checked+.toggle-track::after{transform:translateX(18px)}
-.censo-list{display:flex;flex-direction:column;gap:10px;overflow-y:auto}
-.censo-card{background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid var(--bd);cursor:pointer;transition:all .2s}
-.censo-card:active,.censo-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)}
-.censo-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
-.censo-bed{font-size:11px;font-weight:700;color:var(--tl);background:rgba(78,205,196,.12);padding:3px 10px;border-radius:12px}
-.censo-name{font-size:15px;font-weight:700;color:var(--t1)}
-.censo-dni{font-size:11px;color:var(--t3)}
-.censo-dx{font-size:12px;color:var(--t2);margin:6px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.censo-meta{display:flex;gap:12px;font-size:10px;color:var(--t3)}
-.censo-meta span{display:flex;align-items:center;gap:4px}
-.censo-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--tl);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(78,205,196,.3);z-index:10;display:flex;align-items:center;justify-content:center;transition:transform .2s}
-.censo-fab:active{transform:scale(.9)}
+.hospi-stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.hospi-stat{flex:1;min-width:90px;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--bd)}
+.hospi-stat .stat-num{font-size:24px;font-weight:800;color:var(--tl)}
+.hospi-stat .stat-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.hospi-service-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.hospi-service-tab{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s}
+.hospi-service-tab.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.hospi-service-tab .cs-badge{display:inline-block;background:rgba(0,0,0,.2);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700}
+.hospi-toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.hospi-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none}
+.hospi-toggle input{display:none}
+.hospi-toggle .toggle-track{width:40px;height:22px;background:var(--bd);border-radius:11px;position:relative;transition:background .2s}
+.hospi-toggle .toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.hospi-toggle input:checked+.toggle-track{background:var(--tl)}
+.hospi-toggle input:checked+.toggle-track::after{transform:translateX(18px)}
+.hospi-list{display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.hospi-card{background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid var(--bd);cursor:pointer;transition:all .2s}
+.hospi-card:active,.hospi-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)}
+.hospi-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.hospi-bed{font-size:11px;font-weight:700;color:var(--tl);background:rgba(78,205,196,.12);padding:3px 10px;border-radius:12px}
+.hospi-name{font-size:15px;font-weight:700;color:var(--t1)}
+.hospi-dni{font-size:11px;color:var(--t3)}
+.hospi-dx{font-size:12px;color:var(--t2);margin:6px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hospi-meta{display:flex;gap:12px;font-size:10px;color:var(--t3)}
+.hospi-meta span{display:flex;align-items:center;gap:4px}
+.hospi-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--tl);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(78,205,196,.3);z-index:10;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.hospi-fab:active{transform:scale(.9)}
 
 /* Patient Profile */
-.censo-back-bar{display:flex;align-items:center;gap:12px;padding:8px 0;margin-bottom:12px}
-.censo-back-btn{background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:8px 12px;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px}
-.censo-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
-.censo-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
-.censo-profile-card .cp-info{font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
-.censo-profile-card .cp-info span{background:rgba(255,255,255,.05);padding:3px 10px;border-radius:10px}
-.censo-profile-card .cp-alert{font-size:11px;color:#D4A853;background:rgba(212,168,83,.1);padding:6px 10px;border-radius:8px;margin-bottom:8px}
-.censo-profile-card .cp-actions{display:flex;gap:8px;margin-top:10px}
-.censo-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;transition:all .2s}
-.censo-btn.primary{background:var(--tl);color:#fff}
-.censo-btn.danger{background:var(--danger);color:#fff}
-.censo-btn.outline{background:transparent;border:1px solid var(--bd);color:var(--t2)}
-.censo-btn.small{padding:6px 12px;font-size:11px}
+.hospi-back-bar{display:flex;align-items:center;gap:12px;padding:8px 0;margin-bottom:12px}
+.hospi-back-btn{background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:8px 12px;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px}
+.hospi-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
+.hospi-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
+.hospi-profile-card .cp-info{font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
+.hospi-profile-card .cp-info span{background:rgba(255,255,255,.05);padding:3px 10px;border-radius:10px}
+.hospi-profile-card .cp-alert{font-size:11px;color:#D4A853;background:rgba(212,168,83,.1);padding:6px 10px;border-radius:8px;margin-bottom:8px}
+.hospi-profile-card .cp-actions{display:flex;gap:8px;margin-top:10px}
+.hospi-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;transition:all .2s}
+.hospi-btn.primary{background:var(--tl);color:#fff}
+.hospi-btn.danger{background:var(--danger);color:#fff}
+.hospi-btn.outline{background:transparent;border:1px solid var(--bd);color:var(--t2)}
+.hospi-btn.small{padding:6px 12px;font-size:11px}
 
-/* Timeline */
-.censo-timeline{position:relative;padding-left:24px}
-.censo-timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--bd)}
-.censo-tl-item{position:relative;margin-bottom:16px;padding-left:16px}
-.censo-tl-dot{position:absolute;left:-21px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--tl);border:2px solid var(--bg)}
-.censo-tl-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
-.censo-tl-tipo{font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:6px;letter-spacing:.5px}
-.censo-tl-tipo.foto{background:rgba(78,205,196,.15);color:var(--tl)}
-.censo-tl-tipo.soap{background:rgba(212,168,83,.15);color:#D4A853}
-.censo-tl-tipo.lab{background:rgba(100,149,237,.15);color:#6495ED}
-.censo-tl-tipo.img{background:rgba(147,112,219,.15);color:#9370DB}
-.censo-tl-author{font-size:11px;color:var(--t2);font-weight:600}
-.censo-tl-time{font-size:10px;color:var(--t3)}
-.censo-tl-nota{font-size:13px;color:var(--t1);line-height:1.5;white-space:pre-wrap}
-.censo-tl-images{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.censo-tl-img{width:100%;max-width:280px;border-radius:10px;cursor:pointer;border:1px solid var(--bd);transition:transform .2s;object-fit:cover;max-height:200px}
-.censo-tl-img:active{transform:scale(.98)}
+/* Timeline — Day groups */
+.hospi-timeline{display:flex;flex-direction:column;gap:4px}
+.hospi-day-group{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.02)}
+.hospi-day-header{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;background:rgba(255,255,255,.03);transition:background .2s}
+.hospi-day-header:active{background:rgba(255,255,255,.06)}
+.hospi-day-arrow{font-size:10px;color:var(--tl);width:16px;text-align:center;flex-shrink:0;transition:transform .2s}
+.hospi-day-label{font-size:12px;font-weight:700;color:var(--t1);flex:1}
+.hospi-day-count{font-size:10px;color:var(--t3);background:rgba(255,255,255,.06);padding:3px 10px;border-radius:10px}
+.hospi-day-body{padding:4px 0}
+
+/* Timeline entries — compact */
+.hospi-tl-entry{display:flex;align-items:stretch;padding:8px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.03)}
+.hospi-tl-entry:last-child{border-bottom:none}
+.hospi-tl-entry:active{background:rgba(255,255,255,.03)}
+.hospi-tl-time-col{width:42px;flex-shrink:0;display:flex;align-items:flex-start;padding-top:3px}
+.hospi-tl-clock{font-size:10px;color:var(--t3);font-weight:600;font-variant-numeric:tabular-nums}
+.hospi-tl-content{flex:1;min-width:0}
+.hospi-tl-header-compact{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hospi-tl-tipo{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:5px;letter-spacing:.5px}
+.hospi-tl-tipo.foto{background:rgba(78,205,196,.15);color:var(--tl)}
+.hospi-tl-tipo.soap{background:rgba(212,168,83,.15);color:#D4A853}
+.hospi-tl-tipo.lab{background:rgba(100,149,237,.15);color:#6495ED}
+.hospi-tl-tipo.img{background:rgba(147,112,219,.15);color:#9370DB}
+.hospi-tl-author{font-size:11px;color:var(--t2);font-weight:600}
+.hospi-tl-arrow{font-size:9px;color:var(--t3);margin-left:auto;flex-shrink:0}
+.hospi-tl-detail{margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
+.hospi-tl-nota{font-size:13px;color:var(--t1);line-height:1.5;white-space:pre-wrap}
+.hospi-tl-images{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.hospi-tl-img{width:100%;max-width:280px;border-radius:10px;cursor:pointer;border:1px solid var(--bd);transition:transform .2s;object-fit:cover;max-height:200px}
+.hospi-tl-img:active{transform:scale(.98)}
+
+/* Date filter bar */
+.hospi-filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.hospi-filter-chip{padding:6px 14px;border-radius:16px;font-size:11px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s}
+.hospi-filter-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.hospi-date-input{background:rgba(255,255,255,.08);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;color:#fff;font-size:11px;font-family:inherit;width:120px}
+.hospi-date-input:focus{outline:none;border-color:var(--tl)}
 
 /* Image Zoom */
-.censo-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
-.censo-zoom-overlay img{max-width:100vw;max-height:100vh;object-fit:contain;touch-action:pinch-zoom}
-.censo-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;z-index:2}
+.hospi-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.hospi-zoom-overlay img{max-width:100vw;max-height:100vh;object-fit:contain;touch-action:pinch-zoom}
+.hospi-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;z-index:2}
 
 /* Evolution Form */
-.censo-form-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;flex-direction:column;overflow-y:auto}
-.censo-form-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd)}
-.censo-form-header h3{color:#fff;font-size:16px;font-weight:700}
-.censo-form-body{flex:1;padding:20px;overflow-y:auto}
-.censo-form-body label{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
-.censo-form-body select,.censo-form-body input[type=text],.censo-form-body textarea{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit}
-.censo-form-body textarea{resize:vertical;min-height:60px}
-.censo-photo-area{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;background:rgba(255,255,255,.04);border:2px dashed var(--bd);border-radius:16px;cursor:pointer;margin:12px 0}
-.censo-photo-area .cpa-icon{font-size:40px}
-.censo-photo-area .cpa-text{font-size:13px;color:var(--t2);font-weight:600}
-.censo-photo-area .cpa-sub{font-size:10px;color:var(--t3)}
-.censo-preview-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.censo-preview-thumb{width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid var(--bd);position:relative}
-.censo-preview-del{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer}
-.censo-form-footer{display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--bd)}
-.censo-form-footer button{flex:1}
-.censo-empty{text-align:center;padding:40px 20px;color:var(--t3)}
-.censo-empty .ce-icon{font-size:48px;margin-bottom:12px}
-.censo-empty p{font-size:14px}
-.censo-realtime-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:6px;animation:censo-pulse 2s infinite}
-@keyframes censo-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hospi-form-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;flex-direction:column;overflow-y:auto}
+.hospi-form-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd)}
+.hospi-form-header h3{color:#fff;font-size:16px;font-weight:700}
+.hospi-form-body{flex:1;padding:20px;overflow-y:auto}
+.hospi-form-body label{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
+.hospi-form-body select,.hospi-form-body input[type=text],.hospi-form-body textarea{width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit}
+.hospi-form-body select{background:rgba(255,255,255,.15);color:#fff}
+.hospi-form-body select option{background:#1B3A6B;color:#fff;padding:8px}
+.hospi-form-body input::placeholder,.hospi-form-body textarea::placeholder{color:rgba(255,255,255,.35)}
+.hospi-form-body textarea{resize:vertical;min-height:60px}
+.hospi-photo-area{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;background:rgba(255,255,255,.04);border:2px dashed var(--bd);border-radius:16px;cursor:pointer;margin:12px 0}
+.hospi-photo-area .cpa-icon{font-size:40px}
+.hospi-photo-area .cpa-text{font-size:13px;color:var(--t2);font-weight:600}
+.hospi-photo-area .cpa-sub{font-size:10px;color:var(--t3)}
+.hospi-preview-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.hospi-preview-thumb{width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid var(--bd);position:relative}
+.hospi-preview-del{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer}
+.hospi-form-footer{display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--bd)}
+.hospi-form-footer button{flex:1}
+.hospi-empty{text-align:center;padding:40px 20px;color:var(--t3)}
+.hospi-empty .ce-icon{font-size:48px;margin-bottom:12px}
+.hospi-empty p{font-size:14px}
+.hospi-realtime-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:6px;animation:hospi-pulse 2s infinite}
+@keyframes hospi-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
@@ -1057,10 +1080,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span class="sni-icon">📸</span>
           <span class="sni-label">Wichanzao Scan</span>
         </a>
-        <a class="sidebar-nav-item" data-module="historias" onclick="showModule('historias')">
-          <span class="sni-icon">🏥</span>
-          <span class="sni-label">Historias Clinicas</span>
-        </a>
         <a class="sidebar-nav-item" data-module="renal" onclick="showModule('renal')">
           <span class="sni-icon">🩺</span>
           <span class="sni-label">Calculadora Renal</span>
@@ -1069,9 +1088,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span class="sni-icon">📋</span>
           <span class="sni-label">CIE Medicina Interna</span>
         </a>
-        <a class="sidebar-nav-item" data-module="censo" onclick="showModule('censo')">
+        <a class="sidebar-nav-item" data-module="hospitalizacion" onclick="showModule('hospitalizacion')">
           <span class="sni-icon">🛏️</span>
-          <span class="sni-label">Censo Hospitalario</span>
+          <span class="sni-label">Hospitalización</span>
         </a>
       </nav>
       <div class="sidebar-user">
@@ -1122,12 +1141,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <div class="mc-title">Wichanzao Scan</div>
               <div class="mc-desc">Digitaliza documentos, PDFs y combina fotos</div>
             </div>
-            <div class="module-card" onclick="showModule('historias')">
-              <span class="mc-icon">🏥</span>
-              <div class="mc-title">Historias Clinicas</div>
-              <div class="mc-desc">Gestion de historias clinicas electronicas</div>
-              <span class="mc-badge-prox">Proximamente</span>
-            </div>
             <div class="module-card" onclick="showModule('renal')">
               <span class="mc-icon">🩺</span>
               <div class="mc-title">Calculadora Renal</div>
@@ -1140,9 +1153,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <div class="mc-desc">+600 codigos · Busqueda · Favoritos · 21 capitulos OMS</div>
               <span class="mc-badge-prox" style="background:rgba(78,205,196,.15);color:var(--tl)">✓ Disponible</span>
             </div>
-            <div class="module-card" onclick="showModule('censo')">
+            <div class="module-card" onclick="showModule('hospitalizacion')">
               <span class="mc-icon">🛏️</span>
-              <div class="mc-title">Censo Hospitalario</div>
+              <div class="mc-title">Hospitalización</div>
               <div class="mc-desc">Gestion de camas · Evoluciones · Tiempo real · Fotos</div>
               <span class="mc-badge-prox" style="background:rgba(78,205,196,.15);color:var(--tl)">✓ Disponible</span>
             </div>
@@ -1240,25 +1253,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </div>
       </div>
 
-      <!-- === MODULE: HISTORIAS CLINICAS (placeholder) === -->
-      <div class="module-panel" id="moduleHistorias">
-        <div class="module-header">
-          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
-            <span></span><span></span><span></span>
-          </button>
-          <div class="mh-breadcrumb">
-            <a onclick="showModule('dashboard')">Inicio</a> / Historias Clinicas
-          </div>
-        </div>
-        <div class="module-body">
-          <div class="placeholder-card">
-            <span class="ph-icon">🏥</span>
-            <h3>Historias Clinicas</h3>
-            <p>Gestion de historias clinicas electronicas con busqueda por paciente, fecha y servicio</p>
-            <span class="ph-badge">Proximamente</span>
-          </div>
-        </div>
-      </div>
 
       <!-- === MODULE: CALCULADORA RENAL === -->
       <div class="module-panel" id="moduleRenal">
@@ -1517,45 +1511,54 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
       </div>
 
       <!-- ===== MODULE: CENSO HOSPITALARIO ===== -->
-      <div class="module-panel" id="moduleCenso">
+      <div class="module-panel" id="moduleHospitalizacion">
         <div class="module-header">
           <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
             <span></span><span></span><span></span>
           </button>
           <div class="mh-breadcrumb">
-            <a onclick="showModule('dashboard')">Inicio</a> / Censo Hospitalario
+            <a onclick="showModule('dashboard')">Inicio</a> / Hospitalización
           </div>
           <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
-            <span class="censo-realtime-dot" id="censoRTDot" style="display:none" title="Conexion en tiempo real"></span>
-            <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="censoBadge">Internos</span>
+            <span class="hospi-realtime-dot" id="hospiRTDot" style="display:none" title="Conexion en tiempo real"></span>
+            <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="hospiBadge">Internos</span>
           </span>
         </div>
-        <div class="module-body" id="censoBody">
+        <div class="module-body" id="hospiBody">
           <!-- VIEW: Dashboard -->
-          <div id="censoDashboard">
-            <div class="censo-stats" id="censoStats"></div>
-            <div class="censo-service-tabs" id="censoServiceTabs"></div>
-            <div class="censo-toggle-row">
-              <label class="censo-toggle">
-                <input type="checkbox" id="censoActivosToggle" checked onchange="censoLoadDashboard()">
+          <div id="hospiDashboard">
+            <div class="hospi-stats" id="hospiStats"></div>
+            <div class="hospi-service-tabs" id="hospiServiceTabs"></div>
+            <div class="hospi-filter-bar" id="hospiDateFilter">
+              <button class="hospi-filter-chip active" onclick="hospiSetDateFilter('all',this)">📅 Todos</button>
+              <button class="hospi-filter-chip" onclick="hospiSetDateFilter('today',this)">Hoy</button>
+              <button class="hospi-filter-chip" onclick="hospiSetDateFilter('week',this)">Esta semana</button>
+              <button class="hospi-filter-chip" onclick="hospiSetDateFilter('month',this)">Este mes</button>
+              <input type="date" class="hospi-date-input" id="hospiDateFrom" onchange="hospiLoadDashboard()" title="Desde">
+              <span style="color:var(--t3);font-size:11px">–</span>
+              <input type="date" class="hospi-date-input" id="hospiDateTo" onchange="hospiLoadDashboard()" title="Hasta">
+            </div>
+            <div class="hospi-toggle-row">
+              <label class="hospi-toggle">
+                <input type="checkbox" id="hospiActivosToggle" checked onchange="hospiLoadDashboard()">
                 <span class="toggle-track"></span>
                 Solo pacientes activos
               </label>
             </div>
-            <div class="censo-list" id="censoList"></div>
+            <div class="hospi-list" id="hospiList"></div>
           </div>
           <!-- VIEW: Patient Profile -->
-          <div id="censoPerfil" style="display:none">
-            <div class="censo-back-bar">
-              <button class="censo-back-btn" onclick="censoBackToDashboard()">← Volver al censo</button>
+          <div id="hospiPerfil" style="display:none">
+            <div class="hospi-back-bar">
+              <button class="hospi-back-btn" onclick="hospiBackToDashboard()">← Volver al listado</button>
             </div>
-            <div id="censoProfileCard"></div>
+            <div id="hospiProfileCard"></div>
             <h4 style="font-size:13px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">Linea de Tiempo — Evoluciones</h4>
-            <div class="censo-timeline" id="censoTimeline"></div>
+            <div class="hospi-timeline" id="hospiTimeline"></div>
           </div>
         </div>
         <!-- FAB: New Admission -->
-        <button class="censo-fab" id="censoFAB" onclick="censoNuevoIngreso()" title="Nuevo Ingreso">+</button>
+        <button class="hospi-fab" id="hospiFAB" onclick="hospiNuevoIngreso()" title="Nuevo Ingreso">+</button>
       </div>
     </main>
   </div>
@@ -6241,91 +6244,125 @@ window.addEventListener('appinstalled', function() {
 });
 
 /* ===== CENSO HOSPITALARIO ===== */
-var CENSO_SERVICIO = 1;       // 1=Medicina, 2=Cirugía, 3=Gineco
-var CENSO_INGRESOS = [];
-var CENSO_CURRENT_INGRESO = null;
-var CENSO_RT_CHANNELS = [];
-var CENSO_PENDING_PHOTOS = [];  // File objects pending upload
-var CENSO_AUTH_ID = null;       // Supabase auth user UUID
+var HOSPI_SERVICIO = 1;       // 1=Medicina, 2=Cirugía, 3=Gineco
+var HOSPI_INGRESOS = [];
+var HOSPI_CURRENT_INGRESO = null;
+var HOSPI_RT_CHANNELS = [];
+var HOSPI_PENDING_PHOTOS = [];  // File objects pending upload
+var HOSPI_AUTH_ID = null;       // Supabase auth user UUID
+var HOSPI_DATE_FILTER = 'all';   // 'all'|'today'|'week'|'month'|'custom'
 
-async function censoGetUserId() {
-  if (CENSO_AUTH_ID) return CENSO_AUTH_ID;
+async function hospiGetUserId() {
+  if (HOSPI_AUTH_ID) return HOSPI_AUTH_ID;
   try {
     var sess = (await sb.auth.getSession()).data.session;
-    if (sess && sess.user) { CENSO_AUTH_ID = sess.user.id; return CENSO_AUTH_ID; }
+    if (sess && sess.user) { HOSPI_AUTH_ID = sess.user.id; return HOSPI_AUTH_ID; }
   } catch(e) {}
   // Fallback: derive UUID-like string from worker id (temporary, RLS will block writes)
-  console.warn('Censo: no se pudo obtener auth UUID, usando fallback');
+  console.warn('Hospitalizacion: no se pudo obtener auth UUID, usando fallback');
   return null;
 }
 
-async function censoInit() {
-  if (!worker) { toast('Inicia sesion para usar el Censo', 'error'); return; }
-  CENSO_SERVICIO = 1;
-  CENSO_CURRENT_INGRESO = null;
-  await censoGetUserId();
-  if (!CENSO_AUTH_ID) { toast('No se pudo autenticar. Reconecta tu sesion.', 'error'); return; }
-  censoLoadDashboard();
-  censoRealtimeSetup();
+async function hospiInit() {
+  if (!worker) { toast('Inicia sesion para usar Hospitalizacion', 'error'); return; }
+  HOSPI_SERVICIO = 1;
+  HOSPI_CURRENT_INGRESO = null;
+  await hospiGetUserId();
+  if (!HOSPI_AUTH_ID) { toast('No se pudo autenticar. Reconecta tu sesion.', 'error'); return; }
+  hospiLoadDashboard();
+  hospiRealtimeSetup();
 }
 
-function censoLoadDashboard() {
-  var soloActivos = document.getElementById('censoActivosToggle')?.checked !== false;
-  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', CENSO_SERVICIO).order('created_at', {ascending: false});
+function hospiLoadDashboard() {
+  var soloActivos = document.getElementById('hospiActivosToggle')?.checked !== false;
+  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false});
   if (soloActivos) query = query.eq('estado', 'Activo');
+
+  // Date filter
+  var now = new Date();
+  switch (HOSPI_DATE_FILTER) {
+    case 'today':
+      var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      query = query.gte('fecha_ingreso', todayStart);
+      break;
+    case 'week':
+      var weekAgo = new Date(now.getTime() - 7*86400000).toISOString();
+      query = query.gte('fecha_ingreso', weekAgo);
+      break;
+    case 'month':
+      var monthAgo = new Date(now.getFullYear(), now.getMonth()-1, now.getDate()).toISOString();
+      query = query.gte('fecha_ingreso', monthAgo);
+      break;
+    case 'custom':
+      var dateFrom = document.getElementById('hospiDateFrom')?.value;
+      var dateTo = document.getElementById('hospiDateTo')?.value;
+      if (dateFrom) query = query.gte('fecha_ingreso', dateFrom + 'T00:00:00');
+      if (dateTo) query = query.lte('fecha_ingreso', dateTo + 'T23:59:59');
+      break;
+  }
 
   // Render service tabs
   sb.from('servicios').select('*').order('id').then(function(r) {
     if (r.data) {
       var tabsHtml = r.data.map(function(s) {
-        return '<button class="censo-service-tab' + (s.id === CENSO_SERVICIO ? ' active' : '') + '" onclick="censoSwitchService(' + s.id + ')">' + s.nombre + '</button>';
+        return '<button class="hospi-service-tab' + (s.id === HOSPI_SERVICIO ? ' active' : '') + '" onclick="hospiSwitchService(' + s.id + ')">' + s.nombre + '</button>';
       }).join('');
-      document.getElementById('censoServiceTabs').innerHTML = tabsHtml;
+      document.getElementById('hospiServiceTabs').innerHTML = tabsHtml;
     }
   });
 
   query.then(function(r) {
     if (r.error) { console.error(r.error); return; }
-    CENSO_INGRESOS = r.data || [];
-    censoRenderDashboard(r.data || []);
+    HOSPI_INGRESOS = r.data || [];
+    hospiRenderDashboard(r.data || []);
   });
 
   // Stats
-  sb.from('ingresos').select('id,estado', {count:'exact', head:true}).eq('servicio_id', CENSO_SERVICIO).then(function(r) {
+  sb.from('ingresos').select('id,estado', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).then(function(r) {
     var total = r.count || 0;
-    sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', CENSO_SERVICIO).eq('estado', 'Activo').then(function(r2) {
+    sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r2) {
       var activos = r2.count || 0;
-      document.getElementById('censoStats').innerHTML =
-        '<div class="censo-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
-        '<div class="censo-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total Ingresos</div></div>';
+      document.getElementById('hospiStats').innerHTML =
+        '<div class="hospi-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
+        '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total Ingresos</div></div>';
     });
   });
 }
 
-function censoSwitchService(servId) {
-  CENSO_SERVICIO = servId;
-  document.querySelectorAll('.censo-service-tab').forEach(function(t,i){ t.classList.toggle('active', i+1 === servId); });
-  censoLoadDashboard();
+function hospiSwitchService(servId) {
+  HOSPI_SERVICIO = servId;
+  document.querySelectorAll('.hospi-service-tab').forEach(function(t,i){ t.classList.toggle('active', i+1 === servId); });
+  hospiLoadDashboard();
 }
 
-function censoRenderDashboard(ingresos) {
-  var list = document.getElementById('censoList');
+function hospiSetDateFilter(filter, btn) {
+  HOSPI_DATE_FILTER = filter;
+  document.querySelectorAll('.hospi-filter-chip').forEach(function(c){ c.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  // Show/hide custom date inputs
+  var dateInputs = document.querySelectorAll('.hospi-date-input');
+  dateInputs.forEach(function(d){ d.style.display = filter === 'custom' ? 'inline-block' : 'none'; });
+  hospiLoadDashboard();
+}
+
+function hospiRenderDashboard(ingresos) {
+  var list = document.getElementById('hospiList');
   if (!ingresos.length) {
-    list.innerHTML = '<div class="censo-empty"><div class="ce-icon">🛏️</div><p>No hay ingresos en este servicio</p><p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p></div>';
+    list.innerHTML = '<div class="hospi-empty"><div class="ce-icon">🛏️</div><p>No hay ingresos en este servicio</p><p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p></div>';
     return;
   }
   list.innerHTML = ingresos.map(function(ing) {
     var p = ing.pacientes;
     var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
-    return '<div class="censo-card" onclick="censoLoadPerfil(\'' + ing.id + '\')">' +
-      '<div class="censo-card-top">' +
-        '<div><span class="censo-bed">🛏️ ' + censoEsc(ing.cama) + '</span></div>' +
-        '<span style="font-size:10px;color:var(--t3)">' + censoTimeAgo(ing.fecha_ingreso) + '</span>' +
+    return '<div class="hospi-card" onclick="hospiLoadPerfil(\'' + ing.id + '\')">' +
+      '<div class="hospi-card-top">' +
+        '<div><span class="hospi-bed">🛏️ ' + hospiEsc(ing.cama) + '</span></div>' +
+        '<span style="font-size:10px;color:var(--t3)">' + hospiTimeAgo(ing.fecha_ingreso) + '</span>' +
       '</div>' +
-      '<div class="censo-name">' + censoEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
-      '<div class="censo-dni">DNI ' + censoEsc(p.dni) + ' · ' + edad + ' años · ' + (p.sexo || '?') + '</div>' +
-      (ing.dx_ingreso ? '<div class="censo-dx">📋 ' + censoEsc(ing.dx_ingreso) + '</div>' : '') +
-      '<div class="censo-meta">' +
+      '<div class="hospi-name">' + hospiEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
+      '<div class="hospi-dni">DNI ' + hospiEsc(p.dni) + ' · ' + edad + ' años · ' + (p.sexo || '?') + '</div>' +
+      (ing.dx_ingreso ? '<div class="hospi-dx">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
+      '<div class="hospi-meta">' +
         '<span>📅 ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</span>' +
         '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
       '</div>' +
@@ -6333,139 +6370,193 @@ function censoRenderDashboard(ingresos) {
   }).join('');
 }
 
-function censoLoadPerfil(ingresoId) {
+function hospiLoadPerfil(ingresoId) {
   sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
     if (r.error) { toast('Error al cargar perfil', 'error'); return; }
-    CENSO_CURRENT_INGRESO = r.data;
+    HOSPI_CURRENT_INGRESO = r.data;
     var ing = r.data;
     var p = ing.pacientes;
     var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
 
-    document.getElementById('censoDashboard').style.display = 'none';
-    document.getElementById('censoPerfil').style.display = 'block';
-    document.getElementById('censoFAB').style.display = 'none';
+    document.getElementById('hospiDashboard').style.display = 'none';
+    document.getElementById('hospiPerfil').style.display = 'block';
+    document.getElementById('hospiFAB').style.display = 'none';
 
     // Profile card
-    var alertHtml = p.alergias ? '<div class="cp-alert">⚠ Alergias: ' + censoEsc(p.alergias) + '</div>' : '';
+    var alertHtml = p.alergias ? '<div class="cp-alert">⚠ Alergias: ' + hospiEsc(p.alergias) + '</div>' : '';
     var actionsHtml = '';
     if (ing.estado === 'Activo') {
-      actionsHtml = '<button class="censo-btn outline small" onclick="censoNuevaEvolucion()">+ Evolucion</button>' +
-                    '<button class="censo-btn danger small" onclick="censoDarAlta()">Dar de Alta</button>';
+      actionsHtml = '<button class="hospi-btn outline small" onclick="hospiNuevaEvolucion()">+ Evolucion</button>' +
+                    '<button class="hospi-btn danger small" onclick="hospiDarAlta()">Dar de Alta</button>';
     }
-    document.getElementById('censoProfileCard').innerHTML =
-      '<div class="censo-profile-card">' +
-        '<div class="cp-name">' + censoEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
+    document.getElementById('hospiProfileCard').innerHTML =
+      '<div class="hospi-profile-card">' +
+        '<div class="cp-name">' + hospiEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
         '<div class="cp-info">' +
-          '<span>DNI: ' + censoEsc(p.dni) + '</span>' +
+          '<span>DNI: ' + hospiEsc(p.dni) + '</span>' +
           '<span>' + edad + ' años</span>' +
           '<span>' + (p.sexo || '?') + '</span>' +
-          '<span>🛏️ ' + censoEsc(ing.cama) + '</span>' +
-          '<span>🏥 ' + censoEsc(ing.servicios.nombre) + '</span>' +
+          '<span>🛏️ ' + hospiEsc(ing.cama) + '</span>' +
+          '<span>🏥 ' + hospiEsc(ing.servicios.nombre) + '</span>' +
           '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
         '</div>' +
         alertHtml +
-        (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + censoEsc(ing.dx_ingreso) + '</div>' : '') +
+        (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
         '<div style="font-size:10px;color:var(--t3)">Ingreso: ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</div>' +
         '<div class="cp-actions">' + actionsHtml + '</div>' +
       '</div>';
 
     // Load timeline
-    censoLoadTimeline(ingresoId);
+    hospiLoadTimeline(ingresoId);
   });
 }
 
-function censoLoadTimeline(ingresoId) {
+function hospiLoadTimeline(ingresoId) {
   sb.from('evoluciones').select('*').eq('ingreso_id', ingresoId).order('created_at', {ascending: false}).then(function(r) {
-    var timeline = document.getElementById('censoTimeline');
+    var timeline = document.getElementById('hospiTimeline');
     if (!r.data || !r.data.length) {
-      timeline.innerHTML = '<div class="censo-empty"><div class="ce-icon">📝</div><p>Sin evoluciones aun</p></div>';
+      timeline.innerHTML = '<div class="hospi-empty"><div class="ce-icon">📝</div><p>Sin evoluciones aun</p></div>';
       return;
     }
-    timeline.innerHTML = r.data.map(function(ev) {
-      var tipoClass = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : 'img';
-      var imagesHtml = '';
-      if (ev.image_urls && ev.image_urls.length) {
-        imagesHtml = '<div class="censo-tl-images">' + ev.image_urls.map(function(url) {
-          return '<img class="censo-tl-img" src="' + url + '" onclick="event.stopPropagation();censoZoomImage(\'' + censoEscAttr(url) + '\')" loading="lazy">';
-        }).join('') + '</div>';
-      }
-      return '<div class="censo-tl-item">' +
-        '<div class="censo-tl-dot"></div>' +
-        '<div class="censo-tl-header">' +
-          '<span class="censo-tl-tipo ' + tipoClass + '">' + ev.tipo + '</span>' +
-          '<span class="censo-tl-author">' + censoEsc(ev.author_name) + '</span>' +
-          '<span class="censo-tl-time">' + censoTimeAgo(ev.created_at) + '</span>' +
+    // Group by date
+    var groups = {};
+    r.data.forEach(function(ev) {
+      var dayKey = new Date(ev.created_at).toLocaleDateString('es-PE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      if (!groups[dayKey]) groups[dayKey] = [];
+      groups[dayKey].push(ev);
+    });
+
+    var html = '';
+    var dayIdx = 0;
+    Object.keys(groups).forEach(function(dayLabel) {
+      var evs = groups[dayLabel];
+      var dayId = 'hospiDay-' + (dayIdx++);
+      html += '<div class="hospi-day-group">' +
+        '<div class="hospi-day-header" onclick="hospiToggleDay(\'' + dayId + '\')">' +
+          '<span class="hospi-day-arrow" id="' + dayId + '-arrow">▶</span>' +
+          '<span class="hospi-day-label">📅 ' + dayLabel + '</span>' +
+          '<span class="hospi-day-count">' + evs.length + ' evol.</span>' +
         '</div>' +
-        (ev.nota ? '<div class="censo-tl-nota">' + censoEsc(ev.nota) + '</div>' : '') +
-        imagesHtml +
-      '</div>';
-    }).join('');
-    // Realtime: subscribe to new evoluciones for this ingreso
-    censoSubscribeEvoluciones(ingresoId);
+        '<div class="hospi-day-body" id="' + dayId + '" style="display:none">';
+
+      evs.forEach(function(ev) {
+        var time = new Date(ev.created_at).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+        var tipoClass = ev.tipo === 'Foto' ? 'foto' : ev.tipo === 'SOAP' ? 'soap' : ev.tipo === 'Laboratorio' ? 'lab' : ev.tipo === 'Imagen' ? 'img' : '';
+        var evId = 'ev-' + ev.id.substring(0,8);
+        var imagesHtml = '';
+        if (ev.image_urls && ev.image_urls.length) {
+          imagesHtml = '<div class="hospi-tl-images">' + ev.image_urls.map(function(url) {
+            return '<img class="hospi-tl-img" src="' + url + '" onclick="event.stopPropagation();hospiZoomImage(\'' + hospiEscAttr(url) + '\')" loading="lazy">';
+          }).join('') + '</div>';
+        }
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + evId + '\')">' +
+          '<div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div>' +
+          '<div class="hospi-tl-content">' +
+            '<div class="hospi-tl-header-compact">' +
+              '<span class="hospi-tl-tipo ' + tipoClass + '">' + ev.tipo + '</span>' +
+              '<span class="hospi-tl-author">' + hospiEsc(ev.author_name) + '</span>' +
+              '<span class="hospi-tl-arrow" id="' + evId + '-arrow">▶</span>' +
+            '</div>' +
+            '<div class="hospi-tl-detail" id="' + evId + '" style="display:none">' +
+              (ev.nota ? '<div class="hospi-tl-nota">' + hospiEsc(ev.nota) + '</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') +
+              imagesHtml +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      });
+
+      html += '</div></div>';
+    });
+    timeline.innerHTML = html;
+    hospiSubscribeEvoluciones(ingresoId);
   });
 }
 
-function censoBackToDashboard() {
-  document.getElementById('censoDashboard').style.display = 'block';
-  document.getElementById('censoPerfil').style.display = 'none';
-  document.getElementById('censoFAB').style.display = 'flex';
-  CENSO_CURRENT_INGRESO = null;
-  censoUnsubscribeEvoluciones();
-  censoLoadDashboard();
+function hospiToggleDay(dayId) {
+  var body = document.getElementById(dayId);
+  var arrow = document.getElementById(dayId + '-arrow');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▶';
+  }
+}
+
+function hospiToggleEv(evId) {
+  var detail = document.getElementById(evId);
+  var arrow = document.getElementById(evId + '-arrow');
+  if (detail.style.display === 'none') {
+    detail.style.display = 'block';
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    detail.style.display = 'none';
+    if (arrow) arrow.textContent = '▶';
+  }
+}
+
+function hospiBackToDashboard() {
+  document.getElementById('hospiDashboard').style.display = 'block';
+  document.getElementById('hospiPerfil').style.display = 'none';
+  document.getElementById('hospiFAB').style.display = 'flex';
+  HOSPI_CURRENT_INGRESO = null;
+  hospiUnsubscribeEvoluciones();
+  hospiLoadDashboard();
 }
 
 /* ===== NUEVO INGRESO ===== */
-function censoNuevoIngreso() {
+function hospiNuevoIngreso() {
   if (!worker) { toast('Inicia sesion primero', 'error'); return; }
   var overlay = document.createElement('div');
-  overlay.className = 'censo-form-overlay';
-  overlay.id = 'censoFormIngreso';
+  overlay.className = 'hospi-form-overlay';
+  overlay.id = 'hospiFormIngreso';
   overlay.innerHTML =
-    '<div class="censo-form-header">' +
+    '<div class="hospi-form-header">' +
       '<h3>Nuevo Ingreso</h3>' +
-      '<button onclick="document.getElementById(\'censoFormIngreso\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+      '<button onclick="document.getElementById(\'hospiFormIngreso\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
     '</div>' +
-    '<div class="censo-form-body">' +
+    '<div class="hospi-form-body">' +
       '<label>Buscar Paciente por DNI</label>' +
-      '<input type="text" id="censoBuscarDNI" placeholder="Ingresa el DNI..." oninput="censoBuscarPaciente()" autocomplete="off">' +
-      '<div id="censoBuscarResult" style="margin-top:8px"></div>' +
-      '<div id="censoPacienteNuevo" style="display:none">' +
-        '<label>Nombres</label><input type="text" id="censoPNombres">' +
-        '<label>Apellidos</label><input type="text" id="censoPApellidos">' +
-        '<label>Fecha de Nacimiento</label><input type="text" id="censoPFechaNac" placeholder="YYYY-MM-DD">' +
-        '<label>Sexo</label><select id="censoPSexo"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option></select>' +
-        '<label>Alergias</label><input type="text" id="censoPAlergias" placeholder="ej. Penicilina, Sulfa...">' +
+      '<input type="text" id="hospiBuscarDNI" placeholder="Ingresa el DNI..." oninput="hospiBuscarPaciente()" autocomplete="off">' +
+      '<div id="hospiBuscarResult" style="margin-top:8px"></div>' +
+      '<div id="hospiPacienteNuevo" style="display:none">' +
+        '<label>Nombres</label><input type="text" id="hospiPNombres">' +
+        '<label>Apellidos</label><input type="text" id="hospiPApellidos">' +
+        '<label>Fecha de Nacimiento</label><input type="text" id="hospiPFechaNac" placeholder="YYYY-MM-DD">' +
+        '<label>Sexo</label><select id="hospiPSexo"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option></select>' +
+        '<label>Alergias</label><input type="text" id="hospiPAlergias" placeholder="ej. Penicilina, Sulfa...">' +
       '</div>' +
-      '<div id="censoIngresoFields" style="display:none">' +
-        '<label>Servicio</label><select id="censoIServicio">' +
+      '<div id="hospiIngresoFields" style="display:none">' +
+        '<label>Servicio</label><select id="hospiIServicio">' +
           '<option value="1">Medicina Interna</option>' +
           '<option value="2">Cirugia</option>' +
           '<option value="3">Gineco-Obstetricia</option>' +
         '</select>' +
-        '<label>Cama</label><input type="text" id="censoICama" placeholder="ej. Cama 4, Pasillo...">' +
+        '<label>Cama</label><input type="text" id="hospiICama" placeholder="ej. Cama 4, Pasillo...">' +
         '<label>Diagnostico de Ingreso (opcional)</label>' +
-        '<input type="text" id="censoIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
+        '<input type="text" id="hospiIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
       '</div>' +
     '</div>' +
-    '<div class="censo-form-footer">' +
-      '<button class="censo-btn outline" onclick="document.getElementById(\'censoFormIngreso\').remove()">Cancelar</button>' +
-      '<button class="censo-btn primary" id="censoBtnGuardarIngreso" onclick="censoGuardarIngreso()" disabled>Guardar Ingreso</button>' +
+    '<div class="hospi-form-footer">' +
+      '<button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormIngreso\').remove()">Cancelar</button>' +
+      '<button class="hospi-btn primary" id="hospiBtnGuardarIngreso" onclick="hospiGuardarIngreso()" disabled>Guardar Ingreso</button>' +
     '</div>';
   document.body.appendChild(overlay);
 }
 
-var CENSO_PACIENTE_SEL = null;
+var HOSPI_PACIENTE_SEL = null;
 
-function censoBuscarPaciente() {
-  var dni = document.getElementById('censoBuscarDNI').value.trim();
-  var resultDiv = document.getElementById('censoBuscarResult');
-  var nuevoDiv = document.getElementById('censoPacienteNuevo');
-  var ingFields = document.getElementById('censoIngresoFields');
-  var btnGuardar = document.getElementById('censoBtnGuardarIngreso');
+function hospiBuscarPaciente() {
+  var dni = document.getElementById('hospiBuscarDNI').value.trim();
+  var resultDiv = document.getElementById('hospiBuscarResult');
+  var nuevoDiv = document.getElementById('hospiPacienteNuevo');
+  var ingFields = document.getElementById('hospiIngresoFields');
+  var btnGuardar = document.getElementById('hospiBtnGuardarIngreso');
 
   ingFields.style.display = 'none';
   btnGuardar.disabled = true;
-  CENSO_PACIENTE_SEL = null;
+  HOSPI_PACIENTE_SEL = null;
 
   if (dni.length < 6) {
     resultDiv.innerHTML = '';
@@ -6475,8 +6566,8 @@ function censoBuscarPaciente() {
 
   sb.from('pacientes').select('*').eq('dni', dni).maybeSingle().then(function(r) {
     if (r.data) {
-      CENSO_PACIENTE_SEL = r.data;
-      resultDiv.innerHTML = '<div style="background:rgba(78,205,196,.1);padding:10px;border-radius:10px;color:var(--tl);font-size:13px;font-weight:600">✓ ' + censoEsc(r.data.nombres + ' ' + r.data.apellidos) + '</div>';
+      HOSPI_PACIENTE_SEL = r.data;
+      resultDiv.innerHTML = '<div style="background:rgba(78,205,196,.1);padding:10px;border-radius:10px;color:var(--tl);font-size:13px;font-weight:600">✓ ' + hospiEsc(r.data.nombres + ' ' + r.data.apellidos) + '</div>';
       nuevoDiv.style.display = 'none';
       ingFields.style.display = 'block';
       btnGuardar.disabled = false;
@@ -6489,11 +6580,11 @@ function censoBuscarPaciente() {
   });
 }
 
-function censoGuardarIngreso() {
-  var dni = document.getElementById('censoBuscarDNI').value.trim();
-  var cama = document.getElementById('censoICama').value.trim();
-  var dx = document.getElementById('censoIDx').value.trim();
-  var servicio = parseInt(document.getElementById('censoIServicio').value);
+function hospiGuardarIngreso() {
+  var dni = document.getElementById('hospiBuscarDNI').value.trim();
+  var cama = document.getElementById('hospiICama').value.trim();
+  var dx = document.getElementById('hospiIDx').value.trim();
+  var servicio = parseInt(document.getElementById('hospiIServicio').value);
 
   if (!dni || !cama) { toast('DNI y Cama son obligatorios', 'error'); return; }
 
@@ -6503,29 +6594,29 @@ function censoGuardarIngreso() {
       servicio_id: servicio,
       cama: cama,
       dx_ingreso: dx || null,
-      created_by: CENSO_AUTH_ID
+      created_by: HOSPI_AUTH_ID
     }).select().single().then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
       toast('Ingreso registrado ✓', 'success');
-      document.getElementById('censoFormIngreso').remove();
-      censoLoadDashboard();
+      document.getElementById('hospiFormIngreso').remove();
+      hospiLoadDashboard();
     });
   }
 
-  if (CENSO_PACIENTE_SEL) {
-    crearIngreso(CENSO_PACIENTE_SEL.id);
+  if (HOSPI_PACIENTE_SEL) {
+    crearIngreso(HOSPI_PACIENTE_SEL.id);
   } else {
     // Create new patient
-    var pNombres = document.getElementById('censoPNombres').value.trim();
-    var pApellidos = document.getElementById('censoPApellidos').value.trim();
+    var pNombres = document.getElementById('hospiPNombres').value.trim();
+    var pApellidos = document.getElementById('hospiPApellidos').value.trim();
     if (!pNombres || !pApellidos) { toast('Completa nombres y apellidos', 'error'); return; }
     sb.from('pacientes').insert({
       dni: dni,
       nombres: pNombres,
       apellidos: pApellidos,
-      fecha_nacimiento: document.getElementById('censoPFechaNac').value || null,
-      sexo: document.getElementById('censoPSexo').value || null,
-      alergias: document.getElementById('censoPAlergias').value || null
+      fecha_nacimiento: document.getElementById('hospiPFechaNac').value || null,
+      sexo: document.getElementById('hospiPSexo').value || null,
+      alergias: document.getElementById('hospiPAlergias').value || null
     }).select().single().then(function(r) {
       if (r.error) { toast('Error paciente: ' + r.error.message, 'error'); return; }
       crearIngreso(r.data.id);
@@ -6534,82 +6625,82 @@ function censoGuardarIngreso() {
 }
 
 /* ===== NUEVA EVOLUCION ===== */
-function censoNuevaEvolucion() {
-  if (!CENSO_CURRENT_INGRESO) return;
-  CENSO_PENDING_PHOTOS = [];
+function hospiNuevaEvolucion() {
+  if (!HOSPI_CURRENT_INGRESO) return;
+  HOSPI_PENDING_PHOTOS = [];
   var overlay = document.createElement('div');
-  overlay.className = 'censo-form-overlay';
-  overlay.id = 'censoFormEvolucion';
+  overlay.className = 'hospi-form-overlay';
+  overlay.id = 'hospiFormEvolucion';
   overlay.innerHTML =
-    '<div class="censo-form-header">' +
+    '<div class="hospi-form-header">' +
       '<h3>Nueva Evolucion</h3>' +
-      '<button onclick="document.getElementById(\'censoFormEvolucion\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+      '<button onclick="document.getElementById(\'hospiFormEvolucion\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
     '</div>' +
-    '<div class="censo-form-body">' +
-      '<div class="censo-photo-area" onclick="censoTakePhoto()">' +
+    '<div class="hospi-form-body">' +
+      '<div class="hospi-photo-area" onclick="hospiTakePhoto()">' +
         '<div class="cpa-icon">📸</div>' +
         '<div class="cpa-text">Tomar foto de la evolucion</div>' +
         '<div class="cpa-sub">o selecciona de la galeria</div>' +
       '</div>' +
-      '<input type="file" id="censoFileInput" accept="image/*" multiple style="display:none" onchange="censoHandleFiles(this)">' +
-      '<div class="censo-preview-grid" id="censoPreviewGrid"></div>' +
+      '<input type="file" id="hospiFileInput" accept="image/*" multiple style="display:none" onchange="hospiHandleFiles(this)">' +
+      '<div class="hospi-preview-grid" id="hospiPreviewGrid"></div>' +
       '<label>Tipo</label>' +
-      '<select id="censoETipo"><option value="Foto">📸 Foto</option><option value="SOAP">🩺 SOAP</option><option value="Laboratorio">🧪 Laboratorio</option><option value="Imagen">🖼️ Imagen</option><option value="Procedimiento">💉 Procedimiento</option><option value="Interconsulta">📞 Interconsulta</option><option value="Nota">📝 Nota</option></select>' +
+      '<select id="hospiETipo"><option value="Foto">📸 Foto</option><option value="SOAP">🩺 SOAP</option><option value="Laboratorio">🧪 Laboratorio</option><option value="Imagen">🖼️ Imagen</option><option value="Procedimiento">💉 Procedimiento</option><option value="Interconsulta">📞 Interconsulta</option><option value="Nota">📝 Nota</option></select>' +
       '<label>Nota (opcional)</label>' +
-      '<textarea id="censoENota" placeholder="Describe brevemente la evolucion..." rows="3"></textarea>' +
+      '<textarea id="hospiENota" placeholder="Describe brevemente la evolucion..." rows="3"></textarea>' +
     '</div>' +
-    '<div class="censo-form-footer">' +
-      '<button class="censo-btn outline" onclick="document.getElementById(\'censoFormEvolucion\').remove()">Cancelar</button>' +
-      '<button class="censo-btn primary" onclick="censoGuardarEvolucion()">💾 Guardar</button>' +
+    '<div class="hospi-form-footer">' +
+      '<button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormEvolucion\').remove()">Cancelar</button>' +
+      '<button class="hospi-btn primary" onclick="hospiGuardarEvolucion()">💾 Guardar</button>' +
     '</div>';
   document.body.appendChild(overlay);
 }
 
-function censoTakePhoto() {
-  var input = document.getElementById('censoFileInput');
+function hospiTakePhoto() {
+  var input = document.getElementById('hospiFileInput');
   if (input) input.click();
 }
 
-function censoHandleFiles(input) {
+function hospiHandleFiles(input) {
   var files = input.files;
   for (var i = 0; i < files.length; i++) {
-    CENSO_PENDING_PHOTOS.push(files[i]);
+    HOSPI_PENDING_PHOTOS.push(files[i]);
   }
-  censoRenderPreviews();
+  hospiRenderPreviews();
 }
 
-function censoRenderPreviews() {
-  var grid = document.getElementById('censoPreviewGrid');
+function hospiRenderPreviews() {
+  var grid = document.getElementById('hospiPreviewGrid');
   if (!grid) return;
-  grid.innerHTML = CENSO_PENDING_PHOTOS.map(function(f, idx) {
+  grid.innerHTML = HOSPI_PENDING_PHOTOS.map(function(f, idx) {
     return '<div style="position:relative;display:inline-block">' +
-      '<img class="censo-preview-thumb" src="' + URL.createObjectURL(f) + '" alt="preview">' +
-      '<button class="censo-preview-del" onclick="censoRemovePhoto(' + idx + ')">✕</button>' +
+      '<img class="hospi-preview-thumb" src="' + URL.createObjectURL(f) + '" alt="preview">' +
+      '<button class="hospi-preview-del" onclick="hospiRemovePhoto(' + idx + ')">✕</button>' +
     '</div>';
   }).join('');
 }
 
-function censoRemovePhoto(idx) {
-  CENSO_PENDING_PHOTOS.splice(idx, 1);
-  censoRenderPreviews();
+function hospiRemovePhoto(idx) {
+  HOSPI_PENDING_PHOTOS.splice(idx, 1);
+  hospiRenderPreviews();
 }
 
-async function censoGuardarEvolucion() {
-  if (!CENSO_CURRENT_INGRESO) return;
-  var tipo = document.getElementById('censoETipo').value;
-  var nota = document.getElementById('censoENota').value.trim();
+async function hospiGuardarEvolucion() {
+  if (!HOSPI_CURRENT_INGRESO) return;
+  var tipo = document.getElementById('hospiETipo').value;
+  var nota = document.getElementById('hospiENota').value.trim();
   var btn = event.target;
   btn.disabled = true;
   btn.textContent = 'Guardando...';
 
   // Upload photos if any
   var urls = [];
-  if (CENSO_PENDING_PHOTOS.length > 0) {
-    for (var i = 0; i < CENSO_PENDING_PHOTOS.length; i++) {
-      var file = CENSO_PENDING_PHOTOS[i];
+  if (HOSPI_PENDING_PHOTOS.length > 0) {
+    for (var i = 0; i < HOSPI_PENDING_PHOTOS.length; i++) {
+      var file = HOSPI_PENDING_PHOTOS[i];
       // Compress image
-      var compressed = await censoCompressImage(file);
-      var path = 'censo/' + CENSO_CURRENT_INGRESO.id + '/' + Date.now() + '_' + i + '.jpg';
+      var compressed = await hospiCompressImage(file);
+      var path = 'hospi/' + HOSPI_CURRENT_INGRESO.id + '/' + Date.now() + '_' + i + '.jpg';
       try {
         var uploadResult = await sb.storage.from(SB_BUCKET).upload(path, compressed, { contentType: 'image/jpeg', upsert: true });
         if (uploadResult.error) throw uploadResult.error;
@@ -6626,11 +6717,11 @@ async function censoGuardarEvolucion() {
 
   // Save evolucion
   sb.from('evoluciones').insert({
-    ingreso_id: CENSO_CURRENT_INGRESO.id,
+    ingreso_id: HOSPI_CURRENT_INGRESO.id,
     tipo: tipo,
     nota: nota || null,
     image_urls: urls.length > 0 ? urls : null,
-    author_id: CENSO_AUTH_ID,
+    author_id: HOSPI_AUTH_ID,
     author_name: worker.name || worker.email || 'Interno'
   }).select().single().then(function(r) {
     if (r.error) {
@@ -6640,13 +6731,13 @@ async function censoGuardarEvolucion() {
       return;
     }
     toast('Evolucion guardada ✓', 'success');
-    document.getElementById('censoFormEvolucion').remove();
-    censoLoadTimeline(CENSO_CURRENT_INGRESO.id);
+    document.getElementById('hospiFormEvolucion').remove();
+    hospiLoadTimeline(HOSPI_CURRENT_INGRESO.id);
   });
 }
 
 // Image compression via canvas
-function censoCompressImage(file) {
+function hospiCompressImage(file) {
   return new Promise(function(resolve) {
     var img = new Image();
     img.onload = function() {
@@ -6664,82 +6755,82 @@ function censoCompressImage(file) {
 }
 
 /* ===== DAR DE ALTA ===== */
-function censoDarAlta() {
-  if (!CENSO_CURRENT_INGRESO) return;
+function hospiDarAlta() {
+  if (!HOSPI_CURRENT_INGRESO) return;
   if (!confirm('¿Dar de alta a este paciente? Se registrara la fecha de egreso.')) return;
   sb.from('ingresos').update({
     estado: 'Alta',
     fecha_egreso: new Date().toISOString(),
     updated_at: new Date().toISOString()
-  }).eq('id', CENSO_CURRENT_INGRESO.id).then(function(r) {
+  }).eq('id', HOSPI_CURRENT_INGRESO.id).then(function(r) {
     if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
     toast('Paciente dado de alta ✓', 'success');
-    CENSO_CURRENT_INGRESO.estado = 'Alta';
-    CENSO_CURRENT_INGRESO.fecha_egreso = new Date().toISOString();
-    censoLoadPerfil(CENSO_CURRENT_INGRESO.id);
+    HOSPI_CURRENT_INGRESO.estado = 'Alta';
+    HOSPI_CURRENT_INGRESO.fecha_egreso = new Date().toISOString();
+    hospiLoadPerfil(HOSPI_CURRENT_INGRESO.id);
   });
 }
 
 /* ===== IMAGE ZOOM ===== */
-function censoZoomImage(url) {
+function hospiZoomImage(url) {
   var overlay = document.createElement('div');
-  overlay.className = 'censo-zoom-overlay';
-  overlay.id = 'censoZoom';
+  overlay.className = 'hospi-zoom-overlay';
+  overlay.id = 'hospiZoom';
   overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-  overlay.innerHTML = '<button class="censo-zoom-close" onclick="document.getElementById(\'censoZoom\').remove()">✕</button><img src="' + url + '" alt="zoom">';
+  overlay.innerHTML = '<button class="hospi-zoom-close" onclick="document.getElementById(\'hospiZoom\').remove()">✕</button><img src="' + url + '" alt="zoom">';
   document.body.appendChild(overlay);
 }
 
 /* ===== REAL-TIME ===== */
-function censoRealtimeSetup() {
+function hospiRealtimeSetup() {
   // Cleanup old channels
-  censoCleanupRT();
+  hospiCleanupRT();
   // Subscribe to ingresos changes
-  var ch1 = sb.channel('censo-ingresos')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'ingresos', filter: 'servicio_id=eq.' + CENSO_SERVICIO },
-      function() { censoLoadDashboard(); })
+  var ch1 = sb.channel('hospi-ingresos')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ingresos', filter: 'servicio_id=eq.' + HOSPI_SERVICIO },
+      function() { hospiLoadDashboard(); })
     .subscribe(function(status) {
-      if (status === 'SUBSCRIBED') document.getElementById('censoRTDot').style.display = 'inline-block';
+      if (status === 'SUBSCRIBED') document.getElementById('hospiRTDot').style.display = 'inline-block';
     });
-  CENSO_RT_CHANNELS.push(ch1);
+  HOSPI_RT_CHANNELS.push(ch1);
 }
 
-function censoSubscribeEvoluciones(ingresoId) {
-  censoUnsubscribeEvoluciones();
-  var ch2 = sb.channel('censo-evoluciones-' + ingresoId)
+function hospiSubscribeEvoluciones(ingresoId) {
+  hospiUnsubscribeEvoluciones();
+  var ch2 = sb.channel('hospi-evoluciones-' + ingresoId)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'evoluciones', filter: 'ingreso_id=eq.' + ingresoId },
-      function() { censoLoadTimeline(ingresoId); })
+      function() { hospiLoadTimeline(ingresoId); })
     .subscribe();
-  CENSO_RT_CHANNELS.push(ch2);
+  HOSPI_RT_CHANNELS.push(ch2);
 }
 
-function censoUnsubscribeEvoluciones() {
-  CENSO_RT_CHANNELS = CENSO_RT_CHANNELS.filter(function(ch) {
-    if (ch.topic && ch.topic.indexOf('censo-evoluciones') === 0) {
+function hospiUnsubscribeEvoluciones() {
+  HOSPI_RT_CHANNELS = HOSPI_RT_CHANNELS.filter(function(ch) {
+    if (ch.topic && ch.topic.indexOf('hospi-evoluciones') === 0) {
       sb.removeChannel(ch); return false;
     }
     return true;
   });
 }
 
-function censoCleanupRT() {
-  CENSO_RT_CHANNELS.forEach(function(ch) { sb.removeChannel(ch); });
-  CENSO_RT_CHANNELS = [];
+function hospiCleanupRT() {
+  HOSPI_RT_CHANNELS.forEach(function(ch) { sb.removeChannel(ch); });
+  HOSPI_RT_CHANNELS = [];
 }
 
 /* ===== HELPERS ===== */
-function censoEsc(s) {
+function hospiEsc(s) {
   if (!s) return '';
   var div = document.createElement('div');
   div.appendChild(document.createTextNode(s));
   return div.innerHTML;
 }
 
-function censoEscAttr(s) {
+function hospiEscAttr(s) {
   return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
-function censoTimeAgo(ts) {
+function hospiTimeAgo(ts) {
   if (!ts) return '';
   var diff = Date.now() - new Date(ts).getTime();
   var mins = Math.floor(diff / 60000);
@@ -6752,14 +6843,14 @@ function censoTimeAgo(ts) {
   return new Date(ts).toLocaleDateString('es-PE');
 }
 
-// Hook: censo init & cleanup on module switch
+// Hook: hospi init & cleanup on module switch
 (function(){
   var _orig = showModule;
   showModule = function(name) {
-    var wasCenso = currentModule === 'censo';
+    var wasHospi = currentModule === 'hospitalizacion';
     _orig(name);
-    if (wasCenso && name !== 'censo') censoCleanupRT();
-    if (name === 'censo') censoInit();
+    if (wasHospi && name !== 'hospitalizacion') hospiCleanupRT();
+    if (name === 'hospitalizacion') hospiInit();
   };
 })();
 </script>
