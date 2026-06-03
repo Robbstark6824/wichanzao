@@ -794,8 +794,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 /* Dashboard & Profile containment */
 #hospiDashboard,#hospiPerfil{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 /* Patient Profile */
-.hospi-back-bar{display:flex;align-items:center;gap:12px;padding:4px 0 14px;margin-bottom:14px;border-bottom:1px solid var(--bd);flex-shrink:0;position:sticky;top:0;background:var(--bg);z-index:2}
-.hospi-back-btn{background:rgba(78,205,196,.15);border:1px solid rgba(78,205,196,.25);border-radius:10px;padding:10px 16px;color:var(--tl);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:all .2s}
+.hospi-back-bar{display:flex;align-items:center;padding:8px 0 12px;margin-bottom:14px;border-bottom:1px solid var(--bd);flex-shrink:0;position:sticky;top:0;background:var(--bg);z-index:5}
+.hospi-back-btn{background:rgba(78,205,196,.15);border:1px solid rgba(78,205,196,.3);border-radius:10px;padding:10px 16px;color:var(--tl);cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;transition:all .2s}
 .hospi-back-btn:active{background:rgba(78,205,196,.25);transform:scale(.98)}
 .hospi-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
 .hospi-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
@@ -6391,9 +6391,14 @@ function hospiLoadPerfil(ingresoId) {
   var dash = document.getElementById('hospiDashboard');
   var perfil = document.getElementById('hospiPerfil');
   var fab = document.getElementById('hospiFAB');
+  var header = document.querySelector('#moduleHospitalizacion .module-header');
+  var body = document.getElementById('hospiBody');
   if (dash) dash.style.display = 'none';
   if (perfil) { perfil.style.display = 'block'; perfil.scrollTop = 0; }
   if (fab) fab.style.display = 'none';
+  // Hide module header for clean profile view — only back button
+  if (header) header.style.display = 'none';
+  if (body) body.style.padding = '12px 16px';
   // Clear dashboard list to prevent stale data
   var list = document.getElementById('hospiList');
   if (list) list.innerHTML = '';
@@ -6523,9 +6528,14 @@ function hospiBackToDashboard() {
   var dash = document.getElementById('hospiDashboard');
   var perfil = document.getElementById('hospiPerfil');
   var fab = document.getElementById('hospiFAB');
+  var header = document.querySelector('#moduleHospitalizacion .module-header');
+  var body = document.getElementById('hospiBody');
   if (dash) { dash.style.display = 'block'; dash.scrollTop = 0; }
   if (perfil) perfil.style.display = 'none';
   if (fab) fab.style.display = 'flex';
+  // Restore module header
+  if (header) header.style.display = '';
+  if (body) body.style.padding = '';
   HOSPI_CURRENT_INGRESO = null;
   hospiUnsubscribeEvoluciones();
   hospiLoadDashboard();
