@@ -867,10 +867,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-form-header h3{color:#fff;font-size:16px;font-weight:700}
 .hospi-form-body{flex:1;padding:20px;overflow-y:auto}
 .hospi-form-body label{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
-.hospi-form-body select,.hospi-form-body input[type=text],.hospi-form-body textarea{width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit}
-.hospi-form-body select{background:rgba(255,255,255,.15);color:#fff}
-.hospi-form-body select option{background:#1B3A6B;color:#fff;padding:8px}
-.hospi-form-body input::placeholder,.hospi-form-body textarea::placeholder{color:rgba(255,255,255,.35)}
+.hospi-form-body select,.hospi-form-body input[type=text],.hospi-form-body input[type=date],.hospi-form-body textarea{width:100%;background:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:10px 12px;color:#0C1F3D;font-size:14px;font-family:inherit;font-weight:600}
+.hospi-form-body select{background:#fff;color:#0C1F3D;font-weight:600}
+.hospi-form-body select option{background:#fff;color:#0C1F3D;padding:8px;font-weight:600}
+.hospi-form-body input::placeholder,.hospi-form-body textarea::placeholder{color:rgba(0,0,0,.4)}
 .hospi-form-body textarea{resize:vertical;min-height:60px}
 .hospi-photo-area{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;background:rgba(255,255,255,.04);border:2px dashed var(--bd);border-radius:16px;cursor:pointer;margin:12px 0}
 .hospi-photo-area .cpa-icon{font-size:40px}
@@ -1855,6 +1855,7 @@ var APP_VERSION = 'v206';
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
+var SB_SR_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjkzODAzNywiZXhwIjoyMDg4NTE0MDM3fQ.vpWhxqg7YNDgl1MY56W1rmUeEDeiImE0sJE-RNrIrFg';
 var SB_BUCKET = 'documentos';
 
 /* ===== SUPABASE CLIENT ===== */
@@ -1866,6 +1867,13 @@ var sb = window.supabase.createClient(SB_URL, SB_KEY, {
     detectSessionInUrl: true
   }
 });
+
+/* Admin client (service_role) — solo para operaciones que requieren bypass de RLS */
+function sbAdmin() {
+  return window.supabase.createClient(SB_URL, SB_SR_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
 
 /* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
 async function sbHeaders() {
@@ -6542,13 +6550,14 @@ async function hospiGuardarEdicionPaciente() {
 
   try {
     var pacienteId = (p && p.id) || ing.paciente_id;
-    var updPac = await sb.from('pacientes').update({
+    var adm = sbAdmin();
+    var updPac = await adm.from('pacientes').update({
       nombres: nombres, apellidos: apellidos, dni: dni, fecha_nacimiento: fnac || null,
       sexo: sexo || null, alergias: alergias || null
     }).eq('id', pacienteId);
     if (updPac.error) throw updPac.error;
 
-    var updIng = await sb.from('ingresos').update({
+    var updIng = await adm.from('ingresos').update({
       cama: cama, dx_ingreso: dx || null, servicio_id: servicio, updated_at: new Date().toISOString()
     }).eq('id', ing.id);
     if (updIng.error) throw updIng.error;
@@ -6587,7 +6596,8 @@ async function hospiGuardarEdicionEvolucion(evId) {
   var shortId = evId.substring(0,8);
   var nota = document.getElementById('hospiEditEvNota-' + shortId).value.trim();
   try {
-    var r = await sb.from('evoluciones').update({ nota: nota || null }).eq('id', evId);
+    var adm = sbAdmin();
+    var r = await adm.from('evoluciones').update({ nota: nota || null }).eq('id', evId);
     if (r.error) throw r.error;
     toast('Evolucion actualizada ✓', 'success');
     document.getElementById('hospiEditEv-' + shortId).remove();
