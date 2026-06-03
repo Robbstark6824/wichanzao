@@ -6449,14 +6449,13 @@ function hospiLoadPerfil(ingresoId) {
                     '<button class="hospi-btn danger small" onclick="hospiDarAlta()">Dar de Alta</button>';
     }
 
-    // Build as a fullscreen overlay — bulletproof, nothing leaks through
     var overlay = document.createElement('div');
     overlay.className = 'hospi-form-overlay';
     overlay.id = 'hospiPerfilOverlay';
     overlay.innerHTML =
       '<div class="hospi-form-header">' +
         '<button class="hospi-back-btn" onclick="hospiCerrarPerfil()">← Pacientes</button>' +
-        '<span style="font-size:11px;color:var(--t3);margin-left:auto">' + hospiEsc(p.nombres.split(' ')[0]) + '</span>' +
+        '<button class="hospi-btn outline small" onclick="hospiEditarPaciente()" style="margin-left:auto;margin-right:8px">✏️ Editar</button>' +
         '<button onclick="hospiCerrarPerfil()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
       '</div>' +
       '<div class="hospi-form-body" id="hospiPerfilBody">' +
@@ -6479,8 +6478,6 @@ function hospiLoadPerfil(ingresoId) {
         '<div class="hospi-timeline" id="hospiTimelineOverlay"></div>' +
       '</div>';
     document.body.appendChild(overlay);
-
-    // Load timeline into overlay
     hospiLoadTimelineOverlay(ingresoId);
   });
 }
@@ -6490,6 +6487,103 @@ function hospiCerrarPerfil() {
   if (ov) ov.remove();
   HOSPI_CURRENT_INGRESO = null;
   hospiUnsubscribeEvoluciones();
+}
+
+/* ===== EDITAR PACIENTE ===== */
+function hospiEditarPaciente() {
+  if (!HOSPI_CURRENT_INGRESO) return;
+  var ing = HOSPI_CURRENT_INGRESO;
+  var p = ing.pacientes;
+  var ov = document.createElement('div');
+  ov.className = 'hospi-form-overlay';
+  ov.id = 'hospiFormEditPac';
+  ov.innerHTML =
+    '<div class="hospi-form-header"><h3>Editar Paciente</h3><button onclick="document.getElementById(\'hospiFormEditPac\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button></div>' +
+    '<div class="hospi-form-body">' +
+      '<label>Nombres</label><input type="text" id="hospiEditNombres" value="' + hospiEsc(p.nombres || '') + '">' +
+      '<label>Apellidos</label><input type="text" id="hospiEditApellidos" value="' + hospiEsc(p.apellidos || '') + '">' +
+      '<label>DNI</label><input type="text" id="hospiEditDNI" value="' + hospiEsc(p.dni || '') + '">' +
+      '<label>Fecha Nacimiento</label><input type="date" id="hospiEditFNac" value="' + (p.fecha_nacimiento || '') + '">' +
+      '<label>Sexo</label><select id="hospiEditSexo"><option value="">Seleccionar</option><option value="Masculino"' + (p.sexo === 'Masculino' ? ' selected' : '') + '>Masculino</option><option value="Femenino"' + (p.sexo === 'Femenino' ? ' selected' : '') + '>Femenino</option></select>' +
+      '<label>Alergias</label><input type="text" id="hospiEditAlergias" value="' + hospiEsc(p.alergias || '') + '">' +
+      '<label>Cama</label><input type="text" id="hospiEditCama" value="' + hospiEsc(ing.cama || '') + '">' +
+      '<label>Diagnostico de Ingreso</label><input type="text" id="hospiEditDx" value="' + hospiEsc(ing.dx_ingreso || '') + '">' +
+      '<label>Servicio</label><select id="hospiEditServicio"><option value="1"' + (ing.servicio_id === 1 ? ' selected' : '') + '>Medicina Interna</option><option value="2"' + (ing.servicio_id === 2 ? ' selected' : '') + '>Cirugia</option><option value="3"' + (ing.servicio_id === 3 ? ' selected' : '') + '>Gineco-Obstetricia</option></select>' +
+    '</div>' +
+    '<div class="hospi-form-footer"><button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormEditPac\').remove()">Cancelar</button><button class="hospi-btn primary" onclick="hospiGuardarEdicionPaciente()">💾 Guardar</button></div>';
+  document.body.appendChild(ov);
+}
+
+async function hospiGuardarEdicionPaciente() {
+  if (!HOSPI_CURRENT_INGRESO) return;
+  var ing = HOSPI_CURRENT_INGRESO;
+  var p = ing.pacientes;
+  var nombres = document.getElementById('hospiEditNombres').value.trim();
+  var apellidos = document.getElementById('hospiEditApellidos').value.trim();
+  var dni = document.getElementById('hospiEditDNI').value.trim();
+  var fnac = document.getElementById('hospiEditFNac').value;
+  var sexo = document.getElementById('hospiEditSexo').value;
+  var alergias = document.getElementById('hospiEditAlergias').value.trim();
+  var cama = document.getElementById('hospiEditCama').value.trim();
+  var dx = document.getElementById('hospiEditDx').value.trim();
+  var servicio = parseInt(document.getElementById('hospiEditServicio').value);
+
+  if (!nombres || !apellidos || !dni || !cama) { toast('Nombres, apellidos, DNI y cama son obligatorios', 'error'); return; }
+
+  try {
+    var updPac = await sb.from('pacientes').update({
+      nombres: nombres, apellidos: apellidos, dni: dni, fecha_nacimiento: fnac || null,
+      sexo: sexo || null, alergias: alergias || null
+    }).eq('id', p.id);
+    if (updPac.error) throw updPac.error;
+
+    var updIng = await sb.from('ingresos').update({
+      cama: cama, dx_ingreso: dx || null, servicio_id: servicio, updated_at: new Date().toISOString()
+    }).eq('id', ing.id);
+    if (updIng.error) throw updIng.error;
+
+    toast('Datos actualizados ✓', 'success');
+    document.getElementById('hospiFormEditPac').remove();
+    // Reload profile
+    hospiCerrarPerfil();
+    hospiLoadPerfil(ing.id);
+  } catch(e) { toast('Error: ' + (e.message || e), 'error'); }
+}
+
+/* ===== EDITAR EVOLUCION ===== */
+function hospiEditarEvolucion(evId) {
+  var detail = document.getElementById('ov-' + evId.substring(0,8));
+  if (!detail) return;
+  // Toggle inline edit mode
+  var existing = document.getElementById('hospiEditEv-' + evId.substring(0,8));
+  if (existing) { existing.remove(); return; }
+
+  var notaActual = detail.querySelector('.hospi-tl-nota');
+  var notaText = notaActual ? notaActual.textContent : '';
+  if (notaText === 'Sin nota') notaText = '';
+
+  var editHtml = '<div id="hospiEditEv-' + evId.substring(0,8) + '" style="margin-top:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--bd)">' +
+    '<label style="font-size:10px;color:var(--t3)">Editar nota</label>' +
+    '<textarea id="hospiEditEvNota-' + evId.substring(0,8) + '" rows="2" style="width:100%;background:rgba(255,255,255,.1);border:1px solid var(--bd);border-radius:6px;padding:8px;color:#fff;font-size:12px;font-family:inherit;resize:vertical">' + hospiEsc(notaText) + '</textarea>' +
+    '<div style="display:flex;gap:6px;margin-top:8px">' +
+      '<button class="hospi-btn primary small" onclick="hospiGuardarEdicionEvolucion(\'' + evId + '\')">Guardar</button>' +
+      '<button class="hospi-btn outline small" onclick="document.getElementById(\'hospiEditEv-' + evId.substring(0,8) + '\').remove()">Cancelar</button>' +
+    '</div></div>';
+  detail.insertAdjacentHTML('beforeend', editHtml);
+}
+
+async function hospiGuardarEdicionEvolucion(evId) {
+  var shortId = evId.substring(0,8);
+  var nota = document.getElementById('hospiEditEvNota-' + shortId).value.trim();
+  try {
+    var r = await sb.from('evoluciones').update({ nota: nota || null }).eq('id', evId);
+    if (r.error) throw r.error;
+    toast('Evolucion actualizada ✓', 'success');
+    document.getElementById('hospiEditEv-' + shortId).remove();
+    // Reload timeline
+    var ing = HOSPI_CURRENT_INGRESO;
+    if (ing) hospiLoadTimelineOverlay(ing.id);
+  } catch(e) { toast('Error: ' + (e.message || e), 'error'); }
 }
 
 function hospiLoadTimelineOverlay(ingresoId) {
@@ -6521,7 +6615,7 @@ function hospiLoadTimelineOverlay(ingresoId) {
         if (ev.image_urls && ev.image_urls.length) {
           imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){ return '<img class="hospi-tl-img" src="'+u+'" onclick="event.stopPropagation();hospiZoomImage(\''+hospiEscAttr(u)+'\')" loading="lazy">'; }).join('') + '</div>';
         }
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '</div></div></div>';
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + ev.tipo + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '<div style="margin-top:6px"><button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar</button></div></div></div></div>';
       });
       html += '</div></div>';
     });
