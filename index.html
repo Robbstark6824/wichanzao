@@ -1521,9 +1521,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </div>
       </div>
 
-      <!-- ===== MODULE: CENSO HOSPITALARIO ===== -->
+      <!-- ===== MODULE: HOSPITALIZACION ===== -->
       <div class="module-panel" id="moduleHospitalizacion">
-        <div class="module-header">
+        <div class="module-header" id="hospiModuleHeader">
           <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
             <span></span><span></span><span></span>
           </button>
@@ -6289,6 +6289,8 @@ async function hospiInit() {
 }
 
 function hospiLoadDashboard() {
+  // Don't load dashboard if we're viewing a patient profile
+  if (HOSPI_CURRENT_INGRESO) return;
   var soloActivos = document.getElementById('hospiActivosToggle')?.checked !== false;
   var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false});
   if (soloActivos) query = query.eq('estado', 'Activo');
@@ -6387,21 +6389,17 @@ function hospiRenderDashboard(ingresos) {
 }
 
 function hospiLoadPerfil(ingresoId) {
-  // Hide dashboard immediately, show perfil skeleton
+  // Hide dashboard + all its children completely
   var dash = document.getElementById('hospiDashboard');
   var perfil = document.getElementById('hospiPerfil');
   var fab = document.getElementById('hospiFAB');
-  var header = document.querySelector('#moduleHospitalizacion .module-header');
-  var body = document.getElementById('hospiBody');
+  var header = document.getElementById('hospiModuleHeader');
   if (dash) dash.style.display = 'none';
+  // Clear dashboard children to prevent any stale visible content
+  ['hospiStats','hospiServiceTabs','hospiList'].forEach(function(id){ var el=document.getElementById(id); if(el)el.innerHTML=''; });
   if (perfil) { perfil.style.display = 'block'; perfil.scrollTop = 0; }
   if (fab) fab.style.display = 'none';
-  // Hide module header for clean profile view — only back button
   if (header) header.style.display = 'none';
-  if (body) body.style.padding = '12px 16px';
-  // Clear dashboard list to prevent stale data
-  var list = document.getElementById('hospiList');
-  if (list) list.innerHTML = '';
 
   sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
     if (r.error) { toast('Error al cargar perfil', 'error'); hospiBackToDashboard(); return; }
@@ -6528,7 +6526,7 @@ function hospiBackToDashboard() {
   var dash = document.getElementById('hospiDashboard');
   var perfil = document.getElementById('hospiPerfil');
   var fab = document.getElementById('hospiFAB');
-  var header = document.querySelector('#moduleHospitalizacion .module-header');
+  var header = document.getElementById('hospiModuleHeader');
   var body = document.getElementById('hospiBody');
   if (dash) { dash.style.display = 'block'; dash.scrollTop = 0; }
   if (perfil) perfil.style.display = 'none';
