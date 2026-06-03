@@ -794,9 +794,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 /* Dashboard & Profile containment */
 #hospiDashboard,#hospiPerfil{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 /* Patient Profile */
-.hospi-back-bar{display:flex;align-items:center;padding:8px 0 12px;margin-bottom:14px;border-bottom:1px solid var(--bd);flex-shrink:0;position:sticky;top:0;background:var(--bg);z-index:5}
-.hospi-back-btn{background:rgba(78,205,196,.15);border:1px solid rgba(78,205,196,.3);border-radius:10px;padding:10px 16px;color:var(--tl);cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;transition:all .2s}
-.hospi-back-btn:active{background:rgba(78,205,196,.25);transform:scale(.98)}
+.hospi-back-bar{display:flex;align-items:center;padding:0 0 10px;margin-bottom:12px;flex-shrink:0}
+.hospi-back-btn{background:none;border:none;padding:4px 0;color:var(--tl);cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;transition:all .2s;opacity:.8}
+.hospi-back-btn:hover{opacity:1}
 .hospi-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
 .hospi-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
 .hospi-profile-card .cp-info{font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
@@ -885,6 +885,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-empty p{font-size:14px}
 .hospi-realtime-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:6px;animation:hospi-pulse 2s infinite}
 @keyframes hospi-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -1560,12 +1561,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <div class="hospi-list" id="hospiList"></div>
           </div>
           <!-- VIEW: Patient Profile -->
-          <div id="hospiPerfil" style="display:none">
+          <div id="hospiPerfil" hidden>
             <div class="hospi-back-bar">
-              <button class="hospi-back-btn" onclick="hospiBackToDashboard()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-                Volver al listado de pacientes
-              </button>
+              <button class="hospi-back-btn" onclick="hospiBackToDashboard()">← Pacientes</button>
             </div>
             <div id="hospiProfileCard"></div>
             <h4 style="font-size:13px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">Linea de Tiempo — Evoluciones</h4>
@@ -6394,12 +6392,12 @@ function hospiLoadPerfil(ingresoId) {
   var perfil = document.getElementById('hospiPerfil');
   var fab = document.getElementById('hospiFAB');
   var header = document.getElementById('hospiModuleHeader');
-  if (dash) dash.style.display = 'none';
+  if (dash) dash.setAttribute('hidden','');
   // Clear dashboard children to prevent any stale visible content
   ['hospiStats','hospiServiceTabs','hospiList'].forEach(function(id){ var el=document.getElementById(id); if(el)el.innerHTML=''; });
-  if (perfil) { perfil.style.display = 'block'; perfil.scrollTop = 0; }
-  if (fab) fab.style.display = 'none';
-  if (header) header.style.display = 'none';
+  if (perfil) { perfil.removeAttribute('hidden'); perfil.scrollTop = 0; }
+  if (fab) fab.setAttribute('hidden','');
+  if (header) header.setAttribute('hidden','');
 
   sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
     if (r.error) { toast('Error al cargar perfil', 'error'); hospiBackToDashboard(); return; }
@@ -6527,13 +6525,10 @@ function hospiBackToDashboard() {
   var perfil = document.getElementById('hospiPerfil');
   var fab = document.getElementById('hospiFAB');
   var header = document.getElementById('hospiModuleHeader');
-  var body = document.getElementById('hospiBody');
-  if (dash) { dash.style.display = 'block'; dash.scrollTop = 0; }
-  if (perfil) perfil.style.display = 'none';
-  if (fab) fab.style.display = 'flex';
-  // Restore module header
-  if (header) header.style.display = '';
-  if (body) body.style.padding = '';
+  if (dash) { dash.removeAttribute('hidden'); dash.scrollTop = 0; }
+  if (perfil) perfil.setAttribute('hidden','');
+  if (fab) fab.removeAttribute('hidden');
+  if (header) header.removeAttribute('hidden');
   HOSPI_CURRENT_INGRESO = null;
   hospiUnsubscribeEvoluciones();
   hospiLoadDashboard();
