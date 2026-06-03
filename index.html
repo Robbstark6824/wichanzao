@@ -6246,11 +6246,25 @@ var CENSO_INGRESOS = [];
 var CENSO_CURRENT_INGRESO = null;
 var CENSO_RT_CHANNELS = [];
 var CENSO_PENDING_PHOTOS = [];  // File objects pending upload
+var CENSO_AUTH_ID = null;       // Supabase auth user UUID
 
-function censoInit() {
+async function censoGetUserId() {
+  if (CENSO_AUTH_ID) return CENSO_AUTH_ID;
+  try {
+    var sess = (await sb.auth.getSession()).data.session;
+    if (sess && sess.user) { CENSO_AUTH_ID = sess.user.id; return CENSO_AUTH_ID; }
+  } catch(e) {}
+  // Fallback: derive UUID-like string from worker id (temporary, RLS will block writes)
+  console.warn('Censo: no se pudo obtener auth UUID, usando fallback');
+  return null;
+}
+
+async function censoInit() {
   if (!worker) { toast('Inicia sesion para usar el Censo', 'error'); return; }
   CENSO_SERVICIO = 1;
   CENSO_CURRENT_INGRESO = null;
+  await censoGetUserId();
+  if (!CENSO_AUTH_ID) { toast('No se pudo autenticar. Reconecta tu sesion.', 'error'); return; }
   censoLoadDashboard();
   censoRealtimeSetup();
 }
@@ -6489,7 +6503,7 @@ function censoGuardarIngreso() {
       servicio_id: servicio,
       cama: cama,
       dx_ingreso: dx || null,
-      created_by: worker.id
+      created_by: CENSO_AUTH_ID
     }).select().single().then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
       toast('Ingreso registrado ✓', 'success');
@@ -6616,7 +6630,7 @@ async function censoGuardarEvolucion() {
     tipo: tipo,
     nota: nota || null,
     image_urls: urls.length > 0 ? urls : null,
-    author_id: worker.id,
+    author_id: CENSO_AUTH_ID,
     author_name: worker.name || worker.email || 'Interno'
   }).select().single().then(function(r) {
     if (r.error) {
