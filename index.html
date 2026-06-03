@@ -791,8 +791,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--tl);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(78,205,196,.3);z-index:10;display:flex;align-items:center;justify-content:center;transition:transform .2s}
 .hospi-fab:active{transform:scale(.9)}
 
+/* Dashboard & Profile containment */
+#hospiDashboard,#hospiPerfil{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 /* Patient Profile */
-.hospi-back-bar{display:flex;align-items:center;gap:12px;padding:8px 0 14px;margin-bottom:14px;border-bottom:1px solid var(--bd)}
+.hospi-back-bar{display:flex;align-items:center;gap:12px;padding:4px 0 14px;margin-bottom:14px;border-bottom:1px solid var(--bd);flex-shrink:0;position:sticky;top:0;background:var(--bg);z-index:2}
 .hospi-back-btn{background:rgba(78,205,196,.15);border:1px solid rgba(78,205,196,.25);border-radius:10px;padding:10px 16px;color:var(--tl);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:all .2s}
 .hospi-back-btn:active{background:rgba(78,205,196,.25);transform:scale(.98)}
 .hospi-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
@@ -6381,16 +6383,23 @@ function hospiRenderDashboard(ingresos) {
 }
 
 function hospiLoadPerfil(ingresoId) {
+  // Hide dashboard immediately, show perfil skeleton
+  var dash = document.getElementById('hospiDashboard');
+  var perfil = document.getElementById('hospiPerfil');
+  var fab = document.getElementById('hospiFAB');
+  if (dash) dash.style.display = 'none';
+  if (perfil) { perfil.style.display = 'block'; perfil.scrollTop = 0; }
+  if (fab) fab.style.display = 'none';
+  // Clear dashboard list to prevent stale data
+  var list = document.getElementById('hospiList');
+  if (list) list.innerHTML = '';
+
   sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
-    if (r.error) { toast('Error al cargar perfil', 'error'); return; }
+    if (r.error) { toast('Error al cargar perfil', 'error'); hospiBackToDashboard(); return; }
     HOSPI_CURRENT_INGRESO = r.data;
     var ing = r.data;
     var p = ing.pacientes;
     var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
-
-    document.getElementById('hospiDashboard').style.display = 'none';
-    document.getElementById('hospiPerfil').style.display = 'block';
-    document.getElementById('hospiFAB').style.display = 'none';
 
     // Profile card
     var alertHtml = p.alergias ? '<div class="cp-alert">⚠ Alergias: ' + hospiEsc(p.alergias) + '</div>' : '';
@@ -6507,9 +6516,12 @@ function hospiToggleEv(evId) {
 }
 
 function hospiBackToDashboard() {
-  document.getElementById('hospiDashboard').style.display = 'block';
-  document.getElementById('hospiPerfil').style.display = 'none';
-  document.getElementById('hospiFAB').style.display = 'flex';
+  var dash = document.getElementById('hospiDashboard');
+  var perfil = document.getElementById('hospiPerfil');
+  var fab = document.getElementById('hospiFAB');
+  if (dash) { dash.style.display = 'block'; dash.scrollTop = 0; }
+  if (perfil) perfil.style.display = 'none';
+  if (fab) fab.style.display = 'flex';
   HOSPI_CURRENT_INGRESO = null;
   hospiUnsubscribeEvoluciones();
   hospiLoadDashboard();
