@@ -830,6 +830,31 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-tl-header-compact{display:grid;grid-template-columns:135px 1fr auto;align-items:center;gap:12px}
 .hospi-tl-tipo-col{min-width:135px}
 @media(max-width:420px){.hospi-tl-header-compact{grid-template-columns:105px 1fr auto;gap:8px}.hospi-tl-tipo-col{min-width:105px}}
+@media(max-width:600px){
+  .hospi-stats{flex-direction:column;gap:8px}
+  .hospi-stat{min-width:auto}
+  .hospi-stat .stat-num{font-size:20px}
+  .hospi-filter-bar{gap:4px;margin-bottom:10px}
+  .hospi-filter-chip{padding:5px 10px;font-size:10px;border-radius:12px}
+  .hospi-date-row{gap:4px;margin-bottom:10px}
+  .hospi-date-row span{font-size:10px}
+  .hospi-date-input{min-width:100px;font-size:11px;padding:6px 8px}
+  .hospi-status-bar{gap:6px;margin-bottom:10px}
+  .hospi-status-chip{padding:7px 12px;font-size:11px;border-radius:14px}
+  .hospi-search-bar{margin-bottom:10px}
+  .hospi-search-input{font-size:12px}
+  .hospi-card{padding:12px}
+  .hospi-name{font-size:14px}
+  .hospi-fab{bottom:16px;right:16px;width:50px;height:50px;font-size:24px}
+  .hospi-form-body{padding:14px}
+  .hospi-form-body label{font-size:10px;margin-top:10px}
+  .hospi-form-body input[type=text],.hospi-form-body input[type=date],.hospi-form-body textarea,.hospi-form-body select{font-size:14px;padding:10px}
+  .hospi-section-divider{margin:12px 0 6px}
+  .hospi-dni-lookup{padding:10px}
+  .hospi-profile-card .cp-name{font-size:16px}
+  .hospi-profile-card .cp-info{font-size:11px;gap:4px}
+  .hospi-profile-card .cp-info span{padding:3px 8px;font-size:10px}
+}
 .hospi-tl-author-col{display:flex;flex-direction:column;min-width:0}
 .hospi-tl-author-name{font-size:12px;color:var(--t1);font-weight:600;line-height:1.2}
 .hospi-tl-author-role{font-size:10px;color:var(--t3);line-height:1.2}
