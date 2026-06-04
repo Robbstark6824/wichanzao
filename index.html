@@ -852,15 +852,26 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-filter-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
 .hospi-date-input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 10px;color:#fff;font-size:11px;font-family:inherit;width:125px;color-scheme:dark;-webkit-color-scheme:dark}
 .hospi-date-input:focus{outline:none;border-color:var(--tl)}
+.hospi-status-bar{display:flex;gap:8px;margin-bottom:14px}
+.hospi-status-chip{padding:8px 18px;border-radius:18px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s;font-family:inherit}
+.hospi-status-chip.active{background:var(--n2);color:#fff;border-color:var(--n2)}
+.hospi-status-chip.altas.active{background:var(--gd);color:#fff;border-color:var(--gd)}
+.hospi-status-chip.todos.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.hospi-card .hospi-status-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.hospi-card .hospi-status-badge.activo{background:rgba(74,222,128,.15);color:#4ade80}
+.hospi-card .hospi-status-badge.alta{background:rgba(160,174,192,.12);color:var(--t3)}
 .hospi-date-input::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer}
 .hospi-date-input::-webkit-datetime-edit{color:#fff}
 .hospi-date-input::-webkit-datetime-edit-fields-wrapper{color:#fff}
 .hospi-date-input::-webkit-datetime-edit-text{color:rgba(255,255,255,.6)}
 
 /* Image Zoom */
-.hospi-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center}
-.hospi-zoom-overlay img{max-width:100vw;max-height:100vh;object-fit:contain;touch-action:pinch-zoom;cursor:default}
-.hospi-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;z-index:2;font-weight:700}
+.hospi-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.96);touch-action:none;overflow:hidden}
+.hospi-zoom-overlay img{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;pointer-events:none}
+.hospi-zoom-close{position:fixed;top:max(16px,env(safe-area-inset-top,16px));right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:44px;height:44px;color:#fff;font-size:22px;cursor:pointer;z-index:10;font-weight:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.hospi-zoom-close:active{background:rgba(255,255,255,.3)}
+.hospi-zoom-hint{position:fixed;bottom:max(80px,env(safe-area-inset-bottom,16px)+64px);left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;pointer-events:none;z-index:5;background:rgba(0,0,0,.5);padding:8px 16px;border-radius:20px;transition:opacity .4s;font-weight:500}
+.hospi-zoom-hint.fade{opacity:0}
 .hospi-crop-handle{position:absolute;width:22px;height:22px;background:var(--tl);border:2px solid #fff;border-radius:50%;z-index:10;cursor:pointer;box-shadow:0 0 6px rgba(0,0,0,.4)}
 
 /* Evolution Form */
@@ -1565,13 +1576,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <input type="date" class="hospi-date-input" id="hospiDateFrom" onchange="hospiSetDateFilter('custom')" title="Desde">
               <input type="date" class="hospi-date-input" id="hospiDateTo" onchange="hospiSetDateFilter('custom')" title="Hasta">
             </div>
-</div>
-            <div class="hospi-toggle-row">
-              <label class="hospi-toggle">
-                <input type="checkbox" id="hospiActivosToggle" checked onchange="hospiLoadDashboard()">
-                <span class="toggle-track"></span>
-                Solo pacientes activos
-              </label>
+            <div class="hospi-status-bar">
+              <button class="hospi-status-chip active" onclick="hospiSetStatusFilter('activos',this)">🟢 Activos</button>
+              <button class="hospi-status-chip" onclick="hospiSetStatusFilter('altas',this)">🏁 Altas</button>
+              <button class="hospi-status-chip" onclick="hospiSetStatusFilter('todos',this)">👥 Todos</button>
             </div>
             <div class="hospi-list" id="hospiList"></div>
           </div>
@@ -6346,6 +6354,7 @@ var HOSPI_RT_CHANNELS = [];
 var HOSPI_PENDING_PHOTOS = [];  // File objects pending upload
 var HOSPI_AUTH_ID = null;       // Supabase auth user UUID
 var HOSPI_DATE_FILTER = 'all';   // 'all'|'today'|'week'|'month'|'custom'
+var HOSPI_STATUS_FILTER = 'activos'; // 'activos'|'altas'|'todos'
 
 async function hospiGetUserId() {
   if (HOSPI_AUTH_ID) return HOSPI_AUTH_ID;
@@ -6374,9 +6383,10 @@ async function hospiInit() {
 function hospiLoadDashboard() {
   // Don't load dashboard if we're viewing a patient profile
   if (HOSPI_CURRENT_INGRESO) return;
-  var soloActivos = document.getElementById('hospiActivosToggle')?.checked !== false;
-  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false});
-  if (soloActivos) query = query.eq('estado', 'Activo');
+  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false});
+  // Status filter
+  if (HOSPI_STATUS_FILTER === 'activos') query = query.eq('estado', 'Activo');
+  else if (HOSPI_STATUS_FILTER === 'altas') query = query.eq('estado', 'Alta');
 
   // Date filter
   var now = new Date();
@@ -6422,9 +6432,13 @@ function hospiLoadDashboard() {
     var total = r.count || 0;
     sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r2) {
       var activos = r2.count || 0;
-      document.getElementById('hospiStats').innerHTML =
-        '<div class="hospi-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
-        '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total Ingresos</div></div>';
+      sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Alta').then(function(r3) {
+        var altas = r3.count || 0;
+        document.getElementById('hospiStats').innerHTML =
+          '<div class="hospi-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
+          '<div class="hospi-stat"><div class="stat-num">' + altas + '</div><div class="stat-label">Altas</div></div>' +
+          '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total</div></div>';
+        });
     });
   });
 }
@@ -6443,21 +6457,45 @@ function hospiSetDateFilter(filter, btn) {
     document.querySelectorAll('.hospi-filter-chip').forEach(function(c){ c.classList.remove('active'); });
     if (btn) btn.classList.add('active');
   }
+  // Clear date inputs if switching away from custom
+  if (filter !== 'custom') {
+    var df = document.getElementById('hospiDateFrom');
+    var dt = document.getElementById('hospiDateTo');
+    if (df) df.value = '';
+    if (dt) dt.value = '';
+  }
+  hospiLoadDashboard();
+}
+
+function hospiSetStatusFilter(filter, btn) {
+  HOSPI_STATUS_FILTER = filter;
+  document.querySelectorAll('.hospi-status-chip').forEach(function(c){ c.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
   hospiLoadDashboard();
 }
 
 function hospiRenderDashboard(ingresos) {
   var list = document.getElementById('hospiList');
   if (!ingresos.length) {
-    list.innerHTML = '<div class="hospi-empty"><div class="ce-icon">🛏️</div><p>No hay ingresos en este servicio</p><p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p></div>';
+    var emptyMsg = HOSPI_STATUS_FILTER === 'altas' ? 'No hay pacientes dados de alta' :
+                   HOSPI_STATUS_FILTER === 'activos' ? 'No hay pacientes activos' :
+                   'No hay ingresos en este servicio';
+    list.innerHTML = '<div class="hospi-empty"><div class="ce-icon">🛏️</div><p>' + emptyMsg + '</p><p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p></div>';
     return;
   }
   list.innerHTML = ingresos.map(function(ing) {
     var p = ing.pacientes;
     var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
+    var isActivo = ing.estado === 'Activo';
+    var statusClass = isActivo ? 'activo' : 'alta';
+    var statusText = isActivo ? 'Activo' : 'Alta';
+    var egresoHTML = '';
+    if (!isActivo && ing.fecha_egreso) {
+      egresoHTML = '<span>🚪 Egreso: ' + new Date(ing.fecha_egreso).toLocaleDateString('es-PE') + '</span>';
+    }
     return '<div class="hospi-card" onclick="hospiLoadPerfil(\'' + ing.id + '\')">' +
       '<div class="hospi-card-top">' +
-        '<div><span class="hospi-bed">🛏️ ' + hospiEsc(ing.cama) + '</span></div>' +
+        '<div><span class="hospi-bed">🛏️ ' + hospiEsc(ing.cama) + '</span><span class="hospi-status-badge ' + statusClass + '">' + statusText + '</span></div>' +
         '<span style="font-size:10px;color:var(--t3)">' + hospiTimeAgo(ing.fecha_ingreso) + '</span>' +
       '</div>' +
       '<div class="hospi-name">' + hospiEsc(p.nombres + ' ' + p.apellidos) + '</div>' +
@@ -6465,7 +6503,7 @@ function hospiRenderDashboard(ingresos) {
       (ing.dx_ingreso ? '<div class="hospi-dx">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
       '<div class="hospi-meta">' +
         '<span>📅 ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</span>' +
-        '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
+        egresoHTML +
       '</div>' +
     '</div>';
   }).join('');
@@ -6506,6 +6544,7 @@ function hospiLoadPerfil(ingresoId) {
             '<span>🏥 ' + hospiEsc(ing.servicios.nombre) + '</span>' +
             '<span style="color:' + (ing.estado === 'Activo' ? '#4ade80' : 'var(--t3)') + '">● ' + ing.estado + '</span>' +
           '</div>' +
+          (ing.fecha_egreso ? '<div style="font-size:10px;color:var(--t3);margin-top:2px">🚪 Egreso: ' + new Date(ing.fecha_egreso).toLocaleDateString('es-PE') + '</div>' : '') +
           alertHtml +
           (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
           '<div style="font-size:10px;color:var(--t3)">Ingreso: ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</div>' +
@@ -7123,49 +7162,59 @@ function hospiZoomImage(url) {
   var overlay = document.createElement('div');
   overlay.className = 'hospi-zoom-overlay';
   overlay.id = 'hospiZoom';
-  overlay.style.overflow = 'hidden';
-  overlay.style.touchAction = 'none';
 
   var img = document.createElement('img');
   img.src = url;
-  img.style.maxWidth = '100vw';
-  img.style.maxHeight = '100vh';
-  img.style.objectFit = 'contain';
-  img.style.position = 'absolute';
-  img.style.transformOrigin = '0 0';
-  img.style.transition = 'none';
+  img.draggable = false;
 
-  var scale = 1, startDist = 0, startScale = 1;
-  var posX = 0, posY = 0, lastX = 0, lastY = 0;
+  // Zoom state
+  var scale = 1, baseScale = 1;
+  var posX = 0, posY = 0;
+  var startDist = 0, startScale = 1;
+  var lastX = 0, lastY = 0;
   var dragging = false, pinching = false;
+  var swipeStartY = 0, swipeActive = false;
 
   overlay.appendChild(img);
 
   // Close button
   var closeBtn = document.createElement('button');
   closeBtn.className = 'hospi-zoom-close';
-  closeBtn.textContent = '✕';
-  closeBtn.onclick = function(e) { e.stopPropagation(); overlay.remove(); };
+  closeBtn.innerHTML = '✕';
+  closeBtn.onclick = function(e) { e.stopPropagation(); closeOverlay(); };
   overlay.appendChild(closeBtn);
 
-  // Hint text
+  // Hint text (fades after 2.5s)
   var hint = document.createElement('span');
-  hint.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.4);font-size:10px;pointer-events:none;z-index:1';
-  hint.textContent = 'Pinch para zoom · Tap fondo para cerrar';
+  hint.className = 'hospi-zoom-hint';
+  hint.textContent = 'Usa dos dedos para zoom · Desliza abajo para cerrar';
   overlay.appendChild(hint);
+  var hintTimer = setTimeout(function() { hint.classList.add('fade'); }, 2500);
 
-  // Center image initially
+  // Center image to fill screen with margin
   function centerImage() {
     var ow = overlay.clientWidth, oh = overlay.clientHeight;
     var iw = img.naturalWidth || ow, ih = img.naturalHeight || oh;
-    var fitScale = Math.min(ow / iw, oh / ih, 1);
+    if (!iw || !ih) return;
+    // Fit image to fill available space (contain with 16px side margins, room for controls)
+    var marginX = 16, marginY = 80; // top/bottom room for close btn and hint
+    var availW = ow - marginX * 2, availH = oh - marginY * 2;
+    var fitScale = Math.min(availW / iw, availH / ih);
+    baseScale = fitScale;
     scale = fitScale;
     posX = (ow - iw * fitScale) / 2;
     posY = (oh - ih * fitScale) / 2;
-    applyTransform();
+    applyTransform(false);
   }
 
-  function applyTransform() {
+  function applyTransform(animate) {
+    if (animate) {
+      img.style.transition = 'transform 0.2s cubic-bezier(.25,.1,.25,1)';
+      clearTimeout(img._transTimer);
+      img._transTimer = setTimeout(function() { img.style.transition = 'none'; }, 200);
+    } else {
+      img.style.transition = 'none';
+    }
     img.style.transform = 'translate(' + posX + 'px, ' + posY + 'px) scale(' + scale + ')';
   }
 
@@ -7175,14 +7224,34 @@ function hospiZoomImage(url) {
     return Math.sqrt(dx*dx + dy*dy);
   }
 
+  // Clamp position after drag/pinch
+  function clampPosition() {
+    var ow = overlay.clientWidth, oh = overlay.clientHeight;
+    var iw = (img.naturalWidth || ow) * scale;
+    var ih = (img.naturalHeight || oh) * scale;
+    // Allow some overscroll (30% of image beyond edges)
+    var marginX = Math.min(ow * 0.3, iw * 0.3);
+    var marginY = Math.min(oh * 0.3, ih * 0.3);
+    posX = Math.max(-iw + marginX, Math.min(ow - marginX, posX));
+    posY = Math.max(-ih + marginY, Math.min(oh - marginY, posY));
+  }
+
+  // Touch handlers
   overlay.addEventListener('touchstart', function(e) {
     if (e.target === closeBtn) return;
     if (e.touches.length === 2) {
-      pinching = true; dragging = false;
+      pinching = true; dragging = false; swipeActive = false;
       startDist = getDist(e.touches);
       startScale = scale;
+      // Save pinch center for anchor point
+      var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      overlay._pinchCX = cx; overlay._pinchCY = cy;
+      overlay._pinchPX = posX; overlay._pinchPY = posY;
     } else if (e.touches.length === 1 && !pinching) {
       dragging = true;
+      swipeStartY = e.touches[0].clientY;
+      swipeActive = true;
       lastX = e.touches[0].clientX - posX;
       lastY = e.touches[0].clientY - posY;
     }
@@ -7192,36 +7261,98 @@ function hospiZoomImage(url) {
   overlay.addEventListener('touchmove', function(e) {
     if (pinching && e.touches.length === 2) {
       var newDist = getDist(e.touches);
-      scale = Math.max(0.5, Math.min(5, startScale * (newDist / startDist)));
-      applyTransform();
+      scale = Math.max(baseScale * 0.4, Math.min(baseScale * 5, startScale * (newDist / startDist)));
+      // Pinch from center point
+      var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      posX = cx - (overlay._pinchCX - overlay._pinchPX) * (scale / startScale);
+      posY = cy - (overlay._pinchCY - overlay._pinchPY) * (scale / startScale);
+      applyTransform(false);
     } else if (dragging && e.touches.length === 1) {
       posX = e.touches[0].clientX - lastX;
       posY = e.touches[0].clientY - lastY;
-      applyTransform();
+      // Track swipe distance for close detection
+      if (swipeActive && scale <= baseScale * 1.05) {
+        var swipeDY = e.touches[0].clientY - swipeStartY;
+        if (swipeDY > 30) {
+          overlay.style.background = 'rgba(0,0,0,' + Math.max(0.2, 0.96 - swipeDY / 400) + ')';
+        }
+      }
+      applyTransform(false);
     }
     e.preventDefault();
   }, {passive: false});
 
   overlay.addEventListener('touchend', function(e) {
-    if (e.touches.length === 0) { pinching = false; dragging = false; }
+    if (e.touches.length === 0) {
+      // Check swipe down to close
+      if (swipeActive && scale <= baseScale * 1.05) {
+        var swipeEndY = e.changedTouches[0] ? e.changedTouches[0].clientY : swipeStartY;
+        var swipeDY = swipeEndY - swipeStartY;
+        if (swipeDY > 100) { closeOverlay(); return; }
+      }
+      pinching = false; dragging = false; swipeActive = false;
+      clampPosition();
+      applyTransform(true);
+      overlay.style.background = 'rgba(0,0,0,.96)';
+    }
   });
 
   // Tap on background to close
   overlay.addEventListener('click', function(e) {
-    if (e.target === overlay || e.target === hint) overlay.remove();
+    if (e.target === overlay) closeOverlay();
   });
 
-  // Double-tap to zoom in/out
+  // Double-tap / double-click to zoom toggle
   overlay.addEventListener('dblclick', function(e) {
     if (e.target === closeBtn) return;
-    if (scale > 1.2) { scale = 1; centerImage(); }
-    else { scale = 2.5; posX = -(e.clientX * 2.5 - e.clientX); posY = -(e.clientY * 2.5 - e.clientY); applyTransform(); }
+    if (scale > baseScale * 1.3) {
+      // Zoom out to fit
+      scale = baseScale;
+      centerImage();
+    } else {
+      // Zoom in 2.5x at tap point
+      var targetScale = Math.min(baseScale * 2.5, baseScale * 5);
+      scale = targetScale;
+      posX = e.clientX - (e.clientX - posX) * (targetScale / baseScale);
+      posY = e.clientY - (e.clientY - posY) * (targetScale / baseScale);
+      baseScale = baseScale; // keep original base
+      applyTransform(true);
+    }
   });
 
-  // Back button
+  // Mouse wheel zoom (desktop)
+  overlay.addEventListener('wheel', function(e) {
+    if (e.target === closeBtn) return;
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? 0.9 : 1.1;
+    var newScale = Math.max(baseScale * 0.4, Math.min(baseScale * 5, scale * delta));
+    // Zoom toward cursor
+    posX = e.clientX - (e.clientX - posX) * (newScale / scale);
+    posY = e.clientY - (e.clientY - posY) * (newScale / scale);
+    scale = newScale;
+    applyTransform(false);
+  }, {passive: false});
+
+  // Back button (Android)
   try { window.history.pushState({zoom:1}, ''); } catch(e) {}
-  var onPop = function() { var ov = document.getElementById('hospiZoom'); if (ov) { ov.remove(); window.removeEventListener('popstate', onPop); } };
+  var onPop = function() {
+    var ov = document.getElementById('hospiZoom');
+    if (ov) { closeOverlay(); window.removeEventListener('popstate', onPop); }
+  };
   window.addEventListener('popstate', onPop);
+
+  function closeOverlay() {
+    clearTimeout(hintTimer);
+    if (overlay._closed) return;
+    overlay._closed = true;
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.2s';
+    setTimeout(function() {
+      overlay.remove();
+      window.removeEventListener('popstate', onPop);
+    }, 200);
+  }
 
   document.body.appendChild(overlay);
   if (img.complete) centerImage();
