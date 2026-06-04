@@ -850,8 +850,13 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .hospi-filter-chip{padding:6px 14px;border-radius:16px;font-size:11px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s}
 .hospi-filter-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
-.hospi-date-input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 10px;color:#fff;font-size:11px;font-family:inherit;width:125px;color-scheme:dark;-webkit-color-scheme:dark}
-.hospi-date-input:focus{outline:none;border-color:var(--tl)}
+.hospi-date-input{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:8px 10px;color:#111;font-size:12px;font-family:inherit;width:auto;min-width:120px;color-scheme:light;-webkit-color-scheme:light}
+.hospi-date-input:focus{outline:none;border-color:var(--tl);box-shadow:0 0 0 3px rgba(78,205,196,.15)}
+.hospi-date-row{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.hospi-section-divider{display:flex;align-items:center;gap:10px;margin:16px 0 10px}
+.hospi-section-divider::before,.hospi-section-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
+.hospi-section-divider span{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
+.hospi-dni-lookup{background:var(--s2);padding:12px;border-radius:10px;margin-bottom:4px}
 .hospi-status-bar{display:flex;gap:8px;margin-bottom:14px}
 .hospi-status-chip{padding:8px 18px;border-radius:18px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s;font-family:inherit}
 .hospi-status-chip.active{background:var(--n2);color:#fff;border-color:var(--n2)}
@@ -860,10 +865,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-card .hospi-status-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:.3px}
 .hospi-card .hospi-status-badge.activo{background:rgba(74,222,128,.15);color:#4ade80}
 .hospi-card .hospi-status-badge.alta{background:rgba(160,174,192,.12);color:var(--t3)}
-.hospi-date-input::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer}
-.hospi-date-input::-webkit-datetime-edit{color:#fff}
-.hospi-date-input::-webkit-datetime-edit-fields-wrapper{color:#fff}
-.hospi-date-input::-webkit-datetime-edit-text{color:rgba(255,255,255,.6)}
+.hospi-date-input::-webkit-calendar-picker-indicator{cursor:pointer}
+.hospi-date-input::-webkit-datetime-edit{color:#111}
+.hospi-date-input::-webkit-datetime-edit-fields-wrapper{color:#111}
+.hospi-date-input::-webkit-datetime-edit-text{color:#666}
 
 /* Image Zoom */
 .hospi-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.96);touch-action:none;overflow:hidden}
@@ -1572,8 +1577,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <button class="hospi-filter-chip" onclick="hospiSetDateFilter('today',this)">Hoy</button>
               <button class="hospi-filter-chip" onclick="hospiSetDateFilter('week',this)">Semana</button>
               <button class="hospi-filter-chip" onclick="hospiSetDateFilter('month',this)">Mes</button>
-              <span style="color:var(--t3);font-size:11px;margin:0 2px">📆</span>
+            </div>
+            <div class="hospi-date-row">
+              <span style="color:var(--t2);font-size:12px;font-weight:600">📆 Fechas:</span>
               <input type="date" class="hospi-date-input" id="hospiDateFrom" onchange="hospiSetDateFilter('custom')" title="Desde">
+              <span style="color:var(--t3);font-size:11px">hasta</span>
               <input type="date" class="hospi-date-input" id="hospiDateTo" onchange="hospiSetDateFilter('custom')" title="Hasta">
             </div>
             <div class="hospi-status-bar">
@@ -6734,30 +6742,31 @@ function hospiNuevoIngreso() {
       '<button onclick="document.getElementById(\'hospiFormIngreso\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
     '</div>' +
     '<div class="hospi-form-body">' +
-      '<label>Buscar Paciente por DNI</label>' +
-      '<input type="text" id="hospiBuscarDNI" placeholder="Ingresa el DNI..." oninput="hospiBuscarPaciente()" autocomplete="off">' +
-      '<div id="hospiBuscarResult" style="margin-top:8px"></div>' +
-      '<div id="hospiPacienteNuevo" style="display:none">' +
-        '<label>Nombres</label><input type="text" id="hospiPNombres">' +
-        '<label>Apellidos</label><input type="text" id="hospiPApellidos">' +
-        '<label>Fecha de Nacimiento</label><input type="text" id="hospiPFechaNac" placeholder="YYYY-MM-DD">' +
-        '<label>Sexo</label><select id="hospiPSexo"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option></select>' +
-        '<label>Alergias</label><input type="text" id="hospiPAlergias" placeholder="ej. Penicilina, Sulfa...">' +
+      '<div class="hospi-dni-lookup">' +
+        '<label style="font-size:11px;color:var(--t2)">🪪 Buscar por DNI (opcional) — autocompleta si ya existe</label>' +
+        '<input type="text" id="hospiBuscarDNI" placeholder="DNI para buscar..." oninput="hospiBuscarPaciente()" autocomplete="off" style="font-size:12px">' +
+        '<div id="hospiBuscarResult" style="margin-top:6px;font-size:12px"></div>' +
       '</div>' +
-      '<div id="hospiIngresoFields" style="display:none">' +
-        '<label>Servicio</label><select id="hospiIServicio">' +
-          '<option value="1">Medicina Interna</option>' +
-          '<option value="2">Cirugia</option>' +
-          '<option value="3">Gineco-Obstetricia</option>' +
-        '</select>' +
-        '<label>Cama</label><input type="text" id="hospiICama" placeholder="ej. Cama 4, Pasillo...">' +
-        '<label>Diagnostico de Ingreso (opcional)</label>' +
-        '<input type="text" id="hospiIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
-      '</div>' +
+      '<div class="hospi-section-divider"><span>Datos del paciente</span></div>' +
+      '<label>Nombres</label><input type="text" id="hospiPNombres">' +
+      '<label>Apellidos</label><input type="text" id="hospiPApellidos">' +
+      '<label>DNI</label><input type="text" id="hospiPDNI" placeholder="Numero de documento">' +
+      '<label>Fecha de Nacimiento</label><input type="text" id="hospiPFechaNac" placeholder="YYYY-MM-DD">' +
+      '<label>Sexo</label><select id="hospiPSexo"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option></select>' +
+      '<label>Alergias</label><input type="text" id="hospiPAlergias" placeholder="ej. Penicilina, Sulfa...">' +
+      '<div class="hospi-section-divider"><span>Detalles del ingreso</span></div>' +
+      '<label>Servicio</label><select id="hospiIServicio">' +
+        '<option value="1">Medicina Interna</option>' +
+        '<option value="2">Cirugia</option>' +
+        '<option value="3">Gineco-Obstetricia</option>' +
+      '</select>' +
+      '<label>Cama</label><input type="text" id="hospiICama" placeholder="ej. Cama 4, Pasillo...">' +
+      '<label>Diagnostico de Ingreso (opcional)</label>' +
+      '<input type="text" id="hospiIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
     '</div>' +
     '<div class="hospi-form-footer">' +
       '<button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormIngreso\').remove()">Cancelar</button>' +
-      '<button class="hospi-btn primary" id="hospiBtnGuardarIngreso" onclick="hospiGuardarIngreso()" disabled>Guardar Ingreso</button>' +
+      '<button class="hospi-btn primary" id="hospiBtnGuardarIngreso" onclick="hospiGuardarIngreso()">Guardar Ingreso</button>' +
     '</div>';
   document.body.appendChild(overlay);
 }
@@ -6767,43 +6776,50 @@ var HOSPI_PACIENTE_SEL = null;
 function hospiBuscarPaciente() {
   var dni = document.getElementById('hospiBuscarDNI').value.trim();
   var resultDiv = document.getElementById('hospiBuscarResult');
-  var nuevoDiv = document.getElementById('hospiPacienteNuevo');
-  var ingFields = document.getElementById('hospiIngresoFields');
-  var btnGuardar = document.getElementById('hospiBtnGuardarIngreso');
-
-  ingFields.style.display = 'none';
-  btnGuardar.disabled = true;
   HOSPI_PACIENTE_SEL = null;
 
   if (dni.length < 6) {
     resultDiv.innerHTML = '';
-    nuevoDiv.style.display = 'none';
+    // Clear auto-filled fields
+    document.getElementById('hospiPNombres').value = '';
+    document.getElementById('hospiPApellidos').value = '';
+    document.getElementById('hospiPDNI').value = '';
+    document.getElementById('hospiPFechaNac').value = '';
+    document.getElementById('hospiPSexo').value = '';
+    document.getElementById('hospiPAlergias').value = '';
     return;
   }
 
   sb.from('pacientes').select('*').eq('dni', dni).maybeSingle().then(function(r) {
     if (r.data) {
-      HOSPI_PACIENTE_SEL = r.data;
-      resultDiv.innerHTML = '<div style="background:rgba(78,205,196,.1);padding:10px;border-radius:10px;color:var(--tl);font-size:13px;font-weight:600">✓ ' + hospiEsc(r.data.nombres + ' ' + r.data.apellidos) + '</div>';
-      nuevoDiv.style.display = 'none';
-      ingFields.style.display = 'block';
-      btnGuardar.disabled = false;
+      var p = r.data;
+      HOSPI_PACIENTE_SEL = p;
+      resultDiv.innerHTML = '<div style="background:rgba(78,205,196,.1);padding:8px 12px;border-radius:8px;color:var(--tl);font-weight:600">✓ Paciente existente: ' + hospiEsc(p.nombres + ' ' + p.apellidos) + ' — datos autocompletados</div>';
+      // Auto-fill all fields
+      document.getElementById('hospiPNombres').value = p.nombres || '';
+      document.getElementById('hospiPApellidos').value = p.apellidos || '';
+      document.getElementById('hospiPDNI').value = p.dni || '';
+      document.getElementById('hospiPFechaNac').value = p.fecha_nacimiento || '';
+      document.getElementById('hospiPSexo').value = p.sexo || '';
+      document.getElementById('hospiPAlergias').value = p.alergias || '';
     } else {
-      resultDiv.innerHTML = '<div style="color:var(--t3);font-size:12px;margin-top:6px">Paciente nuevo — completa los datos:</div>';
-      nuevoDiv.style.display = 'block';
-      ingFields.style.display = 'block';
-      btnGuardar.disabled = false;
+      HOSPI_PACIENTE_SEL = null;
+      resultDiv.innerHTML = '<div style="color:var(--t2);font-size:11px;margin-top:6px">Paciente nuevo — llena los datos manualmente</div>';
+      document.getElementById('hospiPDNI').value = dni;
     }
   });
 }
 
 function hospiGuardarIngreso() {
-  var dni = document.getElementById('hospiBuscarDNI').value.trim();
+  var dni = document.getElementById('hospiPDNI').value.trim();
   var cama = document.getElementById('hospiICama').value.trim();
   var dx = document.getElementById('hospiIDx').value.trim();
   var servicio = parseInt(document.getElementById('hospiIServicio').value);
+  var pNombres = document.getElementById('hospiPNombres').value.trim();
+  var pApellidos = document.getElementById('hospiPApellidos').value.trim();
 
-  if (!dni || !cama) { toast('DNI y Cama son obligatorios', 'error'); return; }
+  if (!pNombres || !pApellidos) { toast('Nombres y apellidos son obligatorios', 'error'); return; }
+  if (!cama) { toast('Indica la cama del paciente', 'error'); return; }
 
   function crearIngreso(pacienteId) {
     sb.from('ingresos').insert({
@@ -6820,23 +6836,27 @@ function hospiGuardarIngreso() {
     });
   }
 
-  if (HOSPI_PACIENTE_SEL) {
+  if (HOSPI_PACIENTE_SEL && HOSPI_PACIENTE_SEL.dni === dni) {
+    // Use existing patient found via DNI lookup
     crearIngreso(HOSPI_PACIENTE_SEL.id);
   } else {
-    // Create new patient
-    var pNombres = document.getElementById('hospiPNombres').value.trim();
-    var pApellidos = document.getElementById('hospiPApellidos').value.trim();
-    if (!pNombres || !pApellidos) { toast('Completa nombres y apellidos', 'error'); return; }
-    sb.from('pacientes').insert({
-      dni: dni,
-      nombres: pNombres,
-      apellidos: pApellidos,
-      fecha_nacimiento: document.getElementById('hospiPFechaNac').value || null,
-      sexo: document.getElementById('hospiPSexo').value || null,
-      alergias: document.getElementById('hospiPAlergias').value || null
-    }).select().single().then(function(r) {
-      if (r.error) { toast('Error paciente: ' + r.error.message, 'error'); return; }
-      crearIngreso(r.data.id);
+    // Create new patient or use existing if DNI matches
+    sb.from('pacientes').select('id').eq('dni', dni).maybeSingle().then(function(existing) {
+      if (existing.data) {
+        crearIngreso(existing.data.id);
+      } else {
+        sb.from('pacientes').insert({
+          dni: dni || null,
+          nombres: pNombres,
+          apellidos: pApellidos,
+          fecha_nacimiento: document.getElementById('hospiPFechaNac').value || null,
+          sexo: document.getElementById('hospiPSexo').value || null,
+          alergias: document.getElementById('hospiPAlergias').value || null
+        }).select().single().then(function(r) {
+          if (r.error) { toast('Error paciente: ' + r.error.message, 'error'); return; }
+          crearIngreso(r.data.id);
+        });
+      }
     });
   }
 }
