@@ -6876,7 +6876,7 @@ function hospiCropImage(file, callback) {
     overlay.innerHTML =
       '<div class="hospi-form-header">' +
         '<h3>Recortar imagen</h3>' +
-        '<button onclick="var ov=document.getElementById(\'hospiCropOverlay\');if(ov)ov.remove();" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+        '<button onclick="var ov=document.getElementById('hospiCropOverlay');if(ov)ov.remove();" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
       '</div>' +
       '<div style="flex:1;position:relative;overflow:hidden;background:#000;touch-action:none" id="hospiCropArea">' +
         '<img id="hospiCropImg" src="' + reader.result + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:.5;pointer-events:none">' +
@@ -6888,7 +6888,7 @@ function hospiCropImage(file, callback) {
         '<div class="hospi-crop-handle" id="hospiCropBR" style="bottom:0;right:0"></div>' +
       '</div>' +
       '<div class="hospi-form-footer">' +
-        '<button class="hospi-btn outline" onclick="var ov=document.getElementById(\'hospiCropOverlay\');if(ov)ov.remove();">Cancelar</button>' +
+        '<button class="hospi-btn outline" onclick="var ov=document.getElementById('hospiCropOverlay');if(ov)ov.remove();">Cancelar</button>' +
         '<button class="hospi-btn primary" id="hospiCropApplyBtn">✂️ Recortar</button>' +
       '</div>';
 
