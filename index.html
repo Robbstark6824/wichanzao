@@ -6974,8 +6974,10 @@ function hospiCropImage(file, callback) {
 
     setTimeout(updateBox, 100);
     window.addEventListener('resize', updateBox);
-    // Attach event handlers via DOM (avoids innerHTML escaping issues)
-    var closeCrop = function() { overlay.remove(); callback(file); };
+
+    // Attach event handlers via DOM — set _cropResult then call remove()
+    // overlay.remove is overridden to fire the callback with the result (or null if dismissed)
+    var closeCrop = function() { overlay._cropResult = file; overlay.remove(); };
     document.getElementById('hospiCropCloseBtn').onclick = closeCrop;
     document.getElementById('hospiCropCancelBtn').onclick = closeCrop;
 
@@ -6990,8 +6992,8 @@ function hospiCropImage(file, callback) {
       ctx.drawImage(imgEl, crop.x * iw, crop.y * ih, crop.w * iw, crop.h * ih, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(function(blob) {
         var croppedFile = new File([blob], 'cropped_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+        overlay._cropResult = croppedFile;
         overlay.remove();
-        callback(croppedFile);
       }, 'image/jpeg', 0.85);
     };
 
@@ -7000,11 +7002,14 @@ function hospiCropImage(file, callback) {
     overlay.remove = function() {
       if (overlay._cleanup) overlay._cleanup();
       origRemove.call(overlay);
-      if (!document.getElementById('hospiCropOverlay')) callback(null); // dismissed
+      // If _cropResult is set (by close/cancel/apply), pass it; if not, it was dismissed → null
+      callback(overlay._cropResult || null);
     };
   };
   reader.readAsDataURL(file);
 }
+
+function hospiRenderPreviews() {
   var grid = document.getElementById('hospiPreviewGrid');
   if (!grid) return;
   grid.innerHTML = HOSPI_PENDING_PHOTOS.map(function(f, idx) {
