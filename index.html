@@ -6350,6 +6350,7 @@ async function hospiProcessOfflineQueue() {
   var queue = hospiGetOfflineQueue();
   if (queue.length === 0) return;
   toast('Sincronizando ' + queue.length + ' operacion(es) pendiente(s)...', 'info');
+  var adminSync = sbAdmin();
 
   for (var i = 0; i < queue.length; i++) {
     var op = queue[i];
@@ -6368,7 +6369,7 @@ async function hospiProcessOfflineQueue() {
           }
         }
         // Save evolution
-        var evResult = await sb.from('evoluciones').insert({
+        var evResult = await adminSync.from('evoluciones').insert({
           ingreso_id: op.ingreso_id,
           tipo: op.tipo,
           nota: op.nota || null,
@@ -6378,7 +6379,7 @@ async function hospiProcessOfflineQueue() {
         }).select().single();
         if (evResult.error) throw evResult.error;
       } else if (op.type === 'ingreso') {
-        var pResult = await sb.from('pacientes').insert({
+        var pResult = await adminSync.from('pacientes').insert({
           dni: op.dni || null,
           nombres: op.nombres,
           apellidos: op.apellidos,
@@ -6387,7 +6388,7 @@ async function hospiProcessOfflineQueue() {
           alergias: op.alergias || null
         }).select().single();
         if (pResult.error) throw pResult.error;
-        var ingResult = await sb.from('ingresos').insert({
+        var ingResult = await adminSync.from('ingresos').insert({
           paciente_id: pResult.data.id,
           servicio_id: op.servicio_id,
           cama: op.cama,
@@ -7163,6 +7164,7 @@ function hospiGuardarIngreso() {
   // Combine seccion + cama
   var camaCompleta = seccion ? seccion + ' - ' + cama : cama;
   var authorId = HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000';
+  var admin = sbAdmin(); // service_role client to bypass RLS
 
   // OFFLINE MODE: queue locally
   if (!navigator.onLine) {
@@ -7187,7 +7189,7 @@ function hospiGuardarIngreso() {
   }
 
   function crearIngreso(pacienteId) {
-    sb.from('ingresos').insert({
+    admin.from('ingresos').insert({
       paciente_id: pacienteId,
       servicio_id: servicio,
       cama: camaCompleta,
@@ -7208,7 +7210,7 @@ function hospiGuardarIngreso() {
       if (existing.data) {
         crearIngreso(existing.data.id);
       } else {
-        sb.from('pacientes').insert({
+        admin.from('pacientes').insert({
           dni: dni || null,
           nombres: pNombres,
           apellidos: pApellidos,
@@ -7517,7 +7519,8 @@ async function hospiGuardarEvolucion() {
     }
   }
 
-  sb.from('evoluciones').insert({
+  var adminEv = sbAdmin();
+  adminEv.from('evoluciones').insert({
     ingreso_id: HOSPI_CURRENT_INGRESO.id,
     tipo: tipo,
     nota: nota || null,
@@ -7559,7 +7562,8 @@ function hospiCompressImage(file) {
 function hospiDarAlta() {
   if (!HOSPI_CURRENT_INGRESO) return;
   if (!confirm('¿Dar de alta a este paciente? Se registrara la fecha de egreso.')) return;
-  sb.from('ingresos').update({
+  var adminAlta = sbAdmin();
+  adminAlta.from('ingresos').update({
     estado: 'Alta',
     fecha_egreso: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -7587,11 +7591,12 @@ async function hospiEliminarIngreso() {
   btn.textContent = '⏳ Eliminando...';
 
   try {
+    var adminDel = sbAdmin();
     // Delete evoluciones
-    var evResult = await sb.from('evoluciones').delete().eq('ingreso_id', ing.id);
+    var evResult = await adminDel.from('evoluciones').delete().eq('ingreso_id', ing.id);
     if (evResult.error) throw evResult.error;
     // Delete ingreso
-    var ingResult = await sb.from('ingresos').delete().eq('id', ing.id);
+    var ingResult = await adminDel.from('ingresos').delete().eq('id', ing.id);
     if (ingResult.error) throw ingResult.error;
     toast('Ingreso de ' + nombre + ' eliminado ✓', 'success');
     document.getElementById('hospiPerfilOverlay').remove();
