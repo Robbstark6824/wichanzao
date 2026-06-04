@@ -6876,7 +6876,7 @@ function hospiCropImage(file, callback) {
     overlay.innerHTML =
       '<div class="hospi-form-header">' +
         '<h3>Recortar imagen</h3>' +
-        '<button onclick="var ov=document.getElementById('hospiCropOverlay');if(ov)ov.remove();" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+        '<button id="hospiCropCloseBtn" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
       '</div>' +
       '<div style="flex:1;position:relative;overflow:hidden;background:#000;touch-action:none" id="hospiCropArea">' +
         '<img id="hospiCropImg" src="' + reader.result + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:.5;pointer-events:none">' +
@@ -6888,7 +6888,7 @@ function hospiCropImage(file, callback) {
         '<div class="hospi-crop-handle" id="hospiCropBR" style="bottom:0;right:0"></div>' +
       '</div>' +
       '<div class="hospi-form-footer">' +
-        '<button class="hospi-btn outline" onclick="var ov=document.getElementById('hospiCropOverlay');if(ov)ov.remove();">Cancelar</button>' +
+        '<button class="hospi-btn outline" id="hospiCropCancelBtn">Cancelar</button>' +
         '<button class="hospi-btn primary" id="hospiCropApplyBtn">✂️ Recortar</button>' +
       '</div>';
 
@@ -6971,6 +6971,14 @@ function hospiCropImage(file, callback) {
 
     area.addEventListener('touchend', function() { dragging = null; });
 
+
+    setTimeout(updateBox, 100);
+    window.addEventListener('resize', updateBox);
+    // Attach event handlers via DOM (avoids innerHTML escaping issues)
+    var closeCrop = function() { overlay.remove(); callback(file); };
+    document.getElementById('hospiCropCloseBtn').onclick = closeCrop;
+    document.getElementById('hospiCropCancelBtn').onclick = closeCrop;
+
     // Apply crop
     document.getElementById('hospiCropApplyBtn').onclick = function() {
       var canvas = document.createElement('canvas');
@@ -6987,20 +6995,6 @@ function hospiCropImage(file, callback) {
       }, 'image/jpeg', 0.85);
     };
 
-    // Click X = cancel, use original
-    overlay.querySelector('.hospi-form-header button').onclick = function() {
-      overlay.remove();
-      callback(file); // use original
-    };
-
-    // Cancel button
-    overlay.querySelector('.hospi-btn.outline').onclick = function() {
-      overlay.remove();
-      callback(file); // use original
-    };
-
-    setTimeout(updateBox, 100);
-    window.addEventListener('resize', updateBox);
     overlay._cleanup = function() { window.removeEventListener('resize', updateBox); };
     var origRemove = overlay.remove;
     overlay.remove = function() {
