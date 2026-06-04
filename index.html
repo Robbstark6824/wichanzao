@@ -861,6 +861,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-zoom-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center}
 .hospi-zoom-overlay img{max-width:100vw;max-height:100vh;object-fit:contain;touch-action:pinch-zoom;cursor:default}
 .hospi-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;z-index:2;font-weight:700}
+.hospi-crop-handle{position:absolute;width:22px;height:22px;background:var(--tl);border:2px solid #fff;border-radius:50%;z-index:10;cursor:pointer;box-shadow:0 0 6px rgba(0,0,0,.4)}
 
 /* Evolution Form */
 .hospi-form-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto}
@@ -6844,13 +6845,172 @@ function hospiTakePhoto() {
 
 function hospiHandleFiles(input) {
   var files = input.files;
-  for (var i = 0; i < files.length; i++) {
-    HOSPI_PENDING_PHOTOS.push(files[i]);
+  var idx = 0;
+  function processNext() {
+    if (idx >= files.length) return;
+    hospiCropImage(files[idx], function(croppedFile) {
+      if (croppedFile) HOSPI_PENDING_PHOTOS.push(croppedFile);
+      idx++;
+      hospiRenderPreviews();
+      processNext();
+    });
   }
-  hospiRenderPreviews();
+  processNext();
 }
 
-function hospiRenderPreviews() {
+function hospiCropImage(file, callback) {
+  var reader = new FileReader();
+  reader.onload = function() {
+    var overlay = document.createElement('div');
+    overlay.className = 'hospi-form-overlay';
+    overlay.style.background = 'rgba(0,0,0,.95)';
+    overlay.style.touchAction = 'none';
+    overlay.style.overflow = 'hidden';
+    overlay.id = 'hospiCropOverlay';
+
+    // Crop state (fraction 0-1)
+    var crop = { x: 0.15, y: 0.1, w: 0.7, h: 0.8 };
+    var dragging = null; // 'tl','tr','bl','br','move'
+    var startX = 0, startY = 0, startCrop = {};
+
+    overlay.innerHTML =
+      '<div class="hospi-form-header">' +
+        '<h3>Recortar imagen</h3>' +
+        '<button onclick="var ov=document.getElementById(\\'hospiCropOverlay\\');if(ov)ov.remove();" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div style="flex:1;position:relative;overflow:hidden;background:#000;touch-action:none" id="hospiCropArea">' +
+        '<img id="hospiCropImg" src="' + reader.result + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:.5;pointer-events:none">' +
+        '<div id="hospiCropOverlay2" style="position:absolute;inset:0;pointer-events:none;background:rgba(0,0,0,.4)"></div>' +
+        '<div id="hospiCropBox" style="position:absolute;border:2px solid var(--tl);pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.5)"></div>' +
+        '<div class="hospi-crop-handle" id="hospiCropTL" style="top:0;left:0"></div>' +
+        '<div class="hospi-crop-handle" id="hospiCropTR" style="top:0;right:0"></div>' +
+        '<div class="hospi-crop-handle" id="hospiCropBL" style="bottom:0;left:0"></div>' +
+        '<div class="hospi-crop-handle" id="hospiCropBR" style="bottom:0;right:0"></div>' +
+      '</div>' +
+      '<div class="hospi-form-footer">' +
+        '<button class="hospi-btn outline" onclick="var ov=document.getElementById(\\'hospiCropOverlay\\');if(ov)ov.remove();">Cancelar</button>' +
+        '<button class="hospi-btn primary" id="hospiCropApplyBtn">✂️ Recortar</button>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+
+    var area = document.getElementById('hospiCropArea');
+    var box = document.getElementById('hospiCropBox');
+    var handles = {
+      TL: document.getElementById('hospiCropTL'),
+      TR: document.getElementById('hospiCropTR'),
+      BL: document.getElementById('hospiCropBL'),
+      BR: document.getElementById('hospiCropBR')
+    };
+
+    function updateBox() {
+      var w = area.clientWidth, h = area.clientHeight;
+      box.style.left = (crop.x * w) + 'px';
+      box.style.top = (crop.y * h) + 'px';
+      box.style.width = (crop.w * w) + 'px';
+      box.style.height = (crop.h * h) + 'px';
+      // Update handles
+      handles.TL.style.left = (crop.x * w - 10) + 'px';
+      handles.TL.style.top = (crop.y * h - 10) + 'px';
+      handles.TR.style.left = ((crop.x + crop.w) * w - 10) + 'px';
+      handles.TR.style.top = (crop.y * h - 10) + 'px';
+      handles.BL.style.left = (crop.x * w - 10) + 'px';
+      handles.BL.style.top = ((crop.y + crop.h) * h - 10) + 'px';
+      handles.BR.style.left = ((crop.x + crop.w) * w - 10) + 'px';
+      handles.BR.style.top = ((crop.y + crop.h) * h - 10) + 'px';
+    }
+
+    function getRelativePos(e) {
+      var rect = area.getBoundingClientRect();
+      return { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
+    }
+
+    area.addEventListener('touchstart', function(e) {
+      if (e.touches.length !== 1) return;
+      var t = e.touches[0];
+      var target = e.target;
+      if (target === handles.TL) dragging = 'TL';
+      else if (target === handles.TR) dragging = 'TR';
+      else if (target === handles.BL) dragging = 'BL';
+      else if (target === handles.BR) dragging = 'BR';
+      else { dragging = 'move'; }
+      startX = t.clientX; startY = t.clientY;
+      startCrop = { x: crop.x, y: crop.y, w: crop.w, h: crop.h };
+      e.preventDefault();
+    }, {passive: false});
+
+    area.addEventListener('touchmove', function(e) {
+      if (!dragging || e.touches.length !== 1) return;
+      var t = e.touches[0];
+      var dx = (t.clientX - startX) / area.clientWidth;
+      var dy = (t.clientY - startY) / area.clientHeight;
+
+      if (dragging === 'TL') {
+        crop.x = Math.max(0, Math.min(startCrop.x + startCrop.w - 0.05, startCrop.x + dx));
+        crop.y = Math.max(0, Math.min(startCrop.y + startCrop.h - 0.05, startCrop.y + dy));
+        crop.w = startCrop.x + startCrop.w - crop.x;
+        crop.h = startCrop.y + startCrop.h - crop.y;
+      } else if (dragging === 'TR') {
+        crop.y = Math.max(0, Math.min(startCrop.y + startCrop.h - 0.05, startCrop.y + dy));
+        crop.w = Math.max(0.05, Math.min(1 - startCrop.x, startCrop.w + dx));
+        crop.h = startCrop.y + startCrop.h - crop.y;
+      } else if (dragging === 'BL') {
+        crop.x = Math.max(0, Math.min(startCrop.x + startCrop.w - 0.05, startCrop.x + dx));
+        crop.w = startCrop.x + startCrop.w - crop.x;
+        crop.h = Math.max(0.05, Math.min(1 - startCrop.y, startCrop.h + dy));
+      } else if (dragging === 'BR') {
+        crop.w = Math.max(0.05, Math.min(1 - startCrop.x, startCrop.w + dx));
+        crop.h = Math.max(0.05, Math.min(1 - startCrop.y, startCrop.h + dy));
+      } else if (dragging === 'move') {
+        crop.x = Math.max(0, Math.min(1 - crop.w, startCrop.x + dx));
+        crop.y = Math.max(0, Math.min(1 - crop.h, startCrop.y + dy));
+      }
+      updateBox();
+      e.preventDefault();
+    }, {passive: false});
+
+    area.addEventListener('touchend', function() { dragging = null; });
+
+    // Apply crop
+    document.getElementById('hospiCropApplyBtn').onclick = function() {
+      var canvas = document.createElement('canvas');
+      var imgEl = document.getElementById('hospiCropImg');
+      var iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+      canvas.width = crop.w * iw;
+      canvas.height = crop.h * ih;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(imgEl, crop.x * iw, crop.y * ih, crop.w * iw, crop.h * ih, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) {
+        var croppedFile = new File([blob], 'cropped_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+        overlay.remove();
+        callback(croppedFile);
+      }, 'image/jpeg', 0.85);
+    };
+
+    // Click X = cancel, use original
+    overlay.querySelector('.hospi-form-header button').onclick = function() {
+      overlay.remove();
+      callback(file); // use original
+    };
+
+    // Cancel button
+    overlay.querySelector('.hospi-btn.outline').onclick = function() {
+      overlay.remove();
+      callback(file); // use original
+    };
+
+    setTimeout(updateBox, 100);
+    window.addEventListener('resize', updateBox);
+    overlay._cleanup = function() { window.removeEventListener('resize', updateBox); };
+    var origRemove = overlay.remove;
+    overlay.remove = function() {
+      if (overlay._cleanup) overlay._cleanup();
+      origRemove.call(overlay);
+      if (!document.getElementById('hospiCropOverlay')) callback(null); // dismissed
+    };
+  };
+  reader.readAsDataURL(file);
+}
   var grid = document.getElementById('hospiPreviewGrid');
   if (!grid) return;
   grid.innerHTML = HOSPI_PENDING_PHOTOS.map(function(f, idx) {
@@ -6964,24 +7124,109 @@ function hospiZoomImage(url) {
   var overlay = document.createElement('div');
   overlay.className = 'hospi-zoom-overlay';
   overlay.id = 'hospiZoom';
-  // Close on tap on BACKGROUND only (not the image)
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay || e.target.classList.contains('hospi-zoom-close')) {
-      overlay.remove();
+  overlay.style.overflow = 'hidden';
+  overlay.style.touchAction = 'none';
+
+  var img = document.createElement('img');
+  img.src = url;
+  img.style.maxWidth = '100vw';
+  img.style.maxHeight = '100vh';
+  img.style.objectFit = 'contain';
+  img.style.position = 'absolute';
+  img.style.transformOrigin = '0 0';
+  img.style.transition = 'none';
+
+  var scale = 1, startDist = 0, startScale = 1;
+  var posX = 0, posY = 0, lastX = 0, lastY = 0;
+  var dragging = false, pinching = false;
+
+  overlay.appendChild(img);
+
+  // Close button
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'hospi-zoom-close';
+  closeBtn.textContent = '✕';
+  closeBtn.onclick = function(e) { e.stopPropagation(); overlay.remove(); };
+  overlay.appendChild(closeBtn);
+
+  // Hint text
+  var hint = document.createElement('span');
+  hint.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.4);font-size:10px;pointer-events:none;z-index:1';
+  hint.textContent = 'Pinch para zoom · Tap fondo para cerrar';
+  overlay.appendChild(hint);
+
+  // Center image initially
+  function centerImage() {
+    var ow = overlay.clientWidth, oh = overlay.clientHeight;
+    var iw = img.naturalWidth || ow, ih = img.naturalHeight || oh;
+    var fitScale = Math.min(ow / iw, oh / ih, 1);
+    scale = fitScale;
+    posX = (ow - iw * fitScale) / 2;
+    posY = (oh - ih * fitScale) / 2;
+    applyTransform();
+  }
+
+  function applyTransform() {
+    img.style.transform = 'translate(' + posX + 'px, ' + posY + 'px) scale(' + scale + ')';
+  }
+
+  function getDist(touches) {
+    var dx = touches[0].clientX - touches[1].clientX;
+    var dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  overlay.addEventListener('touchstart', function(e) {
+    if (e.target === closeBtn) return;
+    if (e.touches.length === 2) {
+      pinching = true; dragging = false;
+      startDist = getDist(e.touches);
+      startScale = scale;
+    } else if (e.touches.length === 1 && !pinching) {
+      dragging = true;
+      lastX = e.touches[0].clientX - posX;
+      lastY = e.touches[0].clientY - posY;
     }
-  });
-  // Swipe down to close
-  var startY = 0;
-  overlay.addEventListener('touchstart', function(e) { if (e.target === overlay || e.target.tagName === 'IMG') startY = e.touches[0].clientY; }, {passive:true});
+    e.preventDefault();
+  }, {passive: false});
+
+  overlay.addEventListener('touchmove', function(e) {
+    if (pinching && e.touches.length === 2) {
+      var newDist = getDist(e.touches);
+      scale = Math.max(0.5, Math.min(5, startScale * (newDist / startDist)));
+      applyTransform();
+    } else if (dragging && e.touches.length === 1) {
+      posX = e.touches[0].clientX - lastX;
+      posY = e.touches[0].clientY - lastY;
+      applyTransform();
+    }
+    e.preventDefault();
+  }, {passive: false});
+
   overlay.addEventListener('touchend', function(e) {
-    if (e.changedTouches[0].clientY - startY > 80) overlay.remove();
+    if (e.touches.length === 0) { pinching = false; dragging = false; }
   });
-  // Back button (Android)
+
+  // Tap on background to close
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay || e.target === hint) overlay.remove();
+  });
+
+  // Double-tap to zoom in/out
+  overlay.addEventListener('dblclick', function(e) {
+    if (e.target === closeBtn) return;
+    if (scale > 1.2) { scale = 1; centerImage(); }
+    else { scale = 2.5; posX = -(e.clientX * 2.5 - e.clientX); posY = -(e.clientY * 2.5 - e.clientY); applyTransform(); }
+  });
+
+  // Back button
   try { window.history.pushState({zoom:1}, ''); } catch(e) {}
   var onPop = function() { var ov = document.getElementById('hospiZoom'); if (ov) { ov.remove(); window.removeEventListener('popstate', onPop); } };
   window.addEventListener('popstate', onPop);
-  overlay.innerHTML = '<button class="hospi-zoom-close">✕</button><span style="position:absolute;top:14px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.35);font-size:10px;pointer-events:none">Toca fuera de la imagen para cerrar</span><img src="' + url + '" alt="zoom" style="max-width:100vw;max-height:100vh;object-fit:contain;touch-action:pinch-zoom">';
+
   document.body.appendChild(overlay);
+  if (img.complete) centerImage();
+  else img.onload = centerImage;
 }
 
 /* ===== REAL-TIME ===== */
