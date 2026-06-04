@@ -6540,7 +6540,7 @@ async function hospiInit() {
 function hospiLoadDashboard() {
   // Don't load dashboard if we're viewing a patient profile
   if (HOSPI_CURRENT_INGRESO) return;
-  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false});
+  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false}).limit(200);
   // Status filter
   if (HOSPI_STATUS_FILTER === 'activos') query = query.eq('estado', 'Activo');
   else if (HOSPI_STATUS_FILTER === 'altas') query = query.eq('estado', 'Alta');
@@ -6689,22 +6689,37 @@ function hospiSetStatusFilter(filter, btn) {
 
 var HOSPI_SEARCH_QUERY = '';
 
+var HOSPI_SEARCH_TIMER = null;
+
 function hospiSearchPatients() {
   var q = document.getElementById('hospiSearchInput').value.trim();
-  HOSPI_SEARCH_QUERY = q;
   var clearBtn = document.getElementById('hospiSearchClear');
   if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
-  // Filter client-side from loaded ingresos
-  hospiFilterAndRender();
+  // Debounce: wait 250ms after last keystroke before filtering
+  clearTimeout(HOSPI_SEARCH_TIMER);
+  HOSPI_SEARCH_TIMER = setTimeout(function() {
+    HOSPI_SEARCH_QUERY = q;
+    hospiFilterAndRender();
+  }, 250);
 }
 
 function hospiClearSearch() {
   var input = document.getElementById('hospiSearchInput');
   if (input) input.value = '';
   HOSPI_SEARCH_QUERY = '';
+  clearTimeout(HOSPI_SEARCH_TIMER);
   var clearBtn = document.getElementById('hospiSearchClear');
   if (clearBtn) clearBtn.style.display = 'none';
   hospiFilterAndRender();
+}
+
+function hospiResetAllFilters() {
+  // Reset status to todos
+  hospiSetStatusFilter('todos', document.querySelector('.hospi-status-chip.todos'));
+  // Reset date filter to all
+  hospiSetDateFilter('all', document.querySelector('.hospi-filter-chip[onclick*=\"all\"]'));
+  // Clear search
+  hospiClearSearch();
 }
 
 function hospiFilterAndRender() {
@@ -6736,7 +6751,7 @@ function hospiRenderDashboard(ingresos) {
     list.innerHTML = '<div class="hospi-empty"><div class="ce-icon">🛏️</div><p>' + emptyMsg + '</p>' +
       (filterInfo ? '<p style="font-size:10px;color:var(--t3);margin-top:4px">Filtros activos: ' + filterInfo + '</p>' : '') +
       '<p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p>' +
-      '<button class="hospi-btn outline small" onclick="hospiSetStatusFilter(\'todos\');hospiSetDateFilter(\'all\');hospiClearSearch()" style="margin-top:8px">🔄 Mostrar todos</button></div>';
+      '<button class="hospi-btn outline small" onclick="hospiResetAllFilters()" style="margin-top:8px">🔄 Mostrar todos</button></div>';
     return;
   }
   list.innerHTML = ingresos.map(function(ing) {
@@ -6779,6 +6794,7 @@ function hospiLoadPerfil(ingresoId) {
       actionsHtml = '<button class="hospi-btn outline small" onclick="hospiNuevaEvolucion()">+ Evolucion</button>' +
                     '<button class="hospi-btn danger small" onclick="hospiDarAlta()">Dar de Alta</button>';
     }
+    actionsHtml += '<button class="hospi-btn danger small" onclick="hospiEliminarIngreso()" style="background:rgba(229,62,62,.1);color:#E53E3E;border-color:rgba(229,62,62,.2)">🗑️ Eliminar</button>';
 
     var overlay = document.createElement('div');
     overlay.className = 'hospi-form-overlay';
@@ -7534,6 +7550,38 @@ function hospiDarAlta() {
     HOSPI_CURRENT_INGRESO.fecha_egreso = new Date().toISOString();
     hospiLoadPerfil(HOSPI_CURRENT_INGRESO.id);
   });
+}
+
+/* ===== ELIMINAR INGRESO ===== */
+async function hospiEliminarIngreso() {
+  if (!HOSPI_CURRENT_INGRESO) return;
+  var ing = HOSPI_CURRENT_INGRESO;
+  var p = ing.pacientes;
+  var nombre = p.nombres + ' ' + p.apellidos;
+  if (!confirm('⚠️ ¿Eliminar TODOS los datos de ' + nombre + '?\n\nEsto borrara:\n- El ingreso\n- Todas las evoluciones\n- Las fotos subidas\n\nEsta accion NO se puede deshacer.')) return;
+  if (!confirm('¿Estas COMPLETAMENTE seguro?\n\nConfirma por segunda vez para eliminar.')) return;
+
+  var btn = event.target;
+  var origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Eliminando...';
+
+  try {
+    // Delete evoluciones
+    var evResult = await sb.from('evoluciones').delete().eq('ingreso_id', ing.id);
+    if (evResult.error) throw evResult.error;
+    // Delete ingreso
+    var ingResult = await sb.from('ingresos').delete().eq('id', ing.id);
+    if (ingResult.error) throw ingResult.error;
+    toast('Ingreso de ' + nombre + ' eliminado ✓', 'success');
+    document.getElementById('hospiPerfilOverlay').remove();
+    HOSPI_CURRENT_INGRESO = null;
+    hospiLoadDashboard();
+  } catch(e) {
+    toast('Error al eliminar: ' + e.message, 'error');
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
 }
 
 /* ===== EXPORTAR PDF ===== */
