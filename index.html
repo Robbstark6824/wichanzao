@@ -6303,19 +6303,117 @@ function uploadIndividualImagesOffline(item, optimizedPages) {
 }
 
 /* ===== ONLINE / OFFLINE ===== */
-function setupOnlineOffline() {
-  function updateBar() {
-    var bar = document.getElementById('offlineBar');
-    if (navigator.onLine) {
-      bar.classList.remove('on');
-      processOfflineQueue();
-    } else {
-      bar.classList.add('on');
+/* ===== OFFLINE QUEUE — HOSPITALIZACION ===== */
+function hospiGetOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem('wichanzao_hospi_queue') || '[]'); } catch(e) { return []; }
+}
+function hospiSaveOfflineQueue(queue) {
+  try { localStorage.setItem('wichanzao_hospi_queue', JSON.stringify(queue)); } catch(e) {}
+}
+function hospiAddToOfflineQueue(op) {
+  var queue = hospiGetOfflineQueue();
+  queue.push(op);
+  hospiSaveOfflineQueue(queue);
+  hospiUpdateSyncBadge();
+}
+
+async function hospiProcessOfflineQueue() {
+  if (!navigator.onLine) return;
+  var queue = hospiGetOfflineQueue();
+  if (queue.length === 0) return;
+  toast('Sincronizando ' + queue.length + ' operacion(es) pendiente(s)...', 'info');
+
+  for (var i = 0; i < queue.length; i++) {
+    var op = queue[i];
+    try {
+      if (op.type === 'evolucion') {
+        // Upload photos first if any
+        var urls = [];
+        if (op.photos && op.photos.length > 0) {
+          for (var j = 0; j < op.photos.length; j++) {
+            var blob = dataUrlToBlob(op.photos[j]);
+            var path = 'hospi/' + op.ingreso_id + '/' + Date.now() + '_' + j + '.jpg';
+            var uploadResult = await sb.storage.from(SB_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+            if (uploadResult.error) throw uploadResult.error;
+            var urlData = sb.storage.from(SB_BUCKET).getPublicUrl(path);
+            urls.push(urlData.data.publicUrl);
+          }
+        }
+        // Save evolution
+        var evResult = await sb.from('evoluciones').insert({
+          ingreso_id: op.ingreso_id,
+          tipo: op.tipo,
+          nota: op.nota || null,
+          image_urls: urls.length > 0 ? urls : null,
+          author_id: op.author_id || '00000000-0000-0000-0000-000000000000',
+          author_name: op.author_name
+        }).select().single();
+        if (evResult.error) throw evResult.error;
+      } else if (op.type === 'ingreso') {
+        var pResult = await sb.from('pacientes').insert({
+          dni: op.dni || null,
+          nombres: op.nombres,
+          apellidos: op.apellidos,
+          fecha_nacimiento: op.fecha_nacimiento || null,
+          sexo: op.sexo || null,
+          alergias: op.alergias || null
+        }).select().single();
+        if (pResult.error) throw pResult.error;
+        var ingResult = await sb.from('ingresos').insert({
+          paciente_id: pResult.data.id,
+          servicio_id: op.servicio_id,
+          cama: op.cama,
+          dx_ingreso: op.dx_ingreso || null,
+          created_by: op.author_id || '00000000-0000-0000-0000-000000000000'
+        }).select().single();
+        if (ingResult.error) throw ingResult.error;
+      }
+    } catch(e) {
+      console.error('Offline sync error for op ' + i + ': ' + e.message);
+      // Keep remaining ops in queue, stop processing
+      var remaining = queue.slice(i);
+      hospiSaveOfflineQueue(remaining);
+      hospiUpdateSyncBadge();
+      toast('Error al sincronizar: ' + e.message + '. Reintentando luego...', 'error');
+      return;
     }
   }
-  window.addEventListener('online', updateBar);
-  window.addEventListener('offline', updateBar);
-  updateBar();
+  // All processed
+  hospiSaveOfflineQueue([]);
+  hospiUpdateSyncBadge();
+  hospiLoadDashboard();
+  toast('Sincronizacion completada ✓', 'success');
+}
+
+function hospiUpdateSyncBadge() {
+  var queue = hospiGetOfflineQueue();
+  var bar = document.getElementById('offlineBar');
+  if (!bar) return;
+  var count = queue.length;
+  if (!navigator.onLine) {
+    bar.classList.add('on');
+    bar.innerHTML = '📶 Sin conexion — ' + count + ' pendiente(s). Los datos se guardaran al reconectar.';
+  } else if (count > 0) {
+    bar.classList.add('on');
+    bar.style.background = 'var(--gd)';
+    bar.innerHTML = '🔄 Sincronizando ' + count + ' operacion(es)...';
+    hospiProcessOfflineQueue();
+  } else {
+    bar.classList.remove('on');
+    bar.style.background = '';
+    bar.innerHTML = 'Sin conexion - Los archivos se subiran cuando vuelvas a estar en linea';
+  }
+}
+
+function setupOnlineOffline() {
+  window.addEventListener('online', function() {
+    hospiUpdateSyncBadge();
+    processOfflineQueue();
+  });
+  window.addEventListener('offline', function() {
+    hospiUpdateSyncBadge();
+  });
+  hospiUpdateSyncBadge();
 }
 
 /* ===== SERVICE WORKER + AUTO-UPDATE ===== */
@@ -6585,8 +6683,9 @@ function hospiLoadPerfil(ingresoId) {
     overlay.innerHTML =
       '<div class="hospi-form-header">' +
         '<button class="hospi-back-btn" onclick="hospiCerrarPerfil()">← Pacientes</button>' +
-        '<button class="hospi-btn outline small" onclick="hospiEditarPaciente()" style="margin-left:auto;margin-right:8px">✏️ Editar datos</button>' +
-        '<button onclick="hospiCerrarPerfil()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+        '<button class="hospi-btn outline small" onclick="hospiExportarPDF()" style="margin-left:auto;margin-right:8px">📄 Exportar PDF</button>' +
+        '<button class="hospi-btn outline small" onclick="hospiEditarPaciente()">✏️ Editar</button>' +
+        '<button onclick="hospiCerrarPerfil()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;margin-left:4px">✕</button>' +
       '</div>' +
       '<div class="hospi-form-body" id="hospiPerfilBody">' +
         '<div class="hospi-profile-card">' +
@@ -6618,6 +6717,10 @@ function hospiCerrarPerfil() {
   if (ov) ov.remove();
   HOSPI_CURRENT_INGRESO = null;
   hospiUnsubscribeEvoluciones();
+}
+
+function hospiLoadTimeline(ingresoId) {
+  hospiLoadTimelineOverlay(ingresoId);
 }
 
 /* ===== EDITAR PACIENTE ===== */
@@ -6724,12 +6827,31 @@ function hospiLoadTimelineOverlay(ingresoId) {
   sb.from('evoluciones').select('*').eq('ingreso_id', ingresoId).order('created_at', {ascending: false}).then(function(r) {
     var tl = document.getElementById('hospiTimelineOverlay');
     if (!tl) return;
-    if (!r.data || !r.data.length) {
+    var serverEvs = r.data || [];
+    // Merge with offline evolutions
+    var offlineQueue = hospiGetOfflineQueue();
+    var offlineEvs = offlineQueue.filter(function(op) {
+      return op.type === 'evolucion' && op.ingreso_id === ingresoId;
+    }).map(function(op, idx) {
+      return {
+        id: 'offline-' + idx,
+        tipo: op.tipo,
+        nota: op.nota,
+        image_urls: op.photos || [],
+        author_name: op.author_name,
+        created_at: op.created_at,
+        _offline: true
+      };
+    });
+    var allEvs = serverEvs.concat(offlineEvs);
+    allEvs.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+
+    if (!allEvs.length) {
       tl.innerHTML = '<div class="hospi-empty"><div class="ce-icon">📝</div><p>Sin evoluciones aun</p></div>';
       return;
     }
     var groups = {};
-    r.data.forEach(function(ev) {
+    allEvs.forEach(function(ev) {
       var dk = new Date(ev.created_at).toLocaleDateString('es-PE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
       if (!groups[dk]) groups[dk] = [];
       groups[dk].push(ev);
@@ -6748,11 +6870,22 @@ var tc = isIndicacion ? 'indicaciones' : ev.tipo === 'Foto' ? 'foto' : ev.tipo =
         var ap = (ev.author_name || 'Interno').split('|');
         var an = hospiEsc(ap[0] || 'Interno');
         var ar = hospiEsc(ap[1] || '');
+        var offlineBadge = ev._offline ? '<span style="background:var(--gd);color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;margin-left:4px">📶 pendiente</span>' : '';
         var imgs = '';
         if (ev.image_urls && ev.image_urls.length) {
-          imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){ return '<img class="hospi-tl-img" src="'+u+'" onclick="event.stopPropagation();hospiZoomImage(\''+hospiEscAttr(u)+'\')" loading="lazy">'; }).join('') + '</div>';
+          imgs = '<div class="hospi-tl-images">' + ev.image_urls.map(function(u){
+            var src = u; var onclick = '';
+            if (ev._offline) {
+              // Offline: show base64 directly, no zoom
+              onclick = '';
+            } else {
+              onclick = ' onclick="event.stopPropagation();hospiZoomImage(\''+hospiEscAttr(u)+'\')"';
+            }
+            return '<img class="hospi-tl-img" src="'+src+'"'+onclick+' loading="lazy">';
+          }).join('') + '</div>';
         }
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + evTipoDisplay + '</span></div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '<div style="margin-top:6px"><button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar nota</button></div></div></div></div>';
+        var editBtn = ev._offline ? '<span style="font-size:10px;color:var(--gd)">⏳ Pendiente de sincronizar</span>' : '<button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar nota</button>';
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + evTipoDisplay + '</span>' + offlineBadge + '</div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '<div style="margin-top:6px">' + editBtn + '</div></div></div></div>';
       });
       html += '</div></div>';
     });
@@ -6868,13 +7001,37 @@ function hospiGuardarIngreso() {
   if (!pNombres || !pApellidos) { toast('Nombres y apellidos son obligatorios', 'error'); return; }
   if (!cama) { toast('Indica la cama del paciente', 'error'); return; }
 
+  var authorId = HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000';
+
+  // OFFLINE MODE: queue locally
+  if (!navigator.onLine) {
+    hospiAddToOfflineQueue({
+      type: 'ingreso',
+      dni: dni || null,
+      nombres: pNombres,
+      apellidos: pApellidos,
+      fecha_nacimiento: document.getElementById('hospiPFechaNac').value || null,
+      sexo: document.getElementById('hospiPSexo').value || null,
+      alergias: document.getElementById('hospiPAlergias').value || null,
+      servicio_id: servicio,
+      cama: cama,
+      dx_ingreso: dx || null,
+      author_id: authorId,
+      created_at: new Date().toISOString()
+    });
+    toast('Ingreso guardado offline 📶 — se sincronizara al reconectar', 'success');
+    document.getElementById('hospiFormIngreso').remove();
+    hospiLoadDashboard();
+    return;
+  }
+
   function crearIngreso(pacienteId) {
     sb.from('ingresos').insert({
       paciente_id: pacienteId,
       servicio_id: servicio,
       cama: cama,
       dx_ingreso: dx || null,
-      created_by: HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000'
+      created_by: authorId
     }).select().single().then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
       toast('Ingreso registrado ✓', 'success');
@@ -6884,10 +7041,8 @@ function hospiGuardarIngreso() {
   }
 
   if (HOSPI_PACIENTE_SEL && HOSPI_PACIENTE_SEL.dni === dni) {
-    // Use existing patient found via DNI lookup
     crearIngreso(HOSPI_PACIENTE_SEL.id);
   } else {
-    // Create new patient or use existing if DNI matches
     sb.from('pacientes').select('id').eq('dni', dni).maybeSingle().then(function(existing) {
       if (existing.data) {
         crearIngreso(existing.data.id);
@@ -7146,12 +7301,45 @@ async function hospiGuardarEvolucion() {
   btn.disabled = true;
   btn.textContent = 'Guardando...';
 
-  // Upload photos if any
+  var authorId = HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000';
+  var authorName = (worker.name || worker.email || 'Interno') + '|' + (worker.area || 'Interno');
+
+  // OFFLINE MODE: queue locally
+  if (!navigator.onLine) {
+    var photoB64s = [];
+    if (HOSPI_PENDING_PHOTOS.length > 0) {
+      // Read photos as base64 for offline storage
+      for (var i = 0; i < HOSPI_PENDING_PHOTOS.length; i++) {
+        var b64 = await new Promise(function(resolve) {
+          var reader = new FileReader();
+          reader.onload = function() { resolve(reader.result); };
+          reader.readAsDataURL(HOSPI_PENDING_PHOTOS[i]);
+        });
+        photoB64s.push(b64);
+      }
+    }
+    hospiAddToOfflineQueue({
+      type: 'evolucion',
+      ingreso_id: HOSPI_CURRENT_INGRESO.id,
+      tipo: tipo,
+      nota: nota || null,
+      photos: photoB64s,
+      author_id: authorId,
+      author_name: authorName,
+      created_at: new Date().toISOString()
+    });
+    toast('Evolucion guardada offline 📶 — se sincronizara al reconectar', 'success');
+    document.getElementById('hospiFormEvolucion').remove();
+    HOSPI_PENDING_PHOTOS = [];
+    hospiLoadTimeline(HOSPI_CURRENT_INGRESO.id);
+    return;
+  }
+
+  // ONLINE MODE: upload and save
   var urls = [];
   if (HOSPI_PENDING_PHOTOS.length > 0) {
     for (var i = 0; i < HOSPI_PENDING_PHOTOS.length; i++) {
       var file = HOSPI_PENDING_PHOTOS[i];
-      // Compress image
       var compressed = await hospiCompressImage(file);
       var path = 'hospi/' + HOSPI_CURRENT_INGRESO.id + '/' + Date.now() + '_' + i + '.jpg';
       try {
@@ -7168,14 +7356,13 @@ async function hospiGuardarEvolucion() {
     }
   }
 
-  // Save evolucion
   sb.from('evoluciones').insert({
     ingreso_id: HOSPI_CURRENT_INGRESO.id,
     tipo: tipo,
     nota: nota || null,
     image_urls: urls.length > 0 ? urls : null,
-    author_id: HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000',
-    author_name: (worker.name || worker.email || 'Interno') + '|' + (worker.area || 'Interno')
+    author_id: authorId,
+    author_name: authorName
   }).select().single().then(function(r) {
     if (r.error) {
       toast('Error: ' + r.error.message, 'error');
@@ -7222,6 +7409,221 @@ function hospiDarAlta() {
     HOSPI_CURRENT_INGRESO.fecha_egreso = new Date().toISOString();
     hospiLoadPerfil(HOSPI_CURRENT_INGRESO.id);
   });
+}
+
+/* ===== EXPORTAR PDF ===== */
+async function hospiExportarPDF() {
+  if (!HOSPI_CURRENT_INGRESO) return;
+  var ing = HOSPI_CURRENT_INGRESO;
+  var p = ing.pacientes;
+  var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
+
+  // Show loading
+  var btn = event.target;
+  var origText = btn.textContent;
+  btn.textContent = '⏳ Generando...';
+  btn.disabled = true;
+
+  // Fetch evoluciones
+  var evRes = await sb.from('evoluciones').select('*').eq('ingreso_id', ing.id).order('created_at', {ascending: true});
+  var evoluciones = evRes.data || [];
+
+  // Load jsPDF
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  var pageW = 210, pageH = 297;
+  var margin = 15, y = margin;
+  var lineH = 5.5;
+
+  // Helper: add text with word wrap
+  function addText(text, x, fontSize, color, bold) {
+    if (y > pageH - 25) { doc.addPage(); y = margin; }
+    doc.setFontSize(fontSize);
+    doc.setTextColor(color || '#0C1F3D');
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(text, x, y);
+    y += lineH;
+  }
+
+  function addLine(label, value) {
+    if (y > pageH - 25) { doc.addPage(); y = margin; }
+    doc.setFontSize(10);
+    doc.setTextColor('#4A5568');
+    doc.setFont('helvetica', 'bold');
+    doc.text(label + ':', margin, y);
+    doc.setTextColor('#0C1F3D');
+    doc.setFont('helvetica', 'normal');
+    doc.text(value || '—', margin + 40, y);
+    y += lineH;
+  }
+
+  // === HEADER ===
+  doc.setFillColor('#0C1F3D');
+  doc.rect(0, 0, pageW, 28, 'F');
+  doc.setFontSize(16);
+  doc.setTextColor('#FFFFFF');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Medicina Interna — Hospital de Laredo', margin, 12);
+  doc.setFontSize(11);
+  doc.setTextColor('#4ECDC4');
+  doc.setFont('helvetica', 'normal');
+  doc.text('Expediente Clinico de Hospitalizacion', margin, 21);
+  y = 35;
+
+  // === Fecha de emision ===
+  doc.setFontSize(8);
+  doc.setTextColor('#A0AEC0');
+  doc.text('Emitido: ' + new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) + ' | Por: ' + (worker ? worker.name : 'Sistema'), margin, 33);
+  y = 40;
+
+  // === DATOS DEL PACIENTE ===
+  doc.setFillColor('#EEF1F6');
+  doc.rect(margin, y, pageW - 2*margin, 8, 'F');
+  doc.setFontSize(12);
+  doc.setTextColor('#0C1F3D');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Datos del Paciente', margin + 3, y + 6);
+  y += 14;
+
+  doc.setFontSize(14);
+  doc.setTextColor('#0C1F3D');
+  doc.setFont('helvetica', 'bold');
+  doc.text(p.nombres + ' ' + p.apellidos, margin, y);
+  y += 8;
+  addLine('DNI', p.dni);
+  addLine('Edad', edad + ' años');
+  addLine('Sexo', p.sexo);
+  addLine('Alergias', p.alergias || 'Ninguna conocida');
+  y += 4;
+
+  // === DATOS DEL INGRESO ===
+  doc.setFillColor('#EEF1F6');
+  doc.rect(margin, y, pageW - 2*margin, 8, 'F');
+  doc.setFontSize(12);
+  doc.setTextColor('#0C1F3D');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Datos del Ingreso', margin + 3, y + 6);
+  y += 14;
+
+  addLine('Servicio', ing.servicios ? ing.servicios.nombre : '—');
+  addLine('Cama', ing.cama);
+  addLine('F. Ingreso', new Date(ing.fecha_ingreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}));
+  if (ing.fecha_egreso) addLine('F. Egreso', new Date(ing.fecha_egreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}));
+  addLine('Estado', ing.estado);
+  addLine('Dx Ingreso', ing.dx_ingreso || 'No especificado');
+  y += 4;
+
+  // === LINEA DE TIEMPO ===
+  doc.setFillColor('#EEF1F6');
+  doc.rect(margin, y, pageW - 2*margin, 8, 'F');
+  doc.setFontSize(12);
+  doc.setTextColor('#0C1F3D');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Evoluciones (' + evoluciones.length + ')', margin + 3, y + 6);
+  y += 14;
+
+  if (evoluciones.length === 0) {
+    doc.setFontSize(10);
+    doc.setTextColor('#A0AEC0');
+    doc.text('Sin evoluciones registradas', margin, y);
+    y += 8;
+  }
+
+  // Group by date
+  var groups = {};
+  evoluciones.forEach(function(ev) {
+    var dk = new Date(ev.created_at).toLocaleDateString('es-PE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    if (!groups[dk]) groups[dk] = [];
+    groups[dk].push(ev);
+  });
+
+  var tipoColors = { Foto:'#4ECDC4', SOAP:'#D4A853', Laboratorio:'#6495ED', Imagen:'#9370DB', Procedimiento:'#E53E3E', Indicaciones:'#38A169', Interconsulta:'#DD6B20', Nota:'#718096' };
+
+  Object.keys(groups).forEach(function(dl) {
+    if (y > pageH - 40) { doc.addPage(); y = margin; }
+    doc.setFontSize(10);
+    doc.setTextColor('#0C1F3D');
+    doc.setFont('helvetica', 'bold');
+    doc.text('📅 ' + dl, margin, y);
+    y += 7;
+
+    groups[dl].forEach(function(ev) {
+      if (y > pageH - 25) { doc.addPage(); y = margin; }
+      var time = new Date(ev.created_at).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+      var evNota = ev.nota || '';
+      var isInd = evNota.startsWith('📋');
+      var tipoDisplay = isInd ? 'Indicaciones' : ev.tipo;
+      var tc = tipoColors[tipoDisplay] || '#718096';
+
+      // Tipo badge
+      doc.setFillColor(tc);
+      doc.rect(margin, y, 30, 5.5, 'F');
+      doc.setFontSize(7);
+      doc.setTextColor('#FFFFFF');
+      doc.setFont('helvetica', 'bold');
+      doc.text(tipoDisplay, margin + 1.5, y + 4);
+
+      // Time
+      doc.setFontSize(7);
+      doc.setTextColor('#A0AEC0');
+      doc.setFont('helvetica', 'normal');
+      doc.text(time, margin + 33, y + 4);
+
+      // Author
+      var ap = (ev.author_name || 'Interno').split('|');
+      doc.text(ap[0] + (ap[1] ? ' | ' + ap[1] : ''), margin + 48, y + 4);
+      y += 7;
+
+      // Nota text
+      var notaText = evNota || 'Sin descripcion';
+      doc.setFontSize(9);
+      doc.setTextColor('#1B2A4A');
+      doc.setFont('helvetica', 'normal');
+      var lines = doc.splitTextToSize(notaText, pageW - 2*margin);
+      lines.forEach(function(line) {
+        if (y > pageH - 20) { doc.addPage(); y = margin; }
+        doc.text(line, margin + 4, y);
+        y += 4.5;
+      });
+      y += 2;
+
+      // Photos (small thumbnails)
+      if (ev.image_urls && ev.image_urls.length && y < pageH - 30) {
+        doc.setFontSize(7);
+        doc.setTextColor('#A0AEC0');
+        doc.text('📷 ' + ev.image_urls.length + ' foto(s) adjunta(s) — ver expediente digital', margin + 4, y);
+        y += 4;
+      }
+    });
+    y += 4;
+  });
+
+  // === FIRMA ===
+  if (y > pageH - 40) { doc.addPage(); y = pageH - 50; }
+  y = Math.max(y + 10, pageH - 50);
+  doc.setDrawColor('#A0AEC0');
+  doc.line(margin, y, margin + 60, y);
+  y += 6;
+  doc.setFontSize(9);
+  doc.setTextColor('#4A5568');
+  doc.text('Firma del Medico', margin, y);
+  doc.text('Fecha: ___/___/______', margin + 80, y);
+
+  // === FOOTER ===
+  var totalPages = doc.getNumberOfPages();
+  for (var i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor('#CBD5E0');
+    doc.text('Medicina Interna — Hospital de Laredo | Expediente: ' + ing.id.substring(0, 8) + ' | Pag. ' + i + ' de ' + totalPages, margin, pageH - 8);
+  }
+
+  // Save
+  var fileName = 'expediente_' + (p.nombres + '_' + p.apellidos).replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+  doc.save(fileName);
+  toast('PDF generado: ' + fileName, 'success');
+  btn.textContent = origText;
+  btn.disabled = false;
 }
 
 /* ===== IMAGE ZOOM ===== */
