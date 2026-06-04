@@ -6947,9 +6947,22 @@ function hospiZoomImage(url) {
   var overlay = document.createElement('div');
   overlay.className = 'hospi-zoom-overlay';
   overlay.id = 'hospiZoom';
-  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-  overlay.innerHTML = '<button class="hospi-zoom-close" onclick="document.getElementById(\'hospiZoom\').remove()">✕</button><img src="' + url + '" alt="zoom">';
+  // Close on tap anywhere (background or image)
+  overlay.onclick = function() { overlay.remove(); };
+  // Also close with swipe-down or Escape key
+  var startY = 0;
+  overlay.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, {passive:true});
+  overlay.addEventListener('touchend', function(e) {
+    if (e.changedTouches[0].clientY - startY > 80) overlay.remove();
+  });
+  overlay.innerHTML = '<button class="hospi-zoom-close" onclick="event.stopPropagation();document.getElementById(\"hospiZoom\").remove()">✕</button><span style="position:absolute;top:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:11px;pointer-events:none">Toca para cerrar</span><img src="' + url + '" alt="zoom">';
   document.body.appendChild(overlay);
+  // Close on back button (Android)
+  window.addEventListener('popstate', function closeZoom() {
+    var ov = document.getElementById('hospiZoom');
+    if (ov) { ov.remove(); window.removeEventListener('popstate', closeZoom); }
+  });
+  try { window.history.pushState({zoom:1}, ''); } catch(e) {}
 }
 
 /* ===== REAL-TIME ===== */
