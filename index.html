@@ -7048,6 +7048,8 @@ function hospiAutoSeccion() {
     else if (sexo === 'Femenino') { seccion.value = 'Mujeres'; seccion.dataset.auto = 'true'; }
   }
 }
+
+function hospiBuscarPaciente() {
   var dni = document.getElementById('hospiBuscarDNI').value.trim();
   var resultDiv = document.getElementById('hospiBuscarResult');
   HOSPI_PACIENTE_SEL = null;
