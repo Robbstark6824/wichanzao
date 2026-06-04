@@ -6473,6 +6473,14 @@ var HOSPI_PENDING_PHOTOS = [];  // File objects pending upload
 var HOSPI_AUTH_ID = null;       // Supabase auth user UUID
 var HOSPI_DATE_FILTER = 'all';   // 'all'|'today'|'week'|'month'|'custom'
 var HOSPI_STATUS_FILTER = 'todos'; // 'activos'|'altas'|'todos'
+// Config de camas del hospital
+var HOSPI_CAMAS_CONFIG = {
+  Mujeres: 5,
+  Hombres: 5,
+  UCE: 2,
+  Adicional: 3
+};
+var HOSPI_CAMAS_TOTAL = 15;
 
 async function hospiGetUserId() {
   if (HOSPI_AUTH_ID) return HOSPI_AUTH_ID;
@@ -6552,11 +6560,56 @@ function hospiLoadDashboard() {
       var activos = r2.count || 0;
       sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Alta').then(function(r3) {
         var altas = r3.count || 0;
-        document.getElementById('hospiStats').innerHTML =
-          '<div class="hospi-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
-          '<div class="hospi-stat"><div class="stat-num">' + altas + '</div><div class="stat-label">Altas</div></div>' +
-          '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total</div></div>';
-        });
+        // Bed occupancy: count active patients per section
+        sb.from('ingresos').select('cama').eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r4) {
+          var ocupadas = (r4.data || []).length;
+          var libres = HOSPI_CAMAS_TOTAL - ocupadas;
+          var pct = HOSPI_CAMAS_TOTAL > 0 ? Math.round((ocupadas / HOSPI_CAMAS_TOTAL) * 100) : 0;
+          var barColor = pct >= 90 ? '#E53E3E' : pct >= 70 ? '#D69E2E' : '#38A169';
+
+          // Count by section from cama field
+          var secciones = { Mujeres: 0, Hombres: 0, UCE: 0, Adicional: 0 };
+          (r4.data || []).forEach(function(ing) {
+            var c = ing.cama || '';
+            if (c.indexOf('Mujeres') !== -1) secciones.Mujeres++;
+            else if (c.indexOf('Hombres') !== -1) secciones.Hombres++;
+            else if (c.indexOf('UCE') !== -1) secciones.UCE++;
+            else secciones.Adicional++;
+          });
+
+          var seccHTML = '';
+          var iconos = { Mujeres: '🚺', Hombres: '🚹', UCE: '🏥', Adicional: '➕' };
+          Object.keys(HOSPI_CAMAS_CONFIG).forEach(function(sec) {
+            var totalSec = HOSPI_CAMAS_CONFIG[sec];
+            var ocupSec = secciones[sec] || 0;
+            var libresSec = totalSec - ocupSec;
+            var dots = '';
+            for (var d = 0; d < totalSec; d++) {
+              dots += d < ocupSec ? '🔴' : '🟢';
+            }
+            seccHTML += '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0">' +
+              '<span style="font-weight:600;min-width:90px">' + (iconos[sec] || '') + ' ' + sec + '</span>' +
+              '<span style="letter-spacing:2px">' + dots + '</span>' +
+              '<span style="font-size:10px;color:var(--t2);min-width:55px;text-align:right">' + ocupSec + '/' + totalSec + '</span>' +
+            '</div>';
+          });
+
+          document.getElementById('hospiStats').innerHTML =
+            '<div class="hospi-stat"><div class="stat-num">' + activos + '</div><div class="stat-label">Activos</div></div>' +
+            '<div class="hospi-stat"><div class="stat-num">' + altas + '</div><div class="stat-label">Altas</div></div>' +
+            '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total</div></div>' +
+            '<div class="hospi-stat" style="grid-column:1/-1;text-align:left;padding:12px 16px">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+                '<span style="font-size:11px;font-weight:700;color:var(--t1)">🛏️ Camas: ' + ocupadas + ' ocupadas / ' + libres + ' libres</span>' +
+                '<span style="font-size:10px;color:' + barColor + ';font-weight:700">' + pct + '%</span>' +
+              '</div>' +
+              '<div style="background:var(--s2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px">' +
+                '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:6px;transition:width .5s"></div>' +
+              '</div>' +
+              seccHTML +
+            '</div>';
+          });
+      });
     });
   });
 }
@@ -6941,7 +6994,14 @@ function hospiNuevoIngreso() {
         '<option value="2">Cirugia</option>' +
         '<option value="3">Gineco-Obstetricia</option>' +
       '</select>' +
-      '<label>Cama</label><input type="text" id="hospiICama" placeholder="ej. Cama 4, Pasillo...">' +
+      '<label>Seccion de Cama</label><select id="hospiISeccion">' +
+        '<option value="">Seleccionar seccion</option>' +
+        '<option value="Mujeres">🚺 Mujeres (5 camas)</option>' +
+        '<option value="Hombres">🚹 Hombres (5 camas)</option>' +
+        '<option value="UCE">🏥 UCE (2 camas)</option>' +
+        '<option value="Adicional">➕ Adicional (3 camas)</option>' +
+      '</select>' +
+      '<label>Cama</label><input type="text" id="hospiICama" placeholder="ej. Cama 3, Cama 5...">' +
       '<label>Diagnostico de Ingreso (opcional)</label>' +
       '<input type="text" id="hospiIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
     '</div>' +
@@ -6994,14 +7054,18 @@ function hospiBuscarPaciente() {
 function hospiGuardarIngreso() {
   var dni = document.getElementById('hospiPDNI').value.trim();
   var cama = document.getElementById('hospiICama').value.trim();
+  var seccion = document.getElementById('hospiISeccion').value;
   var dx = document.getElementById('hospiIDx').value.trim();
   var servicio = parseInt(document.getElementById('hospiIServicio').value);
   var pNombres = document.getElementById('hospiPNombres').value.trim();
   var pApellidos = document.getElementById('hospiPApellidos').value.trim();
+  var sexoPaciente = document.getElementById('hospiPSexo').value;
 
   if (!pNombres || !pApellidos) { toast('Nombres y apellidos son obligatorios', 'error'); return; }
   if (!cama) { toast('Indica la cama del paciente', 'error'); return; }
 
+  // Combine seccion + cama
+  var camaCompleta = seccion ? seccion + ' - ' + cama : cama;
   var authorId = HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000';
 
   // OFFLINE MODE: queue locally
@@ -7012,10 +7076,10 @@ function hospiGuardarIngreso() {
       nombres: pNombres,
       apellidos: pApellidos,
       fecha_nacimiento: document.getElementById('hospiPFechaNac').value || null,
-      sexo: document.getElementById('hospiPSexo').value || null,
+      sexo: sexoPaciente || null,
       alergias: document.getElementById('hospiPAlergias').value || null,
       servicio_id: servicio,
-      cama: cama,
+      cama: camaCompleta,
       dx_ingreso: dx || null,
       author_id: authorId,
       created_at: new Date().toISOString()
@@ -7030,7 +7094,7 @@ function hospiGuardarIngreso() {
     sb.from('ingresos').insert({
       paciente_id: pacienteId,
       servicio_id: servicio,
-      cama: cama,
+      cama: camaCompleta,
       dx_ingreso: dx || null,
       created_by: authorId
     }).select().single().then(function(r) {
