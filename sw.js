@@ -1,4 +1,4 @@
-var CACHE_NAME = 'mihl-v213';
+var CACHE_NAME = 'mihl-v214';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
