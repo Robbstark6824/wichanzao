@@ -1596,7 +1596,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           </div>
           <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
             <span class="hospi-realtime-dot" id="hospiRTDot" style="display:none" title="Conexion en tiempo real"></span>
-            <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="hospiBadge">Internos</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500" id="hospiSyncTime"></span>
+            <button onclick="hospiLoadDashboard()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-family:inherit;font-weight:600">🔄</button>
+            <span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:600" id="hospiBadge">Internos</span>
           </span>
         </div>
         <div class="module-body" id="hospiBody">
@@ -6494,6 +6496,7 @@ var HOSPI_SERVICIO = 1;       // 1=Medicina, 2=Cirugía, 3=Gineco
 var HOSPI_INGRESOS = [];
 var HOSPI_CURRENT_INGRESO = null;
 var HOSPI_RT_CHANNELS = [];
+var HOSPI_AUTO_REFRESH = null;
 var HOSPI_PENDING_PHOTOS = [];  // File objects pending upload
 var HOSPI_AUTH_ID = null;       // Supabase auth user UUID
 var HOSPI_DATE_FILTER = 'all';   // 'all'|'today'|'week'|'month'|'custom'
@@ -6537,8 +6540,18 @@ async function hospiInit() {
   await hospiGetUserId().catch(function(){});
   // Las escrituras usan sbAdmin() (service_role), no dependen de RLS
   console.log('hospiInit: worker=' + worker.name + ' servicio=' + HOSPI_SERVICIO + ' authId=' + (HOSPI_AUTH_ID ? 'OK' : 'null'));
+  // Update badge with worker name
+  var badge = document.getElementById('hospiBadge');
+  if (badge) badge.textContent = (worker.name || 'Interno') + ' | v' + APP_VERSION;
   hospiLoadDashboard();
   hospiRealtimeSetup();
+  // Auto-refresh dashboard every 45s
+  clearInterval(HOSPI_AUTO_REFRESH);
+  HOSPI_AUTO_REFRESH = setInterval(function() {
+    if (!HOSPI_CURRENT_INGRESO && currentModule === 'hospitalizacion') {
+      hospiLoadDashboard();
+    }
+  }, 45000);
 }
 
 function hospiLoadDashboard() {
@@ -6591,6 +6604,9 @@ function hospiLoadDashboard() {
       return;
     }
     HOSPI_INGRESOS = r.data || [];
+    // Update sync time
+    var syncEl = document.getElementById('hospiSyncTime');
+    if (syncEl) syncEl.textContent = new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
     if (HOSPI_INGRESOS.length === 0) {
       console.log('hospiLoadDashboard: 0 results for servicio=' + HOSPI_SERVICIO + ' status=' + HOSPI_STATUS_FILTER + ' date=' + HOSPI_DATE_FILTER);
     }
@@ -8117,6 +8133,8 @@ function hospiUnsubscribeEvoluciones() {
 function hospiCleanupRT() {
   HOSPI_RT_CHANNELS.forEach(function(ch) { sb.removeChannel(ch); });
   HOSPI_RT_CHANNELS = [];
+  clearInterval(HOSPI_AUTO_REFRESH);
+  HOSPI_AUTO_REFRESH = null;
 }
 
 /* ===== HELPERS ===== */
