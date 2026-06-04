@@ -866,8 +866,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-status-bar{display:flex;gap:8px;margin-bottom:14px}
 .hospi-status-chip{padding:8px 18px;border-radius:18px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s;font-family:inherit}
 .hospi-status-chip.active{background:var(--n2);color:#fff;border-color:var(--n2)}
+.hospi-status-chip.activos.active{background:#38A169;color:#fff;border-color:#38A169}
 .hospi-status-chip.altas.active{background:var(--gd);color:#fff;border-color:var(--gd)}
-.hospi-status-chip.todos.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.hospi-status-chip.todos.active{background:var(--tl);color:#1B2A4A;border-color:var(--tl)}
 .hospi-card .hospi-status-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:.3px}
 .hospi-card .hospi-status-badge.activo{background:rgba(74,222,128,.15);color:#4ade80}
 .hospi-card .hospi-status-badge.alta{background:rgba(160,174,192,.12);color:var(--t3)}
@@ -1591,9 +1592,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <input type="date" class="hospi-date-input" id="hospiDateTo" onchange="hospiSetDateFilter('custom')" title="Hasta">
             </div>
             <div class="hospi-status-bar">
-              <button class="hospi-status-chip active" onclick="hospiSetStatusFilter('activos',this)">🟢 Activos</button>
-              <button class="hospi-status-chip" onclick="hospiSetStatusFilter('altas',this)">🏁 Altas</button>
-              <button class="hospi-status-chip" onclick="hospiSetStatusFilter('todos',this)">👥 Todos</button>
+              <button class="hospi-status-chip activos" onclick="hospiSetStatusFilter('activos',this)">🟢 Activos</button>
+              <button class="hospi-status-chip altas" onclick="hospiSetStatusFilter('altas',this)">🏁 Altas</button>
+              <button class="hospi-status-chip todos active" onclick="hospiSetStatusFilter('todos',this)">👥 Todos</button>
             </div>
             <div class="hospi-search-bar">
               <span class="hospi-search-icon">🔍</span>
@@ -6471,7 +6472,7 @@ var HOSPI_RT_CHANNELS = [];
 var HOSPI_PENDING_PHOTOS = [];  // File objects pending upload
 var HOSPI_AUTH_ID = null;       // Supabase auth user UUID
 var HOSPI_DATE_FILTER = 'all';   // 'all'|'today'|'week'|'month'|'custom'
-var HOSPI_STATUS_FILTER = 'activos'; // 'activos'|'altas'|'todos'
+var HOSPI_STATUS_FILTER = 'todos'; // 'activos'|'altas'|'todos'
 
 async function hospiGetUserId() {
   if (HOSPI_AUTH_ID) return HOSPI_AUTH_ID;
