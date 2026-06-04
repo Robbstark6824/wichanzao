@@ -6525,6 +6525,9 @@ async function hospiInit() {
   HOSPI_SERVICIO = 1;
   HOSPI_CURRENT_INGRESO = null;
   HOSPI_SEARCH_QUERY = '';
+  // Show worker info in badge
+  var badge = document.getElementById('hospiBadge');
+  if (badge) badge.textContent = (worker.name || 'Interno') + ' | v' + APP_VERSION;
   // Reset search input if exists
   var searchInput = document.getElementById('hospiSearchInput');
   if (searchInput) searchInput.value = '';
@@ -6533,6 +6536,7 @@ async function hospiInit() {
   // Intentar obtener auth ID para RLS, pero no bloquear si falla
   await hospiGetUserId().catch(function(){});
   // Las escrituras usan sbAdmin() (service_role), no dependen de RLS
+  console.log('hospiInit: worker=' + worker.name + ' servicio=' + HOSPI_SERVICIO + ' authId=' + (HOSPI_AUTH_ID ? 'OK' : 'null'));
   hospiLoadDashboard();
   hospiRealtimeSetup();
 }
