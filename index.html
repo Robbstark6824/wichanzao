@@ -784,9 +784,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
 .hospi-bed{font-size:11px;font-weight:700;color:var(--tl);background:rgba(78,205,196,.12);padding:3px 10px;border-radius:12px}
 .hospi-name{font-size:15px;font-weight:700;color:var(--t1)}
-.hospi-dni{font-size:11px;color:var(--t3)}
-.hospi-dx{font-size:12px;color:var(--t2);margin:6px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.hospi-meta{display:flex;gap:12px;font-size:10px;color:var(--t3)}
+.hospi-dni{font-size:11px;color:var(--t2);font-weight:500}
+.hospi-dx{font-size:12px;color:#1B2A4A;margin:6px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500}
+.hospi-meta{display:flex;gap:12px;font-size:10px;color:var(--t2)}
 .hospi-meta span{display:flex;align-items:center;gap:4px}
 .hospi-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--tl);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(78,205,196,.3);z-index:10;display:flex;align-items:center;justify-content:center;transition:transform .2s}
 .hospi-fab:active{transform:scale(.9)}
@@ -799,8 +799,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-back-btn:active{background:rgba(78,205,196,.15);border-color:var(--tl)}
 .hospi-profile-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;border:1px solid var(--bd);margin-bottom:16px}
 .hospi-profile-card .cp-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px}
-.hospi-profile-card .cp-info{font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
-.hospi-profile-card .cp-info span{background:rgba(255,255,255,.05);padding:3px 10px;border-radius:10px}
+.hospi-profile-card .cp-info{font-size:12px;color:var(--t2);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px}
+.hospi-profile-card .cp-info span{background:var(--s2);padding:4px 10px;border-radius:10px;font-weight:500}
 .hospi-profile-card .cp-alert{font-size:11px;color:#D4A853;background:rgba(212,168,83,.1);padding:6px 10px;border-radius:8px;margin-bottom:8px}
 .hospi-profile-card .cp-actions{display:flex;gap:8px;margin-top:10px}
 .hospi-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;transition:all .2s}
@@ -823,13 +823,13 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-tl-entry{display:flex;align-items:stretch;padding:8px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.03)}
 .hospi-tl-entry:last-child{border-bottom:none}
 .hospi-tl-entry:active{background:rgba(255,255,255,.03)}
-.hospi-tl-time-col{width:55px;flex-shrink:0;display:flex;align-items:flex-start;padding-top:3px}
-.hospi-tl-clock{font-size:11px;color:var(--t3);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.hospi-tl-tipo{font-size:9px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:5px;letter-spacing:.5px;white-space:nowrap;display:inline-block;min-width:70px;text-align:center}
+.hospi-tl-time-col{width:55px;flex-shrink:0;display:flex;align-items:flex-start;padding-top:4px}
+.hospi-tl-clock{font-size:11px;color:var(--t2);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hospi-tl-tipo{font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 10px;border-radius:5px;letter-spacing:.3px;white-space:nowrap;display:inline-block;min-width:85px;text-align:center;line-height:1.3}
 .hospi-tl-content{flex:1;min-width:0}
-.hospi-tl-header-compact{display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:10px}
-.hospi-tl-tipo-col{min-width:110px}
-@media(max-width:420px){.hospi-tl-header-compact{grid-template-columns:95px 1fr auto;gap:6px}.hospi-tl-tipo-col{min-width:95px}}
+.hospi-tl-header-compact{display:grid;grid-template-columns:135px 1fr auto;align-items:center;gap:12px}
+.hospi-tl-tipo-col{min-width:135px}
+@media(max-width:420px){.hospi-tl-header-compact{grid-template-columns:105px 1fr auto;gap:8px}.hospi-tl-tipo-col{min-width:105px}}
 .hospi-tl-author-col{display:flex;flex-direction:column;min-width:0}
 .hospi-tl-author-name{font-size:12px;color:var(--t1);font-weight:600;line-height:1.2}
 .hospi-tl-author-role{font-size:10px;color:var(--t3);line-height:1.2}
@@ -884,7 +884,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-form-header{display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top,16px)) 20px 12px;border-bottom:1px solid var(--bd);min-height:52px}
 .hospi-form-header h3{color:#fff;font-size:16px;font-weight:700}
 .hospi-form-body{flex:1;padding:20px;overflow-y:auto}
-.hospi-form-body label{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
+.hospi-form-body label{display:block;font-size:11px;font-weight:700;color:#1B2A4A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:14px}
 .hospi-form-body select,.hospi-form-body input[type=text],.hospi-form-body input[type=date],.hospi-form-body textarea{width:100%;background:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:10px 12px;color:#0C1F3D;font-size:14px;font-family:inherit;font-weight:600}
 .hospi-form-body select{background:#fff;color:#0C1F3D;font-weight:600}
 .hospi-form-body select option{background:#fff;color:#0C1F3D;padding:8px;font-weight:600}
@@ -892,8 +892,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-form-body textarea{resize:vertical;min-height:60px}
 .hospi-photo-area{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;background:rgba(255,255,255,.04);border:2px dashed var(--bd);border-radius:16px;cursor:pointer;margin:12px 0}
 .hospi-photo-area .cpa-icon{font-size:40px}
-.hospi-photo-area .cpa-text{font-size:13px;color:var(--t2);font-weight:600}
-.hospi-photo-area .cpa-sub{font-size:10px;color:var(--t3)}
+.hospi-photo-area .cpa-text{font-size:13px;color:#1B2A4A;font-weight:600}
+.hospi-photo-area .cpa-sub{font-size:10px;color:var(--t2)}
 .hospi-preview-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .hospi-preview-thumb{width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid var(--bd);position:relative}
 .hospi-preview-del{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer}
