@@ -7595,118 +7595,164 @@ async function hospiExportarPDF() {
   var p = ing.pacientes;
   var edad = p.fecha_nacimiento ? Math.floor((new Date() - new Date(p.fecha_nacimiento)) / 31557600000) : '?';
 
-  // Show loading
   var btn = event.target;
   var origText = btn.textContent;
   btn.textContent = '⏳ Generando...';
   btn.disabled = true;
 
-  // Fetch evoluciones
   var evRes = await sb.from('evoluciones').select('*').eq('ingreso_id', ing.id).order('created_at', {ascending: true});
   var evoluciones = evRes.data || [];
 
-  // Load jsPDF
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF({ unit: 'mm', format: 'a4' });
   var pageW = 210, pageH = 297;
-  var margin = 15, y = margin;
-  var lineH = 5.5;
+  var M = 20; // margin
+  var y = 0;
+  var contentW = pageW - 2 * M;
 
-  // Helper: add text with word wrap
-  function addText(text, x, fontSize, color, bold) {
-    if (y > pageH - 25) { doc.addPage(); y = margin; }
-    doc.setFontSize(fontSize);
-    doc.setTextColor(color || '#0C1F3D');
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.text(text, x, y);
-    y += lineH;
+  function checkSpace(needed) {
+    if (y + needed > pageH - 20) { doc.addPage(); y = M; }
   }
 
-  function addLine(label, value) {
-    if (y > pageH - 25) { doc.addPage(); y = margin; }
-    doc.setFontSize(10);
-    doc.setTextColor('#4A5568');
-    doc.setFont('helvetica', 'bold');
-    doc.text(label + ':', margin, y);
-    doc.setTextColor('#0C1F3D');
-    doc.setFont('helvetica', 'normal');
-    doc.text(value || '—', margin + 40, y);
-    y += lineH;
-  }
-
-  // === HEADER ===
+  // ═══════════ HEADER ═══════════
   doc.setFillColor('#0C1F3D');
-  doc.rect(0, 0, pageW, 28, 'F');
-  doc.setFontSize(16);
+  doc.rect(0, 0, pageW, 35, 'F');
+  // Gold accent line
+  doc.setFillColor('#D4A853');
+  doc.rect(0, 35, pageW, 1.5, 'F');
+  // Teal accent line
+  doc.setFillColor('#4ECDC4');
+  doc.rect(0, 36.5, pageW, 0.8, 'F');
+
+  doc.setFontSize(18);
   doc.setTextColor('#FFFFFF');
   doc.setFont('helvetica', 'bold');
-  doc.text('Medicina Interna — Hospital de Laredo', margin, 12);
+  doc.text('Hospital Distrital de Laredo', M, 13);
+
   doc.setFontSize(11);
-  doc.setTextColor('#4ECDC4');
+  doc.setTextColor('#D4A853');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Servicio de Medicina Interna', M, 21);
+
+  doc.setFontSize(9);
+  doc.setTextColor('rgba(255,255,255,.7)');
   doc.setFont('helvetica', 'normal');
-  doc.text('Expediente Clinico de Hospitalizacion', margin, 21);
-  y = 35;
+  doc.text('Expediente Clinico de Hospitalizacion', M, 28);
 
-  // === Fecha de emision ===
+  // Right side: expediente ID
   doc.setFontSize(8);
-  doc.setTextColor('#A0AEC0');
-  doc.text('Emitido: ' + new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) + ' | Por: ' + (worker ? worker.name : 'Sistema'), margin, 33);
-  y = 40;
+  doc.setTextColor('rgba(255,255,255,.5)');
+  doc.text('N° ' + ing.id.substring(0, 8).toUpperCase(), pageW - M, 13, { align: 'right' });
+  doc.text('Fecha: ' + new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}), pageW - M, 19, { align: 'right' });
+  doc.text('Emitido por: ' + (worker ? worker.name : 'Sistema'), pageW - M, 25, { align: 'right' });
 
-  // === DATOS DEL PACIENTE ===
+  y = 45;
+
+  // ═══════════ DATOS DEL PACIENTE ═══════════
+  // Section header with icon background
   doc.setFillColor('#EEF1F6');
-  doc.rect(margin, y, pageW - 2*margin, 8, 'F');
-  doc.setFontSize(12);
+  doc.roundedRect(M, y, contentW, 10, 2, 2, 'F');
+  doc.setFontSize(11);
   doc.setTextColor('#0C1F3D');
   doc.setFont('helvetica', 'bold');
-  doc.text('Datos del Paciente', margin + 3, y + 6);
-  y += 14;
+  doc.text('DATOS DEL PACIENTE', M + 15, y + 7);
+  // Small teal indicator
+  doc.setFillColor('#4ECDC4');
+  doc.roundedRect(M + 2, y + 2, 2, 6, 1, 1, 'F');
+  y += 16;
 
-  doc.setFontSize(14);
+  // Patient name - prominent
+  doc.setFontSize(16);
   doc.setTextColor('#0C1F3D');
   doc.setFont('helvetica', 'bold');
-  doc.text(p.nombres + ' ' + p.apellidos, margin, y);
-  y += 8;
-  addLine('DNI', p.dni);
-  addLine('Edad', edad + ' años');
-  addLine('Sexo', p.sexo);
-  addLine('Alergias', p.alergias || 'Ninguna conocida');
-  y += 4;
+  doc.text((p.nombres + ' ' + p.apellidos).toUpperCase(), M, y);
+  y += 10;
 
-  // === DATOS DEL INGRESO ===
+  // Patient details in a clean grid
+  var detallesPac = [
+    ['DNI', p.dni || '—'],
+    ['Edad', edad + ' años'],
+    ['Sexo', p.sexo || '—'],
+    ['Fecha Nac.', p.fecha_nacimiento ? new Date(p.fecha_nacimiento).toLocaleDateString('es-PE') : '—'],
+    ['Alergias', p.alergias || 'Ninguna conocida']
+  ];
+  detallesPac.forEach(function(row) {
+    checkSpace(6);
+    doc.setFontSize(9.5);
+    doc.setTextColor('#4A5568');
+    doc.setFont('helvetica', 'bold');
+    doc.text(row[0], M, y);
+    doc.setTextColor('#1B2A4A');
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(row[1]), M + 42, y);
+    y += 6.5;
+  });
+
+  y += 6;
+
+  // ═══════════ DATOS DEL INGRESO ═══════════
   doc.setFillColor('#EEF1F6');
-  doc.rect(margin, y, pageW - 2*margin, 8, 'F');
-  doc.setFontSize(12);
+  doc.roundedRect(M, y, contentW, 10, 2, 2, 'F');
+  doc.setFillColor('#D4A853');
+  doc.roundedRect(M + 2, y + 2, 2, 6, 1, 1, 'F');
+  doc.setFontSize(11);
   doc.setTextColor('#0C1F3D');
   doc.setFont('helvetica', 'bold');
-  doc.text('Datos del Ingreso', margin + 3, y + 6);
-  y += 14;
+  doc.text('DATOS DEL INGRESO', M + 15, y + 7);
+  y += 16;
 
-  addLine('Servicio', ing.servicios ? ing.servicios.nombre : '—');
-  addLine('Cama', ing.cama);
-  addLine('F. Ingreso', new Date(ing.fecha_ingreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}));
-  if (ing.fecha_egreso) addLine('F. Egreso', new Date(ing.fecha_egreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}));
-  addLine('Estado', ing.estado);
-  addLine('Dx Ingreso', ing.dx_ingreso || 'No especificado');
-  y += 4;
+  var detallesIng = [
+    ['Servicio', ing.servicios ? ing.servicios.nombre : '—'],
+    ['Cama', ing.cama],
+    ['Seccion', (ing.cama || '').split(' - ')[0] || '—'],
+    ['F. Ingreso', new Date(ing.fecha_ingreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})],
+    ['F. Egreso', ing.fecha_egreso ? new Date(ing.fecha_egreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'],
+    ['Estado', ing.estado],
+    ['Dx Ingreso', ing.dx_ingreso || 'No especificado']
+  ];
+  detallesIng.forEach(function(row) {
+    if (row[1] === '—' && row[0] === 'F. Egreso') return; // skip empty egreso
+    checkSpace(6);
+    doc.setFontSize(9.5);
+    doc.setTextColor('#4A5568');
+    doc.setFont('helvetica', 'bold');
+    doc.text(row[0], M, y);
+    doc.setTextColor('#1B2A4A');
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(row[1]), M + 42, y);
+    y += 6.5;
+  });
 
-  // === LINEA DE TIEMPO ===
+  // Estado badge
+  var estadoW = ing.estado === 'Activo' ? 20 : 15;
+  doc.setFillColor(ing.estado === 'Activo' ? '#38A169' : '#A0AEC0');
+  doc.roundedRect(M + 42, y - 2.5, estadoW, 5, 1.5, 1.5, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor('#FFFFFF');
+  doc.setFont('helvetica', 'bold');
+  doc.text(ing.estado.toUpperCase(), M + 42 + estadoW/2, y + 1, { align: 'center' });
+
+  y += 12;
+
+  // ═══════════ EVOLUCIONES ═══════════
   doc.setFillColor('#EEF1F6');
-  doc.rect(margin, y, pageW - 2*margin, 8, 'F');
-  doc.setFontSize(12);
+  doc.roundedRect(M, y, contentW, 10, 2, 2, 'F');
+  doc.setFillColor('#4ECDC4');
+  doc.roundedRect(M + 2, y + 2, 2, 6, 1, 1, 'F');
+  doc.setFontSize(11);
   doc.setTextColor('#0C1F3D');
   doc.setFont('helvetica', 'bold');
-  doc.text('Evoluciones (' + evoluciones.length + ')', margin + 3, y + 6);
-  y += 14;
+  doc.text('EVOLUCIONES CLINICAS  (' + evoluciones.length + ')', M + 15, y + 7);
+  y += 16;
 
   if (evoluciones.length === 0) {
     doc.setFontSize(10);
     doc.setTextColor('#A0AEC0');
-    doc.text('Sin evoluciones registradas', margin, y);
-    y += 8;
+    doc.setFont('helvetica', 'italic');
+    doc.text('Sin evoluciones registradas durante la estancia hospitalaria.', M + 4, y);
+    y += 10;
   }
 
-  // Group by date
   var groups = {};
   evoluciones.forEach(function(ev) {
     var dk = new Date(ev.created_at).toLocaleDateString('es-PE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -7717,88 +7763,119 @@ async function hospiExportarPDF() {
   var tipoColors = { Foto:'#4ECDC4', SOAP:'#D4A853', Laboratorio:'#6495ED', Imagen:'#9370DB', Procedimiento:'#E53E3E', Indicaciones:'#38A169', Interconsulta:'#DD6B20', Nota:'#718096' };
 
   Object.keys(groups).forEach(function(dl) {
-    if (y > pageH - 40) { doc.addPage(); y = margin; }
+    checkSpace(25);
+    // Date header
+    doc.setFillColor('#F7F8FA');
+    doc.roundedRect(M, y, contentW, 8, 2, 2, 'F');
     doc.setFontSize(10);
     doc.setTextColor('#0C1F3D');
     doc.setFont('helvetica', 'bold');
-    doc.text('📅 ' + dl, margin, y);
-    y += 7;
+    doc.text(dl.charAt(0).toUpperCase() + dl.slice(1), M + 6, y + 5.5);
+    y += 12;
 
     groups[dl].forEach(function(ev) {
-      if (y > pageH - 25) { doc.addPage(); y = margin; }
+      checkSpace(20);
+      var entryY = y;
       var time = new Date(ev.created_at).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
       var evNota = ev.nota || '';
       var isInd = evNota.startsWith('📋');
       var tipoDisplay = isInd ? 'Indicaciones' : ev.tipo;
       var tc = tipoColors[tipoDisplay] || '#718096';
 
+      // Left time column
+      doc.setFontSize(8.5);
+      doc.setTextColor('#718096');
+      doc.setFont('helvetica', 'bold');
+      doc.text(time, M, y + 3);
+
       // Tipo badge
+      var badgeW = Math.max(28, doc.getTextWidth(tipoDisplay) + 8);
       doc.setFillColor(tc);
-      doc.rect(margin, y, 30, 5.5, 'F');
-      doc.setFontSize(7);
+      doc.roundedRect(M + 16, y, badgeW, 6, 2, 2, 'F');
+      doc.setFontSize(7.5);
       doc.setTextColor('#FFFFFF');
       doc.setFont('helvetica', 'bold');
-      doc.text(tipoDisplay, margin + 1.5, y + 4);
-
-      // Time
-      doc.setFontSize(7);
-      doc.setTextColor('#A0AEC0');
-      doc.setFont('helvetica', 'normal');
-      doc.text(time, margin + 33, y + 4);
+      doc.text(tipoDisplay, M + 16 + badgeW/2, y + 4.2, { align: 'center' });
 
       // Author
       var ap = (ev.author_name || 'Interno').split('|');
-      doc.text(ap[0] + (ap[1] ? ' | ' + ap[1] : ''), margin + 48, y + 4);
-      y += 7;
+      doc.setFontSize(8);
+      doc.setTextColor('#4A5568');
+      doc.setFont('helvetica', 'normal');
+      doc.text(ap[0] + (ap[1] ? '  •  ' + ap[1] : ''), M + 16 + badgeW + 4, y + 4.2);
 
-      // Nota text
+      y += 8;
+
+      // Note text with lighter background
       var notaText = evNota || 'Sin descripcion';
       doc.setFontSize(9);
       doc.setTextColor('#1B2A4A');
       doc.setFont('helvetica', 'normal');
-      var lines = doc.splitTextToSize(notaText, pageW - 2*margin);
+      var textW = contentW - 8;
+      var lines = doc.splitTextToSize(notaText, textW);
+      // Light background box for note
+      var noteH = lines.length * 5 + 5;
+      checkSpace(noteH);
+      doc.setFillColor('#FAFBFC');
+      doc.roundedRect(M + 4, y - 1, contentW - 8, noteH, 2, 2, 'F');
       lines.forEach(function(line) {
-        if (y > pageH - 20) { doc.addPage(); y = margin; }
-        doc.text(line, margin + 4, y);
-        y += 4.5;
+        doc.text(line, M + 8, y + 3);
+        y += 5;
       });
-      y += 2;
+      y += 4;
 
-      // Photos (small thumbnails)
-      if (ev.image_urls && ev.image_urls.length && y < pageH - 30) {
-        doc.setFontSize(7);
-        doc.setTextColor('#A0AEC0');
-        doc.text('📷 ' + ev.image_urls.length + ' foto(s) adjunta(s) — ver expediente digital', margin + 4, y);
+      // Photos indicator
+      if (ev.image_urls && ev.image_urls.length) {
+        checkSpace(5);
+        doc.setFontSize(7.5);
+        doc.setTextColor('#4ECDC4');
+        doc.setFont('helvetica', 'bold');
+        doc.text('📷 ' + ev.image_urls.length + ' foto(s) adjunta(s) — disponibles en el expediente digital', M + 8, y);
+        y += 5;
+      }
+
+      // Separator
+      if (y < pageH - 20) {
+        doc.setDrawColor('#EDF2F7');
+        doc.line(M + 4, y + 1, pageW - M - 4, y + 1);
         y += 4;
       }
     });
-    y += 4;
+    y += 6;
   });
 
-  // === FIRMA ===
-  if (y > pageH - 40) { doc.addPage(); y = pageH - 50; }
-  y = Math.max(y + 10, pageH - 50);
+  // ═══════════ FIRMA ═══════════
+  checkSpace(35);
+  y += 12;
   doc.setDrawColor('#A0AEC0');
-  doc.line(margin, y, margin + 60, y);
-  y += 6;
-  doc.setFontSize(9);
+  doc.setLineWidth(0.3);
+  doc.line(M + 20, y, M + 80, y);
+  doc.setLineWidth(0.1);
+  y += 5;
+  doc.setFontSize(8.5);
   doc.setTextColor('#4A5568');
-  doc.text('Firma del Medico', margin, y);
-  doc.text('Fecha: ___/___/______', margin + 80, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Firma del Medico Responsable', M + 20, y);
+  doc.text('Fecha: ___/___/______', pageW - M - 40, y);
 
-  // === FOOTER ===
+  // ═══════════ FOOTER ═══════════
   var totalPages = doc.getNumberOfPages();
   for (var i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor('#CBD5E0');
-    doc.text('Medicina Interna — Hospital de Laredo | Expediente: ' + ing.id.substring(0, 8) + ' | Pag. ' + i + ' de ' + totalPages, margin, pageH - 8);
+    // Footer line
+    doc.setDrawColor('#CBD5E0');
+    doc.setLineWidth(0.2);
+    doc.line(M, pageH - 13, pageW - M, pageH - 13);
+    doc.setFontSize(6.5);
+    doc.setTextColor('#A0AEC0');
+    doc.setFont('helvetica', 'normal');
+    doc.text('Hospital Distrital de Laredo — Servicio de Medicina Interna', M, pageH - 9);
+    doc.text('Exp. ' + ing.id.substring(0, 8).toUpperCase() + '  |  Pag. ' + i + ' / ' + totalPages, pageW - M, pageH - 9, { align: 'right' });
   }
 
-  // Save
-  var fileName = 'expediente_' + (p.nombres + '_' + p.apellidos).replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+  var fileName = 'Expediente_' + (p.apellidos + '_' + p.nombres).replace(/\s+/g, '_').substring(0, 60) + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
   doc.save(fileName);
-  toast('PDF generado: ' + fileName, 'success');
+  toast('PDF generado ✓', 'success');
   btn.textContent = origText;
   btn.disabled = false;
 }
