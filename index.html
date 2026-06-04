@@ -2219,17 +2219,32 @@ function migrateOldProfile() {
 
 /* ===== WORKER STORAGE (doble capa: localStorage + sessionStorage) ===== */
 function loadWorker() {
-  // 1) Intentar localStorage
+  // 1) localStorage
   var raw = localStorage.getItem('wichanzao_worker');
-  // 2) Si no hay, intentar sessionStorage (respaldo)
+  // 2) sessionStorage
   if (!raw) raw = sessionStorage.getItem('wichanzao_worker');
+  // 3) cookie de respaldo
+  if (!raw) {
+    try {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.startsWith('wichanzao_worker=')) {
+          raw = decodeURIComponent(c.substring('wichanzao_worker='.length));
+          break;
+        }
+      }
+    } catch(e) {}
+  }
   if (raw) {
     try { worker = JSON.parse(raw); } catch(e) { worker = null; }
   }
-  // 3) Si encontro worker, asegurar que ambas copias existan
+  // Sincronizar: si encontro en algun lado, asegurar que todas las copias existan
   if (worker && raw) {
-    if (!localStorage.getItem('wichanzao_worker')) localStorage.setItem('wichanzao_worker', raw);
-    if (!sessionStorage.getItem('wichanzao_worker')) sessionStorage.setItem('wichanzao_worker', raw);
+    try {
+      if (!localStorage.getItem('wichanzao_worker')) localStorage.setItem('wichanzao_worker', raw);
+      if (!sessionStorage.getItem('wichanzao_worker')) sessionStorage.setItem('wichanzao_worker', raw);
+    } catch(e) {}
   }
 }
 
@@ -2238,9 +2253,15 @@ function saveWorker(w) {
   var safe = {};
   for (var k in w) { if (k !== 'pass') safe[k] = w[k]; }
   var json = JSON.stringify(safe);
-  // Guardar en AMBOS storages para maxima resistencia
+  // Guardar en 3 capas: localStorage + sessionStorage + cookie
   localStorage.setItem('wichanzao_worker', json);
   try { sessionStorage.setItem('wichanzao_worker', json); } catch(e) {}
+  // Cookie de respaldo — 90 dias de duracion
+  try {
+    var d = new Date();
+    d.setTime(d.getTime() + (90*24*60*60*1000));
+    document.cookie = 'wichanzao_worker=' + encodeURIComponent(json.substring(0,500)) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+  } catch(e) {}
 }
 
 function generateWorkerId(name) {
@@ -2904,6 +2925,7 @@ async function doLogout() {
   await sb.auth.signOut();
   localStorage.removeItem('wichanzao_worker');
   sessionStorage.removeItem('wichanzao_worker');
+  document.cookie = 'wichanzao_worker=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
   worker = null;
   isAdmin = false;
   prevDatesLoaded = false;
@@ -6271,24 +6293,16 @@ function setupOnlineOffline() {
 /* ===== SERVICE WORKER + AUTO-UPDATE ===== */
 function registerSW() {
   if (!('serviceWorker' in navigator)) return;
-  var reloading = false;
-  // updateViaCache:'none' = ALWAYS fetch sw.js from network, never from HTTP cache
-  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg) {
-    // SW registered
-    // Force update check on EVERY page load
-    reg.update();
-    // Also check every 60 seconds
-    setInterval(function() { reg.update(); }, 60000);
-  }).catch(function(err) {
-    // SW registration failed
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(function(err) {
+    // SW registration failed — app works fine without SW
   });
 
-  // Reload once when the controlling SW changes — only if user is logged in
+  // NUNCA recargar automaticamente — eso cierra la sesion del usuario
+  // Las actualizaciones se aplican la proxima vez que el usuario abre la app
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (!reloading && worker) {
-      reloading = true;
-      window.location.reload();
-    }
+    // Nuevo SW activado — mostrar aviso sutil sin recargar
+    var badge = document.getElementById('appVersionBadge');
+    if (badge) { badge.textContent = APP_VERSION + ' ⬆'; badge.style.color = 'var(--tl)'; }
   });
 }
 
