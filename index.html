@@ -6524,6 +6524,12 @@ async function hospiInit() {
   if (!worker) { toast('Inicia sesion para usar Hospitalizacion', 'error'); return; }
   HOSPI_SERVICIO = 1;
   HOSPI_CURRENT_INGRESO = null;
+  HOSPI_SEARCH_QUERY = '';
+  // Reset search input if exists
+  var searchInput = document.getElementById('hospiSearchInput');
+  if (searchInput) searchInput.value = '';
+  var clearBtn = document.getElementById('hospiSearchClear');
+  if (clearBtn) clearBtn.style.display = 'none';
   // Intentar obtener auth ID para RLS, pero no bloquear si falla
   await hospiGetUserId().catch(function(){});
   // Las escrituras usan sbAdmin() (service_role), no dependen de RLS
@@ -6573,8 +6579,17 @@ function hospiLoadDashboard() {
   });
 
   query.then(function(r) {
-    if (r.error) { console.error(r.error); return; }
+    if (r.error) {
+      console.error('hospiLoadDashboard error:', r.error);
+      document.getElementById('hospiList').innerHTML =
+        '<div class="hospi-empty"><div class="ce-icon">⚠️</div><p>Error al cargar pacientes</p><p style="font-size:11px;color:var(--t3)">' + hospiEsc(r.error.message) + '</p><p style="font-size:10px;color:var(--t3)">Servicio: ' + HOSPI_SERVICIO + ' | Filtro: ' + HOSPI_STATUS_FILTER + ' | Fecha: ' + HOSPI_DATE_FILTER + '</p>' +
+        '<button class="hospi-btn outline small" onclick="hospiLoadDashboard()" style="margin-top:8px">🔄 Reintentar</button></div>';
+      return;
+    }
     HOSPI_INGRESOS = r.data || [];
+    if (HOSPI_INGRESOS.length === 0) {
+      console.log('hospiLoadDashboard: 0 results for servicio=' + HOSPI_SERVICIO + ' status=' + HOSPI_STATUS_FILTER + ' date=' + HOSPI_DATE_FILTER);
+    }
     hospiFilterAndRender();
   });
 
@@ -6642,6 +6657,8 @@ function hospiLoadDashboard() {
 function hospiSwitchService(servId) {
   HOSPI_SERVICIO = servId;
   document.querySelectorAll('.hospi-service-tab').forEach(function(t,i){ t.classList.toggle('active', i+1 === servId); });
+  // Reset search when switching services
+  hospiClearSearch();
   hospiLoadDashboard();
 }
 
@@ -6712,7 +6729,14 @@ function hospiRenderDashboard(ingresos) {
     var emptyMsg = HOSPI_STATUS_FILTER === 'altas' ? 'No hay pacientes dados de alta' :
                    HOSPI_STATUS_FILTER === 'activos' ? 'No hay pacientes activos' :
                    'No hay ingresos en este servicio';
-    list.innerHTML = '<div class="hospi-empty"><div class="ce-icon">🛏️</div><p>' + emptyMsg + '</p><p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p></div>';
+    var filterInfo = '';
+    if (HOSPI_SEARCH_QUERY) filterInfo += 'Busqueda: \"' + HOSPI_SEARCH_QUERY + '\" ';
+    if (HOSPI_DATE_FILTER !== 'all') filterInfo += 'Filtro fecha: ' + HOSPI_DATE_FILTER + ' ';
+    if (HOSPI_STATUS_FILTER !== 'todos') filterInfo += 'Estado: ' + HOSPI_STATUS_FILTER;
+    list.innerHTML = '<div class="hospi-empty"><div class="ce-icon">🛏️</div><p>' + emptyMsg + '</p>' +
+      (filterInfo ? '<p style="font-size:10px;color:var(--t3);margin-top:4px">Filtros activos: ' + filterInfo + '</p>' : '') +
+      '<p style="font-size:11px;color:var(--t3)">Toca + para registrar un nuevo ingreso</p>' +
+      '<button class="hospi-btn outline small" onclick="hospiSetStatusFilter(\'todos\');hospiSetDateFilter(\'all\');hospiClearSearch()" style="margin-top:8px">🔄 Mostrar todos</button></div>';
     return;
   }
   list.innerHTML = ingresos.map(function(ing) {
