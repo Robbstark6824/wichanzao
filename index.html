@@ -857,6 +857,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .hospi-section-divider::before,.hospi-section-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
 .hospi-section-divider span{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
 .hospi-dni-lookup{background:var(--s2);padding:12px;border-radius:10px;margin-bottom:4px}
+.hospi-search-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;background:#fff;border:1px solid var(--bd);border-radius:12px;padding:4px 4px 4px 14px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.hospi-search-icon{font-size:16px;flex-shrink:0}
+.hospi-search-input{flex:1;border:none;outline:none;background:transparent;font-size:13px;font-family:inherit;color:#1B2A4A;padding:8px 0;min-width:0}
+.hospi-search-input::placeholder{color:var(--t3)}
+.hospi-search-clear{background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:6px 10px;border-radius:8px;flex-shrink:0}
+.hospi-search-clear:hover{background:var(--s2);color:var(--t1)}
 .hospi-status-bar{display:flex;gap:8px;margin-bottom:14px}
 .hospi-status-chip{padding:8px 18px;border-radius:18px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .2s;font-family:inherit}
 .hospi-status-chip.active{background:var(--n2);color:#fff;border-color:var(--n2)}
@@ -1588,6 +1594,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <button class="hospi-status-chip active" onclick="hospiSetStatusFilter('activos',this)">🟢 Activos</button>
               <button class="hospi-status-chip" onclick="hospiSetStatusFilter('altas',this)">🏁 Altas</button>
               <button class="hospi-status-chip" onclick="hospiSetStatusFilter('todos',this)">👥 Todos</button>
+            </div>
+            <div class="hospi-search-bar">
+              <span class="hospi-search-icon">🔍</span>
+              <input type="text" class="hospi-search-input" id="hospiSearchInput" placeholder="Buscar paciente por nombre, apellido o DNI..." oninput="hospiSearchPatients()" autocomplete="off">
+              <button class="hospi-search-clear" id="hospiSearchClear" onclick="hospiClearSearch()" style="display:none">✕</button>
             </div>
             <div class="hospi-list" id="hospiList"></div>
           </div>
@@ -6432,7 +6443,7 @@ function hospiLoadDashboard() {
   query.then(function(r) {
     if (r.error) { console.error(r.error); return; }
     HOSPI_INGRESOS = r.data || [];
-    hospiRenderDashboard(r.data || []);
+    hospiFilterAndRender();
   });
 
   // Stats
@@ -6480,6 +6491,42 @@ function hospiSetStatusFilter(filter, btn) {
   document.querySelectorAll('.hospi-status-chip').forEach(function(c){ c.classList.remove('active'); });
   if (btn) btn.classList.add('active');
   hospiLoadDashboard();
+}
+
+var HOSPI_SEARCH_QUERY = '';
+
+function hospiSearchPatients() {
+  var q = document.getElementById('hospiSearchInput').value.trim();
+  HOSPI_SEARCH_QUERY = q;
+  var clearBtn = document.getElementById('hospiSearchClear');
+  if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+  // Filter client-side from loaded ingresos
+  hospiFilterAndRender();
+}
+
+function hospiClearSearch() {
+  var input = document.getElementById('hospiSearchInput');
+  if (input) input.value = '';
+  HOSPI_SEARCH_QUERY = '';
+  var clearBtn = document.getElementById('hospiSearchClear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  hospiFilterAndRender();
+}
+
+function hospiFilterAndRender() {
+  var q = HOSPI_SEARCH_QUERY.toLowerCase();
+  var list = HOSPI_INGRESOS || [];
+  if (q) {
+    list = list.filter(function(ing) {
+      var p = ing.pacientes;
+      if (!p) return false;
+      return (p.nombres && p.nombres.toLowerCase().indexOf(q) !== -1) ||
+             (p.apellidos && p.apellidos.toLowerCase().indexOf(q) !== -1) ||
+             (p.dni && p.dni.indexOf(q) !== -1) ||
+             ((p.nombres + ' ' + p.apellidos).toLowerCase().indexOf(q) !== -1);
+    });
+  }
+  hospiRenderDashboard(list);
 }
 
 function hospiRenderDashboard(ingresos) {
