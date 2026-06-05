@@ -667,6 +667,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .review-page .rp-num{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
 .review-page .rp-del{position:absolute;top:10px;right:10px;background:var(--danger);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .review-page .rp-del svg{width:14px;height:14px;fill:#fff}
+.review-page .rp-edit{position:absolute;top:10px;right:48px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px}
 .review-bottom{display:flex;justify-content:center;padding:12px 20px;padding-bottom:calc(12px + var(--sb));flex-shrink:0}
 .review-edit-btn{background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:10px;padding:10px 28px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
 .review-edit-btn:active{transform:scale(.96)}
@@ -5430,14 +5431,13 @@ function capturePhoto() {
       openPhotoEditor(dataUrl, 'dosEnUno', dosEnUnoStep);
     });
   } else {
-    // PDF mode
-    if (pdfPages.length >= 5) {
-      toast('Maximo 5 paginas', 'error');
+    // PDF mode — open editor immediately after each capture
+    if (pdfPages.length >= 10) {
+      toast('Maximo 10 paginas', 'error');
       return;
     }
-    pdfPages.push(dataUrl);
     showCapturePreview(dataUrl, function() {
-      animateToThumbStack(dataUrl);
+      openPhotoEditor(dataUrl, 'pdf', pdfPages.length);
     });
   }
 }
@@ -5514,6 +5514,8 @@ function updateThumbStack() {
     stack.classList.remove('hidden');
     stackImg.src = pdfPages[pdfPages.length - 1];
     badge.textContent = pdfPages.length;
+    // Tap to open review/edit panel
+    stack.onclick = function() { openReviewPanel(); };
   } else {
     stack.classList.add('hidden');
   }
@@ -5536,6 +5538,7 @@ function openReviewPanel() {
     page.className = 'review-page';
     page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '">' +
       '<div class="rp-num">Pag. ' + (i+1) + '</div>' +
+      '<button class="rp-edit" onclick="editCurrentReviewPage(' + i + ')">✏️</button>' +
       '<button class="rp-del" onclick="deletePage(' + i + ')"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></button>';
     scroll.appendChild(page);
   }
@@ -5591,9 +5594,12 @@ function updateReviewArrows() {
   right.classList.toggle('hidden', reviewCurrentPage >= pdfPages.length - 1);
 }
 
-function editCurrentReviewPage() {
+function editCurrentReviewPage(index) {
   haptic();
-  editPdfPage(reviewCurrentPage);
+  var pageIdx = (typeof index === 'number') ? index : reviewCurrentPage;
+  // Update current page to the one being edited
+  reviewCurrentPage = pageIdx;
+  editPdfPage(pageIdx);
 }
 
 function closeReviewPanel() {
@@ -5975,11 +5981,15 @@ function doConfirmSave() {
       closePhotoEditor();
     }
   } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
-    pdfPages[editorPageIndex] = editorDataUrl;
+    if (editorPageIndex >= pdfPages.length) {
+      pdfPages.push(editorDataUrl);
+      toast('Pagina ' + pdfPages.length + ' guardada ✓', 'success');
+    } else {
+      pdfPages[editorPageIndex] = editorDataUrl;
+      toast('Pagina ' + (editorPageIndex + 1) + ' actualizada ✓', 'success');
+    }
     updateThumbStack();
-    toast('Pagina actualizada', 'success');
     closePhotoEditor();
-    setTimeout(openReviewPanel, 300);
   } else if (editorSource === 'dosEnUno') {
     dosEnUnoImages[editorPageIndex] = editorDataUrl;
     closePhotoEditor();
