@@ -1964,7 +1964,29 @@ function sbList(prefix, opts) {
   });
 }
 
+// Admin versions — bypass RLS for storage operations
+function sbListAdmin(prefix, opts) {
+  var options = opts || {};
+  return sbAdmin().storage.from(SB_BUCKET).list(prefix, {
+    limit: options.limit || 1000,
+    offset: options.offset || 0,
+    sortBy: options.sortBy || { column: 'name', order: 'asc' }
+  }).then(function(r) {
+    if (r.error) throw new Error(r.error.message);
+    return r.data || [];
+  });
+}
+
 function sbRemove(paths) {
+  if (!paths || !paths.length) return Promise.resolve();
+  return sbAdmin().storage.from(SB_BUCKET).remove(paths).then(function(r) {
+    if (r.error) throw new Error(r.error.message);
+    return r;
+  });
+}
+
+function sbRemoveAdmin(paths) {
+  if (!paths || !paths.length) return Promise.resolve();
   return sbAdmin().storage.from(SB_BUCKET).remove(paths).then(function(r) {
     if (r.error) throw new Error(r.error.message);
     return r;
@@ -4630,6 +4652,28 @@ function loadAdminWorkersLegacy() {
   });
 }
 
+function listAllFilesAdmin(prefix) {
+  return sbListAdmin(prefix).then(function(items) {
+    var allFiles = [];
+    var subfolders = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id) { allFiles.push(items[i].name); }
+      else { subfolders.push(items[i].name); }
+    }
+    var promises = subfolders.map(function(sub) {
+      return listAllFilesAdmin(prefix + '/' + sub).then(function(subFiles) {
+        return subFiles.map(function(f) { return sub + '/' + f; });
+      });
+    });
+    return Promise.all(promises).then(function(results) {
+      for (var j = 0; j < results.length; j++) {
+        allFiles = allFiles.concat(results[j]);
+      }
+      return allFiles;
+    });
+  });
+}
+
 function adminDeleteFolder(basePath) {
   var folderName = basePath.split('/').pop();
   if (!confirm('¿Borrar la carpeta "' + folderName + '" y todos sus archivos?')) return;
@@ -4639,16 +4683,16 @@ function adminDeleteFolder(basePath) {
   toast('Eliminando ' + folderName + '...', 'info');
 
   var prefix = basePath;
-  listAllFiles(prefix).then(function(files) {
+  listAllFilesAdmin(prefix).then(function(files) {
     if (!files.length) {
-      toast('Carpeta vacia', 'info');
-      loadAdminWorkers();
-      return;
+      toast('Carpeta vacia — eliminando carpeta raiz', 'info');
+      return sbRemoveAdmin([prefix]);
     }
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    return sbRemove(paths);
+    paths.push(prefix); // Also delete the root folder marker
+    return sbRemoveAdmin(paths);
   }).then(function() {
-    toast('Carpeta eliminada', 'success');
+    toast('Carpeta eliminada ✓', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
@@ -4772,7 +4816,7 @@ function adminDeleteFile(filePath, basePath, displayName, subName) {
   haptic(50);
   toast('Eliminando...', 'info');
 
-  sbRemove([filePath]).then(function() {
+  sbRemoveAdmin([filePath]).then(function() {
     toast('Archivo eliminado', 'success');
     if (subName) {
       adminBrowseSub(basePath, subName, displayName);
@@ -4791,16 +4835,12 @@ function adminDeleteSub(basePath, subName, displayName) {
   toast('Eliminando ' + subName + '...', 'info');
 
   var prefix = basePath + '/' + subName;
-  listAllFiles(prefix).then(function(files) {
-    if (!files.length) {
-      toast('Carpeta vacia', 'info');
-      adminBrowseFolder(basePath, displayName);
-      return;
-    }
+  listAllFilesAdmin(prefix).then(function(files) {
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    return sbRemove(paths);
+    paths.push(prefix); // also delete folder marker
+    return sbRemoveAdmin(paths);
   }).then(function() {
-    toast('Carpeta eliminada', 'success');
+    toast('Carpeta eliminada ✓', 'success');
     adminBrowseFolder(basePath, displayName);
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
