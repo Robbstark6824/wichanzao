@@ -2037,6 +2037,11 @@ var deferredPrompt = null;   // PWA install prompt
 var dosEnUnoImages = [null, null]; // [croppedDataUrl1, croppedDataUrl2]
 var dosEnUnoStep = 0;              // 0=photo1, 1=photo2
 
+// Track user interaction for haptic permission
+window._userInteracted = false;
+document.addEventListener('touchstart', function() { window._userInteracted = true; }, {once: true});
+document.addEventListener('click', function() { window._userInteracted = true; }, {once: true});
+
 /* ===== INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', function() {
   // Restore dark mode
@@ -2277,6 +2282,8 @@ function toast(msg, type) {
 
 /* ===== HAPTIC ===== */
 function haptic(ms) {
+  // Solo vibrar si el usuario ya interactuo con la pagina
+  if (!window._userInteracted) return;
   ms = ms || 15;
   if (navigator.vibrate) {
     try { navigator.vibrate(ms); } catch(e) {}
