@@ -1161,7 +1161,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </a>
         <a class="sidebar-nav-item" data-module="scan" onclick="showModule('scan')">
           <span class="sni-icon">📸</span>
-          <span class="sni-label">Wichanzao Scan</span>
+          <span class="sni-label">Laredo Scan</span>
         </a>
         <a class="sidebar-nav-item" data-module="renal" onclick="showModule('renal')">
           <span class="sni-icon">🩺</span>
@@ -1221,7 +1221,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="module-cards-grid">
             <div class="module-card" onclick="showModule('scan')">
               <span class="mc-icon">📸</span>
-              <div class="mc-title">Wichanzao Scan</div>
+              <div class="mc-title">Laredo Scan</div>
               <div class="mc-desc">Digitaliza documentos, PDFs y combina fotos</div>
             </div>
             <div class="module-card" onclick="showModule('renal')">
@@ -3005,26 +3005,27 @@ function adminTap() {
   adminTapTimer = setTimeout(function() { adminTapCount = 0; }, 2000);
   if (adminTapCount >= 5) {
     adminTapCount = 0;
-    // Check admin status from workers table
+    // Check admin status \u2014 use sbAdmin() to bypass RLS
+    var admin = sbAdmin();
     sb.auth.getSession().then(function(result) {
-      if (!result.data.session) {
-        toast('Inicia sesion primero', 'error');
+      if (!result.data.session || !result.data.session.user) {
+        toast('Inicia sesion primero para verificar admin', 'error');
         return;
       }
-      return sb.from('workers').select('is_admin').eq('id', result.data.session.user.id).single();
+      return admin.from('workers').select('is_admin').eq('id', result.data.session.user.id).single();
     }).then(function(result) {
       if (result && result.data && result.data.is_admin) {
         isAdmin = true;
         haptic(50);
         document.getElementById('sidebarName').textContent = worker.name + ' \uD83D\uDC51';
-        toast('Modo admin activado', 'success');
+        toast('Modo admin activado \uD83D\uDC51', 'success');
         showModule('scan');
         openAdmin();
       } else if (result) {
-        toast('No tienes permisos de admin', 'error');
+        toast('No tienes permisos de administrador', 'error');
       }
     }).catch(function() {
-      toast('Error verificando permisos', 'error');
+      toast('Error al verificar permisos de admin', 'error');
     });
   }
 }
