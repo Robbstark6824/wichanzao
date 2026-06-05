@@ -1933,11 +1933,14 @@ var sb = window.supabase.createClient(SB_URL, SB_KEY, {
   }
 });
 
-/* Admin client (service_role) — solo para operaciones que requieren bypass de RLS */
+/* Admin client (service_role) — SINGLETON, una sola instancia para todo */
+var _sbAdmin = null;
 function sbAdmin() {
-  return window.supabase.createClient(SB_URL, SB_SR_KEY, {
+  if (_sbAdmin) return _sbAdmin;
+  _sbAdmin = window.supabase.createClient(SB_URL, SB_SR_KEY, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
+  return _sbAdmin;
 }
 
 /* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
