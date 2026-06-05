@@ -4664,20 +4664,26 @@ function loadAdminWorkersLegacy() {
 
 // Admin storage helpers — usa fetch directo con service_role
 function adminStorageList(prefix) {
-  return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+  console.log('adminStorageList CALLED with prefix:', prefix);
+  var url = SB_URL + '/storage/v1/object/list/' + SB_BUCKET;
+  var body = JSON.stringify({ prefix: prefix, limit: 500 });
+  console.log('  url:', url);
+  return fetch(url, {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefix: prefix, limit: 500 })
+    body: body
   }).then(function(r) {
-    console.log('adminStorageList response:', r.status, r.statusText);
-    return r.json();
-  }).then(function(data) {
-    console.log('adminStorageList data for', prefix, ':', JSON.stringify(data).slice(0, 200));
+    console.log('  response:', r.status, r.statusText);
+    return r.text();
+  }).then(function(text) {
+    console.log('  raw body:', text.slice(0, 300));
+    try { var data = JSON.parse(text); } catch(e) { console.error('  JSON parse error:', e.message); return []; }
     if (Array.isArray(data)) return data;
     if (data && Array.isArray(data.data)) return data.data;
+    console.log('  unexpected format, keys:', Object.keys(data || {}));
     return [];
   }).catch(function(e) {
-    console.error('adminStorageList error:', e.message);
+    console.error('  FETCH error:', e.message);
     return [];
   });
 }
