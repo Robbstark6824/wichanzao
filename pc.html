@@ -1165,8 +1165,10 @@ async function loadAllData() {
       searchPrefixes.push({ servicio: '', prefix: 'workers/' });
     }
 
+    // Known system folders to exclude from legacy listing
+    var SYSTEM_FOLDERS = ['archivos anteriores', 'censo', 'hospi', 'hospi_temp', 'temp', '.emptyFolderPlaceholder'];
     var legacyNames = rootFolders.filter(function(f) {
-      return f.name !== 'workers' && f.name !== '.emptyFolderPlaceholder' && !SERVICIOS[f.name];
+      return f.name !== 'workers' && !SERVICIOS[f.name] && SYSTEM_FOLDERS.indexOf(f.name) === -1;
     }).map(function(f) { return f.name; });
 
     // 3. Load workers from all servicios in parallel
