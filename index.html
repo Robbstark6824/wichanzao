@@ -6558,7 +6558,8 @@ async function hospiInit() {
 function hospiLoadDashboard() {
   // Don't load dashboard if we're viewing a patient profile
   if (HOSPI_CURRENT_INGRESO) return;
-  var query = sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false}).limit(200);
+  var admin = sbAdmin(); // bypass RLS for reads too
+  var query = admin.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(dni,nombres,apellidos,fecha_nacimiento,sexo)').eq('servicio_id', HOSPI_SERVICIO).order('created_at', {ascending: false}).limit(200);
   // Status filter
   if (HOSPI_STATUS_FILTER === 'activos') query = query.eq('estado', 'Activo');
   else if (HOSPI_STATUS_FILTER === 'altas') query = query.eq('estado', 'Alta');
@@ -6587,7 +6588,7 @@ function hospiLoadDashboard() {
   }
 
   // Render service tabs
-  sb.from('servicios').select('*').order('id').then(function(r) {
+  admin.from('servicios').select('*').order('id').then(function(r) {
     if (r.data) {
       var tabsHtml = r.data.map(function(s) {
         return '<button class="hospi-service-tab' + (s.id === HOSPI_SERVICIO ? ' active' : '') + '" onclick="hospiSwitchService(' + s.id + ')">' + s.nombre + '</button>';
@@ -6615,14 +6616,14 @@ function hospiLoadDashboard() {
   });
 
   // Stats
-  sb.from('ingresos').select('id,estado', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).then(function(r) {
+  admin.from('ingresos').select('id,estado', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).then(function(r) {
     var total = r.count || 0;
-    sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r2) {
+    admin.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r2) {
       var activos = r2.count || 0;
-      sb.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Alta').then(function(r3) {
+      admin.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Alta').then(function(r3) {
         var altas = r3.count || 0;
         // Bed occupancy: count active patients per section
-        sb.from('ingresos').select('cama').eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r4) {
+        admin.from('ingresos').select('cama').eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r4) {
           var ocupadas = (r4.data || []).length;
           var libres = HOSPI_CAMAS_TOTAL - ocupadas;
           var pct = HOSPI_CAMAS_TOTAL > 0 ? Math.round((ocupadas / HOSPI_CAMAS_TOTAL) * 100) : 0;
@@ -6802,7 +6803,8 @@ function hospiRenderDashboard(ingresos) {
 }
 
 function hospiLoadPerfil(ingresoId) {
-  sb.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(id,dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
+  var admin = sbAdmin();
+  admin.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(id,dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
     if (r.error) { toast('Error al cargar perfil', 'error'); return; }
     HOSPI_CURRENT_INGRESO = r.data;
     var ing = r.data;
@@ -6964,7 +6966,8 @@ async function hospiGuardarEdicionEvolucion(evId) {
 }
 
 function hospiLoadTimelineOverlay(ingresoId) {
-  sb.from('evoluciones').select('*').eq('ingreso_id', ingresoId).order('created_at', {ascending: false}).then(function(r) {
+  var admin = sbAdmin();
+  admin.from('evoluciones').select('*').eq('ingreso_id', ingresoId).order('created_at', {ascending: false}).then(function(r) {
     var tl = document.getElementById('hospiTimelineOverlay');
     if (!tl) return;
     var serverEvs = r.data || [];
@@ -7127,7 +7130,8 @@ function hospiBuscarPaciente() {
     return;
   }
 
-  sb.from('pacientes').select('*').eq('dni', dni).maybeSingle().then(function(r) {
+  var admin = sbAdmin();
+  admin.from('pacientes').select('*').eq('dni', dni).maybeSingle().then(function(r) {
     if (r.data) {
       var p = r.data;
       HOSPI_PACIENTE_SEL = p;
@@ -7621,7 +7625,8 @@ async function hospiExportarPDF() {
   btn.textContent = '⏳ Generando...';
   btn.disabled = true;
 
-  var evRes = await sb.from('evoluciones').select('*').eq('ingreso_id', ing.id).order('created_at', {ascending: true});
+  var adminPDF = sbAdmin();
+  var evRes = await adminPDF.from('evoluciones').select('*').eq('ingreso_id', ing.id).order('created_at', {ascending: true});
   var evoluciones = evRes.data || [];
 
   var { jsPDF } = window.jspdf;
