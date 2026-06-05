@@ -115,16 +115,8 @@ body{font-family:'Manrope',sans-serif;background:#080E1A;color:var(--t1);-webkit
 
 /* ===== DASHBOARD SCAN MODULE WRAPPER ===== */
 .scan-modes-wrap{margin-bottom:20px}
-.scan-modes-wrap .mode-cards{display:flex;flex-direction:column;gap:10px}
-.scan-modes-wrap .mode-card{padding:16px 18px;display:flex;align-items:center;gap:14px;background:var(--card);border-radius:var(--r2);cursor:pointer;border:1px solid var(--bd);transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.scan-modes-wrap .mode-card:active{background:var(--s2);transform:scale(.98)}
-.scan-modes-wrap .mode-card .mc-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
-.scan-modes-wrap .mode-card .mc-icon.foto{background:rgba(78,205,196,.15);color:var(--tl)}
-.scan-modes-wrap .mode-card .mc-icon.pdf{background:rgba(212,168,83,.15);color:var(--gd)}
-.scan-modes-wrap .mode-card .mc-icon.dosEnUno{background:rgba(147,112,219,.15);color:#9370DB}
-.scan-modes-wrap .mode-card .mc-text{flex:1}
-.scan-modes-wrap .mode-card .mc-text h4{font-size:15px;font-weight:700;color:var(--t1);margin:0 0 2px}
-.scan-modes-wrap .mode-card .mc-text p{font-size:11px;color:var(--t2);margin:0}
+.scan-modes-wrap .mode-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.scan-modes-wrap .mode-card{padding:18px 12px}
 
 /* ===== DARK MODE OVERRIDES ===== */
 body.dark .dashboard-shell{background:var(--bg)}
