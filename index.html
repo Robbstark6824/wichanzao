@@ -4562,8 +4562,8 @@ async function loadAdminWorkers() {
   container.innerHTML = 'Cargando...';
 
   try {
-    // Load workers from DB (admin RLS policy allows reading all)
-    var result = await sb.from('workers').select('*').order('servicio');
+    // Load workers from DB using service_role to bypass RLS
+    var result = await sbAdmin().from('workers').select('*').order('servicio');
 
     if (result.error) throw new Error(result.error.message);
     var workers = result.data || [];
@@ -4602,7 +4602,7 @@ function loadAdminWorkersLegacy() {
   var fetches = prefixes.map(function(p) {
     return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ prefix: p.prefix, limit: 100 })
     }).then(function(res) { return res.json(); }).then(function(items) {
       if (!Array.isArray(items)) return [];
@@ -4704,7 +4704,7 @@ function adminBrowseFolder(basePath, displayName) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
   var prefix = basePath;
-  sbList(prefix, { limit: 500 }).then(function(items) {
+  sbListAdmin(prefix, { limit: 500 }).then(function(items) {
     if (!Array.isArray(items)) { items = []; }
     var subfolders = items.filter(function(i) { return !i.id; });
     var files = items.filter(function(i) { return i.id; });
@@ -4758,7 +4758,7 @@ function adminBrowseSub(basePath, subName, displayName) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
   var prefix = basePath + '/' + subName;
-  sbList(prefix, { limit: 500 }).then(function(items) {
+  sbListAdmin(prefix, { limit: 500 }).then(function(items) {
     if (!Array.isArray(items)) { items = []; }
     var files = items.filter(function(i) { return i.id; });
     var subfolders = items.filter(function(i) { return !i.id; });
