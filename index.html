@@ -4662,8 +4662,31 @@ function loadAdminWorkersLegacy() {
   });
 }
 
+// Admin storage helpers — usa fetch directo con service_role
+function adminStorageList(prefix) {
+  return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: prefix, limit: 500 })
+  }).then(function(r) { return r.json(); }).then(function(items) {
+    return Array.isArray(items) ? items : [];
+  }).catch(function() { return []; });
+}
+
+function adminStorageDelete(paths) {
+  if (!paths || !paths.length) return Promise.resolve();
+  return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefixes: paths })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) throw new Error(data.error.message);
+    return data;
+  });
+}
+
 function listAllFilesAdmin(prefix) {
-  return sbListAdmin(prefix).then(function(items) {
+  return adminStorageList(prefix).then(function(items) {
     var allFiles = [];
     var subfolders = [];
     for (var i = 0; i < items.length; i++) {
@@ -4694,18 +4717,16 @@ function adminDeleteFolder(basePath) {
 
   var prefix = basePath;
   listAllFilesAdmin(prefix).then(function(files) {
-    if (!files.length) {
-      toast('Carpeta vacia — eliminando carpeta raiz', 'info');
-      return sbRemoveAdmin([prefix]);
-    }
+    console.log('adminDeleteFolder: found', files.length, 'files in', prefix);
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    paths.push(prefix); // Also delete the root folder marker
-    return sbRemoveAdmin(paths);
+    console.log('adminDeleteFolder: deleting paths:', paths.slice(0, 5));
+    return adminStorageDelete(paths);
   }).then(function() {
     toast('Carpeta eliminada ✓', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
+    console.error('adminDeleteFolder error:', e);
   });
 }
 
@@ -4714,13 +4735,13 @@ function adminBrowseFolder(basePath, displayName) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
   var prefix = basePath;
-  sbListAdmin(prefix, { limit: 500 }).then(function(items) {
+  adminStorageList(prefix).then(function(items) {
     if (!Array.isArray(items)) { items = []; }
     var subfolders = items.filter(function(i) { return !i.id; });
     var files = items.filter(function(i) { return i.id; });
     var bp = basePath.replace(/'/g, "\'");
 
-    function esc(s) { return String(s).replace(/\\/g,'\\\').replace(/'/g,"\'"); }
+    function esc(s) { return String(s).replace(/\\/g,'\\\\\').replace(/'/g,"\\\'"); }
 
     var html = '<div style="margin-bottom:12px">';
     html += '<button onclick="loadAdminWorkers()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; Volver</button>';
@@ -4768,7 +4789,7 @@ function adminBrowseSub(basePath, subName, displayName) {
   container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
 
   var prefix = basePath + '/' + subName;
-  sbListAdmin(prefix, { limit: 500 }).then(function(items) {
+  adminStorageList(prefix).then(function(items) {
     if (!Array.isArray(items)) { items = []; }
     var files = items.filter(function(i) { return i.id; });
     var subfolders = items.filter(function(i) { return !i.id; });
@@ -4826,7 +4847,7 @@ function adminDeleteFile(filePath, basePath, displayName, subName) {
   haptic(50);
   toast('Eliminando...', 'info');
 
-  sbRemoveAdmin([filePath]).then(function() {
+  adminStorageDelete([filePath]).then(function() {
     toast('Archivo eliminado', 'success');
     if (subName) {
       adminBrowseSub(basePath, subName, displayName);
@@ -4847,8 +4868,7 @@ function adminDeleteSub(basePath, subName, displayName) {
   var prefix = basePath + '/' + subName;
   listAllFilesAdmin(prefix).then(function(files) {
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    paths.push(prefix); // also delete folder marker
-    return sbRemoveAdmin(paths);
+    return adminStorageDelete(paths);
   }).then(function() {
     toast('Carpeta eliminada ✓', 'success');
     adminBrowseFolder(basePath, displayName);
