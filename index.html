@@ -4668,18 +4668,32 @@ function adminStorageList(prefix) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ prefix: prefix, limit: 500 })
-  }).then(function(r) { return r.json(); }).then(function(items) {
-    return Array.isArray(items) ? items : [];
-  }).catch(function() { return []; });
+  }).then(function(r) {
+    console.log('adminStorageList response:', r.status, r.statusText);
+    return r.json();
+  }).then(function(data) {
+    console.log('adminStorageList data for', prefix, ':', JSON.stringify(data).slice(0, 200));
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
+  }).catch(function(e) {
+    console.error('adminStorageList error:', e.message);
+    return [];
+  });
 }
 
 function adminStorageDelete(paths) {
   if (!paths || !paths.length) return Promise.resolve();
+  console.log('adminStorageDelete: deleting', paths.length, 'paths:', paths.slice(0, 5));
   return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
     method: 'DELETE',
     headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ prefixes: paths })
-  }).then(function(r) { return r.json(); }).then(function(data) {
+  }).then(function(r) {
+    console.log('adminStorageDelete response:', r.status, r.statusText);
+    return r.json();
+  }).then(function(data) {
+    console.log('adminStorageDelete data:', JSON.stringify(data).slice(0, 200));
     if (data.error) throw new Error(data.error.message);
     return data;
   });
