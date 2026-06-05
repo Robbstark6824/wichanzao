@@ -115,8 +115,16 @@ body{font-family:'Manrope',sans-serif;background:#080E1A;color:var(--t1);-webkit
 
 /* ===== DASHBOARD SCAN MODULE WRAPPER ===== */
 .scan-modes-wrap{margin-bottom:20px}
-.scan-modes-wrap .mode-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.scan-modes-wrap .mode-card{padding:18px 12px}
+.scan-modes-wrap .mode-cards{display:flex;flex-direction:column;gap:10px}
+.scan-modes-wrap .mode-card{padding:16px 18px;display:flex;align-items:center;gap:14px;background:var(--card);border-radius:var(--r2);cursor:pointer;border:1px solid var(--bd);transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.scan-modes-wrap .mode-card:active{background:var(--s2);transform:scale(.98)}
+.scan-modes-wrap .mode-card .mc-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.scan-modes-wrap .mode-card .mc-icon.foto{background:rgba(78,205,196,.15);color:var(--tl)}
+.scan-modes-wrap .mode-card .mc-icon.pdf{background:rgba(212,168,83,.15);color:var(--gd)}
+.scan-modes-wrap .mode-card .mc-icon.dosEnUno{background:rgba(147,112,219,.15);color:#9370DB}
+.scan-modes-wrap .mode-card .mc-text{flex:1}
+.scan-modes-wrap .mode-card .mc-text h4{font-size:15px;font-weight:700;color:var(--t1);margin:0 0 2px}
+.scan-modes-wrap .mode-card .mc-text p{font-size:11px;color:var(--t2);margin:0}
 
 /* ===== DARK MODE OVERRIDES ===== */
 body.dark .dashboard-shell{background:var(--bg)}
@@ -1247,7 +1255,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <span></span><span></span><span></span>
           </button>
           <div class="mh-breadcrumb">
-            <a onclick="showModule('dashboard')">Inicio</a> / Wichanzao Scan
+            <a onclick="showModule('dashboard')">Inicio</a> / Laredo Scan
           </div>
         </div>
         <div class="module-body" id="moduleScanBody">
@@ -2273,7 +2281,7 @@ function migrateOldProfile() {
   }
 }
 
-/* ===== WORKER STORAGE (doble capa: localStorage + sessionStorage) ===== */
+/* ===== WORKER STORAGE (4 capas: localStorage + sessionStorage + cookie + IndexedDB) ===== */
 function loadWorker() {
   // 1) localStorage
   var raw = localStorage.getItem('wichanzao_worker');
@@ -2300,7 +2308,13 @@ function loadWorker() {
     try {
       if (!localStorage.getItem('wichanzao_worker')) localStorage.setItem('wichanzao_worker', raw);
       if (!sessionStorage.getItem('wichanzao_worker')) sessionStorage.setItem('wichanzao_worker', raw);
+      // Also sync to IndexedDB
+      saveWorkerToIDB(raw);
     } catch(e) {}
+  }
+  // 4) si aun no hay worker, intentar IndexedDB (async, se completa en background)
+  if (!worker) {
+    loadWorkerFromIDB();
   }
 }
 
@@ -2309,14 +2323,64 @@ function saveWorker(w) {
   var safe = {};
   for (var k in w) { if (k !== 'pass') safe[k] = w[k]; }
   var json = JSON.stringify(safe);
-  // Guardar en 3 capas: localStorage + sessionStorage + cookie
+  // Guardar en 4 capas
   localStorage.setItem('wichanzao_worker', json);
   try { sessionStorage.setItem('wichanzao_worker', json); } catch(e) {}
-  // Cookie de respaldo — 90 dias de duracion
+  // Cookie — 365 dias
   try {
     var d = new Date();
-    d.setTime(d.getTime() + (90*24*60*60*1000));
+    d.setTime(d.getTime() + (365*24*60*60*1000));
     document.cookie = 'wichanzao_worker=' + encodeURIComponent(json.substring(0,500)) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+  } catch(e) {}
+  // IndexedDB
+  saveWorkerToIDB(json);
+}
+
+// IndexedDB helpers
+function openWorkerDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('wichanzao_db', 1);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('worker')) db.createObjectStore('worker');
+    };
+    req.onsuccess = function(e) { resolve(e.target.result); };
+    req.onerror = function() { resolve(null); };
+  });
+}
+
+function saveWorkerToIDB(json) {
+  try {
+    openWorkerDB().then(function(db) {
+      if (!db) return;
+      var tx = db.transaction('worker', 'readwrite');
+      tx.objectStore('worker').put(json, 'current');
+    });
+  } catch(e) {}
+}
+
+function loadWorkerFromIDB() {
+  try {
+    openWorkerDB().then(function(db) {
+      if (!db) return;
+      var tx = db.transaction('worker', 'readonly');
+      var req = tx.objectStore('worker').get('current');
+      req.onsuccess = function() {
+        if (req.result && !worker) {
+          var raw = req.result;
+          try { worker = JSON.parse(raw); } catch(e) { return; }
+          if (worker) {
+            // Restore all layers
+            localStorage.setItem('wichanzao_worker', raw);
+            try { sessionStorage.setItem('wichanzao_worker', raw); } catch(e) {}
+            populateMain();
+            showView('vMain');
+            showModule('dashboard');
+            syncTodayFromServer(true);
+          }
+        }
+      };
+    });
   } catch(e) {}
 }
 
@@ -2982,6 +3046,8 @@ async function doLogout() {
   localStorage.removeItem('wichanzao_worker');
   sessionStorage.removeItem('wichanzao_worker');
   document.cookie = 'wichanzao_worker=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+  // Clear IndexedDB too
+  try { indexedDB.deleteDatabase('wichanzao_db'); } catch(e) {}
   worker = null;
   isAdmin = false;
   prevDatesLoaded = false;
