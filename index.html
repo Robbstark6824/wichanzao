@@ -7680,13 +7680,13 @@ async function hospiExportarPDF(ev) {
   doc.text('Servicio de Medicina Interna', M, 21);
 
   doc.setFontSize(9);
-  doc.setTextColor('rgba(255,255,255,.7)');
+  doc.setTextColor('#B0BEC5');
   doc.setFont('helvetica', 'normal');
   doc.text('Expediente Clinico de Hospitalizacion', M, 28);
 
   // Right side: expediente ID
   doc.setFontSize(8);
-  doc.setTextColor('rgba(255,255,255,.5)');
+  doc.setTextColor('#90A4AE');
   doc.text('N° ' + ing.id.substring(0, 8).toUpperCase(), pageW - M, 13, { align: 'right' });
   doc.text('Fecha: ' + new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}), pageW - M, 19, { align: 'right' });
   doc.text('Emitido por: ' + (worker ? worker.name : 'Sistema'), pageW - M, 25, { align: 'right' });
