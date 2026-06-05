@@ -5431,13 +5431,14 @@ function capturePhoto() {
       openPhotoEditor(dataUrl, 'dosEnUno', dosEnUnoStep);
     });
   } else {
-    // PDF mode — open editor immediately after each capture
+    // PDF mode — original flow: push to stack, edit later via review panel
     if (pdfPages.length >= 10) {
       toast('Maximo 10 paginas', 'error');
       return;
     }
+    pdfPages.push(dataUrl);
     showCapturePreview(dataUrl, function() {
-      openPhotoEditor(dataUrl, 'pdf', pdfPages.length);
+      animateToThumbStack(dataUrl);
     });
   }
 }
@@ -5981,15 +5982,11 @@ function doConfirmSave() {
       closePhotoEditor();
     }
   } else if (editorSource === 'pdf' && editorPageIndex >= 0) {
-    if (editorPageIndex >= pdfPages.length) {
-      pdfPages.push(editorDataUrl);
-      toast('Pagina ' + pdfPages.length + ' guardada ✓', 'success');
-    } else {
-      pdfPages[editorPageIndex] = editorDataUrl;
-      toast('Pagina ' + (editorPageIndex + 1) + ' actualizada ✓', 'success');
-    }
+    // Re-edit an existing PDF page from the review panel
+    pdfPages[editorPageIndex] = editorDataUrl;
     updateThumbStack();
     closePhotoEditor();
+    toast('Pagina ' + (editorPageIndex + 1) + ' actualizada ✓', 'success');
   } else if (editorSource === 'dosEnUno') {
     dosEnUnoImages[editorPageIndex] = editorDataUrl;
     closePhotoEditor();
