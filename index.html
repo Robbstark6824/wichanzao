@@ -4571,37 +4571,99 @@ async function loadAdminWorkers() {
   var container = document.getElementById('adminWorkerList');
   container.innerHTML = 'Cargando...';
 
-  try {
-    // Load workers from DB using service_role to bypass RLS
-    var result = await sbAdmin().from('workers').select('*').order('servicio');
+  // Map to deduplicate between DB and storage
+  var workersMap = {};
 
-    if (result.error) throw new Error(result.error.message);
-    var workers = result.data || [];
+  try {
+    // 1) Load from DB (has names, areas, is_admin)
+    var dbResult = await sbAdmin().from('workers').select('*').order('servicio');
+    if (!dbResult.error && dbResult.data) {
+      for (var i = 0; i < dbResult.data.length; i++) {
+        var w = dbResult.data[i];
+        workersMap[w.folder_id] = {
+          folder_id: w.folder_id,
+          name: w.name || w.folder_id,
+          area: w.area || '',
+          servicio: w.servicio || '',
+          is_admin: w.is_admin,
+          basePath: (w.servicio || '') + '/workers/' + w.folder_id,
+          fromDB: true
+        };
+      }
+    }
+
+    // 2) Also scan storage for workers not in DB (like pc.html does)
+    var storageWorkers = await scanStorageForWorkers();
+    for (var si = 0; si < storageWorkers.length; si++) {
+      var sw = storageWorkers[si];
+      if (!workersMap[sw.folder_id]) {
+        workersMap[sw.folder_id] = sw;
+      }
+    }
+
+    var workers = Object.values(workersMap);
+    // Sort: DB workers first, then by name
+    workers.sort(function(a, b) {
+      if (a.fromDB && !b.fromDB) return -1;
+      if (!a.fromDB && b.fromDB) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
     if (!workers.length) {
-      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay trabajadores registrados</div>';
+      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas de trabajadores</div>';
       return;
     }
 
     var html = '';
-    for (var i = 0; i < workers.length; i++) {
-      var w = workers[i];
-      var bp = (w.servicio + '/workers/' + w.folder_id).replace(/'/g, "\'");
-      var sLabel = SERVICIOS[w.servicio] ? SERVICIOS[w.servicio].label : w.servicio;
-      var adminBadge = w.is_admin ? ' <span style="color:var(--gd);font-size:10px">&#x1F451;</span>' : '';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(w.name).replace(/'/g, "\'") + '\')" style="cursor:pointer;flex:1">';
-      html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + escapeHtml(w.name) + adminBadge + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
-      if (w.area) html += '<div style="font-size:11px;color:var(--t3)">' + escapeHtml(w.area) + ' &middot; ' + sLabel + '</div>';
-      html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + escapeHtml(w.folder_id) + '</div></div>';
-      html += '<button onclick="adminDeleteFolder(\'' + bp + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+    for (var wi = 0; wi < workers.length; wi++) {
+      var wk = workers[wi];
+      var bp = wk.basePath.replace(/'/g, "\'");
+      var sLabel = wk.servicio ? (SERVICIOS[wk.servicio] ? SERVICIOS[wk.servicio].label : wk.servicio) : 'Storage';
+      var adminBadge = wk.is_admin ? ' <span style=\"color:var(--gd);font-size:10px\">&#x1F451;</span>' : '';
+      var storageBadge = !wk.fromDB ? ' <span style=\"color:var(--t3);font-size:9px\">(storage)</span>' : '';
+      html += '<div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)\">';
+      html += '<div onclick=\"adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(wk.name).replace(/'/g, "\'") + '\')\" style=\"cursor:pointer;flex:1\">';
+      html += '<div style=\"font-weight:700;font-size:13px;color:var(--tl)\">' + escapeHtml(wk.name) + adminBadge + storageBadge + ' <span style=\"font-size:10px;opacity:.5\">&#9654;</span></div>';
+      if (wk.area) html += '<div style=\"font-size:11px;color:var(--t3)\">' + escapeHtml(wk.area) + ' &middot; ' + sLabel + '</div>';
+      html += '<div style=\"font-size:10px;color:var(--t3);opacity:.6\">' + escapeHtml(wk.folder_id) + '</div></div>';
+      html += '<button onclick=\"adminDeleteFolder(\'' + bp + '\')\" style=\"background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit\">Borrar</button>';
       html += '</div>';
     }
     container.innerHTML = html;
   } catch(e) {
-    // Fallback to old storage-based listing if DB query fails (transition period)
     loadAdminWorkersLegacy();
   }
+}
+
+// Scan storage for worker folders (like pc.html does)
+async function scanStorageForWorkers() {
+  var workers = [];
+  try {
+    var prefixes = SERVICIOS_KEYS.map(function(s) { return s + '/workers/'; });
+    prefixes.push('workers/'); // legacy
+    var results = await Promise.all(prefixes.map(function(p) {
+      return adminStorageList(p).then(function(items) {
+        return { prefix: p, folders: items.filter(function(i) { return !i.id && i.name; }) };
+      }).catch(function() { return { prefix: p, folders: [] }; });
+    }));
+    for (var ri = 0; ri < results.length; ri++) {
+      for (var fi = 0; fi < results[ri].folders.length; fi++) {
+        var name = results[ri].folders[fi].name;
+        var servicio = results[ri].prefix.split('/')[0];
+        if (servicio === 'workers') servicio = '';
+        workers.push({
+          folder_id: name,
+          name: name, // placeholder, will try profile.json
+          area: '',
+          servicio: servicio,
+          is_admin: false,
+          basePath: results[ri].prefix + name,
+          fromDB: false
+        });
+      }
+    }
+  } catch(e) { /* ignore */ }
+  return workers;
 }
 
 function loadAdminWorkersLegacy() {
@@ -4722,12 +4784,13 @@ function adminDeleteFolder(basePath) {
 
   var prefix = basePath;
   listAllFilesAdmin(prefix).then(function(files) {
-    console.log('adminDeleteFolder: found', files.length, 'files in', prefix);
     var paths = files.map(function(f) { return prefix + '/' + f; });
-    console.log('adminDeleteFolder: deleting paths:', paths.slice(0, 5));
     return adminStorageDelete(paths);
   }).then(function() {
-    toast('Carpeta eliminada ✓', 'success');
+    // Also delete worker from DB so both views stay in sync
+    return sbAdmin().from('workers').delete().eq('folder_id', folderName);
+  }).then(function() {
+    toast('Carpeta y registro eliminados ✓', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
     toast('Error: ' + e.message, 'error');
