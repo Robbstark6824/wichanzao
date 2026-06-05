@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0C1F3D">
 <link rel="manifest" href="./manifest-pc.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
-<title>Wichanzao · Panel de Referencias</title>
+<title>Hospital Distrital de Laredo · Panel de Referencias</title>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: https://xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' https://xqphjvppfgwabfruyjae.supabase.co wss://xqphjvppfgwabfruyjae.supabase.co; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <!-- SW update handled at bottom of page -->
@@ -652,7 +652,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
     <div class="header-left">
       <h1>
         <svg viewBox="0 0 48 48" fill="none"><rect x="18" y="8" width="12" height="32" rx="2" fill="#4ECDC4"/><rect x="8" y="18" width="32" height="12" rx="2" fill="#4ECDC4"/></svg>
-        C.S. Materno Infantil Wichanzao <span style="font-family:Manrope;font-weight:400;font-size:14px;opacity:.5">&middot;</span> <span style="font-family:Manrope;font-weight:500;font-size:14px;opacity:.7">Panel de Referencias</span>
+        Hospital Distrital de Laredo <span style="font-family:Manrope;font-weight:400;font-size:14px;opacity:.5">&middot;</span> <span style="font-family:Manrope;font-weight:500;font-size:14px;opacity:.7">Panel de Referencias</span>
       </h1>
       <div class="subtitle">Computadora del centro &mdash; Descarga de documentos para MINSA</div>
     </div>
@@ -766,7 +766,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
       <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#4ECDC4" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
     <h2 id="pcAuthTitle" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:4px">Panel de Referencias</h2>
-    <p id="pcAuthSub" style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Ingresa la contrasena del panel</p>
+    <p id="pcAuthSub" style="color:var(--t3);font-size:13px;margin-bottom:24px">Hospital Distrital de Laredo — Ingresa la contrasena del panel</p>
     <input id="pcAuthPass" type="password" placeholder="Contrasena del panel" style="width:100%;padding:14px;border:1.5px solid var(--bd);border-radius:12px;font-size:15px;font-family:inherit;background:var(--bg);color:var(--t1);box-sizing:border-box;text-align:center;letter-spacing:2px;margin-bottom:14px" onkeydown="if(event.key==='Enter')pcAuthSubmit()">
     <button id="pcAuthBtn" onclick="pcAuthSubmit()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4ECDC4,#3BB8B0);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Entrar</button>
     <div id="pcAuthError" style="color:#e74c3c;font-size:12px;text-align:center;margin-top:12px;display:none"></div>
@@ -1366,7 +1366,7 @@ function lockService(key) {
 
 function renderServiceHub() {
   var html = '<div class="service-hub">';
-  html += '<h2>Centro de Salud Wichanzao</h2>';
+  html += '<h2>Hospital Distrital de Laredo</h2>';
   html += '<p>Selecciona un servicio para ver sus documentos</p>';
   html += '<div class="service-grid">';
 
