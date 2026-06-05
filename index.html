@@ -1965,7 +1965,7 @@ function sbList(prefix, opts) {
 }
 
 function sbRemove(paths) {
-  return sb.storage.from(SB_BUCKET).remove(paths).then(function(r) {
+  return sbAdmin().storage.from(SB_BUCKET).remove(paths).then(function(r) {
     if (r.error) throw new Error(r.error.message);
     return r;
   });
@@ -2025,53 +2025,48 @@ document.addEventListener('DOMContentLoaded', function() {
   migrateOldProfile();
   loadWorker();
 
-  // Si hay worker guardado, mostrar la app directamente
-  // La sesion de Supabase se refresca sola en background (autoRefreshToken: true)
-  if (worker) {
-    populateMain();
-    showView('vMain');
-    showModule('dashboard');
-    syncTodayFromServer(true);
-  } else {
-    // No worker in localStorage — try recovering from Supabase session
-    sb.auth.getSession().then(async function(result) {
+  async function tryAutoLogin() {
+    // 1) Worker found synchronously (localStorage/sessionStorage/cookie)
+    if (worker) return true;
+
+    // 2) Try IndexedDB (async — completes in background from loadWorker)
+    await new Promise(function(resolve) { setTimeout(resolve, 300); });
+    if (worker) return true;
+
+    // 3) Try Supabase session recovery
+    try {
+      var result = await sb.auth.getSession();
       var session = result.data.session;
       if (session && session.user) {
-        try {
-          var refresh = await sb.auth.refreshSession();
-          session = refresh.data.session || session;
-        } catch(e) {}
+        try { var refresh = await sb.auth.refreshSession(); session = refresh.data.session || session; } catch(e) {}
         if (session && session.user) {
-          // Have valid session but lost worker — recover from DB
           var u = session.user;
           var email = u.email || '';
           var folderId = email.split('@')[0] || '';
-          // Try to find worker by email
-          var wf = await sb.from('workers').select('*').eq('email', email).maybeSingle();
+          var admin = sbAdmin();
+          var wf = await admin.from('workers').select('*').eq('email', email).maybeSingle();
+          if (!wf.data) wf = await admin.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
           if (wf.data) {
             var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, created: wf.data.created_at };
             saveWorker(w);
-            populateMain();
-            showView('vMain');
-            showModule('dashboard');
-            syncTodayFromServer(true);
-            return;
-          }
-          // Try by folder_id from email
-          var wf2 = await sb.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
-          if (wf2.data) {
-            var w2 = { id: wf2.data.folder_id, name: wf2.data.name, servicio: wf2.data.servicio, area: wf2.data.area, picture: wf2.data.picture, email: wf2.data.email, google: wf2.data.google, created: wf2.data.created_at };
-            saveWorker(w2);
-            populateMain();
-            showView('vMain');
-            showModule('dashboard');
-            syncTodayFromServer(true);
-            return;
+            return true;
           }
         }
       }
-    });
+    } catch(e) {}
+    return false;
   }
+
+  tryAutoLogin().then(function(ok) {
+    if (ok && worker) {
+      populateMain();
+      showView('vMain');
+      showModule('dashboard');
+      syncTodayFromServer(true);
+    } else {
+      showView('vWelcome');
+    }
+  });
 
   loadTodayFiles();
   processOfflineQueue();
@@ -2370,13 +2365,9 @@ function loadWorkerFromIDB() {
           var raw = req.result;
           try { worker = JSON.parse(raw); } catch(e) { return; }
           if (worker) {
-            // Restore all layers
+            // Restore all layers so next load is instant
             localStorage.setItem('wichanzao_worker', raw);
             try { sessionStorage.setItem('wichanzao_worker', raw); } catch(e) {}
-            populateMain();
-            showView('vMain');
-            showModule('dashboard');
-            syncTodayFromServer(true);
           }
         }
       };
