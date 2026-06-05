@@ -765,8 +765,8 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
     <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05));border:1px solid rgba(78,205,196,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
       <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#4ECDC4" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:4px">Panel de Referencias</h2>
-    <p style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Ingresa la contrasena del panel</p>
+    <h2 id="pcAuthTitle" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:4px">Panel de Referencias</h2>
+    <p id="pcAuthSub" style="color:var(--t3);font-size:13px;margin-bottom:24px">C.S. Wichanzao — Ingresa la contrasena del panel</p>
     <input id="pcAuthPass" type="password" placeholder="Contrasena del panel" style="width:100%;padding:14px;border:1.5px solid var(--bd);border-radius:12px;font-size:15px;font-family:inherit;background:var(--bg);color:var(--t1);box-sizing:border-box;text-align:center;letter-spacing:2px;margin-bottom:14px" onkeydown="if(event.key==='Enter')pcAuthSubmit()">
     <button id="pcAuthBtn" onclick="pcAuthSubmit()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4ECDC4,#3BB8B0);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Entrar</button>
     <div id="pcAuthError" style="color:#e74c3c;font-size:12px;text-align:center;margin-top:12px;display:none"></div>
@@ -3070,17 +3070,28 @@ function forceRefresh() {
    ========================================================= */
 var PC_AUTH_EMAIL = 'pc-panel@wichanzao.local';
 
+var PC_PASSWORD_HASH_KEY = 'wichanzao_pc_pass';
+
 async function pcInit() {
-  // Check if already authenticated
-  var sess = (await sb.auth.getSession()).data.session;
-  if (sess) {
-    // Already signed in — load directly
-    loadAllData();
-    startAutoRefresh();
-    return;
+  // Check if already authenticated via Supabase session
+  try {
+    var sess = (await sb.auth.getSession()).data.session;
+    if (sess) {
+      loadAllData();
+      startAutoRefresh();
+      return;
+    }
+  } catch(e) {}
+  // Check if user has set a local password
+  var savedHash = localStorage.getItem(PC_PASSWORD_HASH_KEY);
+  if (!savedHash) {
+    // First time — auto-setup with service_role
+    document.getElementById('pcAuthOverlay').style.display = 'flex';
+    document.getElementById('pcAuthTitle').textContent = 'Configurar acceso al panel';
+    document.getElementById('pcAuthSub').textContent = 'Crea una contrasena para acceder al panel de administracion';
+  } else {
+    document.getElementById('pcAuthOverlay').style.display = 'flex';
   }
-  // No session — show password prompt
-  document.getElementById('pcAuthOverlay').style.display = 'flex';
 }
 
 async function pcAuthSubmit() {
@@ -3090,37 +3101,46 @@ async function pcAuthSubmit() {
   errEl.style.display = 'none';
 
   if (!pass) { errEl.textContent = 'Ingresa la contrasena'; errEl.style.display = 'block'; return; }
+  if (pass.length < 4) { errEl.textContent = 'Minimo 4 caracteres'; errEl.style.display = 'block'; return; }
 
   btn.disabled = true; btn.textContent = 'Verificando...';
 
-  try {
-    // Try sign in first (account already exists)
-    var result = await sb.auth.signInWithPassword({ email: PC_AUTH_EMAIL, password: pass });
-    if (result.error) {
-      // If account doesn't exist yet, create it (first time setup)
-      if (result.error.message.indexOf('Invalid login') !== -1) {
-        var signUp = await sb.auth.signUp({ email: PC_AUTH_EMAIL, password: pass });
-        if (signUp.error) {
-          errEl.textContent = 'Contrasena incorrecta';
-          errEl.style.display = 'block';
-          return;
-        }
-      } else {
-        errEl.textContent = 'Contrasena incorrecta';
-        errEl.style.display = 'block';
-        return;
-      }
-    }
-    // Success — hide overlay and load data
+  var savedHash = localStorage.getItem(PC_PASSWORD_HASH_KEY);
+
+  if (!savedHash) {
+    // First time setup — save the password hash
+    var hash = btoa(pass.split('').reverse().join('') + '_pc_wzao');
+    localStorage.setItem(PC_PASSWORD_HASH_KEY, hash);
+    document.getElementById('pcAuthOverlay').style.display = 'none';
+    toast('Contrasena configurada. Usala para acceder al panel.', 'success');
+    loadAllData();
+    startAutoRefresh();
+    btn.disabled = false; btn.textContent = 'Entrar';
+    return;
+  }
+
+  // Verify password
+  var expectedHash = btoa(pass.split('').reverse().join('') + '_pc_wzao');
+  if (savedHash === expectedHash) {
     document.getElementById('pcAuthOverlay').style.display = 'none';
     loadAllData();
     startAutoRefresh();
-  } catch(e) {
-    errEl.textContent = 'Error de conexion';
+  } else {
+    // Fallback: try Supabase auth
+    try {
+      var result = await sb.auth.signInWithPassword({ email: PC_AUTH_EMAIL, password: pass });
+      if (!result.error) {
+        document.getElementById('pcAuthOverlay').style.display = 'none';
+        loadAllData();
+        startAutoRefresh();
+        btn.disabled = false; btn.textContent = 'Entrar';
+        return;
+      }
+    } catch(e) {}
+    errEl.textContent = 'Contrasena incorrecta';
     errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Entrar';
   }
+  btn.disabled = false; btn.textContent = 'Entrar';
 }
 
 pcInit();
