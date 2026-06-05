@@ -4662,47 +4662,32 @@ function loadAdminWorkersLegacy() {
   });
 }
 
-// Admin storage helpers — usa fetch directo con service_role
+// Admin storage helpers — usa cliente Supabase admin (service_role singleton)
 function adminStorageList(prefix) {
-  console.log('adminStorageList CALLED with prefix:', prefix);
-  var url = SB_URL + '/storage/v1/object/list/' + SB_BUCKET;
-  var body = JSON.stringify({ prefix: prefix, limit: 500 });
-  console.log('  url:', url);
-  return fetch(url, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
-    body: body
-  }).then(function(r) {
-    console.log('  response:', r.status, r.statusText);
-    return r.text();
-  }).then(function(text) {
-    console.log('  raw body:', text.slice(0, 300));
-    try { var data = JSON.parse(text); } catch(e) { console.error('  JSON parse error:', e.message); return []; }
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    console.log('  unexpected format, keys:', Object.keys(data || {}));
-    return [];
-  }).catch(function(e) {
-    console.error('  FETCH error:', e.message);
-    return [];
-  });
+  console.log('adminStorageList:', prefix);
+  return sbAdmin().storage.from(SB_BUCKET).list(prefix, { limit: 500, sortBy: { column: 'name', order: 'asc' } })
+    .then(function(r) {
+      console.log('  result:', r.error ? 'ERROR: ' + r.error.message : 'OK, ' + (r.data ? r.data.length : 0) + ' items');
+      if (r.error) throw new Error(r.error.message);
+      return r.data || [];
+    }).catch(function(e) {
+      console.error('  error:', e.message);
+      return [];
+    });
 }
 
 function adminStorageDelete(paths) {
   if (!paths || !paths.length) return Promise.resolve();
-  console.log('adminStorageDelete: deleting', paths.length, 'paths:', paths.slice(0, 5));
-  return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET, {
-    method: 'DELETE',
-    headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefixes: paths })
-  }).then(function(r) {
-    console.log('adminStorageDelete response:', r.status, r.statusText);
-    return r.json();
-  }).then(function(data) {
-    console.log('adminStorageDelete data:', JSON.stringify(data).slice(0, 200));
-    if (data.error) throw new Error(data.error.message);
-    return data;
-  });
+  console.log('adminStorageDelete:', paths.length, 'paths');
+  return sbAdmin().storage.from(SB_BUCKET).remove(paths)
+    .then(function(r) {
+      console.log('  result:', r.error ? 'ERROR: ' + r.error.message : 'OK');
+      if (r.error) throw new Error(r.error.message);
+      return r;
+    }).catch(function(e) {
+      console.error('  error:', e.message);
+      throw e;
+    });
 }
 
 function listAllFilesAdmin(prefix) {
