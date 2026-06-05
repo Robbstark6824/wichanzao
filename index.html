@@ -5431,8 +5431,8 @@ function capturePhoto() {
     });
   } else {
     // PDF mode — original flow: push to stack, edit later via review panel
-    if (pdfPages.length >= 10) {
-      toast('Maximo 10 paginas', 'error');
+    if (pdfPages.length >= 5) {
+      toast('Maximo 5 paginas', 'error');
       return;
     }
     pdfPages.push(dataUrl);
@@ -5534,7 +5534,7 @@ function openReviewPanel() {
   for (var i = 0; i < pdfPages.length; i++) {
     var page = document.createElement('div');
     page.className = 'review-page';
-    page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '" onclick="editPdfPage(' + i + ')">' +
+    page.innerHTML = '<img src="' + pdfPages[i] + '" alt="Pagina ' + (i+1) + '">' +
       '<div class="rp-num">Pag. ' + (i+1) + '</div>' +
       '<button class="rp-del" onclick="deletePage(' + i + ')"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></button>';
     scroll.appendChild(page);
@@ -5575,7 +5575,6 @@ function reviewNav(dir) {
 function updateReviewArrows() {
   var left = document.getElementById('reviewArrowLeft');
   var right = document.getElementById('reviewArrowRight');
-  // Detect current page from scroll position
   var scroll = document.getElementById('reviewScroll');
   var pages = scroll.querySelectorAll('.review-page');
   if (pages.length === 0) return;
@@ -5591,12 +5590,9 @@ function updateReviewArrows() {
   right.classList.toggle('hidden', reviewCurrentPage >= pdfPages.length - 1);
 }
 
-function editCurrentReviewPage(index) {
+function editCurrentReviewPage() {
   haptic();
-  var pageIdx = (typeof index === 'number') ? index : reviewCurrentPage;
-  // Update current page to the one being edited
-  reviewCurrentPage = pageIdx;
-  editPdfPage(pageIdx);
+  editPdfPage(reviewCurrentPage);
 }
 
 function closeReviewPanel() {
@@ -5611,7 +5607,7 @@ function deletePage(index) {
   if (pdfPages.length === 0) {
     closeReviewPanel();
   } else {
-    openReviewPanel(); // refresh
+    openReviewPanel();
   }
 }
 
