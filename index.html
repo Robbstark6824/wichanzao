@@ -1946,7 +1946,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v218';
+var APP_VERSION = 'v219';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -3276,17 +3276,25 @@ function openSettings() {
   document.getElementById('settingsProfileBadge').textContent = sLabel;
   var darkOn = document.body.classList.contains('dark');
   document.getElementById('toggleDark').classList.toggle('on', darkOn);
-  // Version + rol
+  // Version + rol + diagnostico (codigos CIE-10 cargados)
+  var nCie = (CIE_DATA_FULL ? CIE_DATA_FULL.length : 0);
   var verEl = document.getElementById('settingsAppVersion');
-  if (verEl) verEl.textContent = APP_VERSION + (isAdmin ? '  ·  modo admin 👑' : '');
+  if (verEl) verEl.textContent = APP_VERSION + '  ·  CIE-10: ' + (nCie ? nCie.toLocaleString('es-PE') : 'cargando…');
   var roleEl = document.getElementById('settingsRole');
   if (roleEl) roleEl.textContent = isAdmin ? '👑 Super administrador' : (worker.area || 'Usuario');
   showView('vSettings');
 }
 
-// Limpia caches del service worker y recarga para traer la ultima version
+// Limpia TODA la cache (SW + catalogo en localStorage) y recarga para traer lo ultimo
 function forceUpdateApp() {
-  toast('Buscando actualización…', 'info');
+  toast('Actualizando a la última versión…', 'info');
+  // Borrar catalogo CIE en localStorage para forzar recarga
+  try {
+    for (var k = localStorage.length - 1; k >= 0; k--) {
+      var key = localStorage.key(k);
+      if (key && key.indexOf('wichanzao_cie10_') === 0) localStorage.removeItem(key);
+    }
+  } catch(e) {}
   var done = function() { location.reload(true); };
   try {
     if (window.caches && caches.keys) {
@@ -3784,7 +3792,8 @@ function cieInitFullData() {
     try { localStorage.removeItem('wichanzao_cie10_v2'); } catch(e) {}
     try { localStorage.removeItem('wichanzao_cie10_v3'); } catch(e) {}
     try { localStorage.removeItem('wichanzao_cie10_v4'); } catch(e) {}
-    var raw = localStorage.getItem('wichanzao_cie10_v5');
+    try { localStorage.removeItem('wichanzao_cie10_v5'); } catch(e) {}
+    var raw = localStorage.getItem('wichanzao_cie10_v6');
     if (raw) {
       var parsed = JSON.parse(raw);
       if (parsed && parsed.d && parsed.d.length > 5000) {
@@ -3802,11 +3811,11 @@ function cieInitFullData() {
 function cieLoadFromNetwork() {
   if (CIE_LOADING) return;
   CIE_LOADING = true;
-  fetch('./icons/cie10-data-compact.json')
+  fetch('./icons/cie10-data-compact.json?v=' + APP_VERSION)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && data.d && data.d.length > 5000) {
-        try { localStorage.setItem('wichanzao_cie10_v5', JSON.stringify(data)); } catch(e) {}
+        try { localStorage.setItem('wichanzao_cie10_v6', JSON.stringify(data)); } catch(e) {}
         cieSetFullData(data);
       }
     }).catch(function(){
@@ -3834,7 +3843,7 @@ var CIE_SYN_FALLBACK = {
 
 function cieLoadSynonyms() {
   if (CIE_SYN_LOADED) return;
-  fetch('./icons/cie10-synonyms.json')
+  fetch('./icons/cie10-synonyms.json?v=' + APP_VERSION)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && Object.keys(data).length > 50) {

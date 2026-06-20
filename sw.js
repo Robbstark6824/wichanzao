@@ -1,4 +1,4 @@
-var CACHE_NAME = 'mihl-v223';
+var CACHE_NAME = 'mihl-v224';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
@@ -60,6 +60,21 @@ self.addEventListener('fetch', function(e) {
       }).catch(function() {
         return caches.match(e.request);
       })
+    );
+    return;
+  }
+
+  // Catalog DATA (CIE-10): network-first so updates always reach the client.
+  // (cache-first here was serving a stale catalog even after deploys.)
+  if (url.pathname.indexOf('cie10-data') !== -1 || url.pathname.indexOf('cie10-synonyms') !== -1) {
+    e.respondWith(
+      fetch(e.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+        }
+        return response;
+      }).catch(function() { return caches.match(e.request); })
     );
     return;
   }
