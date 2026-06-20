@@ -365,6 +365,16 @@ body.dark .cie-data-badge{background:rgba(78,205,196,.12);color:var(--tl)}
   .stats-row{grid-template-columns:1fr 1fr;gap:10px}
 }
 
+/* Responsive form rows (hospitalizacion: dengue / antibioticos) */
+.hospi-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hospi-grid2 > div{min-width:0}
+.hospi-grid2 input,.hospi-grid2 select{width:100%;box-sizing:border-box}
+.hospi-dia-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.hospi-dia-row input{width:84px;box-sizing:border-box}
+@media (max-width:560px){
+  .hospi-grid2{grid-template-columns:1fr;gap:6px}
+}
+
 /* ===== VIEW SYSTEM ===== */
 .V{position:fixed;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .3s cubic-bezier(.4,0,.2,1),transform .3s cubic-bezier(.4,0,.2,1);z-index:1;will-change:opacity,transform}
 .V.on{opacity:1;pointer-events:auto;z-index:10;transform:translateY(0)}
@@ -1936,7 +1946,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v216';
+var APP_VERSION = 'v217';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -8026,13 +8036,13 @@ function hospiNuevaEvolucion() {
 
   var denguePanel = esDengue ?
     '<div class="hospi-section-divider"><span>🦟 Seguimiento Dengue</span></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<div class="hospi-grid2">' +
       '<div><label>Día de enfermedad</label><input type="number" min="1" id="hospiDDia" placeholder="ej. 4"></div>' +
       '<div><label>Días afebril</label><input type="number" min="0" id="hospiDAfebril" placeholder="ej. 1"></div>' +
     '</div>' +
     '<label>Fase del dengue</label>' +
     '<select id="hospiDFase"><option value="">Seleccionar fase</option><option value="Febril">Febril</option><option value="Crítica">Crítica</option><option value="Recuperación">Recuperación</option></select>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<div class="hospi-grid2">' +
       '<div><label>Leucocitos (/mm³)</label><input type="number" min="0" id="hospiDLeuco" placeholder="ej. 4500"></div>' +
       '<div><label>Plaquetas (/mm³)</label><input type="number" min="0" id="hospiDPlaq" placeholder="ej. 120000"></div>' +
     '</div>'
@@ -8063,7 +8073,7 @@ function hospiNuevaEvolucion() {
       '<div id="hospiAtbList"></div>' +
       '<div id="hospiAtbAddForm" style="display:none;background:var(--s2,#f3f5f9);border-radius:10px;padding:10px;margin-top:6px">' +
         '<label>Antibiótico</label><input type="text" id="hospiAtbNombre" placeholder="ej. Ceftriaxona 2g EV c/24h">' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        '<div class="hospi-grid2">' +
           '<div><label>Fecha inicio</label><input type="date" id="hospiAtbInicio"></div>' +
           '<div><label>Días totales</label><input type="number" min="1" id="hospiAtbTotal" placeholder="ej. 7"></div>' +
         '</div>' +
@@ -8093,17 +8103,17 @@ function hospiRenderAtbList() {
   cont.innerHTML = HOSPI_EVO_ATB.map(function(a, i) {
     var susp = a.estado === 'suspendido';
     var diaVal = (a.diaEfectivo != null ? a.diaEfectivo : hospiDiaSugerido(a.fechaInicio));
-    var head = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
-        '<span style="font-weight:700;font-size:13px;color:' + (susp ? 'var(--t3)' : 'var(--t1)') + ';' + (susp ? 'text-decoration:line-through' : '') + '">💊 ' + hospiEsc(a.nombre) + '</span>' +
+    var head = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<span style="font-weight:700;font-size:13px;flex:1;min-width:140px;word-break:break-word;color:' + (susp ? 'var(--t3)' : 'var(--t1)') + ';' + (susp ? 'text-decoration:line-through' : '') + '">💊 ' + hospiEsc(a.nombre) + '</span>' +
         (susp
           ? '<button class="hospi-btn outline small" onclick="hospiAtbReactivar(' + i + ')">Reactivar</button>'
           : '<button class="hospi-btn outline small" onclick="hospiAtbSuspender(' + i + ')" style="color:#E53E3E;border-color:rgba(229,62,62,.3)">Suspender</button>') +
       '</div>';
     var meta = '<div style="font-size:11px;color:var(--t3);margin-top:2px">Inicio: ' + hospiEsc(a.fechaInicio || '—') + ' · Total: ' + (a.diasTotales || '?') + ' días' + (susp ? ' · ⛔ Suspendido' : '') + '</div>';
     var diaCtl = susp ? '' :
-      '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
+      '<div class="hospi-dia-row">' +
         '<label style="margin:0;font-size:11px">Día efectivo de hoy:</label>' +
-        '<input type="number" min="0" id="hospiAtbDia-' + i + '" value="' + diaVal + '" style="width:70px;margin:0">' +
+        '<input type="number" min="0" id="hospiAtbDia-' + i + '" value="' + diaVal + '" style="margin:0">' +
         '<span style="font-size:11px;color:var(--t3)">/ ' + (a.diasTotales || '?') + '</span>' +
       '</div>';
     return '<div style="border:1px solid var(--bd,#e3e8f0);border-radius:10px;padding:10px;margin-bottom:8px;background:' + (susp ? 'var(--s2,#f3f5f9)' : 'transparent') + '">' + head + meta + diaCtl + '</div>';
