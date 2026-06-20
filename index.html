@@ -1528,7 +1528,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="mh-breadcrumb">
             <a onclick="showModule('dashboard')">Inicio</a> / CIE-10
           </div>
-          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="cieBadge">OMS · 10,824 códigos · 408 sinónimos</span>
+          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="cieBadge">OMS · 12,068 códigos · 408 sinónimos</span>
         </div>
         <div class="module-body">
           <div class="cie-search-wrap">
@@ -1560,7 +1560,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <div class="cie-results-info" id="cieResultsInfo" style="display:none">
               <span id="cieResultsCount"></span>
               <span id="cieActiveFilter"></span>
-              <span class="cie-data-badge" id="cieDataBadge" style="display:none" title="Catalogo completo de codigos CIE-10">📦 10,824 códigos + 408 sinónimos</span>
+              <span class="cie-data-badge" id="cieDataBadge" style="display:none" title="Catalogo completo de codigos CIE-10">📦 12,068 códigos + 408 sinónimos</span>
             </div>
 
             <!-- Results list -->
@@ -1907,7 +1907,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v213';
+var APP_VERSION = 'v214';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -3710,10 +3710,11 @@ function cieEnsureLoaded() {
 function cieInitFullData() {
   // 1) localStorage cache
   try {
-    // Limpiar cache vieja v1
+    // Limpiar caches viejas (v1-v3). v4 = catálogo completo (12,068 códigos)
     try { localStorage.removeItem('wichanzao_cie10_v1'); } catch(e) {}
     try { localStorage.removeItem('wichanzao_cie10_v2'); } catch(e) {}
-    var raw = localStorage.getItem('wichanzao_cie10_v3');
+    try { localStorage.removeItem('wichanzao_cie10_v3'); } catch(e) {}
+    var raw = localStorage.getItem('wichanzao_cie10_v4');
     if (raw) {
       var parsed = JSON.parse(raw);
       if (parsed && parsed.d && parsed.d.length > 5000) {
@@ -3735,7 +3736,7 @@ function cieLoadFromNetwork() {
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && data.d && data.d.length > 5000) {
-        try { localStorage.setItem('wichanzao_cie10_v3', JSON.stringify(data)); } catch(e) {}
+        try { localStorage.setItem('wichanzao_cie10_v4', JSON.stringify(data)); } catch(e) {}
         cieSetFullData(data);
       }
     }).catch(function(){
@@ -3807,7 +3808,7 @@ function cieSetFullData(compact) {
   var badge = document.getElementById('cieDataBadge');
   if (badge) { badge.style.display = 'inline-flex'; badge.classList.add('ready'); }
   var badge2 = document.getElementById('cieBadge');
-  if (badge2) badge2.textContent = 'OMS · 10,824 códigos · 408 sinónimos';
+  if (badge2) badge2.textContent = 'OMS · 12,068 códigos · 408 sinónimos';
   // Refresh UI if module is visible
   var mod = document.getElementById('moduleCie');
   if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) {
@@ -4259,7 +4260,7 @@ function _doCieSearch() {
   var chaptersGrid = document.getElementById('cieChaptersGrid');
 
   if (!rawQ && CIE_FILTER === 'all') {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '10,824 codigos + 408 sinonimos · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
+    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '12,068 codigos + 408 sinonimos · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
     infoDiv.style.display = 'none';
     if (favSection) favSection.style.display = 'none';
     if (chaptersGrid) chaptersGrid.style.display = 'none';
@@ -7669,7 +7670,7 @@ function hospiAbrirBuscadorCie(targetInputId) {
   // Prefill from whatever the user already typed in the field
   var target = document.getElementById(targetInputId);
   if (target && target.value && !target.dataset.cieCode) { inp.value = target.value; hospiCiePickerBuscar(); }
-  else { document.getElementById('hospiCiePickerResults').innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px">' + (CIE_LOADED ? 'Empieza a escribir para buscar entre 10,824 códigos…' : 'Cargando catálogo CIE-10…') + '</div>'; }
+  else { document.getElementById('hospiCiePickerResults').innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px">' + (CIE_LOADED ? 'Empieza a escribir para buscar entre 12,068 códigos…' : 'Cargando catálogo CIE-10…') + '</div>'; }
 }
 
 function hospiCiePickerBuscar() {
