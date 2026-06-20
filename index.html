@@ -1907,7 +1907,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v212';
+var APP_VERSION = 'v213';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2204,6 +2204,7 @@ document.addEventListener('DOMContentLoaded', function() {
       showView('vMain');
       showModule('dashboard');
       syncTodayFromServer(true);
+      refreshAdminStatus();   // auto-enable super admin if is_admin=true
     } else {
       showView('vWelcome');
     }
@@ -2733,6 +2734,11 @@ async function doLogin() {
         populateMain();
         showView('vMain');
         showModule('dashboard');
+        if (wRow.data.is_admin) {
+          isAdmin = true;
+          var snEl = document.getElementById('sidebarName');
+          if (snEl) snEl.textContent = w.name + ' 👑';
+        }
         toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
         syncTodayFromServer(true);
       }
@@ -3132,6 +3138,22 @@ function openPrevFile(dateStr, index) {
 var adminTapCount = 0;
 var adminTapTimer = null;
 var isAdmin = false;
+
+// Auto-detects super admin (workers.is_admin) and enables admin mode on entry,
+// so the 👑 edit controls (fecha de ingreso, fecha/autor de evoluciones) appear
+// from the moment the user logs in — no 5-tap activation needed.
+async function refreshAdminStatus() {
+  try {
+    var sess = (await sb.auth.getSession()).data.session;
+    if (!sess || !sess.user) return;
+    var r = await sbAdmin().from('workers').select('is_admin').eq('id', sess.user.id).single();
+    if (r.data && r.data.is_admin) {
+      isAdmin = true;
+      var nameEl = document.getElementById('sidebarName');
+      if (nameEl && worker && nameEl.textContent.indexOf('👑') === -1) nameEl.textContent = worker.name + ' 👑';
+    }
+  } catch(e) {}
+}
 
 function adminTap() {
   adminTapCount++;
@@ -3670,7 +3692,20 @@ function cieTokenMatch(token, haystackNorm, words, code) {
   return false;
 }
 
-(function(){ cieInitFullData(); })();
+// Defer the heavy CIE-10 load + index build (10k+ entries) off the startup
+// critical path so the app renders fast. It runs when the browser is idle,
+// or on-demand the first time the user actually needs it (cieEnsureLoaded).
+if (window.requestIdleCallback) {
+  requestIdleCallback(function(){ cieEnsureLoaded(); }, { timeout: 4000 });
+} else {
+  setTimeout(function(){ cieEnsureLoaded(); }, 2000);
+}
+
+// Loads CIE-10 data if not already loaded/loading. Safe to call repeatedly.
+function cieEnsureLoaded() {
+  if (CIE_LOADED || CIE_LOADING) return;
+  cieInitFullData();
+}
 
 function cieInitFullData() {
   // 1) localStorage cache
@@ -7591,7 +7626,10 @@ function hospiNuevoIngreso() {
       '</select>' +
       '<label>Cama</label><input type="text" id="hospiICama" placeholder="ej. Cama 3, Cama 5...">' +
       '<label>Diagnostico de Ingreso (opcional)</label>' +
-      '<input type="text" id="hospiIDx" placeholder="Buscar CIE-10 o escribir libre...">' +
+      '<div style="display:flex;gap:6px;align-items:stretch">' +
+        '<input type="text" id="hospiIDx" placeholder="Escribe nombre o código CIE-10..." style="flex:1;margin:0" autocomplete="off">' +
+        '<button type="button" class="hospi-btn primary small" onclick="hospiAbrirBuscadorCie(\'hospiIDx\')" style="white-space:nowrap">🔍 CIE-10</button>' +
+      '</div>' +
     '</div>' +
     '<div class="hospi-form-footer">' +
       '<button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormIngreso\').remove()">Cancelar</button>' +
@@ -7601,8 +7639,65 @@ function hospiNuevoIngreso() {
   // Prefill admission datetime with the current local moment (editable for retroactive entries)
   var fiEl = document.getElementById('hospiIFechaIngreso');
   if (fiEl) fiEl.value = hospiNowLocalInput();
-  // CIE-10 search on the diagnosis field
+  // CIE-10 search on the diagnosis field (load data on demand + inline autocomplete)
+  cieEnsureLoaded();
   hospiCieAutocomplete(document.getElementById('hospiIDx'));
+}
+
+/* ===== BUSCADOR CIE-10 A PANTALLA COMPLETA ===== */
+var HOSPI_CIE_PICKER_RESULTS = [];
+function hospiAbrirBuscadorCie(targetInputId) {
+  cieEnsureLoaded();
+  var ov = document.createElement('div');
+  ov.className = 'hospi-form-overlay';
+  ov.id = 'hospiCiePicker';
+  ov.style.zIndex = '100000';
+  ov.dataset.target = targetInputId;
+  ov.innerHTML =
+    '<div class="hospi-form-header">' +
+      '<h3>🔍 Buscar CIE-10</h3>' +
+      '<button onclick="document.getElementById(\'hospiCiePicker\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>' +
+    '</div>' +
+    '<div class="hospi-form-body">' +
+      '<p style="font-size:12px;color:var(--t2);margin:0 0 8px">Escribe el nombre del diagnóstico o el código (ej. <b>dengue</b>, <b>A90</b>, <b>neumonía</b>, <b>J18</b>, <b>HTA</b>).</p>' +
+      '<input type="text" id="hospiCiePickerInput" placeholder="Buscar por texto o código..." autocomplete="off" oninput="hospiCiePickerBuscar()" style="font-size:15px">' +
+      '<div id="hospiCiePickerResults" style="margin-top:10px"></div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  var inp = document.getElementById('hospiCiePickerInput');
+  setTimeout(function(){ if (inp) inp.focus(); }, 50);
+  // Prefill from whatever the user already typed in the field
+  var target = document.getElementById(targetInputId);
+  if (target && target.value && !target.dataset.cieCode) { inp.value = target.value; hospiCiePickerBuscar(); }
+  else { document.getElementById('hospiCiePickerResults').innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px">' + (CIE_LOADED ? 'Empieza a escribir para buscar entre 10,824 códigos…' : 'Cargando catálogo CIE-10…') + '</div>'; }
+}
+
+function hospiCiePickerBuscar() {
+  var inp = document.getElementById('hospiCiePickerInput');
+  var box = document.getElementById('hospiCiePickerResults');
+  if (!inp || !box) return;
+  var q = inp.value.trim();
+  if (q.length < 2) { box.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px">Escribe al menos 2 caracteres…</div>'; return; }
+  HOSPI_CIE_PICKER_RESULTS = cieQuery(q, 40);
+  if (!HOSPI_CIE_PICKER_RESULTS.length) {
+    box.innerHTML = '<div style="font-size:13px;color:var(--t2);padding:10px">Sin coincidencias.' + (CIE_LOADED ? '' : ' (catálogo aún cargando, intenta de nuevo en un momento)') + '</div>';
+    return;
+  }
+  box.innerHTML = HOSPI_CIE_PICKER_RESULTS.map(function(it, i) {
+    return '<div onclick="hospiCiePickerSeleccionar(' + i + ')" style="padding:11px 12px;border:1px solid var(--bd,#e3e8f0);border-radius:10px;margin-bottom:6px;cursor:pointer;display:flex;gap:10px;align-items:baseline">' +
+      '<span style="font-weight:800;color:var(--tl);min-width:58px">' + hospiEsc(it.code) + '</span>' +
+      '<span style="color:var(--t1);font-size:13px">' + hospiEsc(it.name) + '</span></div>';
+  }).join('');
+}
+
+function hospiCiePickerSeleccionar(i) {
+  var it = HOSPI_CIE_PICKER_RESULTS[i];
+  var picker = document.getElementById('hospiCiePicker');
+  if (!it || !picker) return;
+  var targetId = picker.dataset.target;
+  var target = document.getElementById(targetId);
+  if (target) { target.value = it.code + ' — ' + it.name; target.dataset.cieCode = it.code; }
+  picker.remove();
 }
 
 // Returns current local datetime as "YYYY-MM-DDTHH:MM" for <input type=datetime-local>
@@ -7638,12 +7733,15 @@ function hospiCieAutocomplete(input) {
   if (!input || input._cieWired) return;
   input._cieWired = true;
   var box = document.createElement('div');
-  box.style.cssText = 'display:none;margin-top:-4px;margin-bottom:8px;max-height:240px;overflow-y:auto;background:var(--s1,#fff);border:1px solid var(--bd,#d8dde6);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);-webkit-overflow-scrolling:touch';
-  input.parentNode.insertBefore(box, input.nextSibling);
+  box.style.cssText = 'display:none;margin-top:4px;margin-bottom:8px;max-height:240px;overflow-y:auto;background:var(--s1,#fff);border:1px solid var(--bd,#d8dde6);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);-webkit-overflow-scrolling:touch';
+  // Insert AFTER the input's container (the input may be inside a flex wrapper
+  // with the search button), so the dropdown doesn't break that row's layout.
+  var anchor = input.parentNode;
+  anchor.parentNode.insertBefore(box, anchor.nextSibling);
   var deb = null;
   function hide() { box.style.display = 'none'; }
   function render(items) {
-    if (!items.length) { box.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--t3)">Sin coincidencias CIE-10 — se guardará como texto libre</div>'; box.style.display = 'block'; return; }
+    if (!items.length) { box.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--t3)">Sin coincidencias — usa 🔍 CIE-10 o se guardará como texto libre</div>'; box.style.display = 'block'; return; }
     box._items = items;
     box.innerHTML = items.map(function(it, i) {
       return '<div data-i="' + i + '" style="padding:9px 12px;border-bottom:1px solid var(--bd,#eef1f6);cursor:pointer;font-size:13px;display:flex;gap:8px;align-items:baseline">' +
@@ -7651,7 +7749,9 @@ function hospiCieAutocomplete(input) {
         '<span style="color:var(--t1)">' + hospiEsc(it.name) + '</span></div>';
     }).join('');
     box.style.display = 'block';
+    try { box.scrollIntoView({ block: 'nearest' }); } catch(e) {}
   }
+  input.addEventListener('focus', function() { cieEnsureLoaded(); });
   input.addEventListener('input', function() {
     var q = input.value.trim();
     input.dataset.cieCode = '';
