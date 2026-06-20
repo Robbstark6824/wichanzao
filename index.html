@@ -1936,7 +1936,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v215';
+var APP_VERSION = 'v216';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2218,7 +2218,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var wf = await admin.from('workers').select('*').eq('email', email).maybeSingle();
         if (!wf.data) wf = await admin.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
         if (wf.data) {
-          var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, created: wf.data.created_at };
+          var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, is_admin: wf.data.is_admin, created: wf.data.created_at };
+          if (wf.data.is_admin) isAdmin = true;
           saveWorker(w);
           return true;
         }
@@ -2471,6 +2472,8 @@ function loadWorker() {
   if (raw) {
     try { worker = JSON.parse(raw); } catch(e) { worker = null; }
   }
+  // Super admin instantaneo desde el perfil local (sin esperar a la red)
+  if (worker && worker.is_admin) isAdmin = true;
   // Sincronizar: si encontro en algun lado, asegurar que todas las copias existan
   if (worker && raw) {
     try {
@@ -2757,6 +2760,7 @@ async function doLogin() {
           picture: wRow.data.picture,
           email: wRow.data.email,
           google: wRow.data.google,
+          is_admin: wRow.data.is_admin,
           created: wRow.data.created_at
         };
         saveWorker(w);
@@ -2927,7 +2931,7 @@ function populateMain() {
     sbAv.textContent = getInitials(worker.name);
     sbAv.style.background = avatarColor(worker.name);
   }
-  if (sbNm) sbNm.textContent = worker.name;
+  if (sbNm) sbNm.textContent = worker.name + ((isAdmin || worker.is_admin) ? ' 👑' : '');
   if (sbAr) sbAr.textContent = worker.area + (servicioLabel ? ' · ' + servicioLabel : '');
   // Populate dashboard home if visible
   populateDashboard();
@@ -3178,6 +3182,8 @@ async function refreshAdminStatus() {
     var r = await sbAdmin().from('workers').select('is_admin').eq('id', sess.user.id).single();
     if (r.data && r.data.is_admin) {
       isAdmin = true;
+      // Persist locally so the crown + edit controls appear instantly next time
+      if (worker && !worker.is_admin) { worker.is_admin = true; saveWorker(worker); }
       var nameEl = document.getElementById('sidebarName');
       if (nameEl && worker && nameEl.textContent.indexOf('👑') === -1) nameEl.textContent = worker.name + ' 👑';
     }
@@ -7612,9 +7618,16 @@ var tc = isIndicacion ? 'indicaciones' : ev.tipo === 'Foto' ? 'foto' : ev.tipo =
             return '<img class="hospi-tl-img" src="'+src+'"'+onclick+' loading="lazy">';
           }).join('') + '</div>';
         }
-        var editBtn = ev._offline ? '<span style="font-size:10px;color:var(--gd)">⏳ Pendiente de sincronizar</span>' : '<button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar nota</button>';
+        // Una nota solo la edita su autor o el (super) admin
+        var esAutor = HOSPI_AUTH_ID && ev.author_id && ev.author_id === HOSPI_AUTH_ID;
+        var puedeEditar = isAdmin || esAutor;
+        var editBtn = ev._offline
+          ? '<span style="font-size:10px;color:var(--gd)">⏳ Pendiente de sincronizar</span>'
+          : (puedeEditar
+              ? '<button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar' + (isAdmin && !esAutor ? ' (admin)' : '') + '</button>'
+              : '<span style="font-size:10px;color:var(--t3)">🔒 Solo el autor o el admin puede editar</span>');
         var datosHTML = hospiRenderEvoDatos(ev.datos);
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + evTipoDisplay + '</span>' + offlineBadge + '</div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + datosHTML + imgs + '<div style="margin-top:6px">' + editBtn + '</div></div></div></div>';
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + evTipoDisplay + '</span>' + offlineBadge + '</div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" onclick="event.stopPropagation()" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + datosHTML + imgs + '<div style="margin-top:6px">' + editBtn + '</div></div></div></div>';
       });
       html += '</div></div>';
     });
