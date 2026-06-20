@@ -1907,7 +1907,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v210';
+var APP_VERSION = 'v212';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -1933,6 +1933,112 @@ function sbAdmin() {
     auth: { persistSession: false, autoRefreshToken: false }
   });
   return _sbAdmin;
+}
+
+/* ===== SESSION DURABILITY (iOS standalone PWA) =====
+   iOS evicts localStorage aggressively for installed PWAs, so the Supabase
+   session (which lives only in localStorage) is lost between launches even
+   though the worker profile survives in its 4-layer storage. We mirror the
+   session's tokens into the same durable layers (localStorage backup key +
+   cookie + IndexedDB) and silently restore them on boot — so the user never
+   has to retype their password unless they explicitly log out. */
+var SB_BACKUP_KEY = 'wichanzao_sb_backup';
+
+// Keep the durable backup in sync as Supabase rotates tokens
+sb.auth.onAuthStateChange(function(event, session) {
+  if (event === 'SIGNED_OUT') { clearSessionBackup(); return; }
+  if (session && session.refresh_token) saveSessionBackup(session);
+});
+
+// Ask the browser not to evict our storage (best-effort; helps on supported platforms)
+if (navigator.storage && navigator.storage.persist) {
+  try { navigator.storage.persist(); } catch(e) {}
+}
+
+function saveSessionBackup(session) {
+  if (!session || !session.refresh_token) return;
+  var payload = JSON.stringify({
+    access_token: session.access_token || '',
+    refresh_token: session.refresh_token,
+    ts: Date.now()
+  });
+  try { localStorage.setItem(SB_BACKUP_KEY, payload); } catch(e) {}
+  try {
+    var d = new Date();
+    d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
+    document.cookie = SB_BACKUP_KEY + '=' + encodeURIComponent(payload) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+  } catch(e) {}
+  try {
+    openWorkerDB().then(function(db) {
+      if (!db) return;
+      var tx = db.transaction('worker', 'readwrite');
+      tx.objectStore('worker').put(payload, 'session_backup');
+    });
+  } catch(e) {}
+}
+
+function readSessionBackupSync() {
+  var raw = null;
+  try { raw = localStorage.getItem(SB_BACKUP_KEY); } catch(e) {}
+  if (!raw) {
+    try {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf(SB_BACKUP_KEY + '=') === 0) {
+          raw = decodeURIComponent(c.substring((SB_BACKUP_KEY + '=').length));
+          break;
+        }
+      }
+    } catch(e) {}
+  }
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
+function readSessionBackupFromIDB() {
+  return new Promise(function(resolve) {
+    try {
+      openWorkerDB().then(function(db) {
+        if (!db) { resolve(null); return; }
+        var tx = db.transaction('worker', 'readonly');
+        var req = tx.objectStore('worker').get('session_backup');
+        req.onsuccess = function() {
+          if (!req.result) { resolve(null); return; }
+          try { resolve(JSON.parse(req.result)); } catch(e) { resolve(null); }
+        };
+        req.onerror = function() { resolve(null); };
+      });
+    } catch(e) { resolve(null); }
+  });
+}
+
+// Restore a Supabase session from the durable backup (no password needed)
+async function restoreSessionFromBackup() {
+  var backup = readSessionBackupSync() || (await readSessionBackupFromIDB());
+  if (!backup || !backup.refresh_token) return null;
+  try {
+    var res = await sb.auth.setSession({
+      access_token: backup.access_token || '',
+      refresh_token: backup.refresh_token
+    });
+    if (res.error) return null;
+    var session = res.data.session;
+    if (session) saveSessionBackup(session); // persist the freshly rotated tokens
+    return session;
+  } catch(e) { return null; }
+}
+
+function clearSessionBackup() {
+  try { localStorage.removeItem(SB_BACKUP_KEY); } catch(e) {}
+  try { document.cookie = SB_BACKUP_KEY + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/'; } catch(e) {}
+  try {
+    openWorkerDB().then(function(db) {
+      if (!db) return;
+      var tx = db.transaction('worker', 'readwrite');
+      tx.objectStore('worker').delete('session_backup');
+    });
+  } catch(e) {}
 }
 
 /* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
@@ -2047,32 +2153,45 @@ document.addEventListener('DOMContentLoaded', function() {
   migrateOldProfile();
   loadWorker();
 
-  async function tryAutoLogin() {
-    // 1) Worker found synchronously (localStorage/sessionStorage/cookie)
-    if (worker) return true;
-
-    // 2) Try IndexedDB (async — completes in background from loadWorker)
-    await new Promise(function(resolve) { setTimeout(resolve, 300); });
-    if (worker) return true;
-
-    // 3) Try Supabase session recovery
+  // Silently (re)establish the Supabase session: prefer the live session, else
+  // restore it from the durable backup. Never prompts for a password.
+  async function ensureSupabaseSession() {
     try {
       var result = await sb.auth.getSession();
       var session = result.data.session;
+      if (session && session.user) { saveSessionBackup(session); return session; }
+      return await restoreSessionFromBackup();
+    } catch(e) { return null; }
+  }
+
+  async function tryAutoLogin() {
+    // Always kick off session restoration ONCE (single setSession call avoids
+    // refresh-token reuse issues). It runs in the background even if the worker
+    // was already restored locally — that's the iOS case where the profile
+    // survived but the Supabase session was evicted.
+    var sessionPromise = ensureSupabaseSession();
+
+    // 1) Worker found synchronously (localStorage/sessionStorage/cookie)
+    if (worker) { sessionPromise.catch(function(){}); return true; }
+
+    // 2) Try IndexedDB (async — completes in background from loadWorker)
+    await new Promise(function(resolve) { setTimeout(resolve, 300); });
+    if (worker) { sessionPromise.catch(function(){}); return true; }
+
+    // 3) No local worker — recover identity from the restored session
+    try {
+      var session = await sessionPromise;
       if (session && session.user) {
-        try { var refresh = await sb.auth.refreshSession(); session = refresh.data.session || session; } catch(e) {}
-        if (session && session.user) {
-          var u = session.user;
-          var email = u.email || '';
-          var folderId = email.split('@')[0] || '';
-          var admin = sbAdmin();
-          var wf = await admin.from('workers').select('*').eq('email', email).maybeSingle();
-          if (!wf.data) wf = await admin.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
-          if (wf.data) {
-            var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, created: wf.data.created_at };
-            saveWorker(w);
-            return true;
-          }
+        var u = session.user;
+        var email = u.email || '';
+        var folderId = email.split('@')[0] || '';
+        var admin = sbAdmin();
+        var wf = await admin.from('workers').select('*').eq('email', email).maybeSingle();
+        if (!wf.data) wf = await admin.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
+        if (wf.data) {
+          var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, created: wf.data.created_at };
+          saveWorker(w);
+          return true;
         }
       }
     } catch(e) {}
@@ -3059,6 +3178,7 @@ function closeAdmin() {
 async function doLogout() {
   if (!confirm('¿Cerrar sesion?')) return;
   await sb.auth.signOut();
+  clearSessionBackup();
   localStorage.removeItem('wichanzao_worker');
   sessionStorage.removeItem('wichanzao_worker');
   document.cookie = 'wichanzao_worker=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
@@ -3662,6 +3782,83 @@ function cieSetFullData(compact) {
 
 function cieGetActiveData() {
   return CIE_DATA_FULL || CIE_DATA;
+}
+
+// ── Reusable ranked CIE-10 search ─────────────────────────
+// Standalone query used by autocompletes (e.g. hospitalizacion dx).
+// Reuses the same engine as the CIE module: normalized index,
+// synonyms and token matching. Returns up to `limit` ranked items.
+function cieQuery(rawQ, limit) {
+  rawQ = (rawQ || '').trim();
+  limit = limit || 30;
+  if (!rawQ) return [];
+  var qNorm = cieNormalize(rawQ);
+  var data = cieGetActiveData();
+  var searchIdx = CIE_SEARCH_CACHE;
+  var useIndex = searchIdx && searchIdx.length === data.length;
+  var tokens = cieWords(rawQ);
+  var syns = CIE_SYNONYMS || CIE_SYN_FALLBACK || {};
+
+  // Synonym → codes
+  var synCodes = {};
+  if (tokens.length > 0) {
+    var keys = Object.keys(syns);
+    for (var sk = 0; sk < keys.length; sk++) {
+      var key = keys[sk], keyNorm = cieNormalize(key);
+      var hit = keyNorm.indexOf(qNorm) !== -1 || qNorm.indexOf(keyNorm) !== -1;
+      if (!hit && keyNorm.split(/\s+/).length >= tokens.length) {
+        hit = true;
+        for (var t = 0; t < tokens.length; t++) { if (keyNorm.indexOf(tokens[t]) === -1) { hit = false; break; } }
+      }
+      if (hit) { var cs = syns[key]; for (var ci = 0; ci < cs.length; ci++) synCodes[cs[ci]] = true; }
+    }
+  }
+
+  function score(item, hasSyn) {
+    var s = 0;
+    var codeNorm = cieNormalize(item.code);
+    var nameNorm = cieNormalize(item.name);
+    var nameWords = item._words || (item._words = cieWords(item.name));
+    if (codeNorm === qNorm) s += 200;
+    else if (codeNorm.indexOf(qNorm) === 0) s += 150;
+    else if (codeNorm.indexOf(qNorm) !== -1) s += 100;
+    for (var ti = 0; ti < tokens.length; ti++) {
+      var tok = tokens[ti];
+      if (tok.length < 2) { s += 1; continue; }
+      if (nameNorm.indexOf(tok) === 0) s += 70;
+      var bw = 0;
+      for (var wi = 0; wi < nameWords.length; wi++) {
+        var w = nameWords[wi];
+        if (w.length < 2) continue;
+        if (w === tok) bw = Math.max(bw, 60);
+        else if (w.indexOf(tok) === 0) bw = Math.max(bw, 45);
+        else if (w.indexOf(tok) !== -1) bw = Math.max(bw, 20);
+      }
+      s += bw;
+      if (nameNorm.indexOf(tok) !== -1) s += 10;
+    }
+    if (hasSyn) s += 80;
+    if (nameNorm === qNorm) s += 100;
+    return Math.max(s, 1);
+  }
+
+  var matches = [];
+  var MAX_COLLECT = 200;
+  for (var i = 0; i < data.length && matches.length < MAX_COLLECT; i++) {
+    var item = data[i];
+    var isSyn = synCodes[item.code];
+    if (!isSyn) {
+      var idx = useIndex ? searchIdx[i] : null;
+      var hay = idx ? idx.h : cieNormalize(item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter);
+      var words = idx ? idx.w : cieWords(item.name);
+      var all = true;
+      for (var k = 0; k < tokens.length; k++) { if (!cieTokenMatch(tokens[k], hay, words, item.code)) { all = false; break; } }
+      if (!all) continue;
+    }
+    matches.push({ item: item, score: score(item, isSyn) });
+  }
+  matches.sort(function(a, b){ return b.score - a.score; });
+  return matches.slice(0, limit).map(function(m){ return m.item; });
 }
 
 // ── INLINE FALLBACK DATA (usado antes de cargar el JSON) ───
@@ -6561,11 +6758,19 @@ async function hospiProcessOfflineQueue() {
           ingreso_id: op.ingreso_id,
           tipo: op.tipo,
           nota: op.nota || null,
+          datos: op.datos || null,
           image_urls: urls.length > 0 ? urls : null,
           author_id: op.author_id || '00000000-0000-0000-0000-000000000000',
           author_name: op.author_name
         }).select().single();
         if (evResult.error) throw evResult.error;
+        // Update canonical antibiotic state on the ingreso, if any
+        if (op.ing_atb_state) {
+          var ingUpd = await adminSync.from('ingresos').select('datos').eq('id', op.ingreso_id).single();
+          var curDatos = (ingUpd.data && ingUpd.data.datos) || {};
+          curDatos.antibioticos = op.ing_atb_state;
+          await adminSync.from('ingresos').update({ datos: curDatos }).eq('id', op.ingreso_id);
+        }
       } else if (op.type === 'ingreso') {
         var pResult = await adminSync.from('pacientes').insert({
           dni: op.dni || null,
@@ -6576,13 +6781,15 @@ async function hospiProcessOfflineQueue() {
           alergias: op.alergias || null
         }).select().single();
         if (pResult.error) throw pResult.error;
-        var ingResult = await adminSync.from('ingresos').insert({
+        var ingInsert = {
           paciente_id: pResult.data.id,
           servicio_id: op.servicio_id,
           cama: op.cama,
           dx_ingreso: op.dx_ingreso || null,
           created_by: op.author_id || '00000000-0000-0000-0000-000000000000'
-        }).select().single();
+        };
+        if (op.fecha_ingreso) ingInsert.fecha_ingreso = op.fecha_ingreso;
+        var ingResult = await adminSync.from('ingresos').insert(ingInsert).select().single();
         if (ingResult.error) throw ingResult.error;
       }
     } catch(e) {
@@ -6803,64 +7010,62 @@ function hospiLoadDashboard() {
     hospiFilterAndRender();
   });
 
-  // Stats
-  admin.from('ingresos').select('id,estado', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).then(function(r) {
-    var total = r.count || 0;
-    admin.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r2) {
-      var activos = r2.count || 0;
-      admin.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Alta').then(function(r3) {
-        var altas = r3.count || 0;
-        // Bed occupancy: count active patients per section
-        admin.from('ingresos').select('cama').eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo').then(function(r4) {
-          var ocupadas = (r4.data || []).length;
-          var libres = HOSPI_CAMAS_TOTAL - ocupadas;
-          var pct = HOSPI_CAMAS_TOTAL > 0 ? Math.round((ocupadas / HOSPI_CAMAS_TOTAL) * 100) : 0;
-          var barColor = pct >= 90 ? '#E53E3E' : pct >= 70 ? '#D69E2E' : '#38A169';
+  // Stats — run the independent queries in parallel (was 4 sequential round-trips).
+  // "activos" is derived from the bed query (same filter), saving one request.
+  Promise.all([
+    admin.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO),
+    admin.from('ingresos').select('id', {count:'exact', head:true}).eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Alta'),
+    admin.from('ingresos').select('cama').eq('servicio_id', HOSPI_SERVICIO).eq('estado', 'Activo')
+  ]).then(function(res) {
+    var total = res[0].count || 0;
+    var altas = res[1].count || 0;
+    var camas = res[2].data || [];
+    var activos = camas.length;
+    var ocupadas = camas.length;
+    var libres = HOSPI_CAMAS_TOTAL - ocupadas;
+    var pct = HOSPI_CAMAS_TOTAL > 0 ? Math.round((ocupadas / HOSPI_CAMAS_TOTAL) * 100) : 0;
+    var barColor = pct >= 90 ? '#E53E3E' : pct >= 70 ? '#D69E2E' : '#38A169';
 
-          // Count by section from cama field
-          var secciones = { Mujeres: 0, Hombres: 0, UCE: 0, Adicional: 0 };
-          (r4.data || []).forEach(function(ing) {
-            var c = ing.cama || '';
-            if (c.indexOf('Mujeres') !== -1) secciones.Mujeres++;
-            else if (c.indexOf('Hombres') !== -1) secciones.Hombres++;
-            else if (c.indexOf('UCE') !== -1) secciones.UCE++;
-            else secciones.Adicional++;
-          });
-
-          var seccHTML = '';
-          var iconos = { Mujeres: '🚺', Hombres: '🚹', UCE: '🏥', Adicional: '➕' };
-          Object.keys(HOSPI_CAMAS_CONFIG).forEach(function(sec) {
-            var totalSec = HOSPI_CAMAS_CONFIG[sec];
-            var ocupSec = secciones[sec] || 0;
-            var libresSec = totalSec - ocupSec;
-            var dots = '';
-            for (var d = 0; d < totalSec; d++) {
-              dots += d < ocupSec ? '🔴' : '🟢';
-            }
-            seccHTML += '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0">' +
-              '<span style="font-weight:600;min-width:90px">' + (iconos[sec] || '') + ' ' + sec + '</span>' +
-              '<span style="letter-spacing:2px">' + dots + '</span>' +
-              '<span style="font-size:10px;color:var(--t2);min-width:55px;text-align:right">' + ocupSec + '/' + totalSec + '</span>' +
-            '</div>';
-          });
-
-          document.getElementById('hospiStats').innerHTML =
-            '<div class="hospi-stat"><div class="stat-num" style="color:#38A169">' + activos + '</div><div class="stat-label">Activos</div></div>' +
-            '<div class="hospi-stat"><div class="stat-num" style="color:#E53E3E">' + altas + '</div><div class="stat-label">Altas</div></div>' +
-            '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total</div></div>' +
-            '<div class="hospi-stat" style="grid-column:1/-1;text-align:left;padding:12px 16px">' +
-              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-                '<span style="font-size:11px;font-weight:700;color:var(--t1)">🛏️ Camas: ' + ocupadas + ' ocupadas / ' + libres + ' libres</span>' +
-                '<span style="font-size:10px;color:' + barColor + ';font-weight:700">' + pct + '%</span>' +
-              '</div>' +
-              '<div style="background:var(--s2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px">' +
-                '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:6px;transition:width .5s"></div>' +
-              '</div>' +
-              seccHTML +
-            '</div>';
-          });
-      });
+    // Count by section from cama field
+    var secciones = { Mujeres: 0, Hombres: 0, UCE: 0, Adicional: 0 };
+    camas.forEach(function(ing) {
+      var c = ing.cama || '';
+      if (c.indexOf('Mujeres') !== -1) secciones.Mujeres++;
+      else if (c.indexOf('Hombres') !== -1) secciones.Hombres++;
+      else if (c.indexOf('UCE') !== -1) secciones.UCE++;
+      else secciones.Adicional++;
     });
+
+    var seccHTML = '';
+    var iconos = { Mujeres: '🚺', Hombres: '🚹', UCE: '🏥', Adicional: '➕' };
+    Object.keys(HOSPI_CAMAS_CONFIG).forEach(function(sec) {
+      var totalSec = HOSPI_CAMAS_CONFIG[sec];
+      var ocupSec = secciones[sec] || 0;
+      var dots = '';
+      for (var d = 0; d < totalSec; d++) {
+        dots += d < ocupSec ? '🔴' : '🟢';
+      }
+      seccHTML += '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0">' +
+        '<span style="font-weight:600;min-width:90px">' + (iconos[sec] || '') + ' ' + sec + '</span>' +
+        '<span style="letter-spacing:2px">' + dots + '</span>' +
+        '<span style="font-size:10px;color:var(--t2);min-width:55px;text-align:right">' + ocupSec + '/' + totalSec + '</span>' +
+      '</div>';
+    });
+
+    document.getElementById('hospiStats').innerHTML =
+      '<div class="hospi-stat"><div class="stat-num" style="color:#38A169">' + activos + '</div><div class="stat-label">Activos</div></div>' +
+      '<div class="hospi-stat"><div class="stat-num" style="color:#E53E3E">' + altas + '</div><div class="stat-label">Altas</div></div>' +
+      '<div class="hospi-stat"><div class="stat-num">' + total + '</div><div class="stat-label">Total</div></div>' +
+      '<div class="hospi-stat" style="grid-column:1/-1;text-align:left;padding:12px 16px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+          '<span style="font-size:11px;font-weight:700;color:var(--t1)">🛏️ Camas: ' + ocupadas + ' ocupadas / ' + libres + ' libres</span>' +
+          '<span style="font-size:10px;color:' + barColor + ';font-weight:700">' + pct + '%</span>' +
+        '</div>' +
+        '<div style="background:var(--s2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px">' +
+          '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:6px;transition:width .5s"></div>' +
+        '</div>' +
+        seccHTML +
+      '</div>';
   });
 }
 
@@ -6974,6 +7179,9 @@ function hospiRenderDashboard(ingresos) {
     if (!isActivo && ing.fecha_egreso) {
       egresoHTML = '<span>🚪 Egreso: ' + new Date(ing.fecha_egreso).toLocaleDateString('es-PE') + '</span>';
     }
+    var estancia = hospiDiasHospitalizacion(ing.fecha_ingreso, ing.fecha_egreso);
+    var diaHTML = estancia ? '<span style="font-weight:700;color:var(--tl)">🛏️ ' + (isActivo ? 'Día ' + estancia.dia : estancia.diasCompletos + ' días') + '</span>' : '';
+    var horaIng = ing.fecha_ingreso ? new Date(ing.fecha_ingreso).toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'}) : '';
     return '<div class="hospi-card" onclick="hospiLoadPerfil(\'' + ing.id + '\')">' +
       '<div class="hospi-card-top">' +
         '<div><span class="hospi-bed">🛏️ ' + hospiEsc(ing.cama) + '</span><span class="hospi-status-badge ' + statusClass + '">' + statusText + '</span></div>' +
@@ -6983,7 +7191,8 @@ function hospiRenderDashboard(ingresos) {
       '<div class="hospi-dni">DNI ' + hospiEsc(p.dni) + ' · ' + edad + ' años · ' + (p.sexo || '?') + '</div>' +
       (ing.dx_ingreso ? '<div class="hospi-dx">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
       '<div class="hospi-meta">' +
-        '<span>📅 ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</span>' +
+        diaHTML +
+        '<span>📅 ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + (horaIng ? ' ' + horaIng : '') + '</span>' +
         egresoHTML +
       '</div>' +
     '</div>';
@@ -6992,7 +7201,7 @@ function hospiRenderDashboard(ingresos) {
 
 function hospiLoadPerfil(ingresoId) {
   var admin = sbAdmin();
-  admin.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,pacientes!inner(id,dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
+  admin.from('ingresos').select('id,paciente_id,servicio_id,cama,dx_ingreso,fecha_ingreso,fecha_egreso,estado,created_at,datos,pacientes!inner(id,dni,nombres,apellidos,fecha_nacimiento,sexo,alergias),servicios!inner(nombre)').eq('id', ingresoId).single().then(function(r) {
     if (r.error) { toast('Error al cargar perfil', 'error'); return; }
     HOSPI_CURRENT_INGRESO = r.data;
     var ing = r.data;
@@ -7006,6 +7215,9 @@ function hospiLoadPerfil(ingresoId) {
                     '<button class="hospi-btn danger small" onclick="hospiDarAlta()">Dar de Alta</button>';
     }
     actionsHtml += '<button class="hospi-btn danger small" onclick="hospiEliminarIngreso()" style="background:rgba(229,62,62,.1);color:#E53E3E;border-color:rgba(229,62,62,.2)">🗑️ Eliminar</button>';
+    if (isAdmin) {
+      actionsHtml += '<button class="hospi-btn outline small" onclick="hospiEditarFechaIngreso()" style="color:var(--gd);border-color:rgba(212,168,83,.4)">👑 Fecha ingreso</button>';
+    }
 
     var overlay = document.createElement('div');
     overlay.className = 'hospi-form-overlay';
@@ -7031,7 +7243,13 @@ function hospiLoadPerfil(ingresoId) {
           (ing.fecha_egreso ? '<div style="font-size:10px;color:var(--t3);margin-top:2px">🚪 Egreso: ' + new Date(ing.fecha_egreso).toLocaleDateString('es-PE') + '</div>' : '') +
           alertHtml +
           (ing.dx_ingreso ? '<div style="font-size:13px;color:var(--t2);margin:4px 0">📋 ' + hospiEsc(ing.dx_ingreso) + '</div>' : '') +
-          '<div style="font-size:10px;color:var(--t3)">Ingreso: ' + new Date(ing.fecha_ingreso).toLocaleDateString('es-PE') + '</div>' +
+          (function(){
+            var est = hospiDiasHospitalizacion(ing.fecha_ingreso, ing.fecha_egreso);
+            var fIng = ing.fecha_ingreso ? new Date(ing.fecha_ingreso) : null;
+            var fStr = fIng ? fIng.toLocaleDateString('es-PE') + ' ' + fIng.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'}) : '—';
+            var badge = est ? '<span style="display:inline-block;background:rgba(78,205,196,.15);color:var(--tl);font-weight:700;font-size:11px;padding:3px 10px;border-radius:20px">🛏️ ' + (ing.estado === 'Activo' ? 'Día ' + est.dia + ' de hospitalización' : est.diasCompletos + ' días de estancia') + '</span>' : '';
+            return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0">' + badge + '<span style="font-size:10px;color:var(--t3)">Ingreso: ' + fStr + '</span></div>';
+          })() +
           '<div class="cp-actions" style="margin-top:10px">' + actionsHtml + '</div>' +
         '</div>' +
         '<h4 style="font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">Linea de Tiempo</h4>' +
@@ -7051,6 +7269,49 @@ function hospiCerrarPerfil() {
 
 function hospiLoadTimeline(ingresoId) {
   hospiLoadTimelineOverlay(ingresoId);
+}
+
+/* ===== SUPER ADMIN: EDITAR FECHA DE INGRESO ===== */
+function hospiEditarFechaIngreso() {
+  if (!isAdmin) { toast('Solo el administrador puede editar la fecha de ingreso', 'error'); return; }
+  if (!HOSPI_CURRENT_INGRESO) return;
+  var ing = HOSPI_CURRENT_INGRESO;
+  var actual = ing.fecha_ingreso ? hospiNowLocalInput(new Date(ing.fecha_ingreso)) : hospiNowLocalInput();
+  var ov = document.createElement('div');
+  ov.className = 'hospi-form-overlay';
+  ov.id = 'hospiFormFechaIng';
+  ov.innerHTML =
+    '<div class="hospi-form-header"><h3>👑 Editar fecha de ingreso</h3><button onclick="document.getElementById(\'hospiFormFechaIng\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button></div>' +
+    '<div class="hospi-form-body">' +
+      '<p style="font-size:12px;color:var(--t2)">Corrige la fecha y hora reales de ingreso del paciente. Esto recalcula los días de hospitalización.</p>' +
+      '<label>Fecha y hora de ingreso</label>' +
+      '<input type="datetime-local" id="hospiEditFechaIng" value="' + actual + '">' +
+    '</div>' +
+    '<div class="hospi-form-footer">' +
+      '<button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormFechaIng\').remove()">Cancelar</button>' +
+      '<button class="hospi-btn primary" onclick="hospiGuardarFechaIngreso()">💾 Guardar</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+}
+
+async function hospiGuardarFechaIngreso() {
+  if (!isAdmin || !HOSPI_CURRENT_INGRESO) return;
+  var val = document.getElementById('hospiEditFechaIng').value;
+  var iso = hospiLocalInputToISO(val);
+  if (!iso) { toast('Fecha inválida', 'error'); return; }
+  try {
+    var adm = sbAdmin();
+    var r = await adm.from('ingresos').update({ fecha_ingreso: iso }).eq('id', HOSPI_CURRENT_INGRESO.id);
+    if (r.error) throw r.error;
+    HOSPI_CURRENT_INGRESO.fecha_ingreso = iso;
+    toast('Fecha de ingreso actualizada ✓', 'success');
+    var id = HOSPI_CURRENT_INGRESO.id;
+    document.getElementById('hospiFormFechaIng').remove();
+    var perfil = document.getElementById('hospiPerfilOverlay');
+    if (perfil) perfil.remove();
+    hospiLoadPerfil(id);     // reload profile with recalculated days
+    hospiLoadDashboard();    // refresh list cards
+  } catch(e) { toast('Error: ' + (e.message || e), 'error'); }
 }
 
 /* ===== EDITAR PACIENTE ===== */
@@ -7118,36 +7379,80 @@ async function hospiGuardarEdicionPaciente() {
 
 /* ===== EDITAR EVOLUCION ===== */
 function hospiEditarEvolucion(evId) {
-  var detail = document.getElementById('ov-' + evId.substring(0,8));
+  var shortId = evId.substring(0,8);
+  var detail = document.getElementById('ov-' + shortId);
   if (!detail) return;
   // Toggle inline edit mode
-  var existing = document.getElementById('hospiEditEv-' + evId.substring(0,8));
+  var existing = document.getElementById('hospiEditEv-' + shortId);
   if (existing) { existing.remove(); return; }
 
   var notaActual = detail.querySelector('.hospi-tl-nota');
   var notaText = notaActual ? notaActual.textContent : '';
   if (notaText === 'Sin nota') notaText = '';
 
-  var editHtml = '<div id="hospiEditEv-' + evId.substring(0,8) + '" style="margin-top:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--bd)">' +
+  var ev = HOSPI_EV_MAP[evId] || {};
+  var inputStyle = 'width:100%;background:rgba(255,255,255,.1);border:1px solid var(--bd);border-radius:6px;padding:8px;color:#fff;font-size:12px;font-family:inherit';
+  // Super-admin-only: edit the date the evolution belongs to + reassign the author
+  var adminFields = '';
+  if (isAdmin) {
+    var fechaVal = ev.created_at ? hospiNowLocalInput(new Date(ev.created_at)) : hospiNowLocalInput();
+    adminFields =
+      '<label style="font-size:10px;color:var(--gd);margin-top:8px">👑 Fecha/hora de la evolución</label>' +
+      '<input type="datetime-local" id="hospiEditEvFecha-' + shortId + '" value="' + fechaVal + '" style="' + inputStyle + '">' +
+      '<label style="font-size:10px;color:var(--gd);margin-top:8px">👑 Autor de la evolución</label>' +
+      '<select id="hospiEditEvAutor-' + shortId + '" style="' + inputStyle + '"><option value="">— mantener actual (' + hospiEsc((ev.author_name || 'Interno').split('|')[0]) + ') —</option></select>';
+  }
+
+  var editHtml = '<div id="hospiEditEv-' + shortId + '" style="margin-top:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--bd)">' +
     '<label style="font-size:10px;color:var(--t3)">Editar nota</label>' +
-    '<textarea id="hospiEditEvNota-' + evId.substring(0,8) + '" rows="2" style="width:100%;background:rgba(255,255,255,.1);border:1px solid var(--bd);border-radius:6px;padding:8px;color:#fff;font-size:12px;font-family:inherit;resize:vertical">' + hospiEsc(notaText) + '</textarea>' +
+    '<textarea id="hospiEditEvNota-' + shortId + '" rows="2" style="' + inputStyle + ';resize:vertical">' + hospiEsc(notaText) + '</textarea>' +
+    adminFields +
     '<div style="display:flex;gap:6px;margin-top:8px">' +
       '<button class="hospi-btn primary small" onclick="hospiGuardarEdicionEvolucion(\'' + evId + '\')">Guardar</button>' +
-      '<button class="hospi-btn outline small" onclick="document.getElementById(\'hospiEditEv-' + evId.substring(0,8) + '\').remove()">Cancelar</button>' +
+      '<button class="hospi-btn outline small" onclick="document.getElementById(\'hospiEditEv-' + shortId + '\').remove()">Cancelar</button>' +
     '</div></div>';
   detail.insertAdjacentHTML('beforeend', editHtml);
+
+  // Populate the author selector with the workers list (admin only)
+  if (isAdmin) {
+    hospiLoadWorkers().then(function(workers) {
+      var sel = document.getElementById('hospiEditEvAutor-' + shortId);
+      if (!sel) return;
+      workers.forEach(function(w) {
+        var opt = document.createElement('option');
+        opt.value = w.id;
+        opt.textContent = w.name + (w.area ? ' · ' + w.area : '');
+        opt.setAttribute('data-name', (w.name || '') + '|' + (w.area || ''));
+        sel.appendChild(opt);
+      });
+    });
+  }
 }
 
 async function hospiGuardarEdicionEvolucion(evId) {
   var shortId = evId.substring(0,8);
   var nota = document.getElementById('hospiEditEvNota-' + shortId).value.trim();
+  var update = { nota: nota || null };
+  // Super-admin can also correct the date and reassign the author
+  if (isAdmin) {
+    var fechaEl = document.getElementById('hospiEditEvFecha-' + shortId);
+    if (fechaEl && fechaEl.value) {
+      var iso = hospiLocalInputToISO(fechaEl.value);
+      if (iso) update.created_at = iso;
+    }
+    var autorEl = document.getElementById('hospiEditEvAutor-' + shortId);
+    if (autorEl && autorEl.value) {
+      var opt = autorEl.options[autorEl.selectedIndex];
+      var nm = opt.getAttribute('data-name');
+      if (nm) { update.author_id = autorEl.value; update.author_name = nm; }
+    }
+  }
   try {
     var adm = sbAdmin();
-    var r = await adm.from('evoluciones').update({ nota: nota || null }).eq('id', evId);
+    var r = await adm.from('evoluciones').update(update).eq('id', evId);
     if (r.error) throw r.error;
     toast('Evolucion actualizada ✓', 'success');
-    document.getElementById('hospiEditEv-' + shortId).remove();
-    // Reload timeline
+    // Reload timeline (re-renders, removing the inline editor)
     var ing = HOSPI_CURRENT_INGRESO;
     if (ing) hospiLoadTimelineOverlay(ing.id);
   } catch(e) { toast('Error: ' + (e.message || e), 'error'); }
@@ -7159,6 +7464,8 @@ function hospiLoadTimelineOverlay(ingresoId) {
     var tl = document.getElementById('hospiTimelineOverlay');
     if (!tl) return;
     var serverEvs = r.data || [];
+    HOSPI_EV_MAP = {};
+    serverEvs.forEach(function(e) { HOSPI_EV_MAP[e.id] = e; });
     // Merge with offline evolutions
     var offlineQueue = hospiGetOfflineQueue();
     var offlineEvs = offlineQueue.filter(function(op) {
@@ -7168,6 +7475,7 @@ function hospiLoadTimelineOverlay(ingresoId) {
         id: 'offline-' + idx,
         tipo: op.tipo,
         nota: op.nota,
+        datos: op.datos || null,
         image_urls: op.photos || [],
         author_name: op.author_name,
         created_at: op.created_at,
@@ -7216,7 +7524,8 @@ var tc = isIndicacion ? 'indicaciones' : ev.tipo === 'Foto' ? 'foto' : ev.tipo =
           }).join('') + '</div>';
         }
         var editBtn = ev._offline ? '<span style="font-size:10px;color:var(--gd)">⏳ Pendiente de sincronizar</span>' : '<button class="hospi-btn outline small" onclick="event.stopPropagation();hospiEditarEvolucion(\''+ev.id+'\')">✏️ Editar nota</button>';
-        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + evTipoDisplay + '</span>' + offlineBadge + '</div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + imgs + '<div style="margin-top:6px">' + editBtn + '</div></div></div></div>';
+        var datosHTML = hospiRenderEvoDatos(ev.datos);
+        html += '<div class="hospi-tl-entry" onclick="hospiToggleEv(\'' + eid + '\')"><div class="hospi-tl-time-col"><span class="hospi-tl-clock">' + time + '</span></div><div class="hospi-tl-content"><div class="hospi-tl-header-compact"><div class="hospi-tl-tipo-col"><span class="hospi-tl-tipo ' + tc + '">' + evTipoDisplay + '</span>' + offlineBadge + '</div><div class="hospi-tl-author-col"><span class="hospi-tl-author-name">' + an + '</span>' + (ar ? '<span class="hospi-tl-author-role">' + ar + '</span>' : '') + '</div><span class="hospi-tl-arrow" id="' + eid + '-arrow">▶</span></div><div class="hospi-tl-detail" id="' + eid + '" style="display:none">' + (ev.nota ? '<div class="hospi-tl-nota">'+hospiEsc(ev.nota)+'</div>' : '<div class="hospi-tl-nota" style="color:var(--t3);font-style:italic">Sin nota</div>') + datosHTML + imgs + '<div style="margin-top:6px">' + editBtn + '</div></div></div></div>';
       });
       html += '</div></div>';
     });
@@ -7266,6 +7575,8 @@ function hospiNuevoIngreso() {
       '<label>Sexo</label><select id="hospiPSexo" onchange="hospiAutoSeccion()"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option></select>' +
       '<label>Alergias</label><input type="text" id="hospiPAlergias" placeholder="ej. Penicilina, Sulfa...">' +
       '<div class="hospi-section-divider"><span>Detalles del ingreso</span></div>' +
+      '<label>Fecha y hora de ingreso</label>' +
+      '<input type="datetime-local" id="hospiIFechaIngreso">' +
       '<label>Servicio</label><select id="hospiIServicio">' +
         '<option value="1">Medicina Interna</option>' +
         '<option value="2">Cirugia</option>' +
@@ -7287,6 +7598,78 @@ function hospiNuevoIngreso() {
       '<button class="hospi-btn primary" id="hospiBtnGuardarIngreso" onclick="hospiGuardarIngreso()">Guardar Ingreso</button>' +
     '</div>';
   document.body.appendChild(overlay);
+  // Prefill admission datetime with the current local moment (editable for retroactive entries)
+  var fiEl = document.getElementById('hospiIFechaIngreso');
+  if (fiEl) fiEl.value = hospiNowLocalInput();
+  // CIE-10 search on the diagnosis field
+  hospiCieAutocomplete(document.getElementById('hospiIDx'));
+}
+
+// Returns current local datetime as "YYYY-MM-DDTHH:MM" for <input type=datetime-local>
+function hospiNowLocalInput(d) {
+  d = d || new Date();
+  var p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+// Converts a datetime-local string (local time) to a full ISO timestamp, or null if empty
+function hospiLocalInputToISO(val) {
+  if (!val) return null;
+  var d = new Date(val);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// Computes "Día N" of hospitalization (1-based) from admission to discharge (or now)
+function hospiDiasHospitalizacion(fechaIngreso, fechaEgreso) {
+  if (!fechaIngreso) return null;
+  var ini = new Date(fechaIngreso);
+  if (isNaN(ini.getTime())) return null;
+  var fin = fechaEgreso ? new Date(fechaEgreso) : new Date();
+  var ms = fin - ini;
+  if (ms < 0) ms = 0;
+  var dias = Math.floor(ms / 86400000);
+  var horas = Math.floor((ms % 86400000) / 3600000);
+  return { dia: dias + 1, diasCompletos: dias, horas: horas };
+}
+
+// Wires a CIE-10 autocomplete dropdown to a free-text input.
+// On select, sets value to "CODE — Name" and records the code in dataset.cieCode.
+function hospiCieAutocomplete(input) {
+  if (!input || input._cieWired) return;
+  input._cieWired = true;
+  var box = document.createElement('div');
+  box.style.cssText = 'display:none;margin-top:-4px;margin-bottom:8px;max-height:240px;overflow-y:auto;background:var(--s1,#fff);border:1px solid var(--bd,#d8dde6);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);-webkit-overflow-scrolling:touch';
+  input.parentNode.insertBefore(box, input.nextSibling);
+  var deb = null;
+  function hide() { box.style.display = 'none'; }
+  function render(items) {
+    if (!items.length) { box.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--t3)">Sin coincidencias CIE-10 — se guardará como texto libre</div>'; box.style.display = 'block'; return; }
+    box._items = items;
+    box.innerHTML = items.map(function(it, i) {
+      return '<div data-i="' + i + '" style="padding:9px 12px;border-bottom:1px solid var(--bd,#eef1f6);cursor:pointer;font-size:13px;display:flex;gap:8px;align-items:baseline">' +
+        '<span style="font-weight:800;color:var(--tl);min-width:54px">' + hospiEsc(it.code) + '</span>' +
+        '<span style="color:var(--t1)">' + hospiEsc(it.name) + '</span></div>';
+    }).join('');
+    box.style.display = 'block';
+  }
+  input.addEventListener('input', function() {
+    var q = input.value.trim();
+    input.dataset.cieCode = '';
+    if (deb) clearTimeout(deb);
+    if (q.length < 2) { hide(); return; }
+    deb = setTimeout(function() { render(cieQuery(q, 15)); }, 160);
+  });
+  // mousedown (not click) so it fires before the input blur on both desktop and touch
+  box.addEventListener('mousedown', function(e) {
+    var row = e.target.closest ? e.target.closest('[data-i]') : null;
+    if (!row || !box._items) return;
+    e.preventDefault();
+    var it = box._items[parseInt(row.getAttribute('data-i'), 10)];
+    input.value = it.code + ' — ' + it.name;
+    input.dataset.cieCode = it.code;
+    hide();
+  });
+  input.addEventListener('blur', function() { setTimeout(hide, 200); });
 }
 
 var HOSPI_PACIENTE_SEL = null;
@@ -7345,6 +7728,7 @@ function hospiGuardarIngreso() {
   var seccion = document.getElementById('hospiISeccion').value;
   var dx = document.getElementById('hospiIDx').value.trim();
   var servicio = parseInt(document.getElementById('hospiIServicio').value);
+  var fechaIngreso = hospiLocalInputToISO(document.getElementById('hospiIFechaIngreso').value);
   var pNombres = document.getElementById('hospiPNombres').value.trim();
   var pApellidos = document.getElementById('hospiPApellidos').value.trim();
   var sexoPaciente = document.getElementById('hospiPSexo').value;
@@ -7371,6 +7755,7 @@ function hospiGuardarIngreso() {
       servicio_id: servicio,
       cama: camaCompleta,
       dx_ingreso: dx || null,
+      fecha_ingreso: fechaIngreso,
       author_id: authorId,
       created_at: new Date().toISOString()
     });
@@ -7381,13 +7766,15 @@ function hospiGuardarIngreso() {
   }
 
   function crearIngreso(pacienteId) {
-    admin.from('ingresos').insert({
+    var ingPayload = {
       paciente_id: pacienteId,
       servicio_id: servicio,
       cama: camaCompleta,
       dx_ingreso: dx || null,
       created_by: authorId
-    }).select().single().then(function(r) {
+    };
+    if (fechaIngreso) ingPayload.fecha_ingreso = fechaIngreso;
+    admin.from('ingresos').insert(ingPayload).select().single().then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'error'); return; }
       toast('Ingreso registrado ✓', 'success');
       document.getElementById('hospiFormIngreso').remove();
@@ -7419,9 +7806,71 @@ function hospiGuardarIngreso() {
 }
 
 /* ===== NUEVA EVOLUCION ===== */
+// ── Dengue detection from a diagnosis string / ingreso ────
+var HOSPI_DENGUE_CODES = ['A97', 'A90', 'A91', 'A37.8'];
+function hospiTextoEsDengue(txt) {
+  if (!txt) return false;
+  var t = ('' + txt).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  if (t.indexOf('dengue') !== -1) return true;
+  var up = ('' + txt).toUpperCase();
+  for (var i = 0; i < HOSPI_DENGUE_CODES.length; i++) {
+    if (up.indexOf(HOSPI_DENGUE_CODES[i]) === 0) return true;
+  }
+  return false;
+}
+function hospiEsDengue(ing) {
+  return !!(ing && hospiTextoEsDengue(ing.dx_ingreso));
+}
+
+// ── Antibiotic schemes stored on ingresos.datos ───────────
+function hospiGetAntibioticos(ing) {
+  var d = ing && ing.datos;
+  if (d && Array.isArray(d.antibioticos)) return d.antibioticos;
+  return [];
+}
+function hospiDiaSugerido(fechaInicioStr) {
+  if (!fechaInicioStr) return 1;
+  var ini = new Date(fechaInicioStr + 'T00:00:00');
+  if (isNaN(ini.getTime())) return 1;
+  var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  var dias = Math.floor((hoy - ini) / 86400000);
+  return Math.max(1, dias + 1);
+}
+
+var HOSPI_EVO_ATB = [];  // working copy of antibiotic schemes for the open evolution form
+var HOSPI_EV_MAP = {};   // id → evolution row (for admin inline editing)
+var HOSPI_WORKERS_CACHE = null; // cached workers list for author reassignment
+
+// Loads (and caches) the workers list for the super-admin author selector
+function hospiLoadWorkers() {
+  if (HOSPI_WORKERS_CACHE) return Promise.resolve(HOSPI_WORKERS_CACHE);
+  return sbAdmin().from('workers').select('id,folder_id,name,area,servicio').order('name', {ascending: true}).then(function(r) {
+    HOSPI_WORKERS_CACHE = r.data || [];
+    return HOSPI_WORKERS_CACHE;
+  }).catch(function() { return []; });
+}
+
 function hospiNuevaEvolucion() {
   if (!HOSPI_CURRENT_INGRESO) return;
   HOSPI_PENDING_PHOTOS = [];
+  // Deep-clone current schemes so edits in the form don't mutate state until saved
+  HOSPI_EVO_ATB = JSON.parse(JSON.stringify(hospiGetAntibioticos(HOSPI_CURRENT_INGRESO)));
+  var esDengue = hospiEsDengue(HOSPI_CURRENT_INGRESO);
+
+  var denguePanel = esDengue ?
+    '<div class="hospi-section-divider"><span>🦟 Seguimiento Dengue</span></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+      '<div><label>Día de enfermedad</label><input type="number" min="1" id="hospiDDia" placeholder="ej. 4"></div>' +
+      '<div><label>Días afebril</label><input type="number" min="0" id="hospiDAfebril" placeholder="ej. 1"></div>' +
+    '</div>' +
+    '<label>Fase del dengue</label>' +
+    '<select id="hospiDFase"><option value="">Seleccionar fase</option><option value="Febril">Febril</option><option value="Crítica">Crítica</option><option value="Recuperación">Recuperación</option></select>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+      '<div><label>Leucocitos (/mm³)</label><input type="number" min="0" id="hospiDLeuco" placeholder="ej. 4500"></div>' +
+      '<div><label>Plaquetas (/mm³)</label><input type="number" min="0" id="hospiDPlaq" placeholder="ej. 120000"></div>' +
+    '</div>'
+    : '';
+
   var overlay = document.createElement('div');
   overlay.className = 'hospi-form-overlay';
   overlay.id = 'hospiFormEvolucion';
@@ -7442,12 +7891,145 @@ function hospiNuevaEvolucion() {
       '<select id="hospiETipo" onchange="hospiOnTipoChange()"><option value="Foto">📸 Foto</option><option value="SOAP">🩺 SOAP</option><option value="Laboratorio">🧪 Laboratorio</option><option value="Imagen">🖼️ Imagen</option><option value="Procedimiento">💉 Procedimiento</option><option value="Indicaciones">📋 Indicaciones</option><option value="Interconsulta">📞 Interconsulta</option><option value="Nota">📝 Nota</option></select>' +
       '<label>Nota (opcional)</label>' +
       '<textarea id="hospiENota" placeholder="Describe brevemente la evolucion..." rows="3"></textarea>' +
+      denguePanel +
+      '<div class="hospi-section-divider"><span>💊 Antibióticos</span></div>' +
+      '<div id="hospiAtbList"></div>' +
+      '<div id="hospiAtbAddForm" style="display:none;background:var(--s2,#f3f5f9);border-radius:10px;padding:10px;margin-top:6px">' +
+        '<label>Antibiótico</label><input type="text" id="hospiAtbNombre" placeholder="ej. Ceftriaxona 2g EV c/24h">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+          '<div><label>Fecha inicio</label><input type="date" id="hospiAtbInicio"></div>' +
+          '<div><label>Días totales</label><input type="number" min="1" id="hospiAtbTotal" placeholder="ej. 7"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:8px">' +
+          '<button class="hospi-btn outline small" onclick="hospiAtbCancelarAdd()">Cancelar</button>' +
+          '<button class="hospi-btn primary small" onclick="hospiAtbAgregar()">✓ Agregar</button>' +
+        '</div>' +
+      '</div>' +
+      '<button class="hospi-btn outline small" id="hospiAtbAddBtn" onclick="hospiAtbMostrarAdd()" style="margin-top:6px">➕ Agregar antibiótico</button>' +
     '</div>' +
     '<div class="hospi-form-footer">' +
       '<button class="hospi-btn outline" onclick="document.getElementById(\'hospiFormEvolucion\').remove()">Cancelar</button>' +
       '<button class="hospi-btn primary" onclick="hospiGuardarEvolucion()">💾 Guardar</button>' +
     '</div>';
   document.body.appendChild(overlay);
+  hospiRenderAtbList();
+}
+
+// Renders the working antibiotic list with per-scheme controls
+function hospiRenderAtbList() {
+  var cont = document.getElementById('hospiAtbList');
+  if (!cont) return;
+  if (!HOSPI_EVO_ATB.length) {
+    cont.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:4px 0">Sin antibióticos registrados.</div>';
+    return;
+  }
+  cont.innerHTML = HOSPI_EVO_ATB.map(function(a, i) {
+    var susp = a.estado === 'suspendido';
+    var diaVal = (a.diaEfectivo != null ? a.diaEfectivo : hospiDiaSugerido(a.fechaInicio));
+    var head = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+        '<span style="font-weight:700;font-size:13px;color:' + (susp ? 'var(--t3)' : 'var(--t1)') + ';' + (susp ? 'text-decoration:line-through' : '') + '">💊 ' + hospiEsc(a.nombre) + '</span>' +
+        (susp
+          ? '<button class="hospi-btn outline small" onclick="hospiAtbReactivar(' + i + ')">Reactivar</button>'
+          : '<button class="hospi-btn outline small" onclick="hospiAtbSuspender(' + i + ')" style="color:#E53E3E;border-color:rgba(229,62,62,.3)">Suspender</button>') +
+      '</div>';
+    var meta = '<div style="font-size:11px;color:var(--t3);margin-top:2px">Inicio: ' + hospiEsc(a.fechaInicio || '—') + ' · Total: ' + (a.diasTotales || '?') + ' días' + (susp ? ' · ⛔ Suspendido' : '') + '</div>';
+    var diaCtl = susp ? '' :
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
+        '<label style="margin:0;font-size:11px">Día efectivo de hoy:</label>' +
+        '<input type="number" min="0" id="hospiAtbDia-' + i + '" value="' + diaVal + '" style="width:70px;margin:0">' +
+        '<span style="font-size:11px;color:var(--t3)">/ ' + (a.diasTotales || '?') + '</span>' +
+      '</div>';
+    return '<div style="border:1px solid var(--bd,#e3e8f0);border-radius:10px;padding:10px;margin-bottom:8px;background:' + (susp ? 'var(--s2,#f3f5f9)' : 'transparent') + '">' + head + meta + diaCtl + '</div>';
+  }).join('');
+}
+
+function hospiAtbMostrarAdd() {
+  var f = document.getElementById('hospiAtbAddForm');
+  var b = document.getElementById('hospiAtbAddBtn');
+  if (f) f.style.display = 'block';
+  if (b) b.style.display = 'none';
+  var ini = document.getElementById('hospiAtbInicio');
+  if (ini && !ini.value) ini.value = hospiNowLocalInput().slice(0, 10);
+}
+function hospiAtbCancelarAdd() {
+  var f = document.getElementById('hospiAtbAddForm');
+  var b = document.getElementById('hospiAtbAddBtn');
+  if (f) f.style.display = 'none';
+  if (b) b.style.display = 'inline-flex';
+}
+function hospiAtbAgregar() {
+  var nombre = document.getElementById('hospiAtbNombre').value.trim();
+  var inicio = document.getElementById('hospiAtbInicio').value;
+  var total = parseInt(document.getElementById('hospiAtbTotal').value, 10);
+  if (!nombre) { toast('Indica el nombre del antibiótico', 'error'); return; }
+  if (!inicio) inicio = hospiNowLocalInput().slice(0, 10);
+  HOSPI_EVO_ATB.push({
+    id: 'atb-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    nombre: nombre,
+    fechaInicio: inicio,
+    diasTotales: total > 0 ? total : null,
+    diaEfectivo: hospiDiaSugerido(inicio),
+    estado: 'activo',
+    _nuevo: true
+  });
+  document.getElementById('hospiAtbNombre').value = '';
+  document.getElementById('hospiAtbTotal').value = '';
+  hospiAtbCancelarAdd();
+  hospiRenderAtbList();
+}
+function hospiAtbSuspender(i) {
+  hospiSyncAtbDias();
+  if (HOSPI_EVO_ATB[i]) { HOSPI_EVO_ATB[i].estado = 'suspendido'; HOSPI_EVO_ATB[i]._suspendido = true; HOSPI_EVO_ATB[i].fechaSuspension = new Date().toISOString(); }
+  hospiRenderAtbList();
+}
+function hospiAtbReactivar(i) {
+  hospiSyncAtbDias();
+  if (HOSPI_EVO_ATB[i]) { HOSPI_EVO_ATB[i].estado = 'activo'; HOSPI_EVO_ATB[i]._suspendido = false; HOSPI_EVO_ATB[i].fechaSuspension = null; }
+  hospiRenderAtbList();
+}
+// Reads the per-scheme "día efectivo" inputs back into the working list
+function hospiSyncAtbDias() {
+  for (var i = 0; i < HOSPI_EVO_ATB.length; i++) {
+    var inp = document.getElementById('hospiAtbDia-' + i);
+    if (inp && inp.value !== '') HOSPI_EVO_ATB[i].diaEfectivo = parseInt(inp.value, 10);
+  }
+}
+// Reads a numeric input by id, returns Number or null if empty/invalid
+function hospiNumOrNull(id) {
+  var el = document.getElementById(id);
+  if (!el || el.value === '') return null;
+  var n = Number(el.value);
+  return isNaN(n) ? null : n;
+}
+
+// Renders dengue + antibiotic structured data of an evolution as compact chips
+function hospiRenderEvoDatos(datos) {
+  if (!datos || typeof datos !== 'object') return '';
+  var out = '';
+  function chip(label, val) {
+    return '<span style="display:inline-block;background:rgba(78,205,196,.12);color:var(--tl);font-size:11px;font-weight:600;padding:3px 8px;border-radius:14px;margin:2px 4px 2px 0">' + label + ': ' + hospiEsc('' + val) + '</span>';
+  }
+  if (datos.dengue) {
+    var d = datos.dengue, dc = '';
+    if (d.diaEnfermedad != null) dc += chip('Día enf.', d.diaEnfermedad);
+    if (d.fase) dc += chip('Fase', d.fase);
+    if (d.diasAfebril != null) dc += chip('Afebril', d.diasAfebril + 'd');
+    if (d.leucocitos != null) dc += chip('Leuco', d.leucocitos);
+    if (d.plaquetas != null) dc += chip('Plaq', d.plaquetas);
+    if (dc) out += '<div style="margin-top:6px"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">🦟 Dengue</div>' + dc + '</div>';
+  }
+  if (datos.antibioticos && datos.antibioticos.length) {
+    var ac = datos.antibioticos.map(function(a) {
+      var susp = a.estado === 'suspendido';
+      var dia = (a.diaEfectivo != null ? 'Día ' + a.diaEfectivo : '') + (a.diasTotales ? '/' + a.diasTotales : '');
+      return '<div style="font-size:12px;color:' + (susp ? 'var(--t3)' : 'var(--t1)') + ';margin:2px 0">💊 <b>' + hospiEsc(a.nombre) + '</b>' + (dia ? ' · ' + dia : '') + (susp ? ' · ⛔ suspendido' : '') + '</div>';
+    }).join('');
+    out += '<div style="margin-top:6px"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">💊 Antibióticos</div>' + ac + '</div>';
+  }
+  if (datos.atbAcciones && datos.atbAcciones.length) {
+    out += '<div style="font-size:11px;color:var(--gd);margin-top:4px">📌 ' + hospiEsc(datos.atbAcciones.join(' · ')) + '</div>';
+  }
+  return out;
 }
 
 function hospiOnTipoChange() {
@@ -7659,6 +8241,41 @@ async function hospiGuardarEvolucion() {
   var authorId = HOSPI_AUTH_ID || '00000000-0000-0000-0000-000000000000';
   var authorName = (worker.name || worker.email || 'Interno') + '|' + (worker.area || 'Interno');
 
+  // ── Build structured data (dengue + antibiotics) ──
+  hospiSyncAtbDias();
+  var datos = {};
+  // Dengue snapshot (only if the dengue panel was shown)
+  if (document.getElementById('hospiDDia')) {
+    var dg = {
+      diaEnfermedad: hospiNumOrNull('hospiDDia'),
+      fase: (document.getElementById('hospiDFase').value || null),
+      diasAfebril: hospiNumOrNull('hospiDAfebril'),
+      leucocitos: hospiNumOrNull('hospiDLeuco'),
+      plaquetas: hospiNumOrNull('hospiDPlaq')
+    };
+    if (dg.diaEnfermedad != null || dg.fase || dg.diasAfebril != null || dg.leucocitos != null || dg.plaquetas != null) {
+      datos.dengue = dg;
+    }
+  }
+  // Antibiotic snapshot for this evolution + actions log
+  var atbClean = HOSPI_EVO_ATB.map(function(a) {
+    return { nombre: a.nombre, fechaInicio: a.fechaInicio || null, diasTotales: a.diasTotales || null, diaEfectivo: (a.diaEfectivo != null ? a.diaEfectivo : null), estado: a.estado || 'activo' };
+  });
+  if (atbClean.length) {
+    datos.antibioticos = atbClean;
+    var acciones = [];
+    HOSPI_EVO_ATB.forEach(function(a) {
+      if (a._nuevo) acciones.push('Inició ' + a.nombre);
+      else if (a._suspendido) acciones.push('Suspendió ' + a.nombre);
+    });
+    if (acciones.length) datos.atbAcciones = acciones;
+  }
+  var datosFinal = Object.keys(datos).length ? datos : null;
+  // Canonical antibiotic state to persist on the ingreso
+  var ingAtbState = HOSPI_EVO_ATB.map(function(a) {
+    return { id: a.id, nombre: a.nombre, fechaInicio: a.fechaInicio || null, diasTotales: a.diasTotales || null, diaEfectivo: (a.diaEfectivo != null ? a.diaEfectivo : null), estado: a.estado || 'activo', fechaSuspension: a.fechaSuspension || null };
+  });
+
   // OFFLINE MODE: queue locally
   if (!navigator.onLine) {
     var photoB64s = [];
@@ -7678,11 +8295,18 @@ async function hospiGuardarEvolucion() {
       ingreso_id: HOSPI_CURRENT_INGRESO.id,
       tipo: tipo,
       nota: nota || null,
+      datos: datosFinal,
+      ing_atb_state: ingAtbState.length ? ingAtbState : null,
       photos: photoB64s,
       author_id: authorId,
       author_name: authorName,
       created_at: new Date().toISOString()
     });
+    // Reflect antibiotic state locally so the UI stays consistent until sync
+    if (ingAtbState.length) {
+      HOSPI_CURRENT_INGRESO.datos = HOSPI_CURRENT_INGRESO.datos || {};
+      HOSPI_CURRENT_INGRESO.datos.antibioticos = ingAtbState;
+    }
     toast('Evolucion guardada offline 📶 — se sincronizara al reconectar', 'success');
     document.getElementById('hospiFormEvolucion').remove();
     HOSPI_PENDING_PHOTOS = [];
@@ -7716,6 +8340,7 @@ async function hospiGuardarEvolucion() {
     ingreso_id: HOSPI_CURRENT_INGRESO.id,
     tipo: tipo,
     nota: nota || null,
+    datos: datosFinal,
     image_urls: urls.length > 0 ? urls : null,
     author_id: authorId,
     author_name: authorName
@@ -7725,6 +8350,14 @@ async function hospiGuardarEvolucion() {
       btn.disabled = false;
       btn.textContent = '💾 Guardar';
       return;
+    }
+    // Persist the canonical antibiotic state on the ingreso (non-fatal if it fails)
+    if (ingAtbState.length) {
+      var nuevoDatos = Object.assign({}, HOSPI_CURRENT_INGRESO.datos || {}, { antibioticos: ingAtbState });
+      adminEv.from('ingresos').update({ datos: nuevoDatos }).eq('id', HOSPI_CURRENT_INGRESO.id).then(function(ur) {
+        if (ur.error) console.warn('No se pudo actualizar antibioticos del ingreso: ' + ur.error.message);
+        else HOSPI_CURRENT_INGRESO.datos = nuevoDatos;
+      });
     }
     toast('Evolucion guardada ✓', 'success');
     document.getElementById('hospiFormEvolucion').remove();
@@ -7940,6 +8573,7 @@ async function hospiExportarPDF(ev) {
     ['Seccion', (ing.cama || '').split(' - ')[0] || '—'],
     ['F. Ingreso', new Date(ing.fecha_ingreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})],
     ['F. Egreso', ing.fecha_egreso ? new Date(ing.fecha_egreso).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'],
+    ['Dias hosp.', (function(){ var e = hospiDiasHospitalizacion(ing.fecha_ingreso, ing.fecha_egreso); return e ? (ing.estado === 'Activo' ? 'Dia ' + e.dia + ' (' + e.diasCompletos + ' dias completos)' : e.diasCompletos + ' dias') : '—'; })()],
     ['Estado', ing.estado],
     ['Dx Ingreso', ing.dx_ingreso || 'No especificado']
   ];
@@ -7966,6 +8600,31 @@ async function hospiExportarPDF(ev) {
   doc.text(ing.estado.toUpperCase(), M + 42 + estadoW/2, y + 1, { align: 'center' });
 
   y += 12;
+
+  // ═══════════ ESQUEMAS ANTIBIOTICOS ═══════════
+  if (ing.datos && ing.datos.antibioticos && ing.datos.antibioticos.length) {
+    checkSpace(20);
+    doc.setFillColor('#EEF1F6');
+    doc.roundedRect(M, y, contentW, 10, 2, 2, 'F');
+    doc.setFillColor('#E53E3E');
+    doc.roundedRect(M + 2, y + 2, 2, 6, 1, 1, 'F');
+    doc.setFontSize(11);
+    doc.setTextColor('#0C1F3D');
+    doc.setFont('helvetica', 'bold');
+    doc.text('ESQUEMAS ANTIBIOTICOS', M + 15, y + 7);
+    y += 16;
+    ing.datos.antibioticos.forEach(function(a) {
+      checkSpace(7);
+      var dia = (a.diaEfectivo != null ? 'Dia ' + a.diaEfectivo : '') + (a.diasTotales ? '/' + a.diasTotales : '');
+      var line = a.nombre + (a.fechaInicio ? '  ·  inicio ' + a.fechaInicio : '') + (dia ? '  ·  ' + dia : '') + (a.estado === 'suspendido' ? '  ·  SUSPENDIDO' : '');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', a.estado === 'suspendido' ? 'italic' : 'normal');
+      doc.setTextColor(a.estado === 'suspendido' ? '#A0AEC0' : '#1B2A4A');
+      var wl = doc.splitTextToSize('• ' + line, contentW - 6);
+      for (var wli = 0; wli < wl.length; wli++) { doc.text(wl[wli], M + 4, y); y += 5.5; }
+    });
+    y += 6;
+  }
 
   // ═══════════ EVOLUCIONES ═══════════
   doc.setFillColor('#EEF1F6');
@@ -8058,6 +8717,40 @@ async function hospiExportarPDF(ev) {
         y += 5;
       }
       y += 4;
+
+      // Structured data (dengue / antibiotics)
+      if (ev.datos && typeof ev.datos === 'object') {
+        var dLines = [];
+        if (ev.datos.dengue) {
+          var dd = ev.datos.dengue, parts = [];
+          if (dd.diaEnfermedad != null) parts.push('Dia enf. ' + dd.diaEnfermedad);
+          if (dd.fase) parts.push('Fase ' + dd.fase);
+          if (dd.diasAfebril != null) parts.push('Afebril ' + dd.diasAfebril + 'd');
+          if (dd.leucocitos != null) parts.push('Leucocitos ' + dd.leucocitos);
+          if (dd.plaquetas != null) parts.push('Plaquetas ' + dd.plaquetas);
+          if (parts.length) dLines.push('Dengue: ' + parts.join(' | '));
+        }
+        if (ev.datos.antibioticos && ev.datos.antibioticos.length) {
+          ev.datos.antibioticos.forEach(function(a) {
+            var dia = (a.diaEfectivo != null ? 'Dia ' + a.diaEfectivo : '') + (a.diasTotales ? '/' + a.diasTotales : '');
+            dLines.push('ATB: ' + a.nombre + (dia ? ' (' + dia + ')' : '') + (a.estado === 'suspendido' ? ' [SUSPENDIDO]' : ''));
+          });
+        }
+        if (dLines.length) {
+          doc.setFontSize(8.5);
+          doc.setTextColor('#2C7A7B');
+          doc.setFont('helvetica', 'bold');
+          for (var dli = 0; dli < dLines.length; dli++) {
+            var wrapped = doc.splitTextToSize(dLines[dli], contentW - 12);
+            for (var wi = 0; wi < wrapped.length; wi++) {
+              checkSpace(5);
+              doc.text(wrapped[wi], M + 8, y + 2);
+              y += 4.5;
+            }
+          }
+          y += 3;
+        }
+      }
 
       // Photos — embed actual images in PDF
       if (ev.image_urls && ev.image_urls.length) {
