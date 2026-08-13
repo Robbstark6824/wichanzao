@@ -10,3 +10,10 @@ node_modules/
 tools/*-index.html
 tools/*.txt
 tools/__diag__*
+
+# Herramientas con credenciales de BD embebidas — NUNCA subir
+tools/check-auth-config.js
+tools/inspect-state.js
+tools/inspect-rls.js
+tools/migrate-gineco.js
+tools/migrate-db.js
