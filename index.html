@@ -5172,7 +5172,7 @@ function qxRenderDetalle(){
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
   ov.innerHTML = '<div class="qx-sheet">'
-    + '<div class="qx-sheet-head"><h3>'+qxEsc(p.nombre)+'</h3><button class="qx-sheet-close" style="color:#dc2626" title="Eliminar" onclick="qxConfirmarEliminar()">🗑</button><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-head"><button class="qx-sheet-close" style="font-size:26px;color:var(--t1);line-height:1" title="Volver" onclick="this.closest(\'.qx-overlay\').remove()">←</button><h3>'+qxEsc(p.nombre)+'</h3><button class="qx-sheet-close" style="color:#dc2626" title="Eliminar" onclick="qxConfirmarEliminar()">🗑</button></div>'
     + '<div class="qx-sheet-body">'
     + (qxProgramadaPendiente(p) ? '<div style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.32);color:#dc2626;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:12px">⚠️ Programada con pendientes: aún faltan exámenes o checks por completar</div>' : '')
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">1</div><div><div class="ph-title">Captación</div><div class="ph-hint">DNI '+qxEsc(p.dni)+' · HCL '+qxEsc(p.hcl||'—')+' · Tel '+qxEsc(p.telefono||'—')+'</div></div></div>'
@@ -5234,6 +5234,7 @@ function qxRenderDetalle(){
         : ((p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Hospitalizada"</div>'))
     + qxFaseTsHtml(p.fecha_resolucion)
     + '</div>'
+    + '<button class="qx-btn" style="width:100%;margin-top:6px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="this.closest(\'.qx-overlay\').remove()">← Volver al listado</button>'
     + '</div></div>';
   document.body.appendChild(ov);
 }
