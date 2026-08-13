@@ -564,6 +564,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-stat .n{font-size:20px;font-weight:800;color:var(--t1);line-height:1}
 .qx-stat .l{font-size:9px;color:var(--t3);font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.3px}
 .qx-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.qx-captfilter{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.qx-captfilter input{flex:1;min-width:110px;padding:8px 10px;border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-family:inherit;background:var(--s1);color:var(--t1)}
 .qx-chip{padding:6px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--s1);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 .qx-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
 .qx-list{display:flex;flex-direction:column;gap:10px}
@@ -1004,6 +1006,13 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="qx-viewtoggle">
             <button class="qx-vt active" id="qxVtLista" onclick="qxSetView('lista')">📋 Lista</button>
             <button class="qx-vt" id="qxVtCal" onclick="qxSetView('calendario')">📅 Calendario</button>
+          </div>
+          <div class="qx-captfilter" id="qxCaptFilter">
+            <span style="font-size:11px;font-weight:700;color:var(--t2)">Captadas del</span>
+            <input type="date" id="qxCaptDesde" onchange="qxFiltrarCaptacion()">
+            <span style="font-size:11px;color:var(--t3)">al</span>
+            <input type="date" id="qxCaptHasta" onchange="qxFiltrarCaptacion()">
+            <button class="qx-btn" style="padding:6px 10px;font-size:11px" onclick="qxLimpiarCaptacion()">Limpiar</button>
           </div>
           <div class="qx-filters" id="qxFilters"></div>
           <div class="qx-list" id="qxList"></div>
@@ -4806,6 +4815,8 @@ var QX_ACTUAL = null;
 var QX_VIEW = 'lista';
 var QX_CAL = null;        // {y, m}
 var QX_CAL_DIA = null;    // 'YYYY-MM-DD'
+var QX_CAPT_DESDE = '';
+var QX_CAPT_HASTA = '';
 
 var QX_ESTADOS = [
   ['en_tramite','En trámite'],
@@ -4827,6 +4838,11 @@ function qxProgramadaPendiente(p){ return !!(p.fecha_cirugia && p.turno) && p.es
 function qxEsc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===9) d='51'+d; return d; }
 function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function qxFmtTs(ts){ if(!ts) return ''; var d=new Date(ts); if(isNaN(d.getTime())) return ''; return qxPad(d.getDate())+'/'+qxPad(d.getMonth()+1)+'/'+d.getFullYear()+' '+qxPad(d.getHours())+':'+qxPad(d.getMinutes()); }
+function qxHoyStr(){ var d=new Date(); return qxFechaStr(d.getFullYear(), d.getMonth(), d.getDate()); }
+function qxFaseTsHtml(ts){ return ts ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">⏱ Completada '+qxFmtTs(ts)+'</div>' : ''; }
+function qxResumenPendientes(p){ var it=qxChecklistItems(p); var faltan=[]; for(var i=0;i<it.length;i++){ if(!it[i].h && !it[i].ok) faltan.push(it[i].label); } return faltan.length===0?'Ninguno':faltan.join(', '); }
+async function qxMarcarFases(p){ var patch={}; var now=new Date().toISOString(); if(qxFase2Completa(p)&&!p.fecha_fase2)patch.fecha_fase2=now; if(qxFase3Completa(p)&&!p.fecha_fase3)patch.fecha_fase3=now; if(qxFase4Completa(p)&&!p.fecha_fase4)patch.fecha_fase4=now; if(Object.keys(patch).length===0)return; var res=await sbAdmin().from('pacientes').update(patch).eq('id',p.id); if(!res.error){ for(var k in patch)p[k]=patch[k]; } }
 
 async function qxLoad(){
   var list = document.getElementById('qxList');
@@ -4853,11 +4869,13 @@ function qxRender(){
   var fl = document.getElementById('qxFilters');
   var list = document.getElementById('qxList');
   var cal = document.getElementById('qxCalendario');
+  var captf = document.getElementById('qxCaptFilter');
   if (vtL) vtL.classList.toggle('active', QX_VIEW==='lista');
   if (vtC) vtC.classList.toggle('active', QX_VIEW==='calendario');
 
   if (QX_VIEW === 'calendario'){
     if (fl) fl.style.display = 'none';
+    if (captf) captf.style.display = 'none';
     if (list) list.style.display = 'none';
     if (cal) cal.style.display = 'block';
     qxRenderCalendario();
@@ -4865,6 +4883,7 @@ function qxRender(){
   }
 
   if (fl) fl.style.display = '';
+  if (captf) captf.style.display = '';
   if (list) list.style.display = '';
   if (cal) cal.style.display = 'none';
 
@@ -4878,6 +4897,14 @@ function qxRender(){
   }
   if (!list) return;
   var data = QX_FILTER==='todos' ? QX_PACIENTES : QX_PACIENTES.filter(function(p){return p.estado===QX_FILTER;});
+  if (QX_CAPT_DESDE || QX_CAPT_HASTA){
+    data = data.filter(function(p){
+      var f = p.fecha_captacion || (p.created_at ? p.created_at.slice(0,10) : '');
+      if (QX_CAPT_DESDE && (!f || f < QX_CAPT_DESDE)) return false;
+      if (QX_CAPT_HASTA && (!f || f > QX_CAPT_HASTA)) return false;
+      return true;
+    });
+  }
   if (data.length===0){
     list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
     return;
@@ -5036,6 +5063,25 @@ async function qxExportarDia(){
     doc.text('Fecha: ' + qxFmtFecha(QX_CAL_DIA) + '  ·  ' + lista.length + ' cirugía(s)', M, y); y += 4;
     doc.setDrawColor('#A03D63'); doc.setLineWidth(0.4); doc.line(M, y, W-M, y); y += 8;
 
+    // Resumen del día
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor('#A03D63');
+    doc.text('RESUMEN DEL DÍA', M, y); y += 6;
+    for (var s=0;s<lista.length;s++){
+      var ps = lista[s];
+      var pendS = qxProgramadaPendiente(ps);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor('#0D1B2A');
+      doc.text((s+1)+'. '+ps.nombre+' - DNI '+(ps.dni||'-'), M, y); y += 4.5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.setTextColor(pendS ? '#dc2626' : '#16a34a');
+      doc.text('   '+(pendS ? 'PROGRAMADA CON PENDIENTES' : 'PROGRAMADA - TODO LISTO'), M, y); y += 4.5;
+      doc.setTextColor('#4A5568');
+      doc.text('   Falta: '+qxResumenPendientes(ps), M, y); y += 4.5;
+    }
+    y += 3;
+    doc.setDrawColor('#A03D63'); doc.setLineWidth(0.4); doc.line(M, y, W-M, y); y += 6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor('#A03D63');
+    doc.text('DETALLE POR PACIENTE', M, y); y += 7;
+
     for (var k=0;k<lista.length;k++){
       var p = lista[k];
       var pend = qxProgramadaPendiente(p);
@@ -5091,6 +5137,9 @@ async function qxNuevo(){
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxNHcl" placeholder="N° historia"></div>'
     + '<div class="qx-field"><label>Teléfono</label><input id="qxNTel" placeholder="9XXXXXXXX"></div></div>'
     + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxNDx" rows="2" placeholder="Motivo de cirugía"></textarea></div>'
+    + '<div class="qx-field"><label>Fecha de captación</label><input type="date" id="qxNFechaCapt" value="'+qxHoyStr()+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Interno de medicina</label><input id="qxNInterno" placeholder="Nombre del interno"></div>'
+    + '<div class="qx-field"><label>Doctor (DR)</label><input id="qxNDoctor" placeholder="Nombre del doctor"></div></div>'
     + '<button class="qx-btn" style="width:100%" onclick="qxGuardarNuevo()">Guardar paciente</button>'
     + '</div></div>';
   document.body.appendChild(ov);
@@ -5103,8 +5152,13 @@ async function qxGuardarNuevo(){
   var hcl = document.getElementById('qxNHcl').value.trim();
   var tel = qxNormalizarTel(document.getElementById('qxNTel').value.trim());
   var dx = document.getElementById('qxNDx').value.trim();
+  var fcapt = document.getElementById('qxNFechaCapt').value.trim();
+  var interno = document.getElementById('qxNInterno').value.trim();
+  var doctor = document.getElementById('qxNDoctor').value.trim();
   var res = await sbAdmin().from('pacientes').insert({
-    dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null, diagnostico:dx||null, estado:'en_tramite'
+    dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null, diagnostico:dx||null,
+    fecha_captacion: fcapt||null, interno_medicina: interno||null, doctor: doctor||null,
+    estado:'en_tramite'
   }).select().single();
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
@@ -5134,15 +5188,21 @@ function qxRenderDetalle(){
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
   ov.innerHTML = '<div class="qx-sheet">'
-    + '<div class="qx-sheet-head"><h3>'+qxEsc(p.nombre)+'</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-head"><h3>'+qxEsc(p.nombre)+'</h3><button class="qx-sheet-close" style="color:#dc2626" title="Eliminar" onclick="qxConfirmarEliminar()">🗑</button><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
     + '<div class="qx-sheet-body">'
     + (qxProgramadaPendiente(p) ? '<div style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.32);color:#dc2626;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:12px">⚠️ Programada con pendientes: aún faltan exámenes o checks por completar</div>' : '')
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">1</div><div><div class="ph-title">Captación</div><div class="ph-hint">DNI '+qxEsc(p.dni)+' · HCL '+qxEsc(p.hcl||'—')+' · Tel '+qxEsc(p.telefono||'—')+'</div></div></div>'
     + (p.diagnostico?'<div style="font-size:13px;color:var(--t1)">'+qxEsc(p.diagnostico)+'</div>':'')
+    + '<div style="font-size:11px;color:var(--t2);margin-top:6px">'
+    + (p.fecha_captacion ? '📅 Captada el '+qxFmtFecha(p.fecha_captacion) : '')
+    + (p.interno_medicina ? ' · Interno: '+qxEsc(p.interno_medicina) : '')
+    + (p.doctor ? ' · DR: '+qxEsc(p.doctor) : '')
+    + '</div>'
     + '</div>'
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
     + qxCheckHtml('laboratorio_completo','Laboratorio completo',p.laboratorio_completo,true)
     + qxCheckHtml('ekg','EKG',p.ekg,true)
+    + qxFaseTsHtml(p.fecha_fase2)
     + '</div>'
     + '<div class="qx-phase'+(f2?'':' locked')+'"><div class="ph-head"><div class="ph-num">3</div><div><div class="ph-title">Citas e interconsultas</div><div class="ph-hint">Requiere Fase 2 completa</div></div></div>'
     + (f2
@@ -5157,6 +5217,7 @@ function qxRenderDetalle(){
         + qxCheckHtml('riesgo_qx','Riesgo quirúrgico evaluado',p.riesgo_qx,true)
         + qxCheckHtml('riesgo_anestesiologico','Riesgo anestesiológico (requiere riesgo Qx)',p.riesgo_anestesiologico,p.riesgo_qx)
         : '<div class="qx-lock">🔒 Completa Fase 2 para habilitar citas</div>')
+    + qxFaseTsHtml(p.fecha_fase3)
     + '</div>'
     + '<div class="qx-phase'+(f3?'':' locked')+'"><div class="ph-head"><div class="ph-num">4</div><div><div class="ph-title">Pre-hospitalización</div><div class="ph-hint">Requiere Fase 3 completa → Apta para sala</div></div></div>'
     + (f3
@@ -5165,6 +5226,7 @@ function qxRenderDetalle(){
         + qxCheckHtml('solicitud_sala_dejada','Solicitud de sala dejada',p.solicitud_sala_dejada,true)
         + qxCheckHtml('recetas_entregadas','Recetas entregadas',p.recetas_entregadas,true)
         : '<div class="qx-lock">🔒 Completa Fase 3 para habilitar</div>')
+    + qxFaseTsHtml(p.fecha_fase4)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='apta_para_sala'||p.estado==='en_tramite'?'':' locked')+'"><div class="ph-head"><div class="ph-num">5</div><div><div class="ph-title">Programación quirúrgica</div><div class="ph-hint">'+(p.estado==='en_tramite'?'Programación anticipada (pendiente de checks)':'Solo si Apta para sala')+'</div></div></div>'
     + ((p.estado==='apta_para_sala'||p.estado==='en_tramite')
@@ -5172,18 +5234,21 @@ function qxRenderDetalle(){
         + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
         + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">'+(p.estado==='en_tramite'?'Programar (anticipado)':'Programar cirugía')+'</button>'
         : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
+    + qxFaseTsHtml(p.fecha_fase5)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='programada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">6</div><div><div class="ph-title">Hospitalización</div><div class="ph-hint">Solo si Programada</div></div></div>'
     + (p.estado==='programada'
         ? '<div class="qx-field"><label>Cama</label><input id="qxCama" placeholder="Ej: Cama 4 / Pasillo"></div>'
         + '<button class="qx-btn tl" style="width:100%" onclick="qxHospitalizar()">Asignar cama</button>'
         : ((p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEsc(p.cama_hospitalizacion||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Programada"</div>'))
+    + qxFaseTsHtml(p.fecha_hospitalizacion)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='hospitalizada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">7</div><div><div class="ph-title">Resolución</div><div class="ph-hint">Solo si Hospitalizada</div></div></div>'
     + (p.estado==='hospitalizada'
         ? '<div class="qx-row"><button class="qx-btn" style="background:#16a34a;flex:1" onclick="qxResolver(\'operada\')">✔ Operada</button>'
         + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxResolverSusp()">✖ Suspendida</button></div>'
         : ((p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Hospitalizada"</div>'))
+    + qxFaseTsHtml(p.fecha_resolucion)
     + '</div>'
     + '</div></div>';
   document.body.appendChild(ov);
@@ -5211,6 +5276,7 @@ async function qxToggle(campo){
   var res = await sbAdmin().from('pacientes').update(patch).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p[campo] = val;
+  await qxMarcarFases(p);
   if (qxFase4Completa(p) && p.estado==='en_tramite'){
     if (p.fecha_cirugia && p.turno){
       await qxSetEstado(p,'programada');
@@ -5230,6 +5296,7 @@ async function qxSetCampo(campo,valor,requiereFase2){
   var res = await sbAdmin().from('pacientes').update(patch).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p[campo] = v;
+  await qxMarcarFases(p);
   qxRenderDetalle();
   qxLoad();
 }
@@ -5240,9 +5307,9 @@ async function qxProgramar(){
   var fecha = document.getElementById('qxFechaQx').value;
   var turno = document.getElementById('qxTurno').value;
   if (!fecha){ toast('Indica la fecha de cirugía','error'); return; }
-  var res = await sbAdmin().from('pacientes').update({fecha_cirugia:fecha, turno:turno}).eq('id',p.id);
+  var res = await sbAdmin().from('pacientes').update({fecha_cirugia:fecha, turno:turno, fecha_fase5:new Date().toISOString()}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
-  p.fecha_cirugia = fecha; p.turno = turno;
+  p.fecha_cirugia = fecha; p.turno = turno; p.fecha_fase5 = new Date().toISOString();
   if (p.estado==='apta_para_sala'){
     await qxSetEstado(p,'programada');
   } else {
@@ -5306,6 +5373,43 @@ async function qxSetEstado(p, nuevo, motivo){
   await sbAdmin().from('historial_estados').insert({
     paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null
   });
+}
+
+function qxConfirmarEliminar(){
+  var p = QX_ACTUAL; if (!p) return;
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Eliminar paciente</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<p style="font-size:13px;color:var(--t1);margin:0 0 14px">¿Seguro que querés eliminar a <strong>'+qxEsc(p.nombre)+'</strong>? Esta acción no se puede deshacer.</p>'
+    + '<div class="qx-row"><button class="qx-btn" style="background:var(--s2);color:var(--t1);flex:1" onclick="this.closest(\'.qx-overlay\').remove()">Cancelar</button>'
+    + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxEliminar()">Eliminar</button></div>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+async function qxEliminar(){
+  var p = QX_ACTUAL; if (!p) return;
+  var res = await sbAdmin().from('pacientes').delete().eq('id', p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  toast('Paciente eliminada ✓','success');
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  QX_ACTUAL = null;
+  qxLoad();
+}
+
+function qxFiltrarCaptacion(){
+  QX_CAPT_DESDE = document.getElementById('qxCaptDesde').value;
+  QX_CAPT_HASTA = document.getElementById('qxCaptHasta').value;
+  qxRender();
+}
+
+function qxLimpiarCaptacion(){
+  QX_CAPT_DESDE = ''; QX_CAPT_HASTA = '';
+  var d = document.getElementById('qxCaptDesde'); if (d) d.value = '';
+  var h = document.getElementById('qxCaptHasta'); if (h) h.value = '';
+  qxRender();
 }
 
 // Hook: cargar el módulo al entrar
