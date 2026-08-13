@@ -2054,7 +2054,7 @@ async function doRegister() {
         'apikey': SB_KEY,
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
+        'Prefer': 'resolution=ignore-duplicates'
       },
       body: JSON.stringify({
         id: session.user.id,
@@ -2234,7 +2234,7 @@ async function doLogin() {
         'apikey': SB_KEY,
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
+        'Prefer': 'resolution=ignore-duplicates'
       },
       body: JSON.stringify(workerPayload)
     });

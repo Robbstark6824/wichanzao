@@ -53,7 +53,7 @@ const folderId = '__diag__' + Math.floor(Math.random() * 100000);
       apikey: ANON_KEY,
       Authorization: 'Bearer ' + token,
       'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates'
+      Prefer: 'resolution=ignore-duplicates'
     },
     body: JSON.stringify({
       id: userId,
