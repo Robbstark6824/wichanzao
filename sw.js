@@ -1,4 +1,4 @@
-var CACHE_NAME = 'sghl-v226';
+var CACHE_NAME = 'sghl-v227';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
@@ -58,6 +58,21 @@ self.addEventListener('fetch', function(e) {
       }).catch(function() {
         return caches.match(e.request);
       })
+    );
+    return;
+  }
+
+  // Font CSS (fonts.googleapis.com): network-first — Google rota las URLs
+  // de las fuentes y una CSS cacheada termina apuntando a archivos que dan 404.
+  if (url.hostname.includes('fonts.googleapis.com')) {
+    e.respondWith(
+      fetch(e.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+        }
+        return response;
+      }).catch(function() { return caches.match(e.request); })
     );
     return;
   }
