@@ -130,91 +130,6 @@ body.dark .module-card .mc-title{color:var(--t1)}
 body.dark .placeholder-card{background:var(--s1);border-color:var(--bd)}
 body.dark .placeholder-card h3{color:var(--t1)}
 
-/* ===== CIE-10 SEARCH MODULE ===== */
-.cie-search-wrap{max-width:860px;margin:0 auto}
-.cie-search-bar{display:flex;gap:10px;margin-bottom:14px}
-.cie-search-bar input{flex:1;padding:14px 18px;border:2px solid var(--bd);border-radius:14px;font-size:16px;font-family:inherit;font-weight:500;background:var(--s1);color:var(--t1);transition:all .2s;box-sizing:border-box;letter-spacing:.01em}
-.cie-search-bar input:focus{border-color:var(--tl);outline:none;box-shadow:0 0 0 4px rgba(78,205,196,.12)}
-.cie-search-bar input::placeholder{color:var(--t3);font-style:italic;font-weight:400}
-.cie-clear-btn{width:44px;height:48px;border:2px solid var(--bd);border-radius:14px;background:var(--s1);color:var(--t3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
-.cie-clear-btn:hover{color:var(--danger);border-color:var(--danger)}
-.cie-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
-.cie-filter-chip{padding:9px 15px;border:1.5px solid var(--bd);border-radius:24px;font-size:12px;font-weight:600;cursor:pointer;background:var(--s1);color:var(--t2);transition:all .2s;font-family:inherit;white-space:nowrap;user-select:none}
-.cie-filter-chip:hover{border-color:var(--tl);color:var(--tl)}
-.cie-filter-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
-.cie-filter-chip.chapter{font-size:11px;padding:7px 12px;border-radius:18px}
-.cie-chapters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:18px}
-.cie-chapter-item{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r3);cursor:pointer;transition:all .2s;font-size:12px}
-.cie-chapter-item:hover{border-color:var(--tl);box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.cie-chapter-item .ch-num{width:32px;height:32px;border-radius:8px;background:var(--n1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0}
-.cie-chapter-item .ch-info{flex:1;min-width:0}
-.cie-chapter-item .ch-info strong{font-size:13px;color:var(--t1);display:block}
-.cie-chapter-item .ch-info span{font-size:10px;color:var(--t3)}
-.cie-chapter-item .ch-count{font-size:11px;font-weight:700;color:var(--tl);flex-shrink:0}
-.cie-results-info{font-size:11px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
-.cie-result-list{display:flex;flex-direction:column;gap:6px}
-.cie-result-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);cursor:pointer;transition:all .2s}
-.cie-result-item:hover{border-color:var(--tl);box-shadow:0 2px 12px rgba(0,0,0,.06);transform:translateY(-1px)}
-.cie-result-item .cie-code{font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:15px;font-weight:700;color:var(--n1);min-width:72px;text-align:center;padding:7px 10px;background:var(--s2);border-radius:8px;flex-shrink:0;letter-spacing:.02em;line-height:1.3}
-.cie-result-item .cie-info{flex:1;min-width:0}
-.cie-result-item .cie-info .cie-name{font-size:14.5px;font-weight:600;color:var(--t1);margin-bottom:3px;line-height:1.35}
-.cie-result-item .cie-info .cie-meta{font-size:10.5px;color:var(--t3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.cie-result-item .cie-info .cie-meta .meta-ch{color:var(--tl);font-weight:600}
-.cie-result-item .cie-fav{width:32px;height:32px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:16px;transition:all .2s;flex-shrink:0;color:var(--t3)}
-.cie-result-item .cie-fav:hover{transform:scale(1.2)}
-.cie-result-item .cie-fav.saved{color:#F59E0B}
-.cie-detail-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:20px}
-.cie-detail-overlay.show{display:flex}
-.cie-detail-card{background:var(--card);border-radius:var(--r1);padding:28px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.25);border:1px solid var(--bd);max-height:85vh;overflow-y:auto;animation:cieIn .3s cubic-bezier(.4,0,.2,1)}
-.cie-detail-card .cd-code{font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:30px;font-weight:800;color:var(--n1);margin-bottom:4px;letter-spacing:.03em}
-.cie-detail-card .cd-name{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:16px;line-height:1.35}
-.cie-detail-card .cd-row{display:flex;gap:8px;margin-bottom:10px;font-size:13px}
-.cie-detail-card .cd-row .cd-lbl{font-weight:700;color:var(--t2);min-width:85px;flex-shrink:0}
-.cie-detail-card .cd-row .cd-val{color:var(--t1)}
-.cie-detail-card .cd-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)}
-.cie-detail-card .cd-btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
-.cie-detail-card .cd-btn.copy{background:var(--tl);color:#fff}
-.cie-detail-card .cd-btn.fav{background:var(--s2);color:var(--t1);border:1px solid var(--bd)}
-.cie-detail-card .cd-btn.fav.saved{background:#FEF3C7;color:#92400E;border-color:#FCD34D}
-.cie-no-results{text-align:center;padding:32px 16px;color:var(--t3)}
-.cie-no-results .nr-icon{font-size:48px;margin-bottom:12px}
-.cie-no-results p{font-size:13px;margin:0}
-.cie-fav-section{margin-top:10px}
-.cie-fav-section h6{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:0 0 8px}
-@keyframes cieIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
-@keyframes ciePulse{0%,100%{opacity:1}50%{opacity:.4}}
-.cie-loading-dot{animation:ciePulse 1.4s infinite;font-size:20px;line-height:1}
-.cie-loading-dot:nth-child(2){animation-delay:.2s}
-.cie-loading-dot:nth-child(3){animation-delay:.4s}
-.cie-data-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(78,205,196,.15);color:var(--tl);font-weight:600;margin-left:8px;white-space:nowrap}
-.cie-data-badge.ready{background:rgba(78,205,196,.2);color:#4ECDC4}
-
-/* Dark mode CIE */
-body.dark .cie-search-bar input{background:var(--s1);color:var(--t1);border-color:var(--bd)}
-body.dark .cie-clear-btn{background:var(--s1);border-color:var(--bd)}
-body.dark .cie-filter-chip{background:var(--s1);color:var(--t2);border-color:var(--bd)}
-body.dark .cie-filter-chip.active{background:var(--tl);color:#fff}
-body.dark .cie-chapter-item{background:var(--s1);border-color:var(--bd)}
-body.dark .cie-chapter-item .ch-num{background:var(--n2)}
-body.dark .cie-result-item{background:var(--s1);border-color:var(--bd)}
-body.dark .cie-result-item .cie-code{color:#E6EDF3;background:var(--s2)}
-body.dark .cie-detail-card{background:var(--s1);border-color:var(--bd)}
-body.dark .cie-detail-card .cd-code{color:#E6EDF3}
-body.dark .cie-detail-card .cd-name{color:var(--t1)}
-body.dark .cie-no-results{color:var(--t2)}
-body.dark .cie-results-info{color:var(--t2)}
-body.dark .cie-fav-section h6{color:var(--t2)}
-body.dark .cie-data-badge{background:rgba(78,205,196,.12);color:var(--tl)}
-
-@media (max-width:600px){
-  .cie-filters{gap:6px}
-  .cie-filter-chip{padding:7px 11px;font-size:11px}
-  .cie-chapters-grid{grid-template-columns:1fr}
-  .cie-result-item{gap:8px;padding:12px}
-  .cie-result-item .cie-code{min-width:55px;font-size:13px;padding:4px 6px}
-  .cie-detail-card{padding:20px;max-width:100%}
-}
-
 /* ===== RESPONSIVE ===== */
 @media (min-width:769px){
   #sidebar{transform:translateX(0);position:relative;z-index:auto;box-shadow:none}
@@ -639,6 +554,59 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 #sidebar.collapsed .sidebar-nav-item{padding:11px 12px;justify-content:center}
 #sidebar.collapsed .sni-icon{margin:0}
 #sidebar.collapsed .sidebar-collapse-btn{right:4px;transform:rotate(180deg)}
+/* ===== PROGRAMACIÓN QUIRÚRGICA ===== */
+.qx-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.qx-toolbar h2{font-size:16px;font-weight:800;color:var(--t1);margin:0}
+.qx-btn{background:var(--n1);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.qx-btn.tl{background:var(--tl)}
+.qx-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;margin-bottom:14px}
+.qx-stat{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:10px 6px;text-align:center}
+.qx-stat .n{font-size:20px;font-weight:800;color:var(--t1);line-height:1}
+.qx-stat .l{font-size:9px;color:var(--t3);font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.3px}
+.qx-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.qx-chip{padding:6px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--s1);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.qx-chip.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+.qx-list{display:flex;flex-direction:column;gap:10px}
+.qx-card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px;cursor:pointer;transition:transform .1s}
+.qx-card:active{transform:scale(.99)}
+.qx-card .top{display:flex;align-items:center;gap:10px}
+.qx-card .nm{font-weight:800;color:var(--t1);font-size:14px}
+.qx-card .dni{font-size:11px;color:var(--t3)}
+.qx-card .dx{font-size:12px;color:var(--t2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qx-badge{margin-left:auto;font-size:9px;font-weight:800;padding:3px 10px;border-radius:12px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.qx-badge.en_tramite{background:rgba(244,180,0,.15);color:#b45309}
+.qx-badge.apta_para_sala{background:rgba(78,205,196,.15);color:var(--tl)}
+.qx-badge.programada{background:rgba(99,102,241,.15);color:#6366f1}
+.qx-badge.hospitalizada{background:rgba(236,72,153,.15);color:#db2777}
+.qx-badge.operada{background:rgba(34,197,94,.15);color:#16a34a}
+.qx-badge.suspendida{background:rgba(239,68,68,.15);color:#dc2626}
+.qx-empty{text-align:center;padding:40px 16px;color:var(--t3)}
+.qx-empty .ic{font-size:40px;margin-bottom:8px}
+.qx-overlay{position:fixed;inset:0;background:rgba(12,31,61,.55);backdrop-filter:blur(3px);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.qx-sheet{background:var(--bg);width:100%;max-width:520px;max-height:92vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden}
+.qx-sheet-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--bd)}
+.qx-sheet-head h3{font-size:15px;font-weight:800;color:var(--t1);margin:0;flex:1}
+.qx-sheet-close{background:none;border:none;font-size:22px;color:var(--t3);cursor:pointer}
+.qx-sheet-body{overflow-y:auto;padding:16px 18px 24px;-webkit-overflow-scrolling:touch}
+.qx-field{margin-bottom:12px}
+.qx-field label{display:block;font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.qx-field input,.qx-field select,.qx-field textarea{width:100%;padding:11px 12px;border:1.5px solid var(--bd);border-radius:10px;font-size:14px;font-family:inherit;background:var(--s1);color:var(--t1);box-sizing:border-box}
+.qx-phase{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.qx-phase.locked{opacity:.55}
+.qx-phase .ph-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.qx-phase .ph-num{width:24px;height:24px;border-radius:50%;background:var(--tl);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qx-phase.locked .ph-num{background:var(--t3)}
+.qx-phase .ph-title{font-weight:800;color:var(--t1);font-size:13px}
+.qx-phase .ph-hint{font-size:10px;color:var(--t3)}
+.qx-check{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.qx-check:last-child{border-bottom:none}
+.qx-check .ck{width:22px;height:22px;border-radius:6px;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:#fff;background:var(--s1)}
+.qx-check .ck.on{background:var(--tl);border-color:var(--tl)}
+.qx-check .cktxt{font-size:13px;color:var(--t1);font-weight:600}
+.qx-lock{font-size:10px;color:var(--t3);margin-top:8px;font-style:italic}
+.qx-row{display:flex;gap:10px}
+.qx-row .qx-field{flex:1}
+.qx-wa{display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;margin-top:4px}
 </style>
 </head>
 <body>
@@ -846,9 +814,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span class="sni-icon">📸</span>
           <span class="sni-label">Laredo Scan</span>
         </a>
-        <a class="sidebar-nav-item" data-module="cie" onclick="showModule('cie')">
-          <span class="sni-icon">📋</span>
-          <span class="sni-label">CIE Ginecología</span>
+        <a class="sidebar-nav-item" data-module="programacion" onclick="showModule('programacion')">
+          <span class="sni-icon">🗓️</span>
+          <span class="sni-label">Programación Qx</span>
         </a>
       </nav>
       <div class="sidebar-user">
@@ -899,11 +867,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <div class="mc-title">Laredo Scan</div>
               <div class="mc-desc">Digitaliza documentos, PDFs y combina fotos</div>
             </div>
-            <div class="module-card" onclick="showModule('cie')">
-              <span class="mc-icon">📋</span>
-              <div class="mc-title">CIE-10</div>
-              <div class="mc-desc">+600 codigos · Busqueda · Favoritos · 21 capitulos OMS</div>
-              <span class="mc-badge-prox" style="background:rgba(78,205,196,.15);color:var(--tl)">✓ Disponible</span>
+            <div class="module-card" onclick="showModule('programacion')">
+              <span class="mc-icon">🗓️</span>
+              <div class="mc-title">Programación Qx</div>
+              <div class="mc-desc">Pipeline quirúrgico · 7 fases · Cirugía</div>
             </div>
           </div>
           <!-- Credit -->
@@ -1000,69 +967,21 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
       </div>
 
 
-      <!-- === MODULE: CIE-10 SEARCH === -->
-      <div class="module-panel" id="moduleCie">
+      <!-- === MODULE: PROGRAMACIÓN QUIRÚRGICA === -->
+      <div class="module-panel" id="moduleProgramacion">
         <div class="module-header">
           <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
             <span></span><span></span><span></span>
           </button>
           <div class="mh-breadcrumb">
-            <a onclick="showModule('dashboard')">Inicio</a> / CIE-10
+            <a onclick="showModule('dashboard')">Inicio</a> / Programación Quirúrgica
           </div>
-          <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);font-weight:600" id="cieBadge">OMS · 13,931 códigos · 408 sinónimos</span>
+          <button class="qx-btn" style="margin-left:auto;padding:7px 12px;font-size:12px" onclick="qxNuevo()">+ Nuevo</button>
         </div>
         <div class="module-body">
-          <div class="cie-search-wrap">
-            <!-- Search bar -->
-            <div class="cie-search-bar">
-              <input type="text" id="cieSearch" placeholder="Busca por código, enfermedad o palabra clave..." oninput="doCieSearch()" autocomplete="off">
-              <button class="cie-clear-btn" onclick="cieClearSearch()" title="Limpiar">✕</button>
-            </div>
-
-            <!-- Specialty filters -->
-            <div class="cie-filters" id="cieFilters">
-              <button class="cie-filter-chip active" onclick="cieSetFilter('all',this)">📋 Todos</button>
-              <button class="cie-filter-chip" onclick="cieSetFilter('medicina',this)">🫀 Medicina Interna</button>
-              <button class="cie-filter-chip" onclick="cieSetFilter('gineco',this)">👩‍⚕️ Gineco-Obstetricia</button>
-              <button class="cie-filter-chip" onclick="cieSetFilter('cirugia',this)">🔪 Cirugía</button>
-              <button class="cie-filter-chip" onclick="cieSetFilter('pediatria',this)">👶 Pediatría</button>
-              <button class="cie-filter-chip" onclick="cieSetFilter('favorites',this)" id="cieFavFilter">⭐ Favoritos</button>
-            </div>
-
-            <!-- Chapter browser (collapsible) -->
-            <div style="margin-bottom:14px">
-              <button onclick="cieToggleChapters()" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--tl);cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:6px">
-                <span id="cieChaptersArrow">▶</span> Explorar por capítulo CIE-10
-              </button>
-              <div class="cie-chapters-grid" id="cieChaptersGrid" style="display:none;margin-top:12px"></div>
-            </div>
-
-            <!-- Results info -->
-            <div class="cie-results-info" id="cieResultsInfo" style="display:none">
-              <span id="cieResultsCount"></span>
-              <span id="cieActiveFilter"></span>
-              <span class="cie-data-badge" id="cieDataBadge" style="display:none" title="Catalogo completo de codigos CIE-10">📦 13,931 códigos + 408 sinónimos</span>
-            </div>
-
-            <!-- Results list -->
-            <div class="cie-result-list" id="cieResultList">
-              <div class="cie-no-results">
-                <div class="nr-icon">🔍</div>
-                <p>Escribe para buscar códigos CIE-10</p>
-              </div>
-            </div>
-
-            <!-- Favorites section -->
-            <div class="cie-fav-section" id="cieFavSection" style="display:none">
-              <h6>⭐ Favoritos guardados</h6>
-              <div class="cie-result-list" id="cieFavList"></div>
-            </div>
-          </div>
-
-          <!-- Detail overlay -->
-          <div class="cie-detail-overlay" id="cieDetailOverlay" onclick="cieCloseDetail(event)">
-            <div class="cie-detail-card" id="cieDetailCard" onclick="event.stopPropagation()"></div>
-          </div>
+          <div class="qx-stats" id="qxStats"></div>
+          <div class="qx-filters" id="qxFilters"></div>
+          <div class="qx-list" id="qxList"></div>
         </div>
       </div>
 
@@ -2698,10 +2617,9 @@ function openSettings() {
   document.getElementById('settingsProfileBadge').textContent = sLabel;
   var darkOn = document.body.classList.contains('dark');
   document.getElementById('toggleDark').classList.toggle('on', darkOn);
-  // Version + rol + diagnostico (codigos CIE-10 cargados)
-  var nCie = (CIE_DATA_FULL ? CIE_DATA_FULL.length : 0);
+  // Version
   var verEl = document.getElementById('settingsAppVersion');
-  if (verEl) verEl.textContent = APP_VERSION + '  ·  CIE-10: ' + (nCie ? nCie.toLocaleString('es-PE') : 'cargando…');
+  if (verEl) verEl.textContent = APP_VERSION;
   var roleEl = document.getElementById('settingsRole');
   if (roleEl) roleEl.textContent = isAdmin ? '👑 Super administrador' : (worker.area || 'Usuario');
   showView('vSettings');
@@ -2710,13 +2628,6 @@ function openSettings() {
 // Limpia TODA la cache (SW + catalogo en localStorage) y recarga para traer lo ultimo
 function forceUpdateApp() {
   toast('Actualizando a la última versión…', 'info');
-  // Borrar catalogo CIE en localStorage para forzar recarga
-  try {
-    for (var k = localStorage.length - 1; k >= 0; k--) {
-      var key = localStorage.key(k);
-      if (key && key.indexOf('wichanzao_cie10_') === 0) localStorage.removeItem(key);
-    }
-  } catch(e) {}
   var done = function() { location.reload(true); };
   try {
     if (window.caches && caches.keys) {
@@ -2757,1871 +2668,6 @@ function toggleDarkMode() {
   if (document.querySelector('meta[name="theme-color"]')) {
     document.querySelector('meta[name="theme-color"]').content = isDark ? '#0D1117' : '#0C1F3D';
   }
-}
-
-/* ===== CIE-10 SEARCH ENGINE ===== */
-
-// ── Chapter metadata (shared) ──────────────────────────────
-var CIE_CHAPTERS = {
-  'I':   ['Ciertas enfermedades infecciosas y parasitarias','A00-B99','medicina'],
-  'II':  ['Neoplasias','C00-D49','medicina'],
-  'III': ['Enfermedades de la sangre y organos hematopoyeticos','D50-D89','medicina'],
-  'IV':  ['Enfermedades endocrinas, nutricionales y metabolicas','E00-E90','medicina'],
-  'V':   ['Trastornos mentales y del comportamiento','F00-F99','medicina'],
-  'VI':  ['Enfermedades del sistema nervioso','G00-G99','medicina'],
-  'VII': ['Enfermedades del ojo y sus anexos','H00-H59','medicina'],
-  'VIII':['Enfermedades del oido y de la apofisis mastoides','H60-H95','medicina'],
-  'IX':  ['Enfermedades del sistema circulatorio','I00-I99','medicina'],
-  'X':   ['Enfermedades del sistema respiratorio','J00-J99','medicina'],
-  'XI':  ['Enfermedades del sistema digestivo','K00-K93','medicina'],
-  'XII': ['Enfermedades de la piel y el tejido subcutaneo','L00-L99','medicina'],
-  'XIII':['Enfermedades del sistema osteomuscular','M00-M99','medicina'],
-  'XIV': ['Enfermedades del sistema genitourinario','N00-N99','medicina'],
-  'XV':  ['Embarazo, parto y puerperio','O00-O99','gineco'],
-  'XVI': ['Ciertas afecciones originadas en el periodo perinatal','P00-P96','pediatria'],
-  'XVII':['Malformaciones congenitas y anomalias cromosomicas','Q00-Q99','pediatria'],
-  'XVIII':['Sintomas, signos y hallazgos anormales clinicos','R00-R99','medicina'],
-  'XIX': ['Traumatismos, envenenamientos y causas externas','S00-T98','cirugia'],
-  'XX':  ['Causas externas de morbilidad y de mortalidad','V01-Y98','medicina'],
-  'XXI': ['Factores que influyen en el estado de salud','Z00-Z99','medicina'],
-  'XXII':['Codigos para situaciones especiales','U00-U99','medicina']
-};
-
-// ── Async full-data loader ─────────────────────────────────
-var CIE_DATA_FULL = null;
-var CIE_LOADED = false;
-var CIE_LOADING = false;
-var CIE_SEARCH_CACHE = null;  // {haystack, words}[] — normalized index
-var CIE_DEBOUNCE = null;
-var CIE_SYNONYMS = null;       // loaded from cie10-synonyms.json
-var CIE_SYN_LOADED = false;
-
-// ── Normalize: strip accents + lowercase ──────────────────
-function cieNormalize(str) {
-  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
-// ── Split into words (normalized) ─────────────────────────
-function cieWords(str) {
-  return cieNormalize(str).split(/[\s,;:.()\[\]|/\\\-—–]+/).filter(function(w){ return w.length > 0; });
-}
-
-// ── Check if token matches a word (prefix overlap ≥ minLen) ──
-function cieTokenMatch(token, haystackNorm, words, code) {
-  // 0) Always allow match in code field (prefix or substring)
-  var codeNorm = cieNormalize(code);
-  if (codeNorm.indexOf(token) !== -1) return true;
-  // 1) For tokens > 4 chars: substring anywhere in full haystack
-  if (token.length > 4 && haystackNorm.indexOf(token) !== -1) return true;
-  // 2) Check each word
-  for (var i = 0; i < words.length; i++) {
-    var w = words[i];
-    if (w.length < 2) continue;
-    // Short tokens (≤4 chars): require PREFIX match (not arbitrary substring)
-    // This prevents 'itu' matching 'situ', 'amo' matching 'examen', etc.
-    if (token.length <= 4) {
-      if (w.indexOf(token) === 0) return true;
-      // Also allow if word is embedded in token (e.g. token='dm2', word='diabetes')
-      if (w.length >= 4 && token.indexOf(w) !== -1) return true;
-    } else {
-      // Word contains token (e.g. token='diabet', word='diabetes')
-      if (w.indexOf(token) !== -1) return true;
-      // Token contains word ONLY if word is substantial (>=5 chars)
-      // Prevents "diabetes" matching "Di George" via "de"/"di" substring
-      if (w.length >= 5 && token.indexOf(w) !== -1) return true;
-    }
-    // Prefix overlap: at least 5 chars shared from start
-    var minLen = Math.min(token.length, w.length);
-    if (minLen >= 5) {
-      var shared = 0;
-      while (shared < minLen && token[shared] === w[shared]) shared++;
-      if (shared >= 5) return true;
-    }
-  }
-  return false;
-}
-
-// Defer the heavy CIE-10 load + index build (10k+ entries) off the startup
-// critical path so the app renders fast. It runs when the browser is idle,
-// or on-demand the first time the user actually needs it (cieEnsureLoaded).
-if (window.requestIdleCallback) {
-  requestIdleCallback(function(){ cieEnsureLoaded(); }, { timeout: 4000 });
-} else {
-  setTimeout(function(){ cieEnsureLoaded(); }, 2000);
-}
-
-// Loads CIE-10 data if not already loaded/loading. Safe to call repeatedly.
-function cieEnsureLoaded() {
-  if (CIE_LOADED || CIE_LOADING) return;
-  cieInitFullData();
-}
-
-function cieInitFullData() {
-  // 1) localStorage cache
-  try {
-    // Limpiar caches viejas (v1-v4). v5 = catálogo completo (13,931 códigos)
-    try { localStorage.removeItem('wichanzao_cie10_v1'); } catch(e) {}
-    try { localStorage.removeItem('wichanzao_cie10_v2'); } catch(e) {}
-    try { localStorage.removeItem('wichanzao_cie10_v3'); } catch(e) {}
-    try { localStorage.removeItem('wichanzao_cie10_v4'); } catch(e) {}
-    try { localStorage.removeItem('wichanzao_cie10_v5'); } catch(e) {}
-    var raw = localStorage.getItem('wichanzao_cie10_v6');
-    if (raw) {
-      var parsed = JSON.parse(raw);
-      if (parsed && parsed.d && parsed.d.length > 5000) {
-        cieSetFullData(parsed);
-        cieLoadSynonyms();
-        return;
-      }
-    }
-  } catch(e) {}
-  // 2) fetch from network (SW caches it)
-  cieLoadFromNetwork();
-  cieLoadSynonyms();
-}
-
-function cieLoadFromNetwork() {
-  if (CIE_LOADING) return;
-  CIE_LOADING = true;
-  fetch('./icons/cie10-data-compact.json?v=' + APP_VERSION)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if (data && data.d && data.d.length > 5000) {
-        try { localStorage.setItem('wichanzao_cie10_v6', JSON.stringify(data)); } catch(e) {}
-        cieSetFullData(data);
-      }
-    }).catch(function(){
-      CIE_LOADING = false;
-    });
-}
-
-// ── Synonyms loader ───────────────────────────────────────
-var CIE_SYN_FALLBACK = {
-  "itu":["N39.0"],"ivu":["N39.0"],"hta":["I10"],"dm":["E11.9","E10.9"],"dm2":["E11.9"],"dm1":["E10.9"],
-  "epoc":["J44.9"],"erc":["N18.9"],"irc":["N18.9"],"ira":["N17.9","J06.9"],"tbc":["A16.9"],"tb":["A16.9"],
-  "bk":["A16.9"],"vih":["B24"],"sida":["B20"],"icc":["I50.9"],"iam":["I21.9"],"acv":["I64"],"eca":["I25.9"],
-  "fa":["I48"],"tvp":["I82.9"],"rge":["K21.9"],"erge":["K21.9"],"sii":["K58.9"],"eda":["A09.9"],"nac":["J18.9"],
-  "oma":["H66.0"],"hbp":["N40"],"hpb":["N40"],"sop":["E28.2"],"dip":["N73.9"],"epi":["N73.9"],"ets":["A64"],
-  "les":["M32.9"],"ar":["M06.9"],"oa":["M19.9"],"tag":["F41.1"],"cov":["U07.1"],"covid":["U07.1"],
-  "covid19":["U07.1"],"coronavirus":["U07.1"],"infeccion urinaria":["N39.0"],
-  "presion alta":["I10"],"hipertension arterial":["I10"],"azucar alta":["E11.9"],
-  "colesterol alto":["E78.0"],"derrame cerebral":["I64"],"infarto al corazon":["I21.9"],
-  "dolor de cabeza":["R51"],"dolor de espalda":["M54.9"],"dolor lumbar":["M54.5"],
-  "dolor de garganta":["J02.9"],"dolor de estomago":["R10.1"],"dolor abdominal":["R10.4"],
-  "dolor de pecho":["R07.4"],"fiebre alta":["R50.9"],"falta de aire":["R06.0"],
-  "diarrea aguda":["A09.9"],"ardor al orinar":["N39.0"],"disuria":["R30.9"],
-  "colico renal":["N23"],"gripe":["J11.1"],"resfrio":["J00"],"asma bronquial":["J45.9"]
-};
-
-function cieLoadSynonyms() {
-  if (CIE_SYN_LOADED) return;
-  fetch('./icons/cie10-synonyms.json?v=' + APP_VERSION)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if (data && Object.keys(data).length > 50) {
-        CIE_SYNONYMS = data;
-        CIE_SYN_LOADED = true;
-        var mod = document.getElementById('moduleCie');
-        if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) _doCieSearch();
-        return;
-      }
-      throw new Error('synonyms too small');
-    }).catch(function(){
-      CIE_SYNONYMS = CIE_SYN_FALLBACK;
-      CIE_SYN_LOADED = true;
-    });
-}
-
-function cieSetFullData(compact) {
-  var ch = compact.ch;
-  var full = new Array(compact.d.length);
-  var searchIdx = new Array(compact.d.length);
-  for (var i = 0; i < compact.d.length; i++) {
-    var e = compact.d[i];
-    var cinfo = ch[e[2]] || ['Sin clasificar','?','medicina'];
-    full[i] = {
-      code: e[0],
-      name: e[1],
-      chapter: e[2],
-      chName: cinfo[0],
-      range: cinfo[1],
-      specialty: cinfo[2]
-    };
-    // Precompute normalized haystack + word list
-    var haystackNorm = cieNormalize(e[0] + '|' + e[1] + '|' + cinfo[0] + '|' + e[2]);
-    searchIdx[i] = { h: haystackNorm, w: cieWords(e[1]) };
-  }
-  CIE_DATA_FULL = full;
-  CIE_SEARCH_CACHE = searchIdx;
-  CIE_LOADED = true;
-  CIE_LOADING = false;
-  // Actualizar badge
-  var badge = document.getElementById('cieDataBadge');
-  if (badge) { badge.style.display = 'inline-flex'; badge.classList.add('ready'); }
-  var badge2 = document.getElementById('cieBadge');
-  if (badge2) badge2.textContent = 'OMS · 13,931 códigos · 408 sinónimos';
-  // Refresh UI if module is visible
-  var mod = document.getElementById('moduleCie');
-  if (mod && mod.classList.contains('on') && CIE_LAST_SEARCH) {
-    _doCieSearch();
-  }
-}
-
-function cieGetActiveData() {
-  return CIE_DATA_FULL || CIE_DATA;
-}
-
-// ── Reusable ranked CIE-10 search ─────────────────────────
-// Standalone query used by autocompletes.
-// Reuses the same engine as the CIE module: normalized index,
-// synonyms and token matching. Returns up to `limit` ranked items.
-function cieQuery(rawQ, limit) {
-  rawQ = (rawQ || '').trim();
-  limit = limit || 30;
-  if (!rawQ) return [];
-  var qNorm = cieNormalize(rawQ);
-  var data = cieGetActiveData();
-  var searchIdx = CIE_SEARCH_CACHE;
-  var useIndex = searchIdx && searchIdx.length === data.length;
-  var tokens = cieWords(rawQ);
-  var syns = CIE_SYNONYMS || CIE_SYN_FALLBACK || {};
-
-  // Synonym → codes
-  var synCodes = {};
-  if (tokens.length > 0) {
-    var keys = Object.keys(syns);
-    for (var sk = 0; sk < keys.length; sk++) {
-      var key = keys[sk], keyNorm = cieNormalize(key);
-      var hit = keyNorm.indexOf(qNorm) !== -1 || qNorm.indexOf(keyNorm) !== -1;
-      if (!hit && keyNorm.split(/\s+/).length >= tokens.length) {
-        hit = true;
-        for (var t = 0; t < tokens.length; t++) { if (keyNorm.indexOf(tokens[t]) === -1) { hit = false; break; } }
-      }
-      if (hit) { var cs = syns[key]; for (var ci = 0; ci < cs.length; ci++) synCodes[cs[ci]] = true; }
-    }
-  }
-
-  function score(item, hasSyn) {
-    var s = 0;
-    var codeNorm = cieNormalize(item.code);
-    var nameNorm = cieNormalize(item.name);
-    var nameWords = item._words || (item._words = cieWords(item.name));
-    if (codeNorm === qNorm) s += 200;
-    else if (codeNorm.indexOf(qNorm) === 0) s += 150;
-    else if (codeNorm.indexOf(qNorm) !== -1) s += 100;
-    for (var ti = 0; ti < tokens.length; ti++) {
-      var tok = tokens[ti];
-      if (tok.length < 2) { s += 1; continue; }
-      if (nameNorm.indexOf(tok) === 0) s += 70;
-      var bw = 0;
-      for (var wi = 0; wi < nameWords.length; wi++) {
-        var w = nameWords[wi];
-        if (w.length < 2) continue;
-        if (w === tok) bw = Math.max(bw, 60);
-        else if (w.indexOf(tok) === 0) bw = Math.max(bw, 45);
-        else if (w.indexOf(tok) !== -1) bw = Math.max(bw, 20);
-      }
-      s += bw;
-      if (nameNorm.indexOf(tok) !== -1) s += 10;
-    }
-    if (hasSyn) s += 80;
-    if (nameNorm === qNorm) s += 100;
-    return Math.max(s, 1);
-  }
-
-  var matches = [];
-  var MAX_COLLECT = 200;
-  for (var i = 0; i < data.length && matches.length < MAX_COLLECT; i++) {
-    var item = data[i];
-    var isSyn = synCodes[item.code];
-    if (!isSyn) {
-      var idx = useIndex ? searchIdx[i] : null;
-      var hay = idx ? idx.h : cieNormalize(item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter);
-      var words = idx ? idx.w : cieWords(item.name);
-      var all = true;
-      for (var k = 0; k < tokens.length; k++) { if (!cieTokenMatch(tokens[k], hay, words, item.code)) { all = false; break; } }
-      if (!all) continue;
-    }
-    matches.push({ item: item, score: score(item, isSyn) });
-  }
-  matches.sort(function(a, b){ return b.score - a.score; });
-  return matches.slice(0, limit).map(function(m){ return m.item; });
-}
-
-// ── INLINE FALLBACK DATA (usado antes de cargar el JSON) ───
-var CIE_DATA = [
-  // I. INFECCIOSAS Y PARASITARIAS (A00-B99)
-  {code:"A00",name:"Colera",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A01",name:"Fiebres tifoidea y paratifoidea",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A02",name:"Otras infecciones por Salmonella",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A03",name:"Shigelosis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A04",name:"Otras infecciones intestinales bacterianas",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A06",name:"Amebiasis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A09",name:"Diarrea y gastroenteritis de presunto origen infeccioso",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A15.0",name:"Tuberculosis pulmonar con confirmacion bacteriologica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A15.1",name:"Tuberculosis pulmonar solo por cultivo",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A16.9",name:"Tuberculosis pulmonar sin confirmacion bacteriologica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"U20.2",name:"Tuberculosis Multidrogoresistente (MDR)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A17",name:"Tuberculosis del sistema nervioso",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A27",name:"Leptospirosis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A37",name:"Tos ferina (Pertussis)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"pediatria",range:"A00-B99"},
-  {code:"A37.8",name:"Dengue sin senales de alarma",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A39",name:"Infeccion meningococica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A40",name:"Septicemia estreptococica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A41",name:"Otras septicemias",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A46",name:"Erisipela",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A49",name:"Infeccion bacteriana de sitio no especificado",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A69",name:"Otras infecciones por espiroquetas",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A75",name:"Tifus",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A82",name:"Rabia",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A90",name:"Dengue clasico",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"A91",name:"Fiebre hemorragica por dengue",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B15",name:"Hepatitis A",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B16",name:"Hepatitis B",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B17",name:"Otras hepatitis virales agudas",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B18",name:"Hepatitis viral cronica",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B20",name:"SIDA (Sindrome de Inmunodeficiencia Adquirida)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B24",name:"Infeccion por VIH sin otra especificacion",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B50",name:"Paludismo por Plasmodium falciparum",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B55",name:"Leishmaniasis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B57",name:"Enfermedad de Chagas (Tripanosomiasis)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B77",name:"Ascariasis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"pediatria",range:"A00-B99"},
-  {code:"B86",name:"Escabiosis (Sarna)",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  {code:"B90",name:"Secuelas de tuberculosis",chapter:"I",chName:"Infecciosas y parasitarias",specialty:"medicina",range:"A00-B99"},
-  // II. NEOPLASIAS (C00-D48)
-  {code:"C16",name:"Tumor maligno del estomago",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C18",name:"Tumor maligno del colon",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C22",name:"Tumor maligno del higado y vias biliares intrahepaticas",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C25",name:"Tumor maligno del pancreas",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C32",name:"Tumor maligno de la laringe",chapter:"II",chName:"Neoplasias",specialty:"cirugia",range:"C00-D48"},
-  {code:"C34",name:"Tumor maligno de los bronquios y del pulmon",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C50",name:"Tumor maligno de la mama",chapter:"II",chName:"Neoplasias",specialty:"gineco",range:"C00-D48"},
-  {code:"C53",name:"Tumor maligno del cuello del utero",chapter:"II",chName:"Neoplasias",specialty:"gineco",range:"C00-D48"},
-  {code:"C56",name:"Tumor maligno del ovario",chapter:"II",chName:"Neoplasias",specialty:"gineco",range:"C00-D48"},
-  {code:"C61",name:"Tumor maligno de la prostata",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C64",name:"Tumor maligno del rinon excepto pelvis renal",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C67",name:"Tumor maligno de la vejiga urinaria",chapter:"II",chName:"Neoplasias",specialty:"cirugia",range:"C00-D48"},
-  {code:"C71",name:"Tumor maligno del encefalo",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C81",name:"Enfermedad de Hodgkin",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C85",name:"Linfoma no Hodgkin",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C90",name:"Mieloma multiple y tumores malignos de celulas plasmaticas",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C91",name:"Leucemia linfoide",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  {code:"C92",name:"Leucemia mieloide",chapter:"II",chName:"Neoplasias",specialty:"medicina",range:"C00-D48"},
-  // III. SANGRE Y ORGANOS HEMATOPOYETICOS (D50-D89)
-  {code:"D50",name:"Anemia por deficiencia de hierro",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D51",name:"Anemia por deficiencia de vitamina B12",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D56",name:"Talasemia",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D57",name:"Trastornos falciformes",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D59",name:"Anemia hemolitica adquirida",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D64",name:"Otras anemias",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D66",name:"Deficiencia hereditaria del factor VIII (Hemofilia A)",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"pediatria",range:"D50-D89"},
-  {code:"D68",name:"Otros defectos de la coagulacion",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D69",name:"Purpura y otras afecciones hemorragicas",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  {code:"D70",name:"Agranulocitosis",chapter:"III",chName:"Sangre y organos hematopoyeticos",specialty:"medicina",range:"D50-D89"},
-  // IV. ENDOCRINAS, NUTRICIONALES Y METABOLICAS (E00-E90)
-  {code:"E10",name:"Diabetes Mellitus Insulinodependiente (Tipo 1)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"DM tipo 1, Diabetes juvenil"},
-  {code:"E11",name:"Diabetes Mellitus No Insulinodependiente (Tipo 2)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"DM tipo 2, Diabetes del adulto"},
-  {code:"E11.0",name:"Diabetes Mellitus Tipo 2 con coma",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E11.1",name:"Diabetes Mellitus Tipo 2 con cetoacidosis",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E11.2",name:"Diabetes Mellitus Tipo 2 con complicaciones renales",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Enfermedad renal diabetica, Nefropatia diabetica"},
-  {code:"E11.3",name:"Diabetes Mellitus Tipo 2 con complicaciones oftalmicas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Retinopatia diabetica"},
-  {code:"E11.4",name:"Diabetes Mellitus Tipo 2 con complicaciones neurologicas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Neuropatia diabetica"},
-  {code:"E11.5",name:"Diabetes Mellitus Tipo 2 con complicaciones circulatorias perifericas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Pie diabetico, Angiopatia diabetica"},
-  {code:"E11.6",name:"Diabetes Mellitus Tipo 2 con otras complicaciones especificadas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E11.7",name:"Diabetes Mellitus Tipo 2 con complicaciones multiples",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E11.8",name:"Diabetes Mellitus Tipo 2 con complicaciones no especificadas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E11.9",name:"Diabetes Mellitus Tipo 2 sin mencion de complicacion",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E13",name:"Otras Diabetes Mellitus Especificadas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E14",name:"Diabetes Mellitus No Especificada",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"O24",name:"Diabetes Mellitus en el Embarazo",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"gineco",range:"E00-E90",incluye:"Diabetes gestacional"},
-  {code:"E03",name:"Otro hipotiroidismo",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E05",name:"Tirotoxicosis (Hipertiroidismo)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E06",name:"Tiroiditis",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E10.0",name:"Diabetes Tipo 1 con coma",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E10.1",name:"Diabetes Tipo 1 con cetoacidosis",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E24",name:"Sindrome de Cushing",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E27",name:"Otros trastornos de la glandula suprarrenal",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E44",name:"Desnutricion proteicocalorica de grado moderado y leve",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"pediatria",range:"E00-E90"},
-  {code:"E46",name:"Desnutricion proteicocalorica no especificada",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"pediatria",range:"E00-E90"},
-  {code:"E55",name:"Deficiencia de vitamina D",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"pediatria",range:"E00-E90"},
-  {code:"E66",name:"Obesidad",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E78",name:"Trastornos del metabolismo de las lipoproteinas y otras lipidemias",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Hiperlipidemia, Dislipidemia, Hipercolesterolemia"},
-  {code:"E79",name:"Trastornos del metabolismo de las purinas y pirimidinas",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Gota, Hiperuricemia"},
-  {code:"E86",name:"Deplecion del volumen (Deshidratacion)",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90"},
-  {code:"E87",name:"Otros trastornos de liquidos, electrolitos y equilibrio acido-base",chapter:"IV",chName:"Endocrinas y metabolicas",specialty:"medicina",range:"E00-E90",incluye:"Hiponatremia, Hiperkalemia, Acidosis metabolica"},
-  // V. TRASTORNOS MENTALES (F00-F99)
-  {code:"F00",name:"Demencia en la enfermedad de Alzheimer",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F10",name:"Trastornos mentales y del comportamiento debidos al uso de alcohol",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F17",name:"Trastornos mentales debidos al uso de tabaco",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F20",name:"Esquizofrenia",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F31",name:"Trastorno afectivo bipolar",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F32",name:"Episodio depresivo",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F33",name:"Trastorno depresivo recurrente",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  {code:"F41",name:"Otros trastornos de ansiedad",chapter:"V",chName:"Trastornos mentales",specialty:"medicina",range:"F00-F99"},
-  // VI. SISTEMA NERVIOSO (G00-G99)
-  {code:"G00",name:"Meningitis bacteriana",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G03",name:"Meningitis debida a otras causas",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G20",name:"Enfermedad de Parkinson",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G35",name:"Esclerosis multiple",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G40",name:"Epilepsia",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G41",name:"Estado de mal epileptico",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G43",name:"Migrana",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G45",name:"Ataques de isquemia cerebral transitoria",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G51",name:"Trastornos del nervio facial",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99",incluye:"Paralisis de Bell"},
-  {code:"G61",name:"Polineuropatia inflamatoria (Guillain-Barre)",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G61.9",name:"Sindrome de Guillain Barre",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G81",name:"Hemiplejia",chapter:"VI",chName:"Sistema nervioso",specialty:"medicina",range:"G00-G99"},
-  {code:"G91",name:"Hidrocefalia",chapter:"VI",chName:"Sistema nervioso",specialty:"cirugia",range:"G00-G99"},
-  // VII. OJO Y ANEXOS (H00-H59)
-  {code:"H10",name:"Conjuntivitis",chapter:"VII",chName:"Ojo y anexos",specialty:"medicina",range:"H00-H59"},
-  {code:"H25",name:"Catarata senil",chapter:"VII",chName:"Ojo y anexos",specialty:"cirugia",range:"H00-H59"},
-  {code:"H35",name:"Otros trastornos de la retina",chapter:"VII",chName:"Ojo y anexos",specialty:"medicina",range:"H00-H59",incluye:"Retinopatia hipertensiva"},
-  {code:"H40",name:"Glaucoma",chapter:"VII",chName:"Ojo y anexos",specialty:"medicina",range:"H00-H59"},
-  // VIII. OIDO Y APOFISIS MASTOIDES (H60-H95)
-  {code:"H65",name:"Otitis media no supurativa",chapter:"VIII",chName:"Oido",specialty:"pediatria",range:"H60-H95"},
-  {code:"H66",name:"Otitis media supurativa",chapter:"VIII",chName:"Oido",specialty:"pediatria",range:"H60-H95"},
-  // IX. SISTEMA CIRCULATORIO (I00-I99)
-  {code:"I10",name:"Hipertension esencial (primaria)",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"HTA, Hipertension arterial"},
-  {code:"I11",name:"Enfermedad cardiaca hipertensiva",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I12",name:"Enfermedad renal hipertensiva",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I13",name:"Enfermedad cardiorrenal hipertensiva",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I15",name:"Hipertension secundaria",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I20",name:"Angina de pecho",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I21",name:"Infarto agudo de miocardio",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"IAM, Ataque cardiaco"},
-  {code:"I25",name:"Enfermedad isquemica cronica del corazon",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I26",name:"Embolia pulmonar",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I27",name:"Otras enfermedades cardiopulmonares",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"Hipertension pulmonar"},
-  {code:"I30",name:"Pericarditis aguda",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I33",name:"Endocarditis aguda y subaguda",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I42",name:"Miocardiopatia",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I44",name:"Bloqueo auriculoventricular y de rama izquierda del haz",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I48",name:"Fibrilacion y aleteo auricular",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I50",name:"Insuficiencia cardiaca",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"ICC, Fallo cardiaco"},
-  {code:"I60",name:"Hemorragia subaracnoidea",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I61",name:"Hemorragia intraencefalica",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I63",name:"Infarto cerebral",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"ACV isquemico, Ictus"},
-  {code:"I64",name:"Accidente vascular encefalico agudo no especificado",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"ACV, Stroke"},
-  {code:"I70",name:"Aterosclerosis",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I73",name:"Otras enfermedades vasculares perifericas",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  {code:"I80",name:"Flebitis y tromboflebitis",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99",incluye:"TVP, Trombosis venosa profunda"},
-  {code:"I84",name:"Hemorroides",chapter:"IX",chName:"Sistema circulatorio",specialty:"cirugia",range:"I00-I99"},
-  {code:"I85",name:"Varices esofagicas",chapter:"IX",chName:"Sistema circulatorio",specialty:"medicina",range:"I00-I99"},
-  // X. SISTEMA RESPIRATORIO (J00-J99)
-  {code:"J00",name:"Rinofaringitis aguda (Resfriado comun)",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J01",name:"Sinusitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J02",name:"Faringitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J03",name:"Amigdalitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J06",name:"Infecciones agudas de vias respiratorias superiores",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J11",name:"Influenza (gripe) con otras manifestaciones",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J12",name:"Neumonia viral",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J15",name:"Neumonia bacteriana no clasificada en otra parte",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J15.9",name:"Neumonia bacteriana no especificada",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J18",name:"Neumonia organismo no especificado",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J20",name:"Bronquitis aguda",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J30",name:"Rinitis alergica y vasomotora",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J42",name:"Bronquitis cronica no especificada",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J44",name:"Otras enfermedades pulmonares obstructivas cronicas",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99",incluye:"EPOC, Enfisema"},
-  {code:"J45",name:"Asma",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J46",name:"Estado asmatico",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J47",name:"Bronquiectasia",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J81",name:"Edema pulmonar",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J85",name:"Absceso del pulmon y del mediastino",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J90",name:"Derrame pleural no clasificado en otra parte",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  {code:"J93",name:"Neumotorax",chapter:"X",chName:"Sistema respiratorio",specialty:"cirugia",range:"J00-J99"},
-  {code:"J96",name:"Insuficiencia respiratoria no clasificada en otra parte",chapter:"X",chName:"Sistema respiratorio",specialty:"medicina",range:"J00-J99"},
-  // XI. SISTEMA DIGESTIVO (K00-K93)
-  {code:"K20",name:"Esofagitis",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K21",name:"Enfermedad por reflujo gastroesofagico",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"ERGE, Reflujo"},
-  {code:"K25",name:"Ulcera gastrica",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K26",name:"Ulcera duodenal",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K29",name:"Gastritis y duodenitis",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K30",name:"Dispepsia funcional",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K35",name:"Apendicitis aguda",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
-  {code:"K40",name:"Hernia inguinal",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
-  {code:"K42",name:"Hernia umbilical",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
-  {code:"K44",name:"Hernia diafragmatica",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
-  {code:"K50",name:"Enfermedad de Crohn (enteritis regional)",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K51",name:"Colitis ulcerativa",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K52",name:"Otras colitis y gastroenteritis no infecciosas",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K56",name:"Ileo paralitico y obstruccion intestinal sin hernia",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
-  {code:"K59",name:"Otros trastornos funcionales intestinales",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Sindrome de intestino irritable"},
-  {code:"K70",name:"Enfermedad alcoholica del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K71",name:"Enfermedad toxica del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K72",name:"Insuficiencia hepatica no clasificada en otra parte",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K74",name:"Fibrosis y cirrosis del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Cirrosis hepatica"},
-  {code:"K75",name:"Otras enfermedades inflamatorias del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K76",name:"Otras enfermedades del higado",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Higado graso, Esteatosis hepatica"},
-  {code:"K80",name:"Colelitiasis",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93",incluye:"Calculos biliares"},
-  {code:"K81",name:"Colecistitis",chapter:"XI",chName:"Sistema digestivo",specialty:"cirugia",range:"K00-K93"},
-  {code:"K85",name:"Pancreatitis aguda",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K86",name:"Otras enfermedades del pancreas",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Pancreatitis cronica"},
-  {code:"K90",name:"Malabsorcion intestinal",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93"},
-  {code:"K92",name:"Otras enfermedades del sistema digestivo",chapter:"XI",chName:"Sistema digestivo",specialty:"medicina",range:"K00-K93",incluye:"Hemorragia digestiva, HDA"},
-  // XII. PIEL Y TEJIDO SUBCUTANEO (L00-L99)
-  {code:"L02",name:"Absceso cutaneo, furunculo y antrax",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L03",name:"Celulitis",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L20",name:"Dermatitis atopica",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"pediatria",range:"L00-L99"},
-  {code:"L23",name:"Dermatitis alergica de contacto",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L30",name:"Otras dermatitis",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L40",name:"Psoriasis",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L50",name:"Urticaria",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L89",name:"Ulcera por decubito (Ulcera por presion)",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  {code:"L93",name:"Lupus eritematoso",chapter:"XII",chName:"Piel y tejido subcutaneo",specialty:"medicina",range:"L00-L99"},
-  // XIII. SISTEMA OSTEOMUSCULAR (M00-M99)
-  {code:"M05",name:"Artritis reumatoide seropositiva",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M06",name:"Otras artritis reumatoides",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M10",name:"Gota",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M15",name:"Osteoartrosis generalizada",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M17",name:"Gonartrosis (Artrosis de la rodilla)",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M32",name:"Lupus eritematoso sistemico",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99",incluye:"LES"},
-  {code:"M34",name:"Esclerosis sistemica",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M45",name:"Espondilitis anquilosante",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M51",name:"Otros trastornos de los discos intervertebrales",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99"},
-  {code:"M54",name:"Dorsalgia",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99",incluye:"Lumbago, Lumbalgia"},
-  {code:"M79",name:"Otros trastornos de tejidos blandos",chapter:"XIII",chName:"Sistema osteomuscular",specialty:"medicina",range:"M00-M99",incluye:"Fibromialgia"},
-  // XIV. SISTEMA GENITOURINARIO (N00-N99)
-  {code:"N00",name:"Sindrome nefritico agudo",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N03",name:"Sindrome nefritico cronico",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N04",name:"Sindrome nefrotico",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N10",name:"Nefritis tubulointersticial aguda",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N11",name:"Nefritis tubulointersticial cronica",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N12",name:"Nefritis tubulointersticial no especificada",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N17",name:"Insuficiencia renal aguda",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"IRA, Falla renal aguda, LRA"},
-  {code:"N18",name:"Enfermedad renal cronica",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"ERC, IRC, Insuficiencia renal cronica"},
-  {code:"N18.1",name:"ERC estadio 1 (TFG ≥90)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N18.2",name:"ERC estadio 2 (TFG 60-89)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N18.3",name:"ERC estadio 3 (TFG 30-59)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N18.4",name:"ERC estadio 4 (TFG 15-29)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N18.5",name:"ERC estadio 5 (TFG <15)",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N20",name:"Calculo del rinon y del ureter",chapter:"XIV",chName:"Sistema genitourinario",specialty:"cirugia",range:"N00-N99",incluye:"Litiasis renal"},
-  {code:"N30",name:"Cistitis",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N34",name:"Uretritis y sindrome uretral",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99"},
-  {code:"N39",name:"Otros trastornos del sistema urinario",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"ITU, Infeccion urinaria"},
-  {code:"N40",name:"Hiperplasia de la prostata",chapter:"XIV",chName:"Sistema genitourinario",specialty:"cirugia",range:"N00-N99",incluye:"HPB"},
-  {code:"N41",name:"Enfermedades inflamatorias de la prostata",chapter:"XIV",chName:"Sistema genitourinario",specialty:"medicina",range:"N00-N99",incluye:"Prostatitis"},
-  {code:"N70",name:"Salpingitis y ooforitis",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N71",name:"Enfermedad inflamatoria del utero excepto el cuello",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N72",name:"Enfermedad inflamatoria del cuello uterino",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N73",name:"Otras enfermedades inflamatorias pelvicas femeninas",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99",incluye:"EPI"},
-  {code:"N76",name:"Otras afecciones inflamatorias de vagina y vulva",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N80",name:"Endometriosis",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N81",name:"Prolapso genital femenino",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N83",name:"Trastornos no inflamatorios del ovario y otros",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99",incluye:"SOP, Sindrome de ovario poliquistico"},
-  {code:"N92",name:"Menstruacion excesiva, frecuente e irregular",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  {code:"N95",name:"Otros trastornos menopausicos y perimenopausicos",chapter:"XIV",chName:"Sistema genitourinario",specialty:"gineco",range:"N00-N99"},
-  // XV. EMBARAZO, PARTO Y PUERPERIO (O00-O99)
-  {code:"O10",name:"Hipertension previa que complica el embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O13",name:"Hipertension gestacional sin proteinuria significativa",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O14",name:"Preeclampsia",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O15",name:"Eclampsia",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O20",name:"Hemorragia precoz del embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O24.0",name:"Diabetes mellitus preexistente en el embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O24.4",name:"Diabetes mellitus gestacional",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O26",name:"Atencion a la madre por otras complicaciones del embarazo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O30",name:"Embarazo multiple",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O34",name:"Atencion materna por anormalidades de organos pelvianos",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O42",name:"Ruptura prematura de membranas",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O45",name:"Desprendimiento prematuro de placenta (Abruptio placentae)",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O46",name:"Hemorragia anteparto",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O48",name:"Embarazo prolongado",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O60",name:"Parto prematuro",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O62",name:"Anormalidades de la dinamica del trabajo de parto",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O70",name:"Desgarro perineal durante el parto",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O80",name:"Parto unico espontaneo",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O82",name:"Parto unico por cesarea",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O85",name:"Sepsis puerperal",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O98",name:"Enfermedades infecciosas maternas clasificables en otra parte",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  {code:"O99",name:"Otras enfermedades maternas clasificables en otra parte",chapter:"XV",chName:"Embarazo y puerperio",specialty:"gineco",range:"O00-O99"},
-  // XVI. PERINATALES (P00-P96)
-  {code:"P07",name:"Trastornos del crecimiento fetal y desnutricion fetal",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
-  {code:"P22",name:"Dificultad respiratoria del recien nacido",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
-  {code:"P36",name:"Sepsis bacteriana del recien nacido",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
-  {code:"P55",name:"Enfermedad hemolitica del feto y del recien nacido",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
-  {code:"P59",name:"Ictericia neonatal por otras causas",chapter:"XVI",chName:"Afecciones perinatales",specialty:"pediatria",range:"P00-P96"},
-  // XVII. MALFORMACIONES CONGENITAS (Q00-Q99)
-  {code:"Q21",name:"Anomalias congenitas de los tabiques cardiacos",chapter:"XVII",chName:"Malformaciones congenitas",specialty:"pediatria",range:"Q00-Q99",incluye:"CIV, CIA"},
-  {code:"Q25",name:"Anomalias congenitas de grandes arterias",chapter:"XVII",chName:"Malformaciones congenitas",specialty:"pediatria",range:"Q00-Q99"},
-  // XVIII. SINTOMAS Y HALLAZGOS ANORMALES (R00-R99)
-  {code:"R00",name:"Anormalidades del latido cardiaco",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Taquicardia, Bradicardia"},
-  {code:"R04",name:"Hemorragia de las vias respiratorias",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Hemoptisis, Epistaxis"},
-  {code:"R06",name:"Anormalidades de la respiracion",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Disnea"},
-  {code:"R07",name:"Dolor de garganta y pecho",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Dolor toracico"},
-  {code:"R10",name:"Dolor abdominal y pelvico",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R11",name:"Nausea y vomito",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R17",name:"Ictericia no especificada",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R18",name:"Ascitis",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R31",name:"Hematuria no especificada",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R42",name:"Mareo y desvanecimiento",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Vertigo"},
-  {code:"R50",name:"Fiebre de origen desconocido",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"FOD"},
-  {code:"R51",name:"Cefalea",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R55",name:"Sincope y colapso",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R57",name:"Shock no clasificado en otra parte",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99",incluye:"Shock hipovolemico, Shock septico"},
-  {code:"R63",name:"Sintomas y signos concernientes a alimentacion e ingestion",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  {code:"R64",name:"Caquexia",chapter:"XVIII",chName:"Sintomas y hallazgos",specialty:"medicina",range:"R00-R99"},
-  // XIX. TRAUMATISMOS Y ENVENENAMIENTOS (S00-T98)
-  {code:"S06",name:"Traumatismo intracraneal",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98",incluye:"TEC, Concusion cerebral"},
-  {code:"S12",name:"Fractura del cuello",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
-  {code:"S22",name:"Fractura de costilla, esternon y columna toracica",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
-  {code:"S32",name:"Fractura de la columna lumbar y de la pelvis",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
-  {code:"S42",name:"Fractura del hombro y del brazo",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
-  {code:"S52",name:"Fractura del antebrazo",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
-  {code:"S72",name:"Fractura del femur",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98",incluye:"Fractura de cadera"},
-  {code:"S82",name:"Fractura de la pierna, inclusive el tobillo",chapter:"XIX",chName:"Traumatismos",specialty:"cirugia",range:"S00-T98"},
-  {code:"T56.0",name:"Efecto toxico del Plomo y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Saturnismo, Intoxicacion por plomo"},
-  {code:"T56.1",name:"Efecto toxico del Mercurio y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Hidrargirismo, Intoxicacion por mercurio"},
-  {code:"T56.2",name:"Efecto toxico del Cromo y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98"},
-  {code:"T56.3",name:"Efecto toxico del Cadmio y sus compuestos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98"},
-  {code:"T60.1",name:"Efecto toxico de Insecticidas halogenados",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Intoxicacion por organoclorados"},
-  {code:"T60.2",name:"Efecto toxico de Otros insecticidas",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Intoxicacion por organofosforados, carbamatos"},
-  {code:"T63",name:"Efecto toxico del contacto con animales venenosos",chapter:"XIX",chName:"Traumatismos y envenenamientos",specialty:"medicina",range:"S00-T98",incluye:"Mordedura de serpiente, Picadura de escorpion"},
-  // XX. CAUSAS EXTERNAS (V01-Y98)
-  // XXI. FACTORES DE SALUD (Z00-Z99)
-  {code:"Z00",name:"Examen general e investigacion de personas sin quejas",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
-  {code:"Z03",name:"Observacion y evaluacion medica por sospecha de enfermedad",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
-  {code:"Z11",name:"Examen de pesquisa especial para enfermedades infecciosas",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
-  {code:"Z23",name:"Necesidad de inmunizacion contra enfermedad bacteriana",chapter:"XXI",chName:"Factores de salud",specialty:"pediatria",range:"Z00-Z99"},
-  {code:"Z51",name:"Otra atencion medica",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99",incluye:"Quimioterapia, Dialisis"},
-  {code:"Z59",name:"Problemas relacionados con vivienda y circunstancias economicas",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
-  {code:"Z71",name:"Personas en contacto con servicios de salud para consejo medico",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99"},
-  {code:"Z72",name:"Problemas relacionados con el estilo de vida",chapter:"XXI",chName:"Factores de salud",specialty:"medicina",range:"Z00-Z99",incluye:"Tabaquismo, Alcoholismo, Sedentarismo"}
-];
-
-var CIE_FAVORITES = [];
-var CIE_FILTER = 'all';
-var CIE_HISTORY = [];
-var CIE_LAST_SEARCH = '';
-
-(function(){
-  try { CIE_FAVORITES = JSON.parse(localStorage.getItem('wichanzao_cie_favs') || '[]'); } catch(e) {}
-  try { CIE_HISTORY = JSON.parse(localStorage.getItem('wichanzao_cie_history') || '[]'); } catch(e) {}
-})();
-
-function doCieSearch() {
-  // Debounce: espera 200ms despues de la ultima tecla
-  clearTimeout(CIE_DEBOUNCE);
-  CIE_DEBOUNCE = setTimeout(_doCieSearch, 200);
-}
-
-function _doCieSearch() {
-  var rawQ = document.getElementById('cieSearch').value.trim();
-  var q = cieNormalize(rawQ);
-  var resultsDiv = document.getElementById('cieResultList');
-  var infoDiv = document.getElementById('cieResultsInfo');
-  var favSection = document.getElementById('cieFavSection');
-  var chaptersGrid = document.getElementById('cieChaptersGrid');
-
-  if (!rawQ && CIE_FILTER === 'all') {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">🔍</div><p>Escribe para buscar codigos CIE-10</p><p style="font-size:11px;color:var(--t3);margin-top:4px">' + (CIE_LOADED ? '13,931 codigos + 408 sinonimos · Busqueda por codigo, nombre, sigla o sinonimo' : 'Cargando catalogo completo...') + '</p></div>';
-    infoDiv.style.display = 'none';
-    if (favSection) favSection.style.display = 'none';
-    if (chaptersGrid) chaptersGrid.style.display = 'none';
-    CIE_LAST_SEARCH = '';
-    return;
-  }
-
-  if (!rawQ && CIE_FILTER === 'favorites') {
-    renderCIEFavorites();
-    infoDiv.style.display = 'none';
-    if (chaptersGrid) chaptersGrid.style.display = 'none';
-    return;
-  }
-
-  CIE_LAST_SEARCH = q;
-
-  var data = cieGetActiveData();
-  var searchIdx = CIE_SEARCH_CACHE;
-  var tokens = q ? cieWords(rawQ) : [];
-  var syns = CIE_SYNONYMS || CIE_SYN_FALLBACK || {};
-
-  // ── Find synonym matches ──────────────────────────────────
-  var synMatches = {}; // code → {type: 'sigla'|'alias', label: key}
-  var synCodesSeen = {};
-  if (q && tokens.length > 0) {
-    var synKeys = Object.keys(syns);
-    for (var sk = 0; sk < synKeys.length; sk++) {
-      var key = synKeys[sk];
-      var keyNorm = cieNormalize(key);
-      // Match: full synonym key matches query, OR all synonym words are in query tokens
-      var synMatch = keyNorm.indexOf(q) !== -1 || q.indexOf(keyNorm) !== -1;
-      if (!synMatch && tokens.length > 0 && keyNorm.split(/\s+/).length >= tokens.length) {
-        synMatch = true;
-        for (var tk = 0; tk < tokens.length; tk++) {
-          if (keyNorm.indexOf(tokens[tk]) === -1) { synMatch = false; break; }
-        }
-      }
-      if (synMatch) {
-        var codes = syns[key];
-        var type = key.length <= 5 ? 'sigla' : 'alias';
-        for (var ci = 0; ci < codes.length; ci++) {
-          var sc = codes[ci];
-          if (!synCodesSeen[sc]) {
-            synCodesSeen[sc] = true;
-            synMatches[sc] = { type: type, label: key };
-          }
-        }
-      }
-    }
-  }
-
-  // ── Relevance scoring function ────────────────────────────
-  // Higher score = better match. Orders results by similarity.
-  function cieScoreResult(item, tokens, qNorm, hasSyn) {
-    var score = 0;
-    var codeNorm = cieNormalize(item.code);
-    var nameNorm = cieNormalize(item.name);
-    var nameWords = (item._words || cieWords(item.name));
-    item._words = nameWords;
-
-    // ── Code matching (most specific, highest weight) ──
-    if (codeNorm === qNorm)           { score += 200; }        // exact code
-    else if (codeNorm.indexOf(qNorm) === 0) { score += 150; }  // code prefix (E11 matches E11.0)
-    else if (codeNorm.indexOf(qNorm) !== -1) { score += 100; } // code contains query
-
-    // ── Per-token name matching ──
-    for (var ti = 0; ti < tokens.length; ti++) {
-      var token = tokens[ti];
-      if (token.length < 2) { score += 1; continue; }
-
-      // Whole name starts with token (e.g. "diabetes" matches "Diabetes mellitus...")
-      if (nameNorm.indexOf(token) === 0) { score += 70; }
-
-      // Check each word in the name
-      var bestWordScore = 0;
-      for (var wi = 0; wi < nameWords.length; wi++) {
-        var word = nameWords[wi];
-        if (word.length < 2) continue;
-
-        if (word === token)               { bestWordScore = Math.max(bestWordScore, 60); }  // exact word
-        else if (word.indexOf(token) === 0) { bestWordScore = Math.max(bestWordScore, 45); } // word prefix
-        else if (word.indexOf(token) !== -1) { bestWordScore = Math.max(bestWordScore, 20); } // substring in word
-      }
-      score += bestWordScore;
-
-      // Fallback: token appears anywhere in name
-      if (nameNorm.indexOf(token) !== -1) { score += 10; }
-    }
-
-    // ── Synonym bonus ──
-    if (hasSyn) { score += 80; }
-
-    // ── Prefer shorter names (more specific) when scores are close ──
-    // Excess length beyond query gets a tiny penalty
-    var excess = nameNorm.length - Math.max(qNorm.length, 3);
-    if (excess > 40) { score -= Math.floor((excess - 40) / 30); }
-
-    // ── Exact name match is ideal ──
-    if (nameNorm === qNorm) { score += 100; }
-
-    return Math.max(score, 1);
-  }
-
-  // ── Token-match main data ─────────────────────────────────
-  var allMatches = [];
-  var totalCount = 0;
-  var MAX_SHOW = 60;
-  var MAX_COLLECT = 300; // collect more than we show for good ranking
-  var useIndex = searchIdx && searchIdx.length === data.length;
-
-  for (var i = 0; i < data.length; i++) {
-    var item = data[i];
-    // Specialty filter
-    if (CIE_FILTER !== 'all' && CIE_FILTER !== 'favorites') {
-      if (item.specialty !== CIE_FILTER) continue;
-    }
-    if (CIE_FILTER === 'favorites') {
-      if (CIE_FAVORITES.indexOf(item.code) === -1) continue;
-    }
-    // Token matching — bypass if matched via synonym
-    var isSynCode = synMatches[item.code];
-    if (q && tokens.length > 0 && !isSynCode) {
-      var idx = useIndex ? searchIdx[i] : null;
-      var haystackNorm = idx ? idx.h : cieNormalize(item.code + '|' + item.name + '|' + item.chName + '|' + item.chapter);
-      var words = idx ? idx.w : cieWords(item.name);
-      var allMatch = true;
-      for (var t = 0; t < tokens.length; t++) {
-        if (!cieTokenMatch(tokens[t], haystackNorm, words, item.code)) { allMatch = false; break; }
-      }
-      if (!allMatch) continue;
-    }
-    totalCount++;
-
-    // Attach synonym info
-    if (synMatches[item.code]) {
-      item._synType = synMatches[item.code].type;
-      item._synLabel = synMatches[item.code].label;
-    }
-
-    // Score & collect
-    item._words = words;
-    if (allMatches.length < MAX_COLLECT) {
-      item._score = cieScoreResult(item, tokens, q, !!synMatches[item.code]);
-      allMatches.push(item);
-    }
-  }
-
-  // ── Sort by relevance score (highest first) ──────────────
-  allMatches.sort(function(a, b) {
-    return (b._score || 0) - (a._score || 0);
-  });
-
-  // ── Show top results ─────────────────────────────────────
-  var topResults = allMatches.slice(0, MAX_SHOW);
-
-  infoDiv.style.display = 'block';
-  document.getElementById('cieResultsCount').textContent = totalCount + ' resultado' + (totalCount !== 1 ? 's' : '') + (totalCount > MAX_SHOW ? ' (mostrando ' + MAX_SHOW + ')' : '');
-  document.getElementById('cieActiveFilter').textContent = CIE_FILTER !== 'all' ? 'Filtro: ' + getFilterLabel(CIE_FILTER) : '';
-  var badge = document.getElementById('cieDataBadge');
-  if (badge) badge.style.display = CIE_LOADED ? 'inline-flex' : 'none';
-  if (!CIE_LOADED) {
-    document.getElementById('cieActiveFilter').textContent += ' · Cargando catalogo completo...';
-  }
-
-  if (chaptersGrid) chaptersGrid.style.display = 'none';
-
-  if (topResults.length === 0) {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">😕</div><p>No se encontraron codigos para "' + cieEscape(rawQ) + '"</p><p style="font-size:11px;color:var(--t3);margin-top:4px">Prueba con otra palabra, sinonimo o sigla</p></div>';
-    if (favSection) favSection.style.display = 'none';
-    return;
-  }
-
-  resultsDiv.innerHTML = topResults.map(function(item) {
-    var isFav = CIE_FAVORITES.indexOf(item.code) !== -1;
-    var synBadge = '';
-    if (item._synType) {
-      var badgeColor = item._synType === 'sigla' ? 'rgba(212,168,83,.2)' : 'rgba(78,205,196,.2)';
-      var badgeText = item._synType === 'sigla' ? 'Sigla: ' + item._synLabel : 'Sinonimo';
-      synBadge = '<span style="display:inline-block;background:' + badgeColor + ';color:var(--t2);font-size:9px;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle">' + badgeText + '</span>';
-    }
-    return '<div class="cie-result-item" onclick="cieShowDetail(\'' + item.code + '\')">' +
-      '<div class="cie-code">' + item.code + '</div>' +
-      '<div class="cie-info">' +
-        '<div class="cie-name">' + cieHighlightNew(item.name, rawQ, q) + synBadge + '</div>' +
-        '<div class="cie-meta">' +
-          '<span class="meta-ch">Cap ' + item.chapter + '</span>' +
-          '<span>' + item.chName + '</span>' +
-          '<span>· ' + getFilterLabel(item.specialty) + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<button class="cie-fav' + (isFav ? ' saved' : '') + '" onclick="cieToggleFav(event,\'' + item.code + '\')" title="' + (isFav ? 'Quitar de favoritos' : 'Guardar en favoritos') + '">★</button>' +
-    '</div>';
-  }).join('');
-
-  if (favSection) favSection.style.display = 'none';
-}
-
-// ── Highlight: accent-insensitive ──────────────────────────
-function cieHighlightNew(text, rawQ, qNorm) {
-  if (!rawQ) return cieEscape(text);
-  var escaped = cieEscape(text);
-  // Find matching substrings using normalized comparison
-  var textNorm = cieNormalize(text);
-  var tokens = cieWords(rawQ);
-  var seen = {};
-  for (var t = 0; t < tokens.length; t++) {
-    var token = tokens[t];
-    if (token.length < 2) continue;
-    var pos = 0;
-    while ((pos = textNorm.indexOf(token, pos)) !== -1) {
-      var key = pos + '|' + token.length;
-      if (seen[key]) { pos++; continue; }
-      seen[key] = true;
-      pos += token.length;
-    }
-  }
-  // Apply highlights (sorted backwards to preserve positions)
-  var ranges = Object.keys(seen).map(function(k){ var p = k.split('|'); return {pos: parseInt(p[0]), len: parseInt(p[1])}; });
-  ranges.sort(function(a,b){ return b.pos - a.pos; });
-  for (var r = 0; r < ranges.length; r++) {
-    var range = ranges[r];
-    var original = escaped.substring(range.pos, range.pos + range.len);
-    escaped = escaped.substring(0, range.pos) + '<mark style="background:rgba(78,205,196,.25);color:var(--t1);padding:1px 3px;border-radius:2px">' + original + '</mark>' + escaped.substring(range.pos + range.len);
-  }
-  return escaped;
-}
-
-function cieEscape(s) {
-  var d = document.createElement('div');
-  d.appendChild(document.createTextNode(s));
-  return d.innerHTML;
-}
-
-function cieSetFilter(filter, btn) {
-  CIE_FILTER = filter;
-  var chips = document.querySelectorAll('.cie-filter-chip');
-  chips.forEach(function(c) { c.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
-  // Re-run search inmediato (sin debounce para filtros)
-  var qEl = document.getElementById('cieSearch');
-  if (qEl) { clearTimeout(CIE_DEBOUNCE); _doCieSearch(); }
-}
-
-function getFilterLabel(filter) {
-  var map = {
-    'all': 'Todos',
-    'medicina': 'Medicina Interna',
-    'gineco': 'Gineco-Obstetricia',
-    'cirugia': 'Cirugia',
-    'pediatria': 'Pediatria',
-    'favorites': 'Favoritos'
-  };
-  return map[filter] || filter;
-}
-
-function cieClearSearch() {
-  document.getElementById('cieSearch').value = '';
-  CIE_FILTER = 'all';
-  var chips = document.querySelectorAll('.cie-filter-chip');
-  chips.forEach(function(c) { c.classList.remove('active'); });
-  chips[0].classList.add('active');
-  clearTimeout(CIE_DEBOUNCE);
-  _doCieSearch();
-}
-
-function cieToggleChapters() {
-  var grid = document.getElementById('cieChaptersGrid');
-  var arrow = document.getElementById('cieChaptersArrow');
-  var isVisible = grid.style.display !== 'none';
-  if (isVisible) {
-    grid.style.display = 'none';
-    arrow.textContent = '▶';
-  } else {
-    if (!grid.innerHTML || grid.innerHTML.indexOf('cie-chapter-item') === -1) {
-      renderCIEChapters();
-    }
-    grid.style.display = 'grid';
-    arrow.textContent = '▼';
-  }
-}
-
-function renderCIEChapters() {
-  var data = cieGetActiveData();
-  var chapters = {};
-  data.forEach(function(item) {
-    if (!chapters[item.chapter]) {
-      chapters[item.chapter] = { num: item.chapter, name: item.chName, range: item.range, count: 0 };
-    }
-    chapters[item.chapter].count++;
-  });
-  // Sort by roman numeral
-  var romanOrder = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII'];
-  var html = romanOrder.map(function(rn) {
-    var ch = chapters[rn];
-    if (!ch) return '';
-    return '<div class="cie-chapter-item" onclick="cieShowChapter(\'' + ch.num + '\')">' +
-      '<div class="ch-num">' + ch.num + '</div>' +
-      '<div class="ch-info">' +
-        '<strong>' + ch.name + '</strong>' +
-        '<span>' + ch.range + '</span>' +
-      '</div>' +
-      '<div class="ch-count">' + ch.count + ' cod</div>' +
-    '</div>';
-  }).join('');
-  document.getElementById('cieChaptersGrid').innerHTML = html;
-}
-
-function cieShowChapter(chNum) {
-  document.getElementById('cieSearch').value = chNum;
-  CIE_FILTER = 'all';
-  var chips = document.querySelectorAll('.cie-filter-chip');
-  chips.forEach(function(c) { c.classList.remove('active'); });
-  chips[0].classList.add('active');
-  clearTimeout(CIE_DEBOUNCE);
-  _doCieSearch();
-  // Collapse chapters
-  document.getElementById('cieChaptersGrid').style.display = 'none';
-  document.getElementById('cieChaptersArrow').textContent = '▶';
-}
-
-function cieShowDetail(code) {
-  var item = cieGetActiveData().find(function(i) { return i.code === code; });
-  if (!item) return;
-  haptic(10);
-
-  var isFav = CIE_FAVORITES.indexOf(item.code) !== -1;
-  var overlay = document.getElementById('cieDetailOverlay');
-  var card = document.getElementById('cieDetailCard');
-
-  card.innerHTML = '<div class="cd-code">' + item.code + '</div>' +
-    '<div class="cd-name">' + item.name + '</div>' +
-    '<div class="cd-row"><span class="cd-lbl">Capitulo</span><span class="cd-val">' + item.chapter + ' — ' + item.chName + '</span></div>' +
-    '<div class="cd-row"><span class="cd-lbl">Rango</span><span class="cd-val">' + item.range + '</span></div>' +
-    '<div class="cd-row"><span class="cd-lbl">Especialidad</span><span class="cd-val">' + getFilterLabel(item.specialty) + '</span></div>' +
-    (item.incluye ? '<div class="cd-row"><span class="cd-lbl">Incluye</span><span class="cd-val">' + item.incluye + '</span></div>' : '') +
-    '<div class="cd-actions">' +
-      '<button class="cd-btn copy" onclick="cieCopyCode(\'' + item.code + '\',this)">📋 Copiar codigo</button>' +
-      '<button class="cd-btn fav' + (isFav ? ' saved' : '') + '" onclick="cieToggleFavDetail(\'' + item.code + '\',this)">' + (isFav ? '★ Guardado' : '☆ Guardar') + '</button>' +
-    '</div>';
-
-  overlay.classList.add('show');
-
-  // Add to history
-  CIE_HISTORY = CIE_HISTORY.filter(function(h) { return h !== item.code; });
-  CIE_HISTORY.unshift(item.code);
-  if (CIE_HISTORY.length > 20) CIE_HISTORY.pop();
-  try { localStorage.setItem('wichanzao_cie_history', JSON.stringify(CIE_HISTORY)); } catch(e) {}
-}
-
-function cieCloseDetail(evt) {
-  if (evt && evt.target !== document.getElementById('cieDetailOverlay')) return;
-  document.getElementById('cieDetailOverlay').classList.remove('show');
-}
-
-function cieCopyCode(code, btn) {
-  haptic(10);
-  try {
-    navigator.clipboard.writeText(code).then(function() {
-      toast('Codigo ' + code + ' copiado al portapapeles', 'success');
-      if (btn) {
-        btn.textContent = '✓ Copiado!';
-        setTimeout(function() { btn.textContent = '📋 Copiar codigo'; }, 2000);
-      }
-    });
-  } catch(e) {
-    // Fallback
-    var ta = document.createElement('textarea');
-    ta.value = code; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    toast('Codigo ' + code + ' copiado!', 'success');
-  }
-}
-
-function cieToggleFav(evt, code) {
-  evt.stopPropagation();
-  haptic(10);
-  var idx = CIE_FAVORITES.indexOf(code);
-  if (idx === -1) {
-    CIE_FAVORITES.push(code);
-    toast('⭐ Agregado a favoritos', 'success');
-  } else {
-    CIE_FAVORITES.splice(idx, 1);
-    toast('Eliminado de favoritos', 'info');
-  }
-  try { localStorage.setItem('wichanzao_cie_favs', JSON.stringify(CIE_FAVORITES)); } catch(e) {}
-  doCieSearch();
-}
-
-function cieToggleFavDetail(code, btn) {
-  haptic(10);
-  var idx = CIE_FAVORITES.indexOf(code);
-  if (idx === -1) {
-    CIE_FAVORITES.push(code);
-    btn.textContent = '★ Guardado';
-    btn.classList.add('saved');
-    toast('⭐ Agregado a favoritos', 'success');
-  } else {
-    CIE_FAVORITES.splice(idx, 1);
-    btn.textContent = '☆ Guardar';
-    btn.classList.remove('saved');
-    toast('Eliminado de favoritos', 'info');
-  }
-  try { localStorage.setItem('wichanzao_cie_favs', JSON.stringify(CIE_FAVORITES)); } catch(e) {}
-}
-
-function renderCIEFavorites() {
-  var resultsDiv = document.getElementById('cieResultList');
-  var infoDiv = document.getElementById('cieResultsInfo');
-  var favSection = document.getElementById('cieFavSection');
-
-  if (CIE_FAVORITES.length === 0) {
-    resultsDiv.innerHTML = '<div class="cie-no-results"><div class="nr-icon">⭐</div><p>No tienes favoritos guardados. Haz click en ★ para guardar codigos.</p></div>';
-    infoDiv.style.display = 'none';
-    if (favSection) favSection.style.display = 'none';
-    return;
-  }
-
-  var items = CIE_FAVORITES.map(function(code) {
-    return cieGetActiveData().find(function(i) { return i.code === code; });
-  }).filter(Boolean);
-
-  resultsDiv.innerHTML = items.map(function(item) {
-    return '<div class="cie-result-item" onclick="cieShowDetail(\'' + item.code + '\')">' +
-      '<div class="cie-code">' + item.code + '</div>' +
-      '<div class="cie-info">' +
-        '<div class="cie-name">' + item.name + '</div>' +
-        '<div class="cie-meta">' +
-          '<span class="meta-ch">Cap ' + item.chapter + '</span>' +
-          '<span>' + item.chName + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<button class="cie-fav saved" onclick="cieToggleFav(event,\'' + item.code + '\')" title="Quitar de favoritos">★</button>' +
-    '</div>';
-  }).join('');
-
-  infoDiv.style.display = 'block';
-  document.getElementById('cieResultsCount').textContent = CIE_FAVORITES.length + ' favorito' + (CIE_FAVORITES.length !== 1 ? 's' : '');
-  document.getElementById('cieActiveFilter').textContent = '';
-  if (favSection) favSection.style.display = 'none';
-}
-
-function changeName() {
-  if (!worker) return;
-  var newName = prompt('Nuevo nombre:', worker.name);
-  if (!newName || !newName.trim() || newName.trim() === worker.name) return;
-  worker.name = newName.trim();
-  saveWorker(worker);
-  uploadProfileToSupabase(worker);
-  document.getElementById('settingsName').textContent = worker.name;
-  document.getElementById('settingsProfileName').textContent = worker.name;
-  toast('Nombre actualizado', 'success');
-}
-
-function changeFolder() {
-  if (!worker) return;
-  var newFolder = prompt('Nueva carpeta (se creara una nueva, la anterior se mantiene):', worker.id);
-  if (!newFolder || !newFolder.trim()) return;
-  var folderId = newFolder.trim().toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  if (!folderId || folderId.length < 2) { toast('Nombre invalido', 'error'); return; }
-  if (folderId === worker.id) return;
-  if (!confirm('Se creara la carpeta "' + folderId + '". Tu carpeta anterior (' + worker.id + ') seguira existiendo. ¿Continuar?')) return;
-  worker.id = folderId;
-  saveWorker(worker);
-  uploadProfileToSupabase(worker);
-  prevDatesLoaded = false;
-  prevDatesCache = {};
-  todayFiles = [];
-  localStorage.removeItem(getTodayKey());
-  document.getElementById('settingsFolder').textContent = worker.id;
-  toast('Carpeta cambiada a ' + folderId, 'success');
-}
-
-function changeArea() {
-  if (!worker) return;
-  var servicio = worker.servicio || 'medicina';
-  var areas = SERVICIOS[servicio] ? SERVICIOS[servicio].areas : ['Medico General','Interno de Medicina'];
-  var msg = 'Selecciona tu rol (escribe el numero):\n';
-  for (var i = 0; i < areas.length; i++) {
-    msg += (i + 1) + '. ' + areas[i] + '\n';
-  }
-  var choice = prompt(msg);
-  if (!choice) return;
-  var idx = parseInt(choice) - 1;
-  if (isNaN(idx) || idx < 0 || idx >= areas.length) { toast('Opcion invalida', 'error'); return; }
-  worker.area = areas[idx];
-  saveWorker(worker);
-  uploadProfileToSupabase(worker);
-  document.getElementById('settingsArea').textContent = worker.area;
-  document.getElementById('settingsProfileRole').textContent = worker.area;
-  toast('Rol actualizado', 'success');
-}
-
-function changeServicio() {
-  if (!worker) return;
-  var msg = 'Selecciona tu servicio (escribe el numero):\n';
-  for (var i = 0; i < SERVICIOS_KEYS.length; i++) {
-    msg += (i + 1) + '. ' + SERVICIOS[SERVICIOS_KEYS[i]].label + '\n';
-  }
-  var current = worker.servicio ? (SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : worker.servicio) : 'Ninguno';
-  msg += '\nActual: ' + current;
-  var choice = prompt(msg);
-  if (!choice) return;
-  var idx = parseInt(choice) - 1;
-  if (isNaN(idx) || idx < 0 || idx >= SERVICIOS_KEYS.length) { toast('Opcion invalida', 'error'); return; }
-  var newServicio = SERVICIOS_KEYS[idx];
-  if (newServicio === worker.servicio) return;
-
-  var warn = worker.servicio
-    ? 'Cambiaras de ' + current + ' a ' + SERVICIOS[newServicio].label + '.\n\nTus archivos anteriores se mantendran en ' + current + ' y los nuevos iran a ' + SERVICIOS[newServicio].label + '.\n\n¿Continuar?'
-    : 'Se asignara tu cuenta al servicio de ' + SERVICIOS[newServicio].label + '.\n\n¿Continuar?';
-  if (!confirm(warn)) return;
-
-  worker.servicio = newServicio;
-  // Update area to first option of new servicio if current area doesn't belong
-  var newAreas = SERVICIOS[newServicio].areas;
-  if (newAreas.indexOf(worker.area) === -1) {
-    worker.area = newAreas[0];
-    document.getElementById('settingsArea').textContent = worker.area;
-  }
-  saveWorker(worker);
-  uploadProfileToSupabase(worker);
-  prevDatesLoaded = false;
-  prevDatesCache = {};
-  todayFiles = [];
-  localStorage.removeItem(getTodayKey());
-  document.getElementById('settingsServicio').textContent = SERVICIOS[newServicio].label;
-  document.getElementById('settingsProfileBadge').textContent = SERVICIOS[newServicio].label;
-  toast('Servicio actualizado a ' + SERVICIOS[newServicio].label, 'success');
-}
-
-async function loadAdminWorkers() {
-  var container = document.getElementById('adminWorkerList');
-  container.innerHTML = 'Cargando...';
-
-  // Map to deduplicate between DB and storage
-  var workersMap = {};
-
-  try {
-    // 1) Load from DB (has names, areas, is_admin)
-    var dbResult = await sbAdmin().from('workers').select('*').order('servicio');
-    if (!dbResult.error && dbResult.data) {
-      for (var i = 0; i < dbResult.data.length; i++) {
-        var w = dbResult.data[i];
-        workersMap[w.folder_id] = {
-          folder_id: w.folder_id,
-          name: w.name || w.folder_id,
-          area: w.area || '',
-          servicio: w.servicio || '',
-          is_admin: w.is_admin,
-          basePath: (w.servicio || '') + '/workers/' + w.folder_id,
-          fromDB: true
-        };
-      }
-    }
-
-    // 2) Also scan storage for workers not in DB (like pc.html does)
-    var storageWorkers = await scanStorageForWorkers();
-    for (var si = 0; si < storageWorkers.length; si++) {
-      var sw = storageWorkers[si];
-      if (!workersMap[sw.folder_id]) {
-        workersMap[sw.folder_id] = sw;
-      }
-    }
-
-    var workers = Object.values(workersMap);
-    // Sort: DB workers first, then by name
-    workers.sort(function(a, b) {
-      if (a.fromDB && !b.fromDB) return -1;
-      if (!a.fromDB && b.fromDB) return 1;
-      return (a.name || '').localeCompare(b.name || '');
-    });
-
-    if (!workers.length) {
-      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas de trabajadores</div>';
-      return;
-    }
-
-    var html = '';
-    for (var wi = 0; wi < workers.length; wi++) {
-      var wk = workers[wi];
-      var bp = wk.basePath.replace(/'/g, "\'");
-      var sLabel = wk.servicio ? (SERVICIOS[wk.servicio] ? SERVICIOS[wk.servicio].label : wk.servicio) : 'Storage';
-      var adminBadge = wk.is_admin ? ' <span style=\"color:var(--gd);font-size:10px\">&#x1F451;</span>' : '';
-      var storageBadge = !wk.fromDB ? ' <span style=\"color:var(--t3);font-size:9px\">(storage)</span>' : '';
-      html += '<div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)\">';
-      html += '<div onclick=\"adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(wk.name).replace(/'/g, "\'") + '\')\" style=\"cursor:pointer;flex:1\">';
-      html += '<div style=\"font-weight:700;font-size:13px;color:var(--tl)\">' + escapeHtml(wk.name) + adminBadge + storageBadge + ' <span style=\"font-size:10px;opacity:.5\">&#9654;</span></div>';
-      if (wk.area) html += '<div style=\"font-size:11px;color:var(--t3)\">' + escapeHtml(wk.area) + ' &middot; ' + sLabel + '</div>';
-      html += '<div style=\"font-size:10px;color:var(--t3);opacity:.6\">' + escapeHtml(wk.folder_id) + '</div></div>';
-      html += '<button onclick=\"adminDeleteFolder(\'' + bp + '\')\" style=\"background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit\">Borrar</button>';
-      html += '</div>';
-    }
-    container.innerHTML = html;
-  } catch(e) {
-    loadAdminWorkersLegacy();
-  }
-}
-
-// Scan storage for worker folders (like pc.html does)
-async function scanStorageForWorkers() {
-  var workers = [];
-  try {
-    var prefixes = SERVICIOS_KEYS.map(function(s) { return s + '/workers/'; });
-    prefixes.push('workers/'); // legacy
-    var results = await Promise.all(prefixes.map(function(p) {
-      return adminStorageList(p).then(function(items) {
-        return { prefix: p, folders: items.filter(function(i) { return !i.id && i.name; }) };
-      }).catch(function() { return { prefix: p, folders: [] }; });
-    }));
-    for (var ri = 0; ri < results.length; ri++) {
-      for (var fi = 0; fi < results[ri].folders.length; fi++) {
-        var name = results[ri].folders[fi].name;
-        var servicio = results[ri].prefix.split('/')[0];
-        if (servicio === 'workers') servicio = '';
-        workers.push({
-          folder_id: name,
-          name: name, // placeholder, will try profile.json
-          area: '',
-          servicio: servicio,
-          is_admin: false,
-          basePath: results[ri].prefix + name,
-          fromDB: false
-        });
-      }
-    }
-  } catch(e) { /* ignore */ }
-  return workers;
-}
-
-function loadAdminWorkersLegacy() {
-  var container = document.getElementById('adminWorkerList');
-  var prefixes = SERVICIOS_KEYS.map(function(s) { return { servicio: s, prefix: s + '/workers/' }; });
-  prefixes.push({ servicio: '', prefix: 'workers/' });
-
-  var fetches = prefixes.map(function(p) {
-    return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefix: p.prefix, limit: 100 })
-    }).then(function(res) { return res.json(); }).then(function(items) {
-      if (!Array.isArray(items)) return [];
-      return items.filter(function(i) { return !i.id; }).map(function(i) {
-        return { name: i.name, basePath: p.prefix + i.name, servicio: p.servicio };
-      });
-    }).catch(function() { return []; });
-  });
-
-  Promise.all(fetches).then(function(results) {
-    var allFolders = [];
-    for (var r = 0; r < results.length; r++) {
-      for (var f = 0; f < results[r].length; f++) allFolders.push(results[r][f]);
-    }
-    if (!allFolders.length) {
-      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas</div>';
-      return;
-    }
-
-    var profileFetches = allFolders.map(function(f) {
-      return fetch(SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + f.basePath + '/profile.json')
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .catch(function() { return null; });
-    });
-
-    Promise.all(profileFetches).then(function(profiles) {
-      var html = '';
-      for (var i = 0; i < allFolders.length; i++) {
-        var af = allFolders[i];
-        var p = profiles[i];
-        var displayName = p ? p.name : af.name;
-        var area = p ? p.area || '' : '';
-        var sLabel = af.servicio ? (SERVICIOS[af.servicio] ? SERVICIOS[af.servicio].label : af.servicio) : 'Legacy';
-        var bp = af.basePath.replace(/'/g, "\'");
-        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-        html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + displayName.replace(/'/g, "\'") + '\')" style="cursor:pointer;flex:1">';
-        html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + escapeHtml(displayName) + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
-        if (area) html += '<div style="font-size:11px;color:var(--t3)">' + escapeHtml(area) + ' &middot; ' + sLabel + '</div>';
-        html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + escapeHtml(af.name) + '</div></div>';
-        html += '<button onclick="adminDeleteFolder(\'' + bp + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
-        html += '</div>';
-      }
-      container.innerHTML = html;
-    });
-  }).catch(function(e) {
-    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error al cargar datos</div>';
-  });
-}
-
-// Admin storage helpers — usa cliente Supabase admin (service_role singleton)
-function adminStorageList(prefix) {
-  console.log('adminStorageList:', prefix);
-  return sbAdmin().storage.from(SB_BUCKET).list(prefix, { limit: 500, sortBy: { column: 'name', order: 'asc' } })
-    .then(function(r) {
-      console.log('  result:', r.error ? 'ERROR: ' + r.error.message : 'OK, ' + (r.data ? r.data.length : 0) + ' items');
-      if (r.error) throw new Error(r.error.message);
-      return r.data || [];
-    }).catch(function(e) {
-      console.error('  error:', e.message);
-      return [];
-    });
-}
-
-function adminStorageDelete(paths) {
-  if (!paths || !paths.length) return Promise.resolve();
-  console.log('adminStorageDelete:', paths.length, 'paths');
-  return sbAdmin().storage.from(SB_BUCKET).remove(paths)
-    .then(function(r) {
-      console.log('  result:', r.error ? 'ERROR: ' + r.error.message : 'OK');
-      if (r.error) throw new Error(r.error.message);
-      return r;
-    }).catch(function(e) {
-      console.error('  error:', e.message);
-      throw e;
-    });
-}
-
-function listAllFilesAdmin(prefix) {
-  return adminStorageList(prefix).then(function(items) {
-    var allFiles = [];
-    var subfolders = [];
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].id) { allFiles.push(items[i].name); }
-      else { subfolders.push(items[i].name); }
-    }
-    var promises = subfolders.map(function(sub) {
-      return listAllFilesAdmin(prefix + '/' + sub).then(function(subFiles) {
-        return subFiles.map(function(f) { return sub + '/' + f; });
-      });
-    });
-    return Promise.all(promises).then(function(results) {
-      for (var j = 0; j < results.length; j++) {
-        allFiles = allFiles.concat(results[j]);
-      }
-      return allFiles;
-    });
-  });
-}
-
-function adminDeleteFolder(basePath) {
-  var folderName = basePath.split('/').pop();
-  if (!confirm('¿Borrar la carpeta "' + folderName + '" y todos sus archivos?')) return;
-  if (!confirm('¿Seguro? No se puede deshacer.')) return;
-
-  haptic(50);
-  toast('Eliminando ' + folderName + '...', 'info');
-
-  var prefix = basePath;
-  listAllFilesAdmin(prefix).then(function(files) {
-    var paths = files.map(function(f) { return prefix + '/' + f; });
-    return adminStorageDelete(paths);
-  }).then(function() {
-    // Also delete worker from DB so both views stay in sync
-    return sbAdmin().from('workers').delete().eq('folder_id', folderName);
-  }).then(function() {
-    toast('Carpeta y registro eliminados ✓', 'success');
-    loadAdminWorkers();
-  }).catch(function(e) {
-    toast('Error: ' + e.message, 'error');
-    console.error('adminDeleteFolder error:', e);
-  });
-}
-
-function adminBrowseFolder(basePath, displayName) {
-  var container = document.getElementById('adminWorkerList');
-  container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
-
-  var prefix = basePath;
-  adminStorageList(prefix).then(function(items) {
-    if (!Array.isArray(items)) { items = []; }
-    var subfolders = items.filter(function(i) { return !i.id; });
-    var files = items.filter(function(i) { return i.id; });
-    var bp = basePath.replace(/'/g, "\'");
-
-    function esc(s) { return String(s).replace(/\\/g,'\\\\\').replace(/'/g,"\\\'"); }
-
-    var html = '<div style="margin-bottom:12px">';
-    html += '<button onclick="loadAdminWorkers()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; Volver</button>';
-    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + escapeHtml(displayName) + '</div>';
-    html += '</div>';
-
-    if (!subfolders.length && !files.length) {
-      html += '<div style="color:var(--t3);text-align:center;padding:12px">Carpeta vacia</div>';
-      container.innerHTML = html;
-      return;
-    }
-
-    // Subfolders (date folders)
-    for (var s = 0; s < subfolders.length; s++) {
-      var sub = subfolders[s].name;
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div onclick="adminBrowseSub(\'' + esc(bp) + '\',\'' + esc(sub) + '\',\'' + esc(displayName) + '\')" style="cursor:pointer;flex:1">';
-      html += '<div style="font-weight:600;font-size:13px;color:var(--tl)">&#128193; ' + escapeHtml(sub) + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div></div>';
-      html += '<button onclick="adminDeleteSub(\'' + esc(bp) + '\',\'' + esc(sub) + '\',\'' + esc(displayName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
-      html += '</div>';
-    }
-
-    // Files at root level (like profile.json)
-    for (var f = 0; f < files.length; f++) {
-      var file = files[f];
-      var size = file.metadata && file.metadata.size ? formatFileSize(file.metadata.size) : '';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div style="flex:1"><div style="font-weight:500;font-size:12px;color:var(--t2)">' + escapeHtml(file.name) + '</div>';
-      if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
-      html += '</div>';
-      if (file.name !== 'profile.json') {
-        html += '<button onclick="adminDeleteFile(\'' + esc(prefix + '/' + file.name) + '\',\'' + esc(bp) + '\',\'' + esc(displayName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
-      }
-      html += '</div>';
-    }
-
-    container.innerHTML = html;
-  }).catch(function(e) {
-    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error al cargar datos</div>';
-  });
-}
-
-function adminBrowseSub(basePath, subName, displayName) {
-  var container = document.getElementById('adminWorkerList');
-  container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
-
-  var prefix = basePath + '/' + subName;
-  adminStorageList(prefix).then(function(items) {
-    if (!Array.isArray(items)) { items = []; }
-    var files = items.filter(function(i) { return i.id; });
-    var subfolders = items.filter(function(i) { return !i.id; });
-
-    function esc(s) { return String(s).replace(/\\/g,'\\\').replace(/'/g,"\'"); }
-
-    var html = '<div style="margin-bottom:12px">';
-    html += '<button onclick="adminBrowseFolder(\'' + esc(basePath) + '\',\'' + esc(displayName) + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + escapeHtml(displayName) + '</button>';
-    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + escapeHtml(subName) + '</div>';
-    html += '<div style="font-size:11px;color:var(--t3)">' + files.length + ' archivo(s)</div>';
-    html += '</div>';
-
-    // Sub-subfolders
-    for (var s = 0; s < subfolders.length; s++) {
-      var ss = subfolders[s].name;
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--t2)">&#128193; ' + escapeHtml(ss) + '</div></div>';
-      html += '</div>';
-    }
-
-    // Files
-    for (var f = 0; f < files.length; f++) {
-      var file = files[f];
-      var size = file.metadata && file.metadata.size ? formatFileSize(file.metadata.size) : '';
-      var isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
-      html += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
-      if (isImg) {
-        var thumbUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + '/' + encodeURIComponent(file.name);
-        html += '<img src="' + thumbUrl + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0">';
-      } else {
-        html += '<div style="width:36px;height:36px;border-radius:6px;background:rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--t3)">PDF</div>';
-      }
-      html += '<div style="min-width:0"><div style="font-weight:500;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(file.name) + '</div>';
-      if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
-      html += '</div></div>';
-      html += '<button onclick="adminDeleteFile(\'' + esc(prefix + '/' + file.name) + '\',\'' + esc(basePath) + '\',\'' + esc(displayName) + '\',\'' + esc(subName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
-      html += '</div>';
-    }
-
-    if (!files.length && !subfolders.length) {
-      html += '<div style="color:var(--t3);text-align:center;padding:12px">Sin archivos</div>';
-    }
-
-    container.innerHTML = html;
-  }).catch(function(e) {
-    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error al cargar datos</div>';
-  });
-}
-
-function adminDeleteFile(filePath, basePath, displayName, subName) {
-  var fileName = filePath.split('/').pop();
-  if (!confirm('¿Borrar "' + fileName + '"?')) return;
-
-  haptic(50);
-  toast('Eliminando...', 'info');
-
-  adminStorageDelete([filePath]).then(function() {
-    toast('Archivo eliminado', 'success');
-    if (subName) {
-      adminBrowseSub(basePath, subName, displayName);
-    } else {
-      adminBrowseFolder(basePath, displayName);
-    }
-  }).catch(function(e) {
-    toast('Error: ' + e.message, 'error');
-  });
-}
-
-function adminDeleteSub(basePath, subName, displayName) {
-  if (!confirm('¿Borrar carpeta "' + subName + '" y todos sus archivos?')) return;
-
-  haptic(50);
-  toast('Eliminando ' + subName + '...', 'info');
-
-  var prefix = basePath + '/' + subName;
-  listAllFilesAdmin(prefix).then(function(files) {
-    var paths = files.map(function(f) { return prefix + '/' + f; });
-    return adminStorageDelete(paths);
-  }).then(function() {
-    toast('Carpeta eliminada ✓', 'success');
-    adminBrowseFolder(basePath, displayName);
-  }).catch(function(e) {
-    toast('Error: ' + e.message, 'error');
-  });
-}
-
-function adminForceReload() {
-  toast('Limpiando cache...', 'info');
-  caches.keys().then(function(names) {
-    return Promise.all(names.map(function(n) { return caches.delete(n); }));
-  }).then(function() {
-    if (navigator.serviceWorker) {
-      return navigator.serviceWorker.getRegistration().then(function(reg) {
-        if (reg) return reg.unregister();
-      });
-    }
-  }).then(function() {
-    window.location.reload(true);
-  });
-}
-
-function getTodayKey() {
-  var d = new Date();
-  return 'wichanzao_today_' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-
-// Clean old wichanzao_today_* keys (keep only today)
-(function cleanOldTodayKeys() {
-  var todayKey = getTodayKey();
-  for (var i = localStorage.length - 1; i >= 0; i--) {
-    var k = localStorage.key(i);
-    if (k && k.indexOf('wichanzao_today_') === 0 && k !== todayKey) {
-      localStorage.removeItem(k);
-    }
-  }
-})();
-
-function loadTodayFiles() {
-  var raw = localStorage.getItem(getTodayKey());
-  if (raw) {
-    try { todayFiles = JSON.parse(raw); } catch(e) { todayFiles = []; }
-  } else {
-    todayFiles = [];
-  }
-  // Always sync from server silently (show local files first, then merge server state)
-  if (worker && worker.id) {
-    syncTodayFromServer(false);
-  }
-}
-
-function forceSyncToday() {
-  // Just sync from server — don't nuke SW caches (breaks offline)
-  syncTodayFromServer(true);
-}
-
-var _syncInProgress = false;
-function syncTodayFromServer(showFeedback) {
-  if (!worker || !worker.id) return;
-  if (_syncInProgress) return;
-  _syncInProgress = true;
-  var dateStr = getTodayDateString();
-  var basePath = workerBasePath(worker);
-  var prefix = basePath + '/' + dateStr + '/';
-
-  // Syncing today files
-
-  sbList(prefix).then(function(items) {
-    // Server sync response received
-
-    var files = items.filter(function(i) { return i.id && i.name && i.name !== 'profile.json'; });
-
-    // Build set of ALL server URLs (for reconciliation)
-    var serverUrls = {};
-    for (var s = 0; s < files.length; s++) {
-      serverUrls[SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + files[s].name] = true;
-    }
-
-    // RECONCILE: remove local files that no longer exist on server
-    var removed = 0;
-    var beforeCount = todayFiles.length;
-    todayFiles = todayFiles.filter(function(f) {
-      if (!f.url) return true; // Keep pending uploads (no URL yet)
-      if (f.url.indexOf(prefix) === -1) return true; // Keep files from other folders
-      // Check if this file's URL (or its base) exists on server
-      if (serverUrls[f.url]) return true;
-      // For PDFs, check if the PDF itself exists (page images are grouped under it)
-      // Removing file no longer on server
-      removed++;
-      return false;
-    });
-
-    // Identify PDFs to group their page images
-    var pdfNames = {};
-    for (var i = 0; i < files.length; i++) {
-      if (files[i].name.match(/\.pdf$/i)) {
-        var cleanName = files[i].name.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
-        pdfNames[cleanName] = files[i].name;
-      }
-    }
-
-    // Build set of URLs we already have locally
-    var existingUrls = {};
-    for (var e = 0; e < todayFiles.length; e++) {
-      if (todayFiles[e].url) existingUrls[todayFiles[e].url] = true;
-    }
-
-    // ADD new files from server
-    var added = 0;
-    for (var j = 0; j < files.length; j++) {
-      var fn = files[j].name;
-      if (fn.match(/_thumb\./i)) continue;
-      var pageMatch = fn.replace(/^\d+_/, '').match(/^(.+)_pag\d+\.(jpg|jpeg|png)$/i);
-      if (pageMatch && pdfNames[pageMatch[1]]) continue;
-
-      var fileUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + fn;
-      if (existingUrls[fileUrl]) continue;
-
-      if (fn.match(/\.pdf$/i)) {
-        var pdfClean = fn.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
-        todayFiles.push({ name: pdfClean + '.pdf', time: '--:--', type: 'pdf', url: fileUrl });
-        added++;
-      } else if (fn.match(/\.(jpg|jpeg|png)$/i)) {
-        var fotoClean = fn.replace(/^\d+_/, '').replace(/\.(jpg|jpeg|png)$/i, '');
-        todayFiles.push({ name: fotoClean + '.jpg', time: '--:--', type: 'foto', url: fileUrl });
-        added++;
-      }
-    }
-
-    // Sync complete
-    if (added > 0 || removed > 0) {
-      saveTodayFiles();
-      updateTodayCount();
-      if (showFeedback) {
-        var msg = '';
-        if (added > 0) msg += added + ' nuevo(s)';
-        if (removed > 0) msg += (msg ? ', ' : '') + removed + ' eliminado(s)';
-        toast('Sincronizado: ' + msg, 'success');
-      }
-    } else if (showFeedback) {
-      toast('Todo sincronizado', 'success');
-    }
-  }).catch(function(e) {
-    // Sync error handled via toast
-    if (showFeedback) toast('Error al sincronizar: ' + e.message, 'error');
-  }).finally(function() { _syncInProgress = false; });
-}
-
-function saveTodayFiles() {
-  localStorage.setItem(getTodayKey(), JSON.stringify(todayFiles));
-}
-
-function addTodayFile(name, type, url) {
-  var now = new Date();
-  var time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  todayFiles.push({ name: name, time: time, type: type, url: url || '' });
-  saveTodayFiles();
-  updateTodayCount();
-}
-
-function updateTodayCount() {
-  document.getElementById('todayCount').textContent = todayFiles.length;
-  var container = document.getElementById('todayFiles');
-  container.innerHTML = '';
-  var list = todayFiles.slice().reverse().slice(0, 10);
-  for (var i = 0; i < list.length; i++) {
-    var f = list[i];
-    var realIndex = todayFiles.length - 1 - i;
-    var iconPath = f.type === 'pdf'
-      ? '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>'
-      : '<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>';
-    var el = document.createElement('div');
-    el.className = 'today-file';
-    el.style.cursor = 'pointer';
-    el.setAttribute('data-index', realIndex);
-    el.onclick = function() { openTodayFile(parseInt(this.getAttribute('data-index'))); };
-    el.innerHTML = '<div class="tf-icon"><svg viewBox="0 0 24 24">' + iconPath + '</svg></div>' +
-      '<span class="tf-name">' + escapeHtml(f.name) + '</span>' +
-      '<span class="tf-time">' + f.time + '</span>' +
-      '<button class="tf-del" data-index="' + realIndex + '" onclick="event.stopPropagation();deleteTodayFile(' + realIndex + ')" style="background:none;border:none;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
-    container.appendChild(el);
-  }
-}
-
-function openTodayFile(index) {
-  var f = todayFiles[index];
-  if (!f || !f.url) {
-    toast('Archivo pendiente de subir', 'info');
-    return;
-  }
-  haptic();
-
-  if (f.type === 'pdf') {
-    window.open(f.url, '_blank');
-    return;
-  }
-
-  // Load image and open editor for crop/edit
-  editorTodayIndex = index;
-  openPhotoEditor(f.url, 'today', index);
-}
-
-// Delete files from Supabase Storage
-function sbDeleteFiles(paths) {
-  return sbRemove(paths);
-}
-
-function deleteTodayFile(index) {
-  var f = todayFiles[index];
-  if (!f) return;
-
-  if (!confirm('¿Eliminar "' + (f.name || 'archivo') + '"?')) return;
-
-  haptic(30);
-
-  // Find the DOM element and show inline "Eliminando..." feedback
-  var fileEl = document.querySelector('.today-file[data-index="' + index + '"]');
-  if (fileEl) {
-    fileEl.style.pointerEvents = 'none';
-    fileEl.style.opacity = '0.5';
-    var nameEl = fileEl.querySelector('.tf-name');
-    if (nameEl) nameEl.textContent = 'Eliminando...';
-  }
-
-  function removeLocal() {
-    var idx = todayFiles.indexOf(f);
-    if (idx >= 0) {
-      todayFiles.splice(idx, 1);
-      saveTodayFiles();
-    }
-    // Animate out then rebuild list
-    if (fileEl) {
-      fileEl.style.transition = 'all .3s ease';
-      fileEl.style.opacity = '0';
-      fileEl.style.maxHeight = '0';
-      fileEl.style.padding = '0';
-      fileEl.style.margin = '0';
-      fileEl.style.overflow = 'hidden';
-      setTimeout(function() { updateTodayCount(); }, 350);
-    } else {
-      updateTodayCount();
-    }
-  }
-
-  function showError(msg) {
-    if (fileEl) {
-      fileEl.style.opacity = '1';
-      fileEl.style.pointerEvents = '';
-      var nameEl = fileEl.querySelector('.tf-name');
-      if (nameEl) {
-        nameEl.textContent = 'Error';
-        nameEl.style.color = 'var(--danger)';
-        setTimeout(function() {
-          nameEl.textContent = f.name;
-          nameEl.style.color = '';
-        }, 2000);
-      }
-    }
-    toast(msg, 'error');
-  }
-
-  if (!f.url) {
-    removeLocal();
-    return;
-  }
-
-  var urlPrefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
-  var storagePath = f.url.replace(urlPrefix, '');
-  var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
-
-  // For PDFs: also delete associated page images
-  if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
-    var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
-    var baseName = fileName.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
-
-    sbList(folderPath).then(function(items) {
-      if (!Array.isArray(items)) items = [];
-      var pathsToDelete = [];
-      for (var i = 0; i < items.length; i++) {
-        if (!items[i].id || !items[i].name) continue;
-        var n = items[i].name;
-        if (n === fileName ||
-            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_pag\\d+\\.', 'i')) ||
-            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_thumb\\.', 'i'))
-        ) {
-          pathsToDelete.push(folderPath + n);
-        }
-      }
-      if (!pathsToDelete.length) pathsToDelete = [storagePath];
-      return sbDeleteFiles(pathsToDelete).then(function() {
-        removeLocal();
-      });
-    }).catch(function(e) {
-      showError('Error: ' + e.message);
-    });
-  } else {
-    sbDeleteFiles([storagePath]).then(function() {
-      removeLocal();
-    }).catch(function(e) {
-      showError('Error: ' + e.message);
-    });
-  }
-}
-
-function escapeHtml(str) {
-  var div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }
 
 /* ===== CAMERA ===== */
@@ -5957,6 +4003,317 @@ window.addEventListener('appinstalled', function() {
   deferredPrompt = null;
 });
 
+/* ===== PROGRAMACIÓN QUIRÚRGICA ===== */
+var QX_PACIENTES = [];
+var QX_FILTER = 'todos';
+var QX_ACTUAL = null;
+
+var QX_ESTADOS = [
+  ['en_tramite','En trámite'],
+  ['apta_para_sala','Apta para sala'],
+  ['programada','Programada'],
+  ['hospitalizada','Hospitalizada'],
+  ['operada','Operada'],
+  ['suspendida','Suspendida']
+];
+
+function qxEstadoLabel(e){
+  for (var i=0;i<QX_ESTADOS.length;i++) if (QX_ESTADOS[i][0]===e) return QX_ESTADOS[i][1];
+  return e;
+}
+function qxFase2Completa(p){ return p.laboratorio_completo && p.ekg; }
+function qxFase3Completa(p){ return p.fecha_cita_cardiologia && p.fecha_cita_anestesiologia && p.riesgo_qx && p.riesgo_anestesiologico; }
+function qxFase4Completa(p){ return p.hcl_hospitalizacion && p.consentimientos && p.solicitud_sala_dejada; }
+function qxEsc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===9) d='51'+d; return d; }
+function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
+async function qxLoad(){
+  var list = document.getElementById('qxList');
+  if (list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
+  var res = await sbAdmin().from('pacientes').select('*').order('created_at',{ascending:false}).limit(500);
+  if (res.error){ toast('Error al cargar pacientes: '+res.error.message,'error'); return; }
+  QX_PACIENTES = res.data || [];
+  qxRender();
+}
+
+function qxRender(){
+  var st = document.getElementById('qxStats');
+  if (st){
+    var h = '';
+    for (var i=0;i<QX_ESTADOS.length;i++){
+      var e = QX_ESTADOS[i][0];
+      var n = QX_PACIENTES.filter(function(p){return p.estado===e;}).length;
+      h += '<div class="qx-stat"><div class="n">'+n+'</div><div class="l">'+QX_ESTADOS[i][1]+'</div></div>';
+    }
+    st.innerHTML = h;
+  }
+  var fl = document.getElementById('qxFilters');
+  if (fl){
+    var c = '<button class="qx-chip'+(QX_FILTER==='todos'?' active':'')+'" onclick="qxSetFilter(\'todos\')">Todos</button>';
+    for (var j=0;j<QX_ESTADOS.length;j++){
+      var e2 = QX_ESTADOS[j][0];
+      c += '<button class="qx-chip'+(QX_FILTER===e2?' active':'')+'" onclick="qxSetFilter(\''+e2+'\')">'+QX_ESTADOS[j][1]+'</button>';
+    }
+    fl.innerHTML = c;
+  }
+  var list = document.getElementById('qxList');
+  if (!list) return;
+  var data = QX_FILTER==='todos' ? QX_PACIENTES : QX_PACIENTES.filter(function(p){return p.estado===QX_FILTER;});
+  if (data.length===0){
+    list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
+    return;
+  }
+  var html = '';
+  for (var k=0;k<data.length;k++){
+    var p = data[k];
+    var prox = qxProximaAccion(p);
+    html += '<div class="qx-card" onclick="qxAbrir(\''+p.id+'\')">'
+      + '<div class="top"><div class="nm">'+qxEsc(p.nombre)+'</div>'
+      + '<span class="qx-badge '+p.estado+'">'+qxEstadoLabel(p.estado)+'</span></div>'
+      + '<div class="dni">DNI '+qxEsc(p.dni||'—')+' · HCL '+qxEsc(p.hcl||'—')+'</div>'
+      + (p.diagnostico ? '<div class="dx">'+qxEsc(p.diagnostico)+'</div>' : '')
+      + (prox ? '<div class="dx" style="color:var(--tl);font-weight:700">→ '+qxEsc(prox)+'</div>' : '')
+      + '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function qxProximaAccion(p){
+  if (p.estado==='en_tramite'){
+    if (!qxFase2Completa(p)) return 'Completar exámenes (Fase 2)';
+    if (!qxFase3Completa(p)) return 'Agendar citas / riesgos (Fase 3)';
+    if (!qxFase4Completa(p)) return 'Checks pre-hospitalización (Fase 4)';
+    return 'Marcar apta para sala';
+  }
+  if (p.estado==='apta_para_sala') return 'Programar cirugía (Fase 5)';
+  if (p.estado==='programada') return 'Asignar cama (Fase 6)';
+  if (p.estado==='hospitalizada') return 'Resolver (Operada / Suspendida)';
+  return '';
+}
+
+function qxSetFilter(f){ QX_FILTER=f; qxRender(); }
+
+async function qxNuevo(){
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Nuevo paciente · Fase 1</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><label>DNI *</label><input id="qxNDni" placeholder="8 dígitos"></div>'
+    + '<div class="qx-field"><label>Nombre completo *</label><input id="qxNNombre" placeholder="Nombres y apellidos"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxNHcl" placeholder="N° historia"></div>'
+    + '<div class="qx-field"><label>Teléfono</label><input id="qxNTel" placeholder="9XXXXXXXX"></div></div>'
+    + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxNDx" rows="2" placeholder="Motivo de cirugía"></textarea></div>'
+    + '<button class="qx-btn" style="width:100%" onclick="qxGuardarNuevo()">Guardar paciente</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+async function qxGuardarNuevo(){
+  var dni = document.getElementById('qxNDni').value.trim();
+  var nombre = document.getElementById('qxNNombre').value.trim();
+  if (!dni || !nombre){ toast('DNI y nombre son obligatorios','error'); return; }
+  var hcl = document.getElementById('qxNHcl').value.trim();
+  var tel = qxNormalizarTel(document.getElementById('qxNTel').value.trim());
+  var dx = document.getElementById('qxNDx').value.trim();
+  var res = await sbAdmin().from('pacientes').insert({
+    dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null, diagnostico:dx||null, estado:'en_tramite'
+  }).select().single();
+  if (res.error){
+    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
+    else toast('Error: '+res.error.message,'error');
+    return;
+  }
+  toast('Paciente registrado ✓','success');
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  qxLoad();
+}
+
+async function qxAbrir(id){
+  var p = QX_PACIENTES.find(function(x){return x.id===id;});
+  if (!p){
+    var r = await sbAdmin().from('pacientes').select('*').eq('id',id).single();
+    p = r.data;
+  }
+  if (!p) return;
+  QX_ACTUAL = p;
+  qxRenderDetalle();
+}
+
+function qxRenderDetalle(){
+  var prev = document.querySelector('.qx-overlay'); if (prev) prev.remove();
+  var p = QX_ACTUAL;
+  var f2 = qxFase2Completa(p), f3 = qxFase3Completa(p);
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>'+qxEsc(p.nombre)+'</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">1</div><div><div class="ph-title">Captación</div><div class="ph-hint">DNI '+qxEsc(p.dni)+' · HCL '+qxEsc(p.hcl||'—')+' · Tel '+qxEsc(p.telefono||'—')+'</div></div></div>'
+    + (p.diagnostico?'<div style="font-size:13px;color:var(--t1)">'+qxEsc(p.diagnostico)+'</div>':'')
+    + '</div>'
+    + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
+    + qxCheckHtml('laboratorio_completo','Laboratorio completo',p.laboratorio_completo,true)
+    + qxCheckHtml('ekg','EKG',p.ekg,true)
+    + '</div>'
+    + '<div class="qx-phase'+(f2?'':' locked')+'"><div class="ph-head"><div class="ph-num">3</div><div><div class="ph-title">Citas e interconsultas</div><div class="ph-hint">Requiere Fase 2 completa</div></div></div>'
+    + (f2
+        ? '<div class="qx-row"><div class="qx-field"><label>Cita cardiología</label><input type="date" id="qxCitaCard" value="'+(p.fecha_cita_cardiologia||'')+'" onchange="qxSetCita(\'fecha_cita_cardiologia\',this.value)"></div>'
+        + '<div class="qx-field"><label>Cita anestesiología</label><input type="date" id="qxCitaAnest" value="'+(p.fecha_cita_anestesiologia||'')+'" onchange="qxSetCita(\'fecha_cita_anestesiologia\',this.value)"></div></div>'
+        + qxCheckHtml('riesgo_qx','Riesgo quirúrgico',p.riesgo_qx,true)
+        + qxCheckHtml('riesgo_anestesiologico','Riesgo anestesiológico (requiere riesgo Qx)',p.riesgo_anestesiologico,p.riesgo_qx)
+        + ((p.fecha_cita_cardiologia||p.fecha_cita_anestesiologia) ? '<a class="qx-wa" target="_blank" href="'+qxWhatsAppLink(p)+'">📲 Notificar por WhatsApp</a>' : '')
+        : '<div class="qx-lock">🔒 Completa Fase 2 para habilitar citas</div>')
+    + '</div>'
+    + '<div class="qx-phase'+(f3?'':' locked')+'"><div class="ph-head"><div class="ph-num">4</div><div><div class="ph-title">Pre-hospitalización</div><div class="ph-hint">Requiere Fase 3 completa → Apta para sala</div></div></div>'
+    + (f3
+        ? qxCheckHtml('hcl_hospitalizacion','HCL de hospitalización',p.hcl_hospitalizacion,true)
+        + qxCheckHtml('consentimientos','Consentimientos firmados',p.consentimientos,true)
+        + qxCheckHtml('solicitud_sala_dejada','Solicitud de sala dejada',p.solicitud_sala_dejada,true)
+        : '<div class="qx-lock">🔒 Completa Fase 3 para habilitar</div>')
+    + '</div>'
+    + '<div class="qx-phase'+(p.estado==='apta_para_sala'?'':' locked')+'"><div class="ph-head"><div class="ph-num">5</div><div><div class="ph-title">Programación quirúrgica</div><div class="ph-hint">Solo si Apta para sala</div></div></div>'
+    + (p.estado==='apta_para_sala'
+        ? '<div class="qx-row"><div class="qx-field"><label>Fecha cirugía</label><input type="date" id="qxFechaQx" value="'+(p.fecha_cirugia||'')+'"></div>'
+        + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value="manana">Mañana</option><option value="tarde">Tarde</option></select></div></div>'
+        + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">Programar cirugía</button>'
+        : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
+    + '</div>'
+    + '<div class="qx-phase'+(p.estado==='programada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">6</div><div><div class="ph-title">Hospitalización</div><div class="ph-hint">Solo si Programada</div></div></div>'
+    + (p.estado==='programada'
+        ? '<div class="qx-field"><label>Cama</label><input id="qxCama" placeholder="Ej: Cama 4 / Pasillo"></div>'
+        + '<button class="qx-btn tl" style="width:100%" onclick="qxHospitalizar()">Asignar cama</button>'
+        : ((p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEsc(p.cama_hospitalizacion||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Programada"</div>'))
+    + '</div>'
+    + '<div class="qx-phase'+(p.estado==='hospitalizada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">7</div><div><div class="ph-title">Resolución</div><div class="ph-hint">Solo si Hospitalizada</div></div></div>'
+    + (p.estado==='hospitalizada'
+        ? '<div class="qx-row"><button class="qx-btn" style="background:#16a34a;flex:1" onclick="qxResolver(\'operada\')">✔ Operada</button>'
+        + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxResolverSusp()">✖ Suspendida</button></div>'
+        : ((p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Hospitalizada"</div>'))
+    + '</div>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+function qxCheckHtml(campo,label,valor,habilitado){
+  return '<div class="qx-check"><div class="ck'+(valor?' on':'')+'" style="'+(habilitado?'':'opacity:.4;cursor:not-allowed')+'" onclick="'+(habilitado?'qxToggle(\''+campo+'\')':'')+'">'+(valor?'✓':'')+'</div><div class="cktxt">'+label+'</div></div>';
+}
+
+function qxWhatsAppLink(p){
+  var partes = [];
+  if (p.fecha_cita_cardiologia) partes.push('Cardiología '+qxFmtFecha(p.fecha_cita_cardiologia));
+  if (p.fecha_cita_anestesiologia) partes.push('Anestesiología '+qxFmtFecha(p.fecha_cita_anestesiologia));
+  var msg = 'Hola '+p.nombre+', te recordamos tus citas: '+partes.join(' y ')+'. Hospital de Laredo.';
+  return 'https://wa.me/'+qxNormalizarTel(p.telefono)+'?text='+encodeURIComponent(msg);
+}
+
+async function qxToggle(campo){
+  var p = QX_ACTUAL; if (!p) return;
+  var val = !p[campo];
+  if (campo==='riesgo_qx' && val && !qxFase2Completa(p)){ toast('Requiere Fase 2 completa','error'); return; }
+  if (campo==='riesgo_anestesiologico' && val && !p.riesgo_qx){ toast('Requiere riesgo quirúrgico marcado','error'); return; }
+  if ((campo==='hcl_hospitalizacion'||campo==='consentimientos'||campo==='solicitud_sala_dejada') && val && !qxFase3Completa(p)){ toast('Requiere Fase 3 completa','error'); return; }
+  var patch = {}; patch[campo] = val;
+  var res = await sbAdmin().from('pacientes').update(patch).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p[campo] = val;
+  if (qxFase4Completa(p) && p.estado==='en_tramite'){
+    await qxSetEstado(p,'apta_para_sala');
+  }
+  qxRenderDetalle();
+  qxLoad();
+}
+
+async function qxSetCita(campo,valor){
+  var p = QX_ACTUAL; if(!p) return;
+  if (!qxFase2Completa(p)){ toast('Requiere Fase 2 completa','error'); return; }
+  var patch = {}; patch[campo] = valor || null;
+  var res = await sbAdmin().from('pacientes').update(patch).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p[campo] = valor || null;
+  qxRenderDetalle();
+  qxLoad();
+}
+
+async function qxProgramar(){
+  var p = QX_ACTUAL; if(!p) return;
+  if (p.estado!=='apta_para_sala'){ toast('Requiere estado "Apta para sala"','error'); return; }
+  var fecha = document.getElementById('qxFechaQx').value;
+  var turno = document.getElementById('qxTurno').value;
+  if (!fecha){ toast('Indica la fecha de cirugía','error'); return; }
+  var res = await sbAdmin().from('pacientes').update({fecha_cirugia:fecha, turno:turno}).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p.fecha_cirugia = fecha; p.turno = turno;
+  await qxSetEstado(p,'programada');
+  qxRenderDetalle();
+  qxLoad();
+}
+
+async function qxHospitalizar(){
+  var p = QX_ACTUAL; if(!p) return;
+  if (p.estado!=='programada'){ toast('Requiere estado "Programada"','error'); return; }
+  var cama = document.getElementById('qxCama').value.trim();
+  if (!cama){ toast('Indica la cama','error'); return; }
+  var res = await sbAdmin().from('pacientes').update({cama_hospitalizacion:cama, fecha_hospitalizacion:new Date().toISOString()}).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p.cama_hospitalizacion = cama;
+  await qxSetEstado(p,'hospitalizada');
+  qxRenderDetalle();
+  qxLoad();
+}
+
+async function qxResolver(resultado){
+  var p = QX_ACTUAL; if(!p) return;
+  await qxSetEstado(p,resultado);
+  qxRenderDetalle();
+  qxLoad();
+}
+
+function qxResolverSusp(){
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Motivo de suspensión</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><textarea id="qxMotivo" rows="3" placeholder="Motivo de la suspensión"></textarea></div>'
+    + '<button class="qx-btn" style="background:#dc2626;width:100%" onclick="qxConfirmarSusp()">Confirmar suspensión</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+async function qxConfirmarSusp(){
+  var motivo = document.getElementById('qxMotivo').value.trim();
+  if (!motivo){ toast('Indica el motivo','error'); return; }
+  var p = QX_ACTUAL;
+  var res = await sbAdmin().from('pacientes').update({motivo_suspension:motivo}).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p.motivo_suspension = motivo;
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  await qxSetEstado(p,'suspendida',motivo);
+  qxRenderDetalle();
+  qxLoad();
+}
+
+async function qxSetEstado(p, nuevo, motivo){
+  var anterior = p.estado;
+  var resol = (nuevo==='operada'||nuevo==='suspendida') ? new Date().toISOString() : p.fecha_resolucion;
+  var res = await sbAdmin().from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p.estado = nuevo;
+  await sbAdmin().from('historial_estados').insert({
+    paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null
+  });
+}
+
+// Hook: cargar el módulo al entrar
+(function(){
+  var _orig = showModule;
+  showModule = function(name){
+    _orig(name);
+    if (name === 'programacion') qxLoad();
+  };
+})();
 </script>
 </body>
 </html>

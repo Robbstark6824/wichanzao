@@ -1,11 +1,9 @@
-var CACHE_NAME = 'sghl-v225';
+var CACHE_NAME = 'sghl-v226';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
   './icons/icon-192.svg',
-  './icons/icon-512.svg',
-  './icons/cie10-data-compact.json',
-  './icons/cie10-synonyms.json'
+  './icons/icon-512.svg'
 ];
 
 // Install: cache only small static files — NEVER fail install
@@ -60,21 +58,6 @@ self.addEventListener('fetch', function(e) {
       }).catch(function() {
         return caches.match(e.request);
       })
-    );
-    return;
-  }
-
-  // Catalog DATA (CIE-10): network-first so updates always reach the client.
-  // (cache-first here was serving a stale catalog even after deploys.)
-  if (url.pathname.indexOf('cie10-data') !== -1 || url.pathname.indexOf('cie10-synonyms') !== -1) {
-    e.respondWith(
-      fetch(e.request).then(function(response) {
-        if (response && response.status === 200) {
-          var clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
-        }
-        return response;
-      }).catch(function() { return caches.match(e.request); })
     );
     return;
   }
