@@ -1,7 +1,7 @@
 {
-  "name": "Wichanzao · Panel de Referencias",
-  "short_name": "Wichanzao PC",
-  "description": "Panel de escritorio para gestionar referencias del Centro de Salud Wichanzao",
+  "name": "Servicio de Ginecología · Panel de Referencias",
+  "short_name": "Ginecología PC",
+  "description": "Panel de escritorio del Servicio de Ginecología - Hospital de Laredo",
   "start_url": "./pc.html",
   "scope": "./",
   "display": "standalone",

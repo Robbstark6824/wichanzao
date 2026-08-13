@@ -1,7 +1,7 @@
 {
-  "name": "Medicina Interna - Hospital de Laredo",
-  "short_name": "MIHL",
-  "description": "Plataforma medica integral del Hospital de Laredo",
+  "name": "Servicio de Ginecología - Hospital de Laredo",
+  "short_name": "SGHL",
+  "description": "Plataforma del Servicio de Ginecología del Hospital de Laredo",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
