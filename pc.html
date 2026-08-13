@@ -799,26 +799,24 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 var APP_VERSION = 'v200';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
+var SB_SR_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjkzODAzNywiZXhwIjoyMDg4NTE0MDM3fQ.vpWhxqg7YNDgl1MY56W1rmUeEDeiImE0sJE-RNrIrFg';
 var BUCKET = 'documentos';
-var HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+var HEADERS = { 'apikey': SB_SR_KEY, 'Authorization': 'Bearer ' + SB_SR_KEY, 'Content-Type': 'application/json' };
 
-/* ===== SUPABASE CLIENT ===== */
-var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+/* ===== SUPABASE CLIENT (service_role — sin contraseña) ===== */
+var sb = window.supabase.createClient(SB_URL, SB_SR_KEY, {
   auth: {
-    persistSession: true,
-    storageKey: 'wichanzao_sb_session',
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
   }
 });
 
-/* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
+/* Helper: headers con service_role (sin autenticación) */
 async function sbHeaders() {
-  var sess = (await sb.auth.getSession()).data.session;
-  var token = sess ? sess.access_token : SB_KEY;
   return {
-    'apikey': SB_KEY,
-    'Authorization': 'Bearer ' + token,
+    'apikey': SB_SR_KEY,
+    'Authorization': 'Bearer ' + SB_SR_KEY,
     'Content-Type': 'application/json'
   };
 }
@@ -3044,25 +3042,8 @@ var PC_AUTH_EMAIL = 'pc-panel@wichanzao.local';
 var PC_PASSWORD_HASH_KEY = 'wichanzao_pc_pass';
 
 async function pcInit() {
-  // Check if already authenticated via Supabase session
-  try {
-    var sess = (await sb.auth.getSession()).data.session;
-    if (sess) {
-      loadAllData();
-      startAutoRefresh();
-      return;
-    }
-  } catch(e) {}
-  // Check if user has set a local password
-  var savedHash = localStorage.getItem(PC_PASSWORD_HASH_KEY);
-  if (!savedHash) {
-    // First time — auto-setup with service_role
-    document.getElementById('pcAuthOverlay').style.display = 'flex';
-    document.getElementById('pcAuthTitle').textContent = 'Configurar acceso al panel';
-    document.getElementById('pcAuthSub').textContent = 'Crea una contrasena para acceder al panel de administracion';
-  } else {
-    document.getElementById('pcAuthOverlay').style.display = 'flex';
-  }
+  loadAllData();
+  startAutoRefresh();
 }
 
 async function pcAuthSubmit() {
