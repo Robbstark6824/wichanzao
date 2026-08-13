@@ -760,7 +760,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 
 <!-- LOGIN OVERLAY -->
 <!-- PC AUTH OVERLAY -->
-<div id="pcAuthOverlay" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,#080E1A 0%,#0C1F3D 40%,#142952 100%);display:none;align-items:center;justify-content:center">
+<div id="pcAuthOverlay" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,#080E1A 0%,#0C1F3D 40%,#142952 100%);display:flex;align-items:center;justify-content:center">
   <div style="background:var(--s1);border-radius:20px;padding:36px 32px;width:360px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.4);text-align:center">
     <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,rgba(160,61,99,.15),rgba(160,61,99,.05));border:1px solid rgba(160,61,99,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
       <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#A03D63" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -799,27 +799,17 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 var APP_VERSION = 'v200';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
-var SB_SR_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjkzODAzNywiZXhwIjoyMDg4NTE0MDM3fQ.vpWhxqg7YNDgl1MY56W1rmUeEDeiImE0sJE-RNrIrFg';
 var BUCKET = 'documentos';
-var HEADERS = { 'apikey': SB_SR_KEY, 'Authorization': 'Bearer ' + SB_SR_KEY, 'Content-Type': 'application/json' };
 
-/* ===== SUPABASE CLIENT (service_role — sin contraseña) ===== */
-var sb = window.supabase.createClient(SB_URL, SB_SR_KEY, {
+/* ===== SUPABASE CLIENT (anon key + autenticación real) ===== */
+var sb = window.supabase.createClient(SB_URL, SB_KEY, {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
+    persistSession: true,
+    storageKey: 'wichanzao_pc_sb_session',
+    autoRefreshToken: true,
     detectSessionInUrl: false
   }
 });
-
-/* Helper: headers con service_role (sin autenticación) */
-async function sbHeaders() {
-  return {
-    'apikey': SB_SR_KEY,
-    'Authorization': 'Bearer ' + SB_SR_KEY,
-    'Content-Type': 'application/json'
-  };
-}
 var REFRESH_INTERVAL = 60;
 
 /* =========================================================
@@ -3037,13 +3027,45 @@ function forceRefresh() {
 /* =========================================================
    INIT — Authenticate before loading data
    ========================================================= */
-var PC_AUTH_EMAIL = 'pc-panel@wichanzao.local';
+// Solo los administradores (workers.is_admin=true) pueden abrir el panel.
+// Se autentica con Supabase Auth real: email del admin + su contrasena.
+var PC_ADMIN_EMAIL = 'robert-macedo.ginecologia@wichanzao.local';
 
-var PC_PASSWORD_HASH_KEY = 'wichanzao_pc_pass';
+function pcShowAuth(msg) {
+  var overlay = document.getElementById('pcAuthOverlay');
+  overlay.style.display = 'flex';
+  var inp = document.getElementById('pcAuthPass');
+  if (inp) inp.value = '';
+  var err = document.getElementById('pcAuthError');
+  if (msg) { err.textContent = msg; err.style.display = 'block'; }
+}
+
+function pcHideAuth() {
+  document.getElementById('pcAuthOverlay').style.display = 'none';
+}
+
+// Verifica que la sesión actual corresponda a un admin (lee workers.is_admin vía RLS).
+async function pcVerifyAdmin() {
+  try {
+    var u = await sb.auth.getUser();
+    if (!u.data || !u.data.user) return false;
+    var r = await sb.from('workers').select('is_admin').eq('id', u.data.user.id).maybeSingle();
+    if (r.error || !r.data) return false;
+    return r.data.is_admin === true;
+  } catch (e) { return false; }
+}
 
 async function pcInit() {
-  loadAllData();
-  startAutoRefresh();
+  try {
+    var s = await sb.auth.getSession();
+    if (s.data && s.data.session && await pcVerifyAdmin()) {
+      pcHideAuth();
+      loadAllData();
+      startAutoRefresh();
+      return;
+    }
+  } catch (e) {}
+  pcShowAuth();
 }
 
 async function pcAuthSubmit() {
@@ -3057,43 +3079,38 @@ async function pcAuthSubmit() {
 
   btn.disabled = true; btn.textContent = 'Verificando...';
 
-  var savedHash = localStorage.getItem(PC_PASSWORD_HASH_KEY);
-
-  if (!savedHash) {
-    // First time setup — save the password hash
-    var hash = btoa(pass.split('').reverse().join('') + '_pc_wzao');
-    localStorage.setItem(PC_PASSWORD_HASH_KEY, hash);
-    document.getElementById('pcAuthOverlay').style.display = 'none';
-    toast('Contrasena configurada. Usala para acceder al panel.', 'success');
+  try {
+    var result = await sb.auth.signInWithPassword({ email: PC_ADMIN_EMAIL, password: pass });
+    if (result.error) {
+      errEl.textContent = 'Contrasena incorrecta';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Entrar';
+      return;
+    }
+    var isAdmin = await pcVerifyAdmin();
+    if (!isAdmin) {
+      await sb.auth.signOut();
+      errEl.textContent = 'No tienes acceso de administrador';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Entrar';
+      return;
+    }
+    pcHideAuth();
     loadAllData();
     startAutoRefresh();
-    btn.disabled = false; btn.textContent = 'Entrar';
-    return;
-  }
-
-  // Verify password
-  var expectedHash = btoa(pass.split('').reverse().join('') + '_pc_wzao');
-  if (savedHash === expectedHash) {
-    document.getElementById('pcAuthOverlay').style.display = 'none';
-    loadAllData();
-    startAutoRefresh();
-  } else {
-    // Fallback: try Supabase auth
-    try {
-      var result = await sb.auth.signInWithPassword({ email: PC_AUTH_EMAIL, password: pass });
-      if (!result.error) {
-        document.getElementById('pcAuthOverlay').style.display = 'none';
-        loadAllData();
-        startAutoRefresh();
-        btn.disabled = false; btn.textContent = 'Entrar';
-        return;
-      }
-    } catch(e) {}
-    errEl.textContent = 'Contrasena incorrecta';
+  } catch (e) {
+    errEl.textContent = 'Error de conexion';
     errEl.style.display = 'block';
   }
   btn.disabled = false; btn.textContent = 'Entrar';
 }
+
+// Si la sesión se cierra o expira, volver a bloquear el panel.
+sb.auth.onAuthStateChange(function(event) {
+  if (event === 'SIGNED_OUT') {
+    pcShowAuth('Sesion cerrada. Vuelve a ingresar.');
+  }
+});
 
 pcInit();
 

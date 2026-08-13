@@ -15,5 +15,9 @@ tools/__diag__*
 tools/check-auth-config.js
 tools/inspect-state.js
 tools/inspect-rls.js
+tools/inspect-all-rls.js
+tools/inspect-storage.js
+tools/inspect-storage2.js
+tools/inspect-auth-users.js
 tools/migrate-gineco.js
 tools/migrate-db.js
