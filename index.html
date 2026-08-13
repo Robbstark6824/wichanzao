@@ -2670,6 +2670,776 @@ function toggleDarkMode() {
   }
 }
 
+function changeName() {
+  if (!worker) return;
+  var newName = prompt('Nuevo nombre:', worker.name);
+  if (!newName || !newName.trim() || newName.trim() === worker.name) return;
+  worker.name = newName.trim();
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  document.getElementById('settingsName').textContent = worker.name;
+  document.getElementById('settingsProfileName').textContent = worker.name;
+  toast('Nombre actualizado', 'success');
+}
+
+function changeFolder() {
+  if (!worker) return;
+  var newFolder = prompt('Nueva carpeta (se creara una nueva, la anterior se mantiene):', worker.id);
+  if (!newFolder || !newFolder.trim()) return;
+  var folderId = newFolder.trim().toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!folderId || folderId.length < 2) { toast('Nombre invalido', 'error'); return; }
+  if (folderId === worker.id) return;
+  if (!confirm('Se creara la carpeta "' + folderId + '". Tu carpeta anterior (' + worker.id + ') seguira existiendo. ¿Continuar?')) return;
+  worker.id = folderId;
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  prevDatesLoaded = false;
+  prevDatesCache = {};
+  todayFiles = [];
+  localStorage.removeItem(getTodayKey());
+  document.getElementById('settingsFolder').textContent = worker.id;
+  toast('Carpeta cambiada a ' + folderId, 'success');
+}
+
+function changeArea() {
+  if (!worker) return;
+  var servicio = worker.servicio || 'medicina';
+  var areas = SERVICIOS[servicio] ? SERVICIOS[servicio].areas : ['Medico General','Interno de Medicina'];
+  var msg = 'Selecciona tu rol (escribe el numero):\n';
+  for (var i = 0; i < areas.length; i++) {
+    msg += (i + 1) + '. ' + areas[i] + '\n';
+  }
+  var choice = prompt(msg);
+  if (!choice) return;
+  var idx = parseInt(choice) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= areas.length) { toast('Opcion invalida', 'error'); return; }
+  worker.area = areas[idx];
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  document.getElementById('settingsArea').textContent = worker.area;
+  document.getElementById('settingsProfileRole').textContent = worker.area;
+  toast('Rol actualizado', 'success');
+}
+
+function changeServicio() {
+  if (!worker) return;
+  var msg = 'Selecciona tu servicio (escribe el numero):\n';
+  for (var i = 0; i < SERVICIOS_KEYS.length; i++) {
+    msg += (i + 1) + '. ' + SERVICIOS[SERVICIOS_KEYS[i]].label + '\n';
+  }
+  var current = worker.servicio ? (SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : worker.servicio) : 'Ninguno';
+  msg += '\nActual: ' + current;
+  var choice = prompt(msg);
+  if (!choice) return;
+  var idx = parseInt(choice) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= SERVICIOS_KEYS.length) { toast('Opcion invalida', 'error'); return; }
+  var newServicio = SERVICIOS_KEYS[idx];
+  if (newServicio === worker.servicio) return;
+
+  var warn = worker.servicio
+    ? 'Cambiaras de ' + current + ' a ' + SERVICIOS[newServicio].label + '.\n\nTus archivos anteriores se mantendran en ' + current + ' y los nuevos iran a ' + SERVICIOS[newServicio].label + '.\n\n¿Continuar?'
+    : 'Se asignara tu cuenta al servicio de ' + SERVICIOS[newServicio].label + '.\n\n¿Continuar?';
+  if (!confirm(warn)) return;
+
+  worker.servicio = newServicio;
+  // Update area to first option of new servicio if current area doesn't belong
+  var newAreas = SERVICIOS[newServicio].areas;
+  if (newAreas.indexOf(worker.area) === -1) {
+    worker.area = newAreas[0];
+    document.getElementById('settingsArea').textContent = worker.area;
+  }
+  saveWorker(worker);
+  uploadProfileToSupabase(worker);
+  prevDatesLoaded = false;
+  prevDatesCache = {};
+  todayFiles = [];
+  localStorage.removeItem(getTodayKey());
+  document.getElementById('settingsServicio').textContent = SERVICIOS[newServicio].label;
+  document.getElementById('settingsProfileBadge').textContent = SERVICIOS[newServicio].label;
+  toast('Servicio actualizado a ' + SERVICIOS[newServicio].label, 'success');
+}
+
+async function loadAdminWorkers() {
+  var container = document.getElementById('adminWorkerList');
+  container.innerHTML = 'Cargando...';
+
+  // Map to deduplicate between DB and storage
+  var workersMap = {};
+
+  try {
+    // 1) Load from DB (has names, areas, is_admin)
+    var dbResult = await sbAdmin().from('workers').select('*').order('servicio');
+    if (!dbResult.error && dbResult.data) {
+      for (var i = 0; i < dbResult.data.length; i++) {
+        var w = dbResult.data[i];
+        workersMap[w.folder_id] = {
+          folder_id: w.folder_id,
+          name: w.name || w.folder_id,
+          area: w.area || '',
+          servicio: w.servicio || '',
+          is_admin: w.is_admin,
+          basePath: (w.servicio || '') + '/workers/' + w.folder_id,
+          fromDB: true
+        };
+      }
+    }
+
+    // 2) Also scan storage for workers not in DB (like pc.html does)
+    var storageWorkers = await scanStorageForWorkers();
+    for (var si = 0; si < storageWorkers.length; si++) {
+      var sw = storageWorkers[si];
+      if (!workersMap[sw.folder_id]) {
+        workersMap[sw.folder_id] = sw;
+      }
+    }
+
+    var workers = Object.values(workersMap);
+    // Sort: DB workers first, then by name
+    workers.sort(function(a, b) {
+      if (a.fromDB && !b.fromDB) return -1;
+      if (!a.fromDB && b.fromDB) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    if (!workers.length) {
+      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas de trabajadores</div>';
+      return;
+    }
+
+    var html = '';
+    for (var wi = 0; wi < workers.length; wi++) {
+      var wk = workers[wi];
+      var bp = wk.basePath.replace(/'/g, "\'");
+      var sLabel = wk.servicio ? (SERVICIOS[wk.servicio] ? SERVICIOS[wk.servicio].label : wk.servicio) : 'Storage';
+      var adminBadge = wk.is_admin ? ' <span style=\"color:var(--gd);font-size:10px\">&#x1F451;</span>' : '';
+      var storageBadge = !wk.fromDB ? ' <span style=\"color:var(--t3);font-size:9px\">(storage)</span>' : '';
+      html += '<div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)\">';
+      html += '<div onclick=\"adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(wk.name).replace(/'/g, "\'") + '\')\" style=\"cursor:pointer;flex:1\">';
+      html += '<div style=\"font-weight:700;font-size:13px;color:var(--tl)\">' + escapeHtml(wk.name) + adminBadge + storageBadge + ' <span style=\"font-size:10px;opacity:.5\">&#9654;</span></div>';
+      if (wk.area) html += '<div style=\"font-size:11px;color:var(--t3)\">' + escapeHtml(wk.area) + ' &middot; ' + sLabel + '</div>';
+      html += '<div style=\"font-size:10px;color:var(--t3);opacity:.6\">' + escapeHtml(wk.folder_id) + '</div></div>';
+      html += '<button onclick=\"adminDeleteFolder(\'' + bp + '\')\" style=\"background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit\">Borrar</button>';
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    loadAdminWorkersLegacy();
+  }
+}
+
+// Scan storage for worker folders (like pc.html does)
+async function scanStorageForWorkers() {
+  var workers = [];
+  try {
+    var prefixes = SERVICIOS_KEYS.map(function(s) { return s + '/workers/'; });
+    prefixes.push('workers/'); // legacy
+    var results = await Promise.all(prefixes.map(function(p) {
+      return adminStorageList(p).then(function(items) {
+        return { prefix: p, folders: items.filter(function(i) { return !i.id && i.name; }) };
+      }).catch(function() { return { prefix: p, folders: [] }; });
+    }));
+    for (var ri = 0; ri < results.length; ri++) {
+      for (var fi = 0; fi < results[ri].folders.length; fi++) {
+        var name = results[ri].folders[fi].name;
+        var servicio = results[ri].prefix.split('/')[0];
+        if (servicio === 'workers') servicio = '';
+        workers.push({
+          folder_id: name,
+          name: name, // placeholder, will try profile.json
+          area: '',
+          servicio: servicio,
+          is_admin: false,
+          basePath: results[ri].prefix + name,
+          fromDB: false
+        });
+      }
+    }
+  } catch(e) { /* ignore */ }
+  return workers;
+}
+
+function loadAdminWorkersLegacy() {
+  var container = document.getElementById('adminWorkerList');
+  var prefixes = SERVICIOS_KEYS.map(function(s) { return { servicio: s, prefix: s + '/workers/' }; });
+  prefixes.push({ servicio: '', prefix: 'workers/' });
+
+  var fetches = prefixes.map(function(p) {
+    return fetch(SB_URL + '/storage/v1/object/list/' + SB_BUCKET, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_SR_KEY, 'apikey': SB_SR_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: p.prefix, limit: 100 })
+    }).then(function(res) { return res.json(); }).then(function(items) {
+      if (!Array.isArray(items)) return [];
+      return items.filter(function(i) { return !i.id; }).map(function(i) {
+        return { name: i.name, basePath: p.prefix + i.name, servicio: p.servicio };
+      });
+    }).catch(function() { return []; });
+  });
+
+  Promise.all(fetches).then(function(results) {
+    var allFolders = [];
+    for (var r = 0; r < results.length; r++) {
+      for (var f = 0; f < results[r].length; f++) allFolders.push(results[r][f]);
+    }
+    if (!allFolders.length) {
+      container.innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">No hay carpetas</div>';
+      return;
+    }
+
+    var profileFetches = allFolders.map(function(f) {
+      return fetch(SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + f.basePath + '/profile.json')
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .catch(function() { return null; });
+    });
+
+    Promise.all(profileFetches).then(function(profiles) {
+      var html = '';
+      for (var i = 0; i < allFolders.length; i++) {
+        var af = allFolders[i];
+        var p = profiles[i];
+        var displayName = p ? p.name : af.name;
+        var area = p ? p.area || '' : '';
+        var sLabel = af.servicio ? (SERVICIOS[af.servicio] ? SERVICIOS[af.servicio].label : af.servicio) : 'Legacy';
+        var bp = af.basePath.replace(/'/g, "\'");
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+        html += '<div onclick="adminBrowseFolder(\'' + bp + '\',\'' + displayName.replace(/'/g, "\'") + '\')" style="cursor:pointer;flex:1">';
+        html += '<div style="font-weight:700;font-size:13px;color:var(--tl)">' + escapeHtml(displayName) + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div>';
+        if (area) html += '<div style="font-size:11px;color:var(--t3)">' + escapeHtml(area) + ' &middot; ' + sLabel + '</div>';
+        html += '<div style="font-size:10px;color:var(--t3);opacity:.6">' + escapeHtml(af.name) + '</div></div>';
+        html += '<button onclick="adminDeleteFolder(\'' + bp + '\')" style="background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    });
+  }).catch(function(e) {
+    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error al cargar datos</div>';
+  });
+}
+
+// Admin storage helpers — usa cliente Supabase admin (service_role singleton)
+function adminStorageList(prefix) {
+  console.log('adminStorageList:', prefix);
+  return sbAdmin().storage.from(SB_BUCKET).list(prefix, { limit: 500, sortBy: { column: 'name', order: 'asc' } })
+    .then(function(r) {
+      console.log('  result:', r.error ? 'ERROR: ' + r.error.message : 'OK, ' + (r.data ? r.data.length : 0) + ' items');
+      if (r.error) throw new Error(r.error.message);
+      return r.data || [];
+    }).catch(function(e) {
+      console.error('  error:', e.message);
+      return [];
+    });
+}
+
+function adminStorageDelete(paths) {
+  if (!paths || !paths.length) return Promise.resolve();
+  console.log('adminStorageDelete:', paths.length, 'paths');
+  return sbAdmin().storage.from(SB_BUCKET).remove(paths)
+    .then(function(r) {
+      console.log('  result:', r.error ? 'ERROR: ' + r.error.message : 'OK');
+      if (r.error) throw new Error(r.error.message);
+      return r;
+    }).catch(function(e) {
+      console.error('  error:', e.message);
+      throw e;
+    });
+}
+
+function listAllFilesAdmin(prefix) {
+  return adminStorageList(prefix).then(function(items) {
+    var allFiles = [];
+    var subfolders = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id) { allFiles.push(items[i].name); }
+      else { subfolders.push(items[i].name); }
+    }
+    var promises = subfolders.map(function(sub) {
+      return listAllFilesAdmin(prefix + '/' + sub).then(function(subFiles) {
+        return subFiles.map(function(f) { return sub + '/' + f; });
+      });
+    });
+    return Promise.all(promises).then(function(results) {
+      for (var j = 0; j < results.length; j++) {
+        allFiles = allFiles.concat(results[j]);
+      }
+      return allFiles;
+    });
+  });
+}
+
+function adminDeleteFolder(basePath) {
+  var folderName = basePath.split('/').pop();
+  if (!confirm('¿Borrar la carpeta "' + folderName + '" y todos sus archivos?')) return;
+  if (!confirm('¿Seguro? No se puede deshacer.')) return;
+
+  haptic(50);
+  toast('Eliminando ' + folderName + '...', 'info');
+
+  var prefix = basePath;
+  listAllFilesAdmin(prefix).then(function(files) {
+    var paths = files.map(function(f) { return prefix + '/' + f; });
+    return adminStorageDelete(paths);
+  }).then(function() {
+    // Also delete worker from DB so both views stay in sync
+    return sbAdmin().from('workers').delete().eq('folder_id', folderName);
+  }).then(function() {
+    toast('Carpeta y registro eliminados ✓', 'success');
+    loadAdminWorkers();
+  }).catch(function(e) {
+    toast('Error: ' + e.message, 'error');
+    console.error('adminDeleteFolder error:', e);
+  });
+}
+
+function adminBrowseFolder(basePath, displayName) {
+  var container = document.getElementById('adminWorkerList');
+  container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
+
+  var prefix = basePath;
+  adminStorageList(prefix).then(function(items) {
+    if (!Array.isArray(items)) { items = []; }
+    var subfolders = items.filter(function(i) { return !i.id; });
+    var files = items.filter(function(i) { return i.id; });
+    var bp = basePath.replace(/'/g, "\'");
+
+    function esc(s) { return String(s).replace(/\\/g,'\\\\\').replace(/'/g,"\\\'"); }
+
+    var html = '<div style="margin-bottom:12px">';
+    html += '<button onclick="loadAdminWorkers()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; Volver</button>';
+    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + escapeHtml(displayName) + '</div>';
+    html += '</div>';
+
+    if (!subfolders.length && !files.length) {
+      html += '<div style="color:var(--t3);text-align:center;padding:12px">Carpeta vacia</div>';
+      container.innerHTML = html;
+      return;
+    }
+
+    // Subfolders (date folders)
+    for (var s = 0; s < subfolders.length; s++) {
+      var sub = subfolders[s].name;
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+      html += '<div onclick="adminBrowseSub(\'' + esc(bp) + '\',\'' + esc(sub) + '\',\'' + esc(displayName) + '\')" style="cursor:pointer;flex:1">';
+      html += '<div style="font-weight:600;font-size:13px;color:var(--tl)">&#128193; ' + escapeHtml(sub) + ' <span style="font-size:10px;opacity:.5">&#9654;</span></div></div>';
+      html += '<button onclick="adminDeleteSub(\'' + esc(bp) + '\',\'' + esc(sub) + '\',\'' + esc(displayName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '</div>';
+    }
+
+    // Files at root level (like profile.json)
+    for (var f = 0; f < files.length; f++) {
+      var file = files[f];
+      var size = file.metadata && file.metadata.size ? formatFileSize(file.metadata.size) : '';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+      html += '<div style="flex:1"><div style="font-weight:500;font-size:12px;color:var(--t2)">' + escapeHtml(file.name) + '</div>';
+      if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
+      html += '</div>';
+      if (file.name !== 'profile.json') {
+        html += '<button onclick="adminDeleteFile(\'' + esc(prefix + '/' + file.name) + '\',\'' + esc(bp) + '\',\'' + esc(displayName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      }
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+  }).catch(function(e) {
+    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error al cargar datos</div>';
+  });
+}
+
+function adminBrowseSub(basePath, subName, displayName) {
+  var container = document.getElementById('adminWorkerList');
+  container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3)">Cargando...</div>';
+
+  var prefix = basePath + '/' + subName;
+  adminStorageList(prefix).then(function(items) {
+    if (!Array.isArray(items)) { items = []; }
+    var files = items.filter(function(i) { return i.id; });
+    var subfolders = items.filter(function(i) { return !i.id; });
+
+    function esc(s) { return String(s).replace(/\\/g,'\\\').replace(/'/g,"\'"); }
+
+    var html = '<div style="margin-bottom:12px">';
+    html += '<button onclick="adminBrowseFolder(\'' + esc(basePath) + '\',\'' + esc(displayName) + '\')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0">&larr; ' + escapeHtml(displayName) + '</button>';
+    html += '<div style="font-weight:800;font-size:14px;color:var(--t1);margin-top:6px">' + escapeHtml(subName) + '</div>';
+    html += '<div style="font-size:11px;color:var(--t3)">' + files.length + ' archivo(s)</div>';
+    html += '</div>';
+
+    // Sub-subfolders
+    for (var s = 0; s < subfolders.length; s++) {
+      var ss = subfolders[s].name;
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+      html += '<div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--t2)">&#128193; ' + escapeHtml(ss) + '</div></div>';
+      html += '</div>';
+    }
+
+    // Files
+    for (var f = 0; f < files.length; f++) {
+      var file = files[f];
+      var size = file.metadata && file.metadata.size ? formatFileSize(file.metadata.size) : '';
+      var isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
+      html += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
+      if (isImg) {
+        var thumbUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + '/' + encodeURIComponent(file.name);
+        html += '<img src="' + thumbUrl + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0">';
+      } else {
+        html += '<div style="width:36px;height:36px;border-radius:6px;background:rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--t3)">PDF</div>';
+      }
+      html += '<div style="min-width:0"><div style="font-weight:500;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(file.name) + '</div>';
+      if (size) html += '<div style="font-size:10px;color:var(--t3)">' + size + '</div>';
+      html += '</div></div>';
+      html += '<button onclick="adminDeleteFile(\'' + esc(prefix + '/' + file.name) + '\',\'' + esc(basePath) + '\',\'' + esc(displayName) + '\',\'' + esc(subName) + '\')" style="background:rgba(229,62,62,.1);color:#E53E3E;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">Borrar</button>';
+      html += '</div>';
+    }
+
+    if (!files.length && !subfolders.length) {
+      html += '<div style="color:var(--t3);text-align:center;padding:12px">Sin archivos</div>';
+    }
+
+    container.innerHTML = html;
+  }).catch(function(e) {
+    container.innerHTML = '<div style="color:#E53E3E;padding:8px">Error al cargar datos</div>';
+  });
+}
+
+function adminDeleteFile(filePath, basePath, displayName, subName) {
+  var fileName = filePath.split('/').pop();
+  if (!confirm('¿Borrar "' + fileName + '"?')) return;
+
+  haptic(50);
+  toast('Eliminando...', 'info');
+
+  adminStorageDelete([filePath]).then(function() {
+    toast('Archivo eliminado', 'success');
+    if (subName) {
+      adminBrowseSub(basePath, subName, displayName);
+    } else {
+      adminBrowseFolder(basePath, displayName);
+    }
+  }).catch(function(e) {
+    toast('Error: ' + e.message, 'error');
+  });
+}
+
+function adminDeleteSub(basePath, subName, displayName) {
+  if (!confirm('¿Borrar carpeta "' + subName + '" y todos sus archivos?')) return;
+
+  haptic(50);
+  toast('Eliminando ' + subName + '...', 'info');
+
+  var prefix = basePath + '/' + subName;
+  listAllFilesAdmin(prefix).then(function(files) {
+    var paths = files.map(function(f) { return prefix + '/' + f; });
+    return adminStorageDelete(paths);
+  }).then(function() {
+    toast('Carpeta eliminada ✓', 'success');
+    adminBrowseFolder(basePath, displayName);
+  }).catch(function(e) {
+    toast('Error: ' + e.message, 'error');
+  });
+}
+
+function adminForceReload() {
+  toast('Limpiando cache...', 'info');
+  caches.keys().then(function(names) {
+    return Promise.all(names.map(function(n) { return caches.delete(n); }));
+  }).then(function() {
+    if (navigator.serviceWorker) {
+      return navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg) return reg.unregister();
+      });
+    }
+  }).then(function() {
+    window.location.reload(true);
+  });
+}
+
+function getTodayKey() {
+  var d = new Date();
+  return 'wichanzao_today_' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// Clean old wichanzao_today_* keys (keep only today)
+(function cleanOldTodayKeys() {
+  var todayKey = getTodayKey();
+  for (var i = localStorage.length - 1; i >= 0; i--) {
+    var k = localStorage.key(i);
+    if (k && k.indexOf('wichanzao_today_') === 0 && k !== todayKey) {
+      localStorage.removeItem(k);
+    }
+  }
+})();
+
+function loadTodayFiles() {
+  var raw = localStorage.getItem(getTodayKey());
+  if (raw) {
+    try { todayFiles = JSON.parse(raw); } catch(e) { todayFiles = []; }
+  } else {
+    todayFiles = [];
+  }
+  // Always sync from server silently (show local files first, then merge server state)
+  if (worker && worker.id) {
+    syncTodayFromServer(false);
+  }
+}
+
+function forceSyncToday() {
+  // Just sync from server — don't nuke SW caches (breaks offline)
+  syncTodayFromServer(true);
+}
+
+var _syncInProgress = false;
+function syncTodayFromServer(showFeedback) {
+  if (!worker || !worker.id) return;
+  if (_syncInProgress) return;
+  _syncInProgress = true;
+  var dateStr = getTodayDateString();
+  var basePath = workerBasePath(worker);
+  var prefix = basePath + '/' + dateStr + '/';
+
+  // Syncing today files
+
+  sbList(prefix).then(function(items) {
+    // Server sync response received
+
+    var files = items.filter(function(i) { return i.id && i.name && i.name !== 'profile.json'; });
+
+    // Build set of ALL server URLs (for reconciliation)
+    var serverUrls = {};
+    for (var s = 0; s < files.length; s++) {
+      serverUrls[SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + files[s].name] = true;
+    }
+
+    // RECONCILE: remove local files that no longer exist on server
+    var removed = 0;
+    var beforeCount = todayFiles.length;
+    todayFiles = todayFiles.filter(function(f) {
+      if (!f.url) return true; // Keep pending uploads (no URL yet)
+      if (f.url.indexOf(prefix) === -1) return true; // Keep files from other folders
+      // Check if this file's URL (or its base) exists on server
+      if (serverUrls[f.url]) return true;
+      // For PDFs, check if the PDF itself exists (page images are grouped under it)
+      // Removing file no longer on server
+      removed++;
+      return false;
+    });
+
+    // Identify PDFs to group their page images
+    var pdfNames = {};
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].name.match(/\.pdf$/i)) {
+        var cleanName = files[i].name.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+        pdfNames[cleanName] = files[i].name;
+      }
+    }
+
+    // Build set of URLs we already have locally
+    var existingUrls = {};
+    for (var e = 0; e < todayFiles.length; e++) {
+      if (todayFiles[e].url) existingUrls[todayFiles[e].url] = true;
+    }
+
+    // ADD new files from server
+    var added = 0;
+    for (var j = 0; j < files.length; j++) {
+      var fn = files[j].name;
+      if (fn.match(/_thumb\./i)) continue;
+      var pageMatch = fn.replace(/^\d+_/, '').match(/^(.+)_pag\d+\.(jpg|jpeg|png)$/i);
+      if (pageMatch && pdfNames[pageMatch[1]]) continue;
+
+      var fileUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + prefix + fn;
+      if (existingUrls[fileUrl]) continue;
+
+      if (fn.match(/\.pdf$/i)) {
+        var pdfClean = fn.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+        todayFiles.push({ name: pdfClean + '.pdf', time: '--:--', type: 'pdf', url: fileUrl });
+        added++;
+      } else if (fn.match(/\.(jpg|jpeg|png)$/i)) {
+        var fotoClean = fn.replace(/^\d+_/, '').replace(/\.(jpg|jpeg|png)$/i, '');
+        todayFiles.push({ name: fotoClean + '.jpg', time: '--:--', type: 'foto', url: fileUrl });
+        added++;
+      }
+    }
+
+    // Sync complete
+    if (added > 0 || removed > 0) {
+      saveTodayFiles();
+      updateTodayCount();
+      if (showFeedback) {
+        var msg = '';
+        if (added > 0) msg += added + ' nuevo(s)';
+        if (removed > 0) msg += (msg ? ', ' : '') + removed + ' eliminado(s)';
+        toast('Sincronizado: ' + msg, 'success');
+      }
+    } else if (showFeedback) {
+      toast('Todo sincronizado', 'success');
+    }
+  }).catch(function(e) {
+    // Sync error handled via toast
+    if (showFeedback) toast('Error al sincronizar: ' + e.message, 'error');
+  }).finally(function() { _syncInProgress = false; });
+}
+
+function saveTodayFiles() {
+  localStorage.setItem(getTodayKey(), JSON.stringify(todayFiles));
+}
+
+function addTodayFile(name, type, url) {
+  var now = new Date();
+  var time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  todayFiles.push({ name: name, time: time, type: type, url: url || '' });
+  saveTodayFiles();
+  updateTodayCount();
+}
+
+function updateTodayCount() {
+  document.getElementById('todayCount').textContent = todayFiles.length;
+  var container = document.getElementById('todayFiles');
+  container.innerHTML = '';
+  var list = todayFiles.slice().reverse().slice(0, 10);
+  for (var i = 0; i < list.length; i++) {
+    var f = list[i];
+    var realIndex = todayFiles.length - 1 - i;
+    var iconPath = f.type === 'pdf'
+      ? '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>'
+      : '<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>';
+    var el = document.createElement('div');
+    el.className = 'today-file';
+    el.style.cursor = 'pointer';
+    el.setAttribute('data-index', realIndex);
+    el.onclick = function() { openTodayFile(parseInt(this.getAttribute('data-index'))); };
+    el.innerHTML = '<div class="tf-icon"><svg viewBox="0 0 24 24">' + iconPath + '</svg></div>' +
+      '<span class="tf-name">' + escapeHtml(f.name) + '</span>' +
+      '<span class="tf-time">' + f.time + '</span>' +
+      '<button class="tf-del" data-index="' + realIndex + '" onclick="event.stopPropagation();deleteTodayFile(' + realIndex + ')" style="background:none;border:none;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
+    container.appendChild(el);
+  }
+}
+
+function openTodayFile(index) {
+  var f = todayFiles[index];
+  if (!f || !f.url) {
+    toast('Archivo pendiente de subir', 'info');
+    return;
+  }
+  haptic();
+
+  if (f.type === 'pdf') {
+    window.open(f.url, '_blank');
+    return;
+  }
+
+  // Load image and open editor for crop/edit
+  editorTodayIndex = index;
+  openPhotoEditor(f.url, 'today', index);
+}
+
+// Delete files from Supabase Storage
+function sbDeleteFiles(paths) {
+  return sbRemove(paths);
+}
+
+function deleteTodayFile(index) {
+  var f = todayFiles[index];
+  if (!f) return;
+
+  if (!confirm('¿Eliminar "' + (f.name || 'archivo') + '"?')) return;
+
+  haptic(30);
+
+  // Find the DOM element and show inline "Eliminando..." feedback
+  var fileEl = document.querySelector('.today-file[data-index="' + index + '"]');
+  if (fileEl) {
+    fileEl.style.pointerEvents = 'none';
+    fileEl.style.opacity = '0.5';
+    var nameEl = fileEl.querySelector('.tf-name');
+    if (nameEl) nameEl.textContent = 'Eliminando...';
+  }
+
+  function removeLocal() {
+    var idx = todayFiles.indexOf(f);
+    if (idx >= 0) {
+      todayFiles.splice(idx, 1);
+      saveTodayFiles();
+    }
+    // Animate out then rebuild list
+    if (fileEl) {
+      fileEl.style.transition = 'all .3s ease';
+      fileEl.style.opacity = '0';
+      fileEl.style.maxHeight = '0';
+      fileEl.style.padding = '0';
+      fileEl.style.margin = '0';
+      fileEl.style.overflow = 'hidden';
+      setTimeout(function() { updateTodayCount(); }, 350);
+    } else {
+      updateTodayCount();
+    }
+  }
+
+  function showError(msg) {
+    if (fileEl) {
+      fileEl.style.opacity = '1';
+      fileEl.style.pointerEvents = '';
+      var nameEl = fileEl.querySelector('.tf-name');
+      if (nameEl) {
+        nameEl.textContent = 'Error';
+        nameEl.style.color = 'var(--danger)';
+        setTimeout(function() {
+          nameEl.textContent = f.name;
+          nameEl.style.color = '';
+        }, 2000);
+      }
+    }
+    toast(msg, 'error');
+  }
+
+  if (!f.url) {
+    removeLocal();
+    return;
+  }
+
+  var urlPrefix = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/';
+  var storagePath = f.url.replace(urlPrefix, '');
+  var folderPath = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
+
+  // For PDFs: also delete associated page images
+  if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
+    var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
+    var baseName = fileName.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+
+    sbList(folderPath).then(function(items) {
+      if (!Array.isArray(items)) items = [];
+      var pathsToDelete = [];
+      for (var i = 0; i < items.length; i++) {
+        if (!items[i].id || !items[i].name) continue;
+        var n = items[i].name;
+        if (n === fileName ||
+            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_pag\\d+\\.', 'i')) ||
+            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_thumb\\.', 'i'))
+        ) {
+          pathsToDelete.push(folderPath + n);
+        }
+      }
+      if (!pathsToDelete.length) pathsToDelete = [storagePath];
+      return sbDeleteFiles(pathsToDelete).then(function() {
+        removeLocal();
+      });
+    }).catch(function(e) {
+      showError('Error: ' + e.message);
+    });
+  } else {
+    sbDeleteFiles([storagePath]).then(function() {
+      removeLocal();
+    }).catch(function(e) {
+      showError('Error: ' + e.message);
+    });
+  }
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 /* ===== CAMERA ===== */
 function openCamera(mode) {
   haptic();
