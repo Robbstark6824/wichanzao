@@ -1,1 +1,12 @@
 .claude/
+
+# Secretos — NUNCA subir (contiene la service_role key de Supabase)
+.env
+
+# Dependencias de Node
+node_modules/
+
+# Herramientas de diagnóstico / archivos temporales
+tools/*-index.html
+tools/*.txt
+tools/__diag__*
