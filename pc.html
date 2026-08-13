@@ -21,8 +21,8 @@
 <style>
 :root {
   --n1:#0C1F3D; --n2:#142952; --n3:#1B3A6B;
-  --tl:#4ECDC4; --tl2:#3BB8B0;
-  --gd:#D4A853; --gd2:#C4983F;
+  --tl:#A03D63; --tl2:#7A2E4A;
+  --gd:#C48AA0; --gd2:#A86780;
   --bg:#F5F7FA; --s1:#FFF; --s2:#EEF1F6;
   --t1:#0D1B2A; --t2:#4A5568; --t3:#A0AEC0;
   --bd:#D8DFE9;
@@ -38,7 +38,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   background:linear-gradient(135deg,#080E1A 0%,var(--n1) 30%,var(--n2) 70%,var(--n3) 100%);
   color:#fff; padding:0; position:sticky; top:0; z-index:100;
   box-shadow:0 4px 32px rgba(0,0,0,.3),0 1px 4px rgba(0,0,0,.15);
-  border-bottom:1px solid rgba(78,205,196,.08);
+  border-bottom:1px solid rgba(160,61,99,.08);
 }
 .header-inner {
   max-width:1400px; margin:0 auto; padding:26px 32px;
@@ -52,7 +52,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 .header-inner::after {
   content:''; position:absolute; inset:0;
-  background:radial-gradient(circle at 90% 20%,rgba(78,205,196,.1),transparent 50%);
+  background:radial-gradient(circle at 90% 20%,rgba(160,61,99,.1),transparent 50%);
   pointer-events:none;
 }
 .header-left { position:relative; z-index:1; }
@@ -93,7 +93,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   transition:border-color .2s, box-shadow .2s;
   box-shadow:0 2px 8px rgba(0,0,0,.03);
 }
-.search-wrap input:focus { border-color:var(--tl); box-shadow:0 0 0 4px rgba(78,205,196,.1),0 2px 8px rgba(0,0,0,.03); }
+.search-wrap input:focus { border-color:var(--tl); box-shadow:0 0 0 4px rgba(160,61,99,.1),0 2px 8px rgba(0,0,0,.03); }
 .search-wrap input::placeholder { color:var(--t3); }
 .search-wrap .search-icon {
   position:absolute; left:15px; top:50%; transform:translateY(-50%);
@@ -120,7 +120,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   transition:all .2s; white-space:nowrap;
   box-shadow:0 2px 8px rgba(0,0,0,.03);
 }
-.tb-btn:hover { border-color:var(--tl); background:rgba(78,205,196,.06); }
+.tb-btn:hover { border-color:var(--tl); background:rgba(160,61,99,.06); }
 .tb-btn:active { transform:scale(.97); }
 .tb-btn.primary { background:linear-gradient(135deg,var(--n1),var(--n2)); color:#fff; border-color:transparent; box-shadow:0 4px 14px rgba(12,31,61,.25); }
 .tb-btn.primary:hover { box-shadow:0 6px 20px rgba(12,31,61,.3); }
@@ -166,7 +166,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 .service-card::after {
   content:''; position:absolute; inset:0;
-  background:linear-gradient(160deg,transparent 40%,rgba(78,205,196,.03));
+  background:linear-gradient(160deg,transparent 40%,rgba(160,61,99,.03));
   pointer-events:none;
 }
 .service-card:hover {
@@ -196,7 +196,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 .worker-card::before {
   content:''; position:absolute; inset:0;
-  background:linear-gradient(135deg,transparent 60%,rgba(78,205,196,.03));
+  background:linear-gradient(135deg,transparent 60%,rgba(160,61,99,.03));
   pointer-events:none;
 }
 .worker-card:hover {
@@ -235,7 +235,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   padding:3px 10px; border-radius:6px;
   font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:.5px;
-  background:rgba(78,205,196,.1); color:var(--tl2);
+  background:rgba(160,61,99,.1); color:var(--tl2);
 }
 .worker-time { font-size:11px; color:var(--t3); margin-top:4px; font-weight:500; }
 .worker-arrow { color:var(--t3); font-size:14px; flex-shrink:0; transition:transform .2s; }
@@ -293,7 +293,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .detail-area {
   display:inline-block; padding:4px 12px; border-radius:6px;
   font-size:11px; font-weight:700; text-transform:uppercase;
-  background:rgba(78,205,196,.1); color:var(--tl2);
+  background:rgba(160,61,99,.1); color:var(--tl2);
 }
 .detail-activity { font-size:12px; color:var(--t3); }
 .detail-actions { display:flex; gap:8px; flex-wrap:wrap; }
@@ -345,7 +345,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .date-title .today-badge {
   padding:3px 10px; border-radius:6px; font-size:9px; font-weight:700;
   background:linear-gradient(135deg,var(--tl),var(--tl2)); color:var(--n1); text-transform:uppercase;
-  letter-spacing:.5px; box-shadow:0 2px 8px rgba(78,205,196,.25);
+  letter-spacing:.5px; box-shadow:0 2px 8px rgba(160,61,99,.25);
 }
 .date-title .count {
   font-size:11px; color:var(--t3); font-weight:500; margin-top:2px;
@@ -358,7 +358,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   display:inline-flex; align-items:center; gap:4px;
   transition:all .15s;
 }
-.date-btn:hover { border-color:var(--tl); background:rgba(78,205,196,.06); }
+.date-btn:hover { border-color:var(--tl); background:rgba(160,61,99,.06); }
 .date-btn:active { transform:scale(.95); }
 
 .date-body { display:none; padding:0; }
@@ -372,7 +372,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   content-visibility:auto; contain-intrinsic-size:auto 100px;
 }
 .file-card:last-child { border-bottom:none; }
-.file-card:hover { background:rgba(78,205,196,.02); }
+.file-card:hover { background:rgba(160,61,99,.02); }
 .file-thumb {
   width:64px; height:80px; border-radius:10px;
   object-fit:cover; border:1px solid var(--bd);
@@ -560,7 +560,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 #pcEditor .pce-crop {
   position:absolute; border:3px solid var(--tl);
-  background:rgba(78,205,196,.08);
+  background:rgba(160,61,99,.08);
   cursor:move; min-width:30px; min-height:30px; z-index:3;
 }
 #pcEditor .pce-crop .ch {
@@ -651,7 +651,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
   <div class="header-inner">
     <div class="header-left">
       <h1>
-        <svg viewBox="0 0 48 48" fill="none"><rect x="18" y="8" width="12" height="32" rx="2" fill="#4ECDC4"/><rect x="8" y="18" width="32" height="12" rx="2" fill="#4ECDC4"/></svg>
+        <svg viewBox="0 0 48 48" fill="none"><rect x="18" y="8" width="12" height="32" rx="2" fill="#A03D63"/><rect x="8" y="18" width="32" height="12" rx="2" fill="#A03D63"/></svg>
         Servicio de Ginecología - Hospital de Laredo <span style="font-family:Manrope;font-weight:400;font-size:14px;opacity:.5">&middot;</span> <span style="font-family:Manrope;font-weight:500;font-size:14px;opacity:.7">Panel de Referencias</span>
       </h1>
       <div class="subtitle">Computadora del centro &mdash; Descarga de documentos para MINSA</div>
@@ -762,13 +762,13 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 <!-- PC AUTH OVERLAY -->
 <div id="pcAuthOverlay" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,#080E1A 0%,#0C1F3D 40%,#142952 100%);display:none;align-items:center;justify-content:center">
   <div style="background:var(--s1);border-radius:20px;padding:36px 32px;width:360px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.4);text-align:center">
-    <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05));border:1px solid rgba(78,205,196,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
-      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#4ECDC4" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,rgba(160,61,99,.15),rgba(160,61,99,.05));border:1px solid rgba(160,61,99,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#A03D63" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
     <h2 id="pcAuthTitle" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:4px">Panel de Referencias</h2>
     <p id="pcAuthSub" style="color:var(--t3);font-size:13px;margin-bottom:24px">Servicio de Ginecología - Hospital de Laredo — Ingresa la contrasena del panel</p>
     <input id="pcAuthPass" type="password" placeholder="Contrasena del panel" style="width:100%;padding:14px;border:1.5px solid var(--bd);border-radius:12px;font-size:15px;font-family:inherit;background:var(--bg);color:var(--t1);box-sizing:border-box;text-align:center;letter-spacing:2px;margin-bottom:14px" onkeydown="if(event.key==='Enter')pcAuthSubmit()">
-    <button id="pcAuthBtn" onclick="pcAuthSubmit()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4ECDC4,#3BB8B0);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Entrar</button>
+    <button id="pcAuthBtn" onclick="pcAuthSubmit()" style="width:100%;padding:14px;background:linear-gradient(135deg,#A03D63,#7A2E4A);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Entrar</button>
     <div id="pcAuthError" style="color:#e74c3c;font-size:12px;text-align:center;margin-top:12px;display:none"></div>
   </div>
 </div>
@@ -776,7 +776,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 <!-- SERVICE CODE MODAL -->
 <div id="svcLockModal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
   <div style="background:var(--s1);border-radius:16px;padding:32px;width:340px;max-width:90vw;box-shadow:0 16px 64px rgba(0,0,0,.3);text-align:center">
-    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(78,205,196,.15),rgba(78,205,196,.05));display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(160,61,99,.15),rgba(160,61,99,.05));display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
       <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--tl)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
     <h3 style="font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:var(--n1);margin-bottom:4px" id="svcLockName">Servicio</h3>
@@ -828,14 +828,7 @@ var REFRESH_INTERVAL = 60;
    SERVICIOS
    ========================================================= */
 var SERVICIOS = {
-  'medicina':       { label: 'Medicina' },
-  'enfermeria':     { label: 'Enfermeria' },
-  'obstetricia':    { label: 'Obstetricia' },
-  'psicologia':     { label: 'Psicologia' },
-  'odontologia':    { label: 'Odontologia' },
-  'nutricion':      { label: 'Nutricion' },
-  'administrativos':{ label: 'Administrativos' },
-  'tar':            { label: 'TAR' }
+  'ginecologia': { label: 'Ginecología y Obstetricia' }
 };
 var SERVICIOS_KEYS = Object.keys(SERVICIOS);
 
@@ -1327,14 +1320,7 @@ async function loadAllData() {
    RENDER WORKER DIRECTORY
    ========================================================= */
 var SERVICE_ICONS = {
-  'medicina':       { icon: '&#129658;', bg: 'rgba(78,205,196,.12)', color: '#4ECDC4' },
-  'enfermeria':     { icon: '&#128137;', bg: 'rgba(56,161,105,.12)', color: '#38A169' },
-  'obstetricia':    { icon: '&#128118;', bg: 'rgba(213,63,140,.12)', color: '#D53F8C' },
-  'psicologia':     { icon: '&#129504;', bg: 'rgba(128,90,213,.12)', color: '#805AD5' },
-  'odontologia':    { icon: '&#129463;', bg: 'rgba(49,130,206,.12)', color: '#3182CE' },
-  'nutricion':      { icon: '&#127823;', bg: 'rgba(214,158,46,.12)', color: '#D69E2E' },
-  'administrativos':{ icon: '&#128188;', bg: 'rgba(113,128,150,.12)', color: '#718096' },
-  'tar':            { icon: '&#127973;', bg: 'rgba(229,62,62,.12)', color: '#E53E3E' }
+  'ginecologia': { icon: '&#128118;', bg: 'rgba(160,61,99,.12)', color: '#A03D63' }
 };
 
 function computeServiceCounts() {
@@ -1377,17 +1363,11 @@ function renderServiceHub() {
     var s = SERVICIOS[key];
     var si = SERVICE_ICONS[key];
     var count = _serviceCounts[key] || 0;
-    var unlocked = isServiceUnlocked(key);
 
     html += '<div class="service-card" onclick="requestServiceAccess(\'' + key + '\')">';
     html += '<div class="service-icon" style="background:' + si.bg + '">' + si.icon + '</div>';
     html += '<div class="service-name">' + s.label + '</div>';
     html += '<div class="service-count">' + count + ' usuario' + (count !== 1 ? 's' : '') + '</div>';
-    if (!unlocked) {
-      html += '<div style="margin-top:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--t3)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>';
-    } else {
-      html += '<div style="margin-top:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--tl)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>';
-    }
     html += '</div>';
   }
 
@@ -1396,18 +1376,7 @@ function renderServiceHub() {
 }
 
 function requestServiceAccess(key) {
-  if (isServiceUnlocked(key)) {
-    setServicioFilter(key);
-    return;
-  }
-  // Show code prompt modal
-  var label = SERVICIOS[key] ? SERVICIOS[key].label : key;
-  document.getElementById('svcLockName').textContent = label;
-  document.getElementById('svcLockKey').value = key;
-  document.getElementById('svcLockInput').value = '';
-  document.getElementById('svcLockError').style.display = 'none';
-  document.getElementById('svcLockModal').style.display = 'flex';
-  setTimeout(function() { document.getElementById('svcLockInput').focus(); }, 100);
+  setServicioFilter(key);
 }
 
 async function submitServiceCode() {
@@ -1480,7 +1449,7 @@ function renderDirectory() {
   var headerHtml = '';
   if (sLabel && !query) {
     headerHtml += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">';
-    headerHtml += '<button onclick="setServicioFilter(\'all\')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;font-weight:700;color:var(--tl);padding:8px 14px;border-radius:8px;transition:background .2s" onmouseover="this.style.background=\'rgba(78,205,196,.08)\'" onmouseout="this.style.background=\'none\'">';
+    headerHtml += '<button onclick="setServicioFilter(\'all\')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;font-weight:700;color:var(--tl);padding:8px 14px;border-radius:8px;transition:background .2s" onmouseover="this.style.background=\'rgba(160,61,99,.08)\'" onmouseout="this.style.background=\'none\'">';
     headerHtml += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>';
     headerHtml += 'Servicios</button>';
     headerHtml += '<h3 style="flex:1;font-family:Playfair Display,serif;font-size:20px;font-weight:900;color:var(--n1)">' + sLabel + '</h3>';
@@ -1530,7 +1499,7 @@ function renderWorkerCards(list, start, end) {
     var dateCount = fileInfo ? fileInfo.dates.length : 0;
 
     html += '<div class="worker-card" data-wid="' + escHtml(wId) + '">';
-    html += '<div class="avatar md" style="background:' + (w.avatar_color || '#4ECDC4') + '">';
+    html += '<div class="avatar md" style="background:' + (w.avatar_color || '#A03D63') + '">';
     html += getInitials(w.name);
     html += '<span class="activity-dot ' + act.color + '"></span>';
     html += '</div>';
@@ -1742,7 +1711,7 @@ function renderDetailView(wId) {
   html += '<button class="detail-back" onclick="closeDetail()" title="Volver">';
   html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>';
   html += '</button>';
-  html += '<div class="avatar lg" style="background:' + (w.avatar_color || '#4ECDC4') + '">' + getInitials(w.name) + '</div>';
+  html += '<div class="avatar lg" style="background:' + (w.avatar_color || '#A03D63') + '">' + getInitials(w.name) + '</div>';
   html += '<div class="detail-info">';
   html += '<div class="detail-name">' + escHtml(w.name) + '</div>';
   html += '<div class="detail-area-row">';
