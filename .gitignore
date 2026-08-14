@@ -21,3 +21,4 @@ tools/inspect-storage2.js
 tools/inspect-auth-users.js
 tools/migrate-gineco.js
 tools/migrate-db.js
+tools/migrate-010.js
