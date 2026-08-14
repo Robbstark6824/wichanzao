@@ -1341,9 +1341,32 @@ var sb = window.supabase.createClient(SB_URL, SB_KEY, {
    has to retype their password unless they explicitly log out. */
 var SB_BACKUP_KEY = 'wichanzao_sb_backup';
 
+// ---- Session-expiry detection ----
+// _manualLogout = true while the user is logging out on purpose (so we don't
+// mistake it for a dead session). promptSessionExpired() tells the user their
+// session died and offers to log in again — instead of failing silently (401).
+var _manualLogout = false;
+var _sessionExpiredShown = false;
+
+function promptSessionExpired() {
+  if (_sessionExpiredShown) return;
+  _sessionExpiredShown = true;
+  setTimeout(function() {
+    if (confirm('Tu sesión expiró. Para seguir guardando datos, vuelve a iniciar sesión.\n\n¿Ir a iniciar sesión ahora?')) {
+      doLogout(false);
+    }
+  }, 350);
+}
+
 // Keep the durable backup in sync as Supabase rotates tokens
 sb.auth.onAuthStateChange(function(event, session) {
-  if (event === 'SIGNED_OUT') { clearSessionBackup(); return; }
+  if (event === 'SIGNED_OUT') {
+    clearSessionBackup();
+    var wasManual = _manualLogout;
+    _manualLogout = false;
+    if (!wasManual) promptSessionExpired();
+    return;
+  }
   if (session && session.refresh_token) saveSessionBackup(session);
 });
 
@@ -1561,12 +1584,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // survived but the Supabase session was evicted.
     var sessionPromise = ensureSupabaseSession();
 
+    // If the worker profile is cached but the Supabase session can't be
+    // restored while online, the session died — tell the user to log in again.
+    function warnIfSessionDead() {
+      sessionPromise.then(function(sess) {
+        if (!sess && navigator.onLine !== false) promptSessionExpired();
+      }).catch(function(){});
+    }
+
     // 1) Worker found synchronously (localStorage/sessionStorage/cookie)
-    if (worker) { sessionPromise.catch(function(){}); return true; }
+    if (worker) { warnIfSessionDead(); return true; }
 
     // 2) Try IndexedDB (async — completes in background from loadWorker)
     await new Promise(function(resolve) { setTimeout(resolve, 300); });
-    if (worker) { sessionPromise.catch(function(){}); return true; }
+    if (worker) { warnIfSessionDead(); return true; }
 
     // 3) No local worker — recover identity from the restored session
     try {
@@ -2588,8 +2619,10 @@ function closeAdmin() {
   if (worker) document.getElementById('sidebarName').textContent = worker.name;
 }
 
-async function doLogout() {
-  if (!confirm('¿Cerrar sesion?')) return;
+async function doLogout(confirmFirst) {
+  if (confirmFirst !== false && !confirm('¿Cerrar sesion?')) return;
+  _manualLogout = true;
+  _sessionExpiredShown = false;
   await sb.auth.signOut();
   clearSessionBackup();
   localStorage.removeItem('wichanzao_worker');
