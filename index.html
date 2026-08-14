@@ -582,6 +582,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-badge.hospitalizada{background:rgba(236,72,153,.15);color:#db2777}
 .qx-badge.operada{background:rgba(34,197,94,.15);color:#16a34a}
 .qx-badge.suspendida{background:rgba(239,68,68,.15);color:#dc2626}
+.qx-badge.referida{background:rgba(217,119,6,.15);color:#d97706}
 .qx-empty{text-align:center;padding:40px 16px;color:var(--t3)}
 .qx-empty .ic{font-size:40px;margin-bottom:8px}
 .qx-overlay{position:fixed;inset:0;background:rgba(12,31,61,.55);backdrop-filter:blur(3px);z-index:60;display:flex;align-items:flex-end;justify-content:center}
@@ -4824,7 +4825,8 @@ var QX_ESTADOS = [
   ['programada','Programada'],
   ['hospitalizada','Hospitalizada'],
   ['operada','Operada'],
-  ['suspendida','Suspendida']
+  ['suspendida','Suspendida'],
+  ['referida','Referida']
 ];
 
 function qxEstadoLabel(e){
@@ -4927,7 +4929,7 @@ function qxProximaAccion(p){
   }
   if (p.estado==='apta_para_sala') return 'Programar cirugía (Fase 5)';
   if (p.estado==='programada') return 'Asignar cama (Fase 6)';
-  if (p.estado==='hospitalizada') return 'Resolver (Operada / Suspendida)';
+  if (p.estado==='hospitalizada') return 'Resolver (Operada / Suspendida / Referida)';
   return '';
 }
 
@@ -5037,7 +5039,7 @@ function qxChecklistItems(p){
   it.push({h:1, label:'Programación quirúrgica'});
   it.push({label:'Turno', ok:!!p.turno, extra:(p.turno==='manana'?'Mañana':(p.turno==='tarde'?'Tarde':''))});
   if (p.cama_hospitalizacion) it.push({label:'Cama asignada', ok:true, extra:p.cama_hospitalizacion});
-  if (p.estado==='operada' || p.estado==='suspendida') it.push({label:'Resolución', ok:true, extra:qxEstadoLabel(p.estado)+(p.motivo_suspension?' - '+p.motivo_suspension:'')+(p.referencia_hospital?' - Referida a '+p.referencia_hospital:'')});
+  if (p.estado==='operada' || p.estado==='suspendida' || p.estado==='referida') it.push({label:'Resolución', ok:true, extra:qxEstadoLabel(p.estado)+(p.motivo_suspension?' - '+p.motivo_suspension:'')+(p.referencia_hospital?' - Referida a '+p.referencia_hospital:'')});
   return it;
 }
 
@@ -5242,21 +5244,22 @@ function qxRenderDetalle(){
         ? '<div class="qx-row"><div class="qx-field"><label>Fecha cirugía</label><input type="date" id="qxFechaQx" value="'+(p.fecha_cirugia||'')+'"></div>'
         + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
         + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">'+(p.estado==='en_tramite'?'Programar (anticipado)':'Programar cirugía')+'</button>'
-        : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
+        : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
     + qxFaseTsHtml(p.fecha_fase5)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='programada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">6</div><div><div class="ph-title">Hospitalización</div><div class="ph-hint">Solo si Programada</div></div></div>'
     + (p.estado==='programada'
         ? '<div class="qx-field"><label>Cama</label><input id="qxCama" placeholder="Ej: Cama 4 / Pasillo"></div>'
         + '<button class="qx-btn tl" style="width:100%" onclick="qxHospitalizar()">Asignar cama</button>'
-        : ((p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEsc(p.cama_hospitalizacion||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Programada"</div>'))
+        : ((p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.cama_hospitalizacion||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Programada"</div>'))
     + qxFaseTsHtml(p.fecha_hospitalizacion)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='hospitalizada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">7</div><div><div class="ph-title">Resolución</div><div class="ph-hint">Solo si Hospitalizada</div></div></div>'
     + (p.estado==='hospitalizada'
         ? '<div class="qx-row"><button class="qx-btn" style="background:#16a34a;flex:1" onclick="qxResolver(\'operada\')">✔ Operada</button>'
-        + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxResolverSusp()">✖ Suspendida</button></div>'
-        : ((p.estado==='operada'||p.estado==='suspendida') ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+(p.referencia_hospital?' · Referida a '+qxEsc(p.referencia_hospital):'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Hospitalizada"</div>'))
+        + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxResolverSusp()">✖ Suspendida</button>'
+        + '<button class="qx-btn" style="background:#d97706;flex:1" onclick="qxResolverRef()">→ Referida</button></div>'
+        : ((p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+(p.referencia_hospital?' · Referida a '+qxEsc(p.referencia_hospital):'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Hospitalizada"</div>'))
     + qxFaseTsHtml(p.fecha_resolucion)
     + '</div>'
     + '<button class="qx-btn" style="width:100%;margin-top:6px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="this.closest(\'.qx-overlay\').remove()">← Volver al listado</button>'
@@ -5353,33 +5356,59 @@ function qxResolverSusp(){
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
   ov.innerHTML = '<div class="qx-sheet">'
-    + '<div class="qx-sheet-head"><h3>No se realizó la cirugía</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-head"><h3>Suspender cirugía</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
     + '<div class="qx-sheet-body">'
-    + '<div class="qx-field"><label>Motivo</label><textarea id="qxMotivo" rows="3" placeholder="Motivo por el cual no se realizó la cirugía"></textarea></div>'
-    + '<div class="qx-field"><label>Referida a otro hospital (opcional)</label><input id="qxRefHospital" placeholder="Ej: Hospital Regional Docente de Trujillo"></div>'
-    + '<button class="qx-btn" style="background:#dc2626;width:100%" onclick="qxConfirmarSusp()">Confirmar</button>'
+    + '<div class="qx-field"><label>Motivo de la suspensión</label><textarea id="qxMotivo" rows="3" placeholder="Ej: paciente no se presentó, falta de exámenes..."></textarea></div>'
+    + '<button class="qx-btn" style="background:#dc2626;width:100%" onclick="qxConfirmarSusp()">Confirmar suspensión</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+function qxResolverRef(){
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Referida a otro hospital</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><label>Hospital de referencia *</label><input id="qxRefHospital" placeholder="Ej: Hospital Regional Docente de Trujillo"></div>'
+    + '<div class="qx-field"><label>Motivo (opcional)</label><textarea id="qxRefMotivo" rows="2" placeholder="Ej: mayor capacidad resolutiva, UCI neonatal..."></textarea></div>'
+    + '<button class="qx-btn" style="background:#d97706;width:100%" onclick="qxConfirmarRef()">Confirmar referencia</button>'
     + '</div></div>';
   document.body.appendChild(ov);
 }
 
 async function qxConfirmarSusp(){
   var motivo = document.getElementById('qxMotivo').value.trim();
-  var ref = document.getElementById('qxRefHospital').value.trim();
   if (!motivo){ toast('Indica el motivo','error'); return; }
   var p = QX_ACTUAL;
-  var res = await sb.from('pacientes').update({motivo_suspension:motivo, referencia_hospital:ref||null}).eq('id',p.id);
+  var res = await sb.from('pacientes').update({motivo_suspension:motivo, referencia_hospital:null}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p.motivo_suspension = motivo;
-  p.referencia_hospital = ref||null;
+  p.referencia_hospital = null;
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   await qxSetEstado(p,'suspendida',motivo);
   qxRenderDetalle();
   qxLoad();
 }
 
+async function qxConfirmarRef(){
+  var ref = document.getElementById('qxRefHospital').value.trim();
+  var motivo = document.getElementById('qxRefMotivo').value.trim();
+  if (!ref){ toast('Indica el hospital de referencia','error'); return; }
+  var p = QX_ACTUAL;
+  var res = await sb.from('pacientes').update({referencia_hospital:ref, motivo_suspension:motivo||null}).eq('id',p.id);
+  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  p.referencia_hospital = ref;
+  p.motivo_suspension = motivo||null;
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  await qxSetEstado(p,'referida', 'Referida a '+ref+(motivo?' - '+motivo:''));
+  qxRenderDetalle();
+  qxLoad();
+}
+
 async function qxSetEstado(p, nuevo, motivo){
   var anterior = p.estado;
-  var resol = (nuevo==='operada'||nuevo==='suspendida') ? new Date().toISOString() : p.fecha_resolucion;
+  var resol = (nuevo==='operada'||nuevo==='suspendida'||nuevo==='referida') ? new Date().toISOString() : p.fecha_resolucion;
   var res = await sb.from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p.estado = nuevo;
