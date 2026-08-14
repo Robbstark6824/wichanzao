@@ -5363,7 +5363,7 @@ async function qxEliminar(){
   var res = await sb.from('pacientes').delete().eq('id', p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   toast('Paciente eliminada ✓','success');
-  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  document.querySelectorAll('.qx-overlay').forEach(function(o){ o.remove(); });
   QX_ACTUAL = null;
   qxLoad();
 }
