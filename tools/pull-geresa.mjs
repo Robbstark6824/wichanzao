@@ -234,7 +234,17 @@ for (const p of cur) curMap[p.dni] = p;
 
 // ---------- armar payload final (upsert, estado monotónico) ----------
 const nuevos = [], actualizados = [], cambiosEstado = [];
-const payload = sheetPacientes.map(sp => {
+// Dedup por DNI: si la hoja repite un DNI, se queda con la última fila (Postgres
+// no permite que ON CONFLICT DO UPDATE afecte 2 veces la misma fila).
+const deduped = [];
+const seenDni = new Set();
+for (const sp of sheetPacientes) {
+  const i = deduped.findIndex(x => x.dni === sp.dni);
+  if (i >= 0) deduped[i] = sp;
+  else deduped.push(sp);
+}
+
+const payload = deduped.map(sp => {
   const app = curMap[sp.dni];
   const estadoFinal = app ? (estadoRank(sp._estado_sheet) > estadoRank(app.estado) ? sp._estado_sheet : app.estado) : sp._estado_sheet;
   const turnoFinal = (app && app.turno) ? app.turno : (estadoFinal === 'programada' ? TURNO_DEFAULT : null);

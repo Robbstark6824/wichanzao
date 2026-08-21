@@ -5137,14 +5137,16 @@ async function qxSyncFromSheet(btn){
     (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
 
     var nuevos=0, act=0;
-    var payload = hoja.map(function(sp){
+    var byDni = {};
+    hoja.forEach(function(sp){
       var app = curMap[sp.dni];
       var est = sp.estado;
       if (app && qxEstadoRank(app.estado) > qxEstadoRank(est)) est = app.estado; // nunca retrocede
       if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';        // sin fecha no puede ser programada
       var turno = (app && app.turno) ? app.turno : (est==='programada' ? 'manana' : null);
-      if (!app) nuevos++; else act++;
-      return {
+      // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila.
+      // Evita el error de Postgres "ON CONFLICT DO UPDATE cannot affect row a second time".
+      byDni[sp.dni] = {
         dni: sp.dni, nombre: sp.nombre, edad: sp.edad, sexo: sp.sexo, telefono: sp.telefono,
         tipo_seguro: sp.tipo_seguro, hcl: sp.hcl, doctor: sp.doctor, cie10: sp.cie10,
         diagnostico: sp.diagnostico, cie10_secundario: sp.cie10_secundario,
@@ -5161,6 +5163,8 @@ async function qxSyncFromSheet(btn){
         fecha_fase2: sp.fecha_fase2, estado: est, turno: turno
       };
     });
+    var payload = [];
+    for (var d in byDni){ if (curMap[d]) act++; else nuevos++; payload.push(byDni[d]); }
 
     var upRes = await sb.from('pacientes').upsert(payload, { onConflict: 'dni' });
     if (upRes.error){ toast('Error al sincronizar: '+upRes.error.message,'error'); return; }
