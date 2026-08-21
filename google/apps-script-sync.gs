@@ -194,36 +194,63 @@ function upsert(p) {
   var values = buildValues(p);
 
   var dniCol = colMap['dni'];
+  var nombreCol = colMap['apellidos y nombres completos'];
+  var idCol = colMap['id registro'];
   var lastRow = sheet.getLastRow();
-  var targetRow = 0;
 
-  // Busca si ya existe una fila con ese DNI (upsert).
-  if (dniCol) {
-    var dniData = sheet.getRange(headerRow + 1, dniCol, lastRow - headerRow, 1).getValues();
+  // Lee DNI y nombre del bloque completo de una vez.
+  var dniData = sheet.getRange(headerRow + 1, dniCol, lastRow - headerRow, 1).getValues();
+  var nombreData = sheet.getRange(headerRow + 1, nombreCol, lastRow - headerRow, 1).getValues();
+
+  var targetRow = 0;
+  var esNuevo = true;
+
+  // 1) Busca la fila existente por DNI (upsert).
+  var dniBuscado = String(p.dni || '').trim();
+  if (dniBuscado) {
     for (var i = 0; i < dniData.length; i++) {
-      if (String(dniData[i][0]).trim() === String(p.dni || '').trim()) {
-        targetRow = headerRow + 1 + i;
-        break;
-      }
+      if (String(dniData[i][0]).trim() === dniBuscado) { targetRow = headerRow + 1 + i; esNuevo = false; break; }
     }
   }
 
-  // Si no existe, agrega una fila nueva y calcula "ID registro" siguiente.
+  // 2) Si no la encontró por DNI, busca por nombre (filas a las que aún no se
+  //    les llenó el DNI en la hoja). Así "modificar" no crea una fila duplicada.
+  if (!targetRow && norm(p.nombre)) {
+    var nomBuscado = norm(p.nombre);
+    for (var j = 0; j < nombreData.length; j++) {
+      if (norm(nombreData[j][0]) === nomBuscado) { targetRow = headerRow + 1 + j; esNuevo = false; break; }
+    }
+  }
+
+  // 3) Si sigue sin encontrar, usa la PRIMERA fila vacía del bloque (sin nombre
+  //    y sin DNI), en vez de pegar al final absoluto de la hoja (la plantilla
+  //    tiene filas pre-numeradas vacías más abajo).
   if (!targetRow) {
-    targetRow = lastRow + 1;
-    var idCol = colMap['id registro'];
+    for (var k = 0; k < nombreData.length; k++) {
+      if (String(nombreData[k][0]).trim() === '' && String(dniData[k][0]).trim() === '') {
+        targetRow = headerRow + 1 + k; break;
+      }
+    }
+    if (!targetRow) targetRow = lastRow + 1; // fallback: no hay fila vacía
+  }
+
+  // 4) "ID registro" solo para filas nuevas: siguiente (máx. ID con datos + 1),
+  //    ignorando las filas vacías pre-numeradas de la plantilla.
+  if (esNuevo) {
     var nextId = 1;
     if (idCol) {
       var idData = sheet.getRange(headerRow + 1, idCol, lastRow - headerRow, 1).getValues();
-      for (var j = 0; j < idData.length; j++) {
-        var n = parseInt(String(idData[j][0]), 10);
+      for (var m = 0; m < idData.length; m++) {
+        var tieneDato = String(nombreData[m][0]).trim() !== '' || String(dniData[m][0]).trim() !== '';
+        if (!tieneDato) continue;
+        var n = parseInt(String(idData[m][0]), 10);
         if (!isNaN(n) && n >= nextId) nextId = n + 1;
       }
     }
     values['id registro'] = nextId;
   }
 
-  // Escribe cada valor en su columna (respeta el orden real del encabezado).
+  // 5) Escribe cada valor en su columna (respeta el orden real del encabezado).
   for (var key in values) {
     var col = colMap[key];
     if (col) sheet.getRange(targetRow, col).setValue(values[key]);
