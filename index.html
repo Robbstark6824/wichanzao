@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0C1F3D">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: https://xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' https://xqphjvppfgwabfruyjae.supabase.co wss://xqphjvppfgwabfruyjae.supabase.co cdnjs.cloudflare.com cdn.jsdelivr.net; frame-src 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: https://xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' https://xqphjvppfgwabfruyjae.supabase.co wss://xqphjvppfgwabfruyjae.supabase.co cdnjs.cloudflare.com cdn.jsdelivr.net https://script.google.com https://script.googleusercontent.com https://docs.google.com; frame-src 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
@@ -993,7 +993,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="mh-breadcrumb">
             <a onclick="showModule('dashboard')">Inicio</a> / Programación Quirúrgica
           </div>
-          <button class="qx-btn" style="margin-left:auto;padding:7px 12px;font-size:12px" onclick="qxNuevo()">+ Nuevo</button>
+          <button class="qx-btn" style="margin-left:auto;padding:7px 12px;font-size:12px" onclick="qxSyncFromSheet(this)" title="Traer cambios manuales de la hoja GERESA">↻ Sincronizar</button>
+          <button class="qx-btn" style="padding:7px 12px;font-size:12px" onclick="qxNuevo()">+ Nuevo</button>
         </div>
         <div class="module-body">
           <div class="qx-stats" id="qxStats"></div>
@@ -1322,6 +1323,13 @@ var APP_VERSION = 'v219';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var SB_BUCKET = 'documentos';
+
+/* ===== SINCRONIZACIÓN CON GOOGLE SHEETS (GERESA) ===== */
+// URL del Web App de Google (Apps Script) que escribe en la hoja oficial.
+var QX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxH2ZHmkZ9d68nFD7Sww40Shbv0lQ7FibzGfeRze48Powy5qj-ygD8rYPoCZy4qiAxEhw/exec'; // URL del Web App de Google (GERESA)
+var QX_SHEET_TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9'; // debe coincidir con TOKEN del script
+// CSV de la hoja (lectura directa, sin credenciales) para el botón "Sincronizar".
+var QX_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/gviz/tq?tqx=out:csv&gid=0';
 
 /* ===== SUPABASE CLIENT ===== */
 var sb = window.supabase.createClient(SB_URL, SB_KEY, {
@@ -4855,6 +4863,202 @@ async function qxLoad(){
   qxRender();
 }
 
+/* Empuja un paciente a la hoja de Google (GERESA). Fire-and-forget:
+   si Google falla, nunca bloquea la app. */
+async function qxSyncSheets(id){
+  if (!QX_SHEET_URL || !id) return;
+  try {
+    var r = await sb.from('pacientes').select('*').eq('id', id).single();
+    if (r.error || !r.data) return;
+    await fetch(QX_SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, paciente: r.data })
+    });
+  } catch(e) {}
+}
+
+/* ===== Sincronizar desde la hoja (hoja → app) =====
+   Trae los cambios manuales de la hoja GERESA sin borrar nada.
+   Suma nuevos, actualiza por DNI, y el estado solo avanza (nunca retrocede). */
+function qxNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim(); }
+function qxParseCSV(text){
+  var rows=[], row=[], field='', inQ=false;
+  for (var i=0;i<text.length;i++){
+    var c=text[i];
+    if (inQ){
+      if (c==='"'){ if (text[i+1]==='"'){ field+='"'; i++; } else inQ=false; }
+      else field+=c;
+    } else {
+      if (c==='"') inQ=true;
+      else if (c===','){ row.push(field); field=''; }
+      else if (c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if (c==='\r'){}
+      else field+=c;
+    }
+  }
+  if (field!=='' || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+function qxPad(n){ return (n<10?'0':'')+n; }
+function qxParseDate(s){
+  if(!s) return null;
+  s=String(s).trim();
+  var m=s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if(!m) return null;
+  var d=+m[1], mo=+m[2], y=+m[3];
+  if(y<100) y+=2000;
+  if(d<1||d>31||mo<1||mo>12) return null;
+  return String(y)+'-'+qxPad(mo)+'-'+qxPad(d);
+}
+function qxNormCie10(code){
+  if(!code) return null;
+  var c=String(code).trim().toUpperCase();
+  c=c.replace(/^DO/,'D0');
+  if(/^[A-Z]\d{3}$/.test(c)) c=c[0]+c[1]+c[2]+'.'+c[3];
+  return c;
+}
+function qxCleanPhone(s){ if(!s) return null; return s.split('//')[0].trim().replace(/\s+/g,'')||null; }
+function qxMapSexo(s){
+  var v=String(s||'').trim().toUpperCase();
+  if(v==='F'||v==='FEMENINO'||v==='MUJER') return 'Femenino';
+  if(v==='M'||v==='MASCULINO'||v==='HOMBRE') return 'Masculino';
+  return null;
+}
+function qxMapImagenes(s){
+  var v=String(s||'').trim().toLowerCase();
+  if(v.charAt(0)==='s') return 'Sí';
+  if(v.charAt(0)==='n') return 'No';
+  return null;
+}
+function qxEstadoRank(e){
+  if(e==='en_tramite') return 0;
+  if(e==='apta_para_sala') return 1;
+  if(e==='programada') return 2;
+  if(e==='hospitalizada') return 3;
+  if(e==='operada') return 4;
+  if(e==='suspendida'||e==='referida') return 5;
+  return -1;
+}
+function qxSheetEstado(row){
+  var actual=String(row[46]||'').trim().toUpperCase();
+  if(actual.indexOf('OPERAD')>=0) return 'operada';
+  if(actual.indexOf('HOSPITALIZAD')>=0) return 'hospitalizada';
+  var prog=String(row[42]||'').trim().toUpperCase();
+  if(prog==='PROGRAMADO'||prog==='PROGRAMADA') return 'programada';
+  if(prog==='PENDIENTE DE FECHA') return 'apta_para_sala';
+  return 'en_tramite';
+}
+// Mapea una fila del bloque AZUL (índices 0-based) a los campos de la app.
+function qxMapFilaAzul(row){
+  var t1=String(row[29]||'').toLowerCase();
+  var t2=String(row[31]||'').toLowerCase();
+  var lab = t1.indexOf('laboratorio')>=0 || t2.indexOf('laboratorio')>=0;
+  var ekg = t1.indexOf('ekg')>=0 || t2.indexOf('ekg')>=0;
+  var resPreop = String(row[40]||'').trim().toUpperCase();
+  var rq=false, ra=false;
+  if (resPreop==='APTO'){ rq=true; ra=true; }
+  return {
+    dni: String(row[9]||'').trim(),
+    nombre: String(row[10]||'').trim(),
+    edad: (row[11] && String(row[11]).trim()) ? parseInt(String(row[11]).trim(),10) : null,
+    sexo: qxMapSexo(row[12]),
+    telefono: qxCleanPhone(row[13]),
+    tipo_seguro: String(row[14]||'').trim() || null,
+    hcl: String(row[15]||'').trim() || null,
+    doctor: String(row[17]||'').trim() || null,
+    cie10: qxNormCie10(row[18]),
+    diagnostico: String(row[19]||'').trim() || null,
+    cie10_secundario: qxNormCie10(row[20]),
+    diagnostico_secundario: String(row[21]||'').trim() || null,
+    cie10_tercero: qxNormCie10(row[22]),
+    diagnostico_tercero: String(row[23]||'').trim() || null,
+    codigo_procedimiento: String(row[24]||'').trim() || null,
+    procedimiento: String(row[25]||'').trim() || null,
+    nivel_cirugia: String(row[26]||'').trim() || null,
+    tipo_anestesia: String(row[27]||'').trim() || null,
+    fecha_primera_evaluacion: qxParseDate(row[28]),
+    aplica_imagenes: qxMapImagenes(row[35]),
+    fecha_imagenes: qxParseDate(row[36]),
+    fecha_cita_cardiologia: qxParseDate(row[37]),
+    fecha_cita_anestesiologia: qxParseDate(row[38]),
+    fecha_evaluacion_preoperatoria: qxParseDate(row[39]),
+    orden_intervencion: String(row[41]||'').trim() || null,
+    fecha_cirugia: qxParseDate(row[43]),
+    fecha_captacion: qxParseDate(row[8]),
+    laboratorio_completo: lab,
+    ekg: ekg,
+    riesgo_qx: rq,
+    riesgo_anestesiologico: ra,
+    fecha_fase2: (lab||ekg) ? (qxParseDate(row[30]) || qxParseDate(row[32])) : null,
+    estado: qxSheetEstado(row)
+  };
+}
+async function qxSyncFromSheet(btn){
+  var orig = btn ? btn.innerHTML : '';
+  if (btn){ btn.disabled = true; btn.innerHTML = '↻ Sincronizando…'; }
+  try {
+    var resp = await fetch(QX_SHEET_CSV_URL);
+    if (!resp.ok) throw new Error('No se pudo leer la hoja (HTTP '+resp.status+')');
+    var rows = qxParseCSV(await resp.text());
+    // Encuentra el encabezado del bloque AZUL: col 9 = "DNI", col 10 = "Apellidos y nombres completos".
+    var hi = -1;
+    for (var i=0;i<rows.length;i++){
+      if (qxNorm(rows[i][9])==='dni' && qxNorm(rows[i][10])==='apellidos y nombres completos'){ hi=i; break; }
+    }
+    if (hi<0){ toast('No se encontró el bloque GERESA en la hoja','error'); return; }
+    var hoja=[];
+    for (var r=hi+1; r<rows.length; r++){
+      var row = rows[r];
+      if (!String(row[10]||'').trim()) continue;      // fila vacía
+      if (!String(row[9]||'').trim()) continue;        // sin DNI → se omite
+      hoja.push(qxMapFilaAzul(row));
+    }
+    if (!hoja.length){ toast('No hay filas con DNI para sincronizar','error'); return; }
+
+    var curRes = await sb.from('pacientes').select('dni,estado,turno');
+    if (curRes.error){ toast('Error al leer pacientes: '+curRes.error.message,'error'); return; }
+    var curMap = {};
+    (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
+
+    var nuevos=0, act=0;
+    var payload = hoja.map(function(sp){
+      var app = curMap[sp.dni];
+      var est = sp.estado;
+      if (app && qxEstadoRank(app.estado) > qxEstadoRank(est)) est = app.estado; // nunca retrocede
+      if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';        // sin fecha no puede ser programada
+      var turno = (app && app.turno) ? app.turno : (est==='programada' ? 'manana' : null);
+      if (!app) nuevos++; else act++;
+      return {
+        dni: sp.dni, nombre: sp.nombre, edad: sp.edad, sexo: sp.sexo, telefono: sp.telefono,
+        tipo_seguro: sp.tipo_seguro, hcl: sp.hcl, doctor: sp.doctor, cie10: sp.cie10,
+        diagnostico: sp.diagnostico, cie10_secundario: sp.cie10_secundario,
+        diagnostico_secundario: sp.diagnostico_secundario, cie10_tercero: sp.cie10_tercero,
+        diagnostico_tercero: sp.diagnostico_tercero, codigo_procedimiento: sp.codigo_procedimiento,
+        procedimiento: sp.procedimiento, nivel_cirugia: sp.nivel_cirugia, tipo_anestesia: sp.tipo_anestesia,
+        fecha_primera_evaluacion: sp.fecha_primera_evaluacion, aplica_imagenes: sp.aplica_imagenes,
+        fecha_imagenes: sp.fecha_imagenes, fecha_cita_cardiologia: sp.fecha_cita_cardiologia,
+        fecha_cita_anestesiologia: sp.fecha_cita_anestesiologia,
+        fecha_evaluacion_preoperatoria: sp.fecha_evaluacion_preoperatoria,
+        orden_intervencion: sp.orden_intervencion, fecha_cirugia: sp.fecha_cirugia,
+        fecha_captacion: sp.fecha_captacion, laboratorio_completo: sp.laboratorio_completo,
+        ekg: sp.ekg, riesgo_qx: sp.riesgo_qx, riesgo_anestesiologico: sp.riesgo_anestesiologico,
+        fecha_fase2: sp.fecha_fase2, estado: est, turno: turno
+      };
+    });
+
+    var upRes = await sb.from('pacientes').upsert(payload, { onConflict: 'dni' });
+    if (upRes.error){ toast('Error al sincronizar: '+upRes.error.message,'error'); return; }
+
+    toast('Sincronizado: '+nuevos+' nuevo(s), '+act+' actualizado(s)','success');
+    qxLoad();
+  } catch(e){
+    toast('Error al sincronizar: '+(e && e.message ? e.message : e),'error');
+  } finally {
+    if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+  }
+}
+
 function qxRender(){
   var st = document.getElementById('qxStats');
   if (st){
@@ -5144,6 +5348,11 @@ async function qxNuevo(){
     + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxNEdad" type="number" min="0" max="120" placeholder="Años"></div>'
     + '<div class="qx-field"><label>Sexo</label><select id="qxNSexo"><option value="Femenino">Femenino</option><option value="Masculino">Masculino</option></select></div></div>'
     + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxNDx" rows="2" placeholder="Motivo de cirugía"></textarea></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>CIE-10</label><input id="qxNCie10" placeholder="ej. N80"></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxNSeguro"><option value="">—</option><option value="SIS">SIS</option><option value="ESSALUD">ESSALUD</option><option value="SOAT">SOAT</option><option value="Particular">Particular</option><option value="Otro">Otro</option></select></div></div>'
+    + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxNProcedimiento" placeholder="ej. Quistectomía"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Tipo de anestesia</label><select id="qxNAnestesia"><option value="">—</option><option value="Regional">Regional</option><option value="General">General</option><option value="Local">Local</option><option value="Combinada">Combinada</option></select></div>'
+    + '<div class="qx-field"><label>Nivel de cirugía</label><select id="qxNNivel"><option value="">—</option><option value="Menor">Menor</option><option value="Mayor">Mayor</option><option value="Alta complejidad">Alta complejidad</option></select></div></div>'
     + '<div class="qx-field"><label>Fecha de captación</label><input type="date" id="qxNFechaCapt" value="'+qxHoyStr()+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Interno de medicina</label><input id="qxNInterno" placeholder="Nombre del interno"></div>'
     + '<div class="qx-field"><label>Doctor (DR)</label><input id="qxNDoctor" placeholder="Nombre del doctor"></div></div>'
@@ -5164,10 +5373,17 @@ async function qxGuardarNuevo(){
   var doctor = document.getElementById('qxNDoctor').value.trim();
   var edad = parseInt(document.getElementById('qxNEdad').value, 10);
   var sexo = document.getElementById('qxNSexo').value;
+  var cie10 = document.getElementById('qxNCie10').value.trim();
+  var proc = document.getElementById('qxNProcedimiento').value.trim();
+  var seguro = document.getElementById('qxNSeguro').value;
+  var anestesia = document.getElementById('qxNAnestesia').value;
+  var nivel = document.getElementById('qxNNivel').value;
   var res = await sb.from('pacientes').insert({
     dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null, diagnostico:dx||null,
     edad: isNaN(edad) ? null : edad, sexo: sexo||null,
     fecha_captacion: fcapt||null, interno_medicina: interno||null, doctor: doctor||null,
+    cie10: cie10||null, procedimiento: proc||null, tipo_seguro: seguro||null,
+    tipo_anestesia: anestesia||null, nivel_cirugia: nivel||null,
     estado:'en_tramite'
   }).select().single();
   if (res.error){
@@ -5177,6 +5393,7 @@ async function qxGuardarNuevo(){
   }
   toast('Paciente registrado ✓','success');
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  if (res.data && res.data[0]) qxSyncSheets(res.data[0].id);
   qxLoad();
 }
 
@@ -5297,6 +5514,7 @@ async function qxToggle(campo){
       await qxSetEstado(p,'apta_para_sala');
     }
   }
+  qxSyncSheets(p.id);
   qxRenderDetalle();
   qxLoad();
 }
@@ -5310,6 +5528,7 @@ async function qxSetCampo(campo,valor,requiereFase2){
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p[campo] = v;
   await qxMarcarFases(p);
+  qxSyncSheets(p.id);
   qxRenderDetalle();
   qxLoad();
 }
@@ -5328,6 +5547,7 @@ async function qxProgramar(){
   } else {
     toast('Programada anticipadamente — se confirmará al completar exámenes','success');
   }
+  qxSyncSheets(p.id);
   qxRenderDetalle();
   qxLoad();
 }
@@ -5415,6 +5635,7 @@ async function qxSetEstado(p, nuevo, motivo){
   await sb.from('historial_estados').insert({
     paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null
   });
+  qxSyncSheets(p.id);
 }
 
 function qxEditarBasicos(){
@@ -5431,6 +5652,24 @@ function qxEditarBasicos(){
     + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxEEdad" type="number" min="0" max="120" value="'+(p.edad||'')+'"></div>'
     + '<div class="qx-field"><label>Sexo</label><select id="qxESexo"><option value="Femenino"'+(p.sexo==='Femenino'?' selected':'')+'>Femenino</option><option value="Masculino"'+(p.sexo==='Masculino'?' selected':'')+'>Masculino</option></select></div></div>'
     + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxEDx" rows="2">'+qxEsc(p.diagnostico||'')+'</textarea></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>CIE-10</label><input id="qxECie10" value="'+qxEsc(p.cie10||'')+'" placeholder="ej. N80"></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxESeguro"><option value="">—</option><option value="SIS"'+(p.tipo_seguro==='SIS'?' selected':'')+'>SIS</option><option value="ESSALUD"'+(p.tipo_seguro==='ESSALUD'?' selected':'')+'>ESSALUD</option><option value="SOAT"'+(p.tipo_seguro==='SOAT'?' selected':'')+'>SOAT</option><option value="Particular"'+(p.tipo_seguro==='Particular'?' selected':'')+'>Particular</option><option value="Otro"'+(p.tipo_seguro==='Otro'?' selected':'')+'>Otro</option></select></div></div>'
+    + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxEProcedimiento" value="'+qxEsc(p.procedimiento||'')+'" placeholder="ej. Quistectomía"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Tipo de anestesia</label><select id="qxEAnestesia"><option value="">—</option><option value="Regional"'+(p.tipo_anestesia==='Regional'?' selected':'')+'>Regional</option><option value="General"'+(p.tipo_anestesia==='General'?' selected':'')+'>General</option><option value="Local"'+(p.tipo_anestesia==='Local'?' selected':'')+'>Local</option><option value="Combinada"'+(p.tipo_anestesia==='Combinada'?' selected':'')+'>Combinada</option></select></div>'
+    + '<div class="qx-field"><label>Nivel de cirugía</label><select id="qxENivel"><option value="">—</option><option value="Menor"'+(p.nivel_cirugia==='Menor'?' selected':'')+'>Menor</option><option value="Mayor"'+(p.nivel_cirugia==='Mayor'?' selected':'')+'>Mayor</option><option value="Alta complejidad"'+(p.nivel_cirugia==='Alta complejidad'?' selected':'')+'>Alta complejidad</option></select></div></div>'
+    + '<details style="margin-top:14px;border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px">'
+    + '<summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--t1)">📋 Datos GERESA (opcional)</summary>'
+    + '<div class="qx-row" style="margin-top:10px"><div class="qx-field"><label>CIE-10 secundario</label><input id="qxECie10Sec" value="'+qxEsc(p.cie10_secundario||'')+'" placeholder="ej. D25"></div>'
+    + '<div class="qx-field"><label>Diagnóstico secundario</label><input id="qxEDxSec" value="'+qxEsc(p.diagnostico_secundario||'')+'"></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>CIE-10 terciario</label><input id="qxECie10Ter" value="'+qxEsc(p.cie10_tercero||'')+'" placeholder="ej. I10"></div>'
+    + '<div class="qx-field"><label>Diagnóstico terciario</label><input id="qxEDxTer" value="'+qxEsc(p.diagnostico_tercero||'')+'"></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Código procedimiento</label><input id="qxECodProc" value="'+qxEsc(p.codigo_procedimiento||'')+'" placeholder="ej. 5A-123"></div>'
+    + '<div class="qx-field"><label>N° orden intervención</label><input id="qxEOrden" value="'+qxEsc(p.orden_intervencion||'')+'"></div></div>'
+    + '<div class="qx-field"><label>F. primera evaluación por cirugía</label><input type="date" id="qxEFechaPrimEval" value="'+(p.fecha_primera_evaluacion||'')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes?</label><select id="qxEImagenes"><option value="">—</option><option value="Sí"'+(p.aplica_imagenes==='Sí'?' selected':'')+'>Sí</option><option value="No"'+(p.aplica_imagenes==='No'?' selected':'')+'>No</option></select></div>'
+    + '<div class="qx-field"><label>F. diagnóstico por imágenes</label><input type="date" id="qxEFechaImg" value="'+(p.fecha_imagenes||'')+'"></div></div>'
+    + '<div class="qx-field"><label>F. evaluación preoperatoria</label><input type="date" id="qxEFechaEvalPreop" value="'+(p.fecha_evaluacion_preoperatoria||'')+'"></div>'
+    + '</details>'
     + '<button class="qx-btn" style="width:100%" onclick="qxGuardarEdicion()">Guardar</button>'
     + '</div></div>';
   document.body.appendChild(ov);
@@ -5446,9 +5685,31 @@ async function qxGuardarEdicion(){
   var edad = parseInt(document.getElementById('qxEEdad').value, 10);
   var sexo = document.getElementById('qxESexo').value;
   var dx = document.getElementById('qxEDx').value.trim();
+  var cie10 = document.getElementById('qxECie10').value.trim();
+  var proc = document.getElementById('qxEProcedimiento').value.trim();
+  var seguro = document.getElementById('qxESeguro').value;
+  var anestesia = document.getElementById('qxEAnestesia').value;
+  var nivel = document.getElementById('qxENivel').value;
+  var cie10sec = document.getElementById('qxECie10Sec').value.trim();
+  var dxsec = document.getElementById('qxEDxSec').value.trim();
+  var cie10ter = document.getElementById('qxECie10Ter').value.trim();
+  var dxter = document.getElementById('qxEDxTer').value.trim();
+  var codproc = document.getElementById('qxECodProc').value.trim();
+  var fprim = document.getElementById('qxEFechaPrimEval').value.trim();
+  var img = document.getElementById('qxEImagenes').value;
+  var fimg = document.getElementById('qxEFechaImg').value.trim();
+  var fevalpre = document.getElementById('qxEFechaEvalPreop').value.trim();
+  var orden = document.getElementById('qxEOrden').value.trim();
   var res = await sb.from('pacientes').update({
     dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null,
-    edad: isNaN(edad) ? null : edad, sexo: sexo||null, diagnostico: dx||null
+    edad: isNaN(edad) ? null : edad, sexo: sexo||null, diagnostico: dx||null,
+    cie10: cie10||null, procedimiento: proc||null, tipo_seguro: seguro||null,
+    tipo_anestesia: anestesia||null, nivel_cirugia: nivel||null,
+    cie10_secundario: cie10sec||null, diagnostico_secundario: dxsec||null,
+    cie10_tercero: cie10ter||null, diagnostico_tercero: dxter||null,
+    codigo_procedimiento: codproc||null, fecha_primera_evaluacion: fprim||null,
+    aplica_imagenes: img||null, fecha_imagenes: fimg||null,
+    fecha_evaluacion_preoperatoria: fevalpre||null, orden_intervencion: orden||null
   }).eq('id', p.id);
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
@@ -5457,8 +5718,16 @@ async function qxGuardarEdicion(){
   }
   p.dni = dni; p.nombre = nombre; p.hcl = hcl||null; p.telefono = tel||null;
   p.edad = isNaN(edad) ? null : edad; p.sexo = sexo||null; p.diagnostico = dx||null;
+  p.cie10 = cie10||null; p.procedimiento = proc||null; p.tipo_seguro = seguro||null;
+  p.tipo_anestesia = anestesia||null; p.nivel_cirugia = nivel||null;
+  p.cie10_secundario = cie10sec||null; p.diagnostico_secundario = dxsec||null;
+  p.cie10_tercero = cie10ter||null; p.diagnostico_tercero = dxter||null;
+  p.codigo_procedimiento = codproc||null; p.fecha_primera_evaluacion = fprim||null;
+  p.aplica_imagenes = img||null; p.fecha_imagenes = fimg||null;
+  p.fecha_evaluacion_preoperatoria = fevalpre||null; p.orden_intervencion = orden||null;
   toast('Datos actualizados ✓','success');
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  qxSyncSheets(p.id);
   qxRenderDetalle();
   qxLoad();
 }
