@@ -213,6 +213,7 @@ body.dark .mode-card{background:var(--s1);box-shadow:0 2px 12px rgba(0,0,0,.3);b
 body.dark .mode-card .mc-icon.foto{box-shadow:0 4px 14px rgba(160,61,99,.15)}
 body.dark .mode-card .mc-icon.pdf{box-shadow:0 4px 14px rgba(212,168,83,.15)}
 body.dark .mode-card .mc-icon.dosEnUno{box-shadow:0 4px 14px rgba(124,58,237,.15)}
+body.dark .mode-card .mc-icon.file{box-shadow:0 4px 14px rgba(56,161,105,.15)}
 body.dark .today-section,body.dark .prev-section{background:var(--s1)}
 body.dark .today-section{border-left-color:var(--tl)}
 body.dark .prev-date-card.expanded{box-shadow:0 2px 12px rgba(160,61,99,.05)}
@@ -315,6 +316,7 @@ body.dark .auth-card{background:var(--s1);box-shadow:0 8px 48px rgba(0,0,0,.6),0
 .mode-card:nth-child(1)::before{background:linear-gradient(90deg,var(--tl),var(--tl2))}
 .mode-card:nth-child(2)::before{background:linear-gradient(90deg,var(--gd),var(--gd2))}
 .mode-card:nth-child(3)::before{background:linear-gradient(90deg,#7C3AED,#A78BFA)}
+.mode-card:nth-child(4)::before{background:linear-gradient(90deg,#38A169,#2F855A)}
 .mode-card:active{transform:scale(.97);box-shadow:0 1px 6px rgba(0,0,0,.1)}
 .mode-card .mc-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
 .mode-card .mc-icon svg{width:28px;height:28px}
@@ -324,6 +326,8 @@ body.dark .auth-card{background:var(--s1);box-shadow:0 8px 48px rgba(0,0,0,.6),0
 .mode-card .mc-icon.pdf svg{fill:#fff}
 .mode-card .mc-icon.dosEnUno{background:linear-gradient(135deg,#7C3AED,#A78BFA);box-shadow:0 4px 14px rgba(124,58,237,.3)}
 .mode-card .mc-icon.dosEnUno svg{fill:#fff}
+.mode-card .mc-icon.file{background:linear-gradient(135deg,#38A169,#2F855A);box-shadow:0 4px 14px rgba(56,161,105,.3)}
+.mode-card .mc-icon.file svg{fill:#fff}
 .mode-card .mc-text h4{font-size:17px;font-weight:800}
 .mode-card .mc-text p{font-size:12px;color:var(--t2);margin-top:2px}
 .mode-card .mc-arrow{margin-left:auto;opacity:.25;flex-shrink:0}
@@ -941,6 +945,17 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
                 </div>
                 <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
               </div>
+              <!-- Subir archivo card -->
+              <div class="mode-card" onclick="openFileUpload()">
+                <div class="mc-icon file">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/><path d="M12 12v5M9.5 14.5L12 17l2.5-2.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="mc-text">
+                  <h4>Subir archivo</h4>
+                  <p>Adjunta un documento desde tu dispositivo</p>
+                </div>
+                <svg class="mc-arrow" width="20" height="20" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+              </div>
             </div>
           </div>
           <!-- Today section -->
@@ -1307,6 +1322,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   </div>
   <!-- Hidden file input for gallery -->
   <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleGalleryFile(event)">
+  <!-- Hidden file input for uploading any document from the device -->
+  <input type="file" id="fileUploadInput" style="display:none" onchange="handleFileUpload(event)">
 </div>
 
 
@@ -1634,6 +1651,7 @@ document.addEventListener('DOMContentLoaded', function() {
       showView('vMain');
       showModule('dashboard');
       syncTodayFromServer(true);
+      processOfflineQueue();
       refreshAdminStatus();   // auto-enable super admin if is_admin=true
     } else {
       showView('vWelcome');
@@ -2171,6 +2189,7 @@ async function doLogin() {
         }
         toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
         syncTodayFromServer(true);
+        processOfflineQueue();
       }
       return;
     }
@@ -2289,6 +2308,7 @@ async function doLogin() {
     showModule('dashboard');
     toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
     syncTodayFromServer(true);
+    processOfflineQueue();
   } catch(e) {
     toast('Error de conexion. Verifica tu internet.', 'error');
   }
@@ -3228,6 +3248,8 @@ function loadTodayFiles() {
 function forceSyncToday() {
   // Just sync from server — don't nuke SW caches (breaks offline)
   syncTodayFromServer(true);
+  // Also retry any pending offline uploads (e.g. queued after a session expiry)
+  processOfflineQueue();
 }
 
 var _syncInProgress = false;
@@ -3300,6 +3322,11 @@ function syncTodayFromServer(showFeedback) {
         var fotoClean = fn.replace(/^\d+_/, '').replace(/\.(jpg|jpeg|png)$/i, '');
         todayFiles.push({ name: fotoClean + '.jpg', time: '--:--', type: 'foto', url: fileUrl });
         added++;
+      } else {
+        // Any other file type (docx, xlsx, zip, etc.) uploaded from PC or device
+        var fileClean = fn.replace(/^\d+_/, '');
+        todayFiles.push({ name: fileClean, time: '--:--', type: 'file', url: fileUrl });
+        added++;
       }
     }
 
@@ -3344,7 +3371,9 @@ function updateTodayCount() {
     var realIndex = todayFiles.length - 1 - i;
     var iconPath = f.type === 'pdf'
       ? '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>'
-      : '<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>';
+      : (f.type === 'file'
+        ? '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 15h8v1.5H8zM8 12h8v1.5H8z"/>'
+        : '<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>');
     var el = document.createElement('div');
     el.className = 'today-file';
     el.style.cursor = 'pointer';
@@ -3367,6 +3396,11 @@ function openTodayFile(index) {
   haptic();
 
   if (f.type === 'pdf') {
+    window.open(f.url, '_blank');
+    return;
+  }
+
+  if (f.type === 'file') {
     window.open(f.url, '_blank');
     return;
   }
@@ -3889,6 +3923,65 @@ function handleGalleryFile(event) {
   reader.onerror = function() { toast('Error al leer archivo', 'error'); };
   reader.readAsDataURL(file);
   // Reset input so same file can be selected again
+  event.target.value = '';
+}
+
+/* ===== UPLOAD FILE FROM DEVICE (any type) ===== */
+function openFileUpload() {
+  haptic();
+  document.getElementById('fileUploadInput').click();
+}
+
+function fileTypeFromName(name) {
+  var m = String(name).toLowerCase().match(/\.([a-z0-9]+)$/);
+  var ext = m ? m[1] : '';
+  if (ext === 'pdf') return 'pdf';
+  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'foto';
+  return 'file';
+}
+
+function handleFileUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!worker || !worker.id) { toast('No hay perfil activo', 'error'); return; }
+
+  // Derive a safe base name (strip + sanitize the original filename)
+  var dot = file.name.lastIndexOf('.');
+  var baseName = dot > 0 ? file.name.substring(0, dot) : file.name;
+  var ext = dot > 0 ? file.name.substring(dot + 1).toLowerCase() : '';
+  var clean = baseName.replace(/[^a-zA-Z0-9\-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!clean) clean = 'documento';
+  var filename = clean + (ext ? '.' + ext : '');
+
+  var contentType = file.type || 'application/octet-stream';
+  var type = fileTypeFromName(filename);
+
+  haptic(25);
+  toast('Subiendo ' + filename + '...', 'info');
+
+  var now = new Date();
+  var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  var ts = now.getTime();
+  var filePath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename;
+
+  uploadToSupabase(filePath, file, contentType).then(function() {
+    var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + filePath;
+    addTodayFile(filename, type, pubUrl);
+    toast('Archivo subido', 'success');
+    haptic(30);
+    updateTodayCount();
+  }).catch(function(err) {
+    // Generic files are NOT queued offline (raw binary too large for localStorage).
+    // Show a clear error and let the user retry when online/authenticated.
+    if (isAuthUploadError(err)) {
+      toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
+      promptSessionExpired();
+    } else {
+      toast('No se pudo subir. Verifica tu conexion e intenta de nuevo', 'error');
+    }
+  });
+
+  // Reset input so the same file can be selected again
   event.target.value = '';
 }
 
@@ -4432,9 +4525,14 @@ function doUploadFoto(filename, dataUrl) {
     hideQuickName();
     document.getElementById('quickNameInput').disabled = false;
   }).catch(function(err) {
-    // Upload error — queued for offline retry
+    // Upload error — queued for offline retry (network) or auth-expired
     queueOfflineUpload(filename, 'foto', [dataUrl]);
-    toast('Sin conexion, se subira despues', 'info');
+    if (isAuthUploadError(err)) {
+      toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
+      promptSessionExpired();
+    } else {
+      toast('Sin conexion, se subira despues', 'info');
+    }
     addTodayFile(filename + '.jpg (pendiente)', 'foto');
     updateTodayCount();
     hideQuickName();
@@ -4466,9 +4564,14 @@ function doUploadPdf(filename, pages) {
           hideQuickName();
           document.getElementById('quickNameInput').disabled = false;
         }).catch(function(err) {
-          // PDF upload error — queued for offline retry
+          // PDF upload error — queued for offline retry (network) or auth-expired
           queueOfflineUpload(filename, 'pdf', pages);
-          toast('Sin conexion, se subira despues', 'info');
+          if (isAuthUploadError(err)) {
+            toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
+            promptSessionExpired();
+          } else {
+            toast('Sin conexion, se subira despues', 'info');
+          }
           addTodayFile(filename + '.pdf (pendiente)', 'pdf');
           updateTodayCount();
           hideQuickName();
@@ -4650,9 +4753,20 @@ function uploadToSupabase(path, blob, contentType) {
   return sb.storage.from(SB_BUCKET)
     .upload(path, blob, { contentType: contentType, upsert: true })
     .then(function(r) {
-      if (r.error) throw new Error('Upload failed: ' + r.error.message);
+      if (r.error) {
+        var status = r.error.statusCode || r.error.status || 0;
+        var err = new Error('Upload failed: ' + (r.error.message || status));
+        err.statusCode = status;
+        throw err;
+      }
       return r;
     });
+}
+
+// True if the upload failed because the Supabase session is invalid/expired
+// (401/403) — a network problem that merely reconnecting will NOT fix.
+function isAuthUploadError(err) {
+  return !!(err && (err.statusCode === 401 || err.statusCode === 403));
 }
 
 /* ===== OFFLINE QUEUE ===== */

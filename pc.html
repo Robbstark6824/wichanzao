@@ -395,6 +395,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 }
 .badge-foto { background:linear-gradient(135deg,#DCFCE7,#D1FAE5); color:#15803D; }
 .badge-pdf { background:linear-gradient(135deg,#FEE2E2,#FECACA); color:#B91C1C; }
+.badge-file { background:linear-gradient(135deg,#DBEAFE,#BFDBFE); color:#1D4ED8; }
 .file-meta { font-size:11px; color:var(--t3); margin-bottom:8px; }
 .file-actions { display:flex; gap:6px; flex-wrap:wrap; }
 .dl-btn {
@@ -792,6 +793,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 <!-- TOAST -->
 <div class="toast info" id="toast"></div>
 
+<!-- Hidden file input for uploading documents into a worker's folder -->
+<input type="file" id="pcFileUploadInput" style="display:none" onchange="handlePcFileUpload(event)">
+
 <script>
 /* =========================================================
    CONFIG
@@ -919,7 +923,9 @@ var _todayCache = '', _todayCacheTs = 0;
 function todayStr() {
   var now = Date.now();
   if (now - _todayCacheTs < 60000) return _todayCache;
-  _todayCache = new Date().toISOString().split('T')[0];
+  // Local date (not UTC) — matches the date folders the mobile app creates.
+  var d = new Date();
+  _todayCache = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   _todayCacheTs = now;
   return _todayCache;
 }
@@ -1060,13 +1066,23 @@ function groupFiles(rawFiles, pathPrefix) {
       if (!groups[base]) groups[base] = { name: base, type: 'pdf', pages: [], totalSize: 0 };
       groups[base].pages.push({ file: f, num: parseInt(m[2]), url: pubUrl(pathPrefix + '/' + f.name), rawName: f.name });
       groups[base].totalSize += (f.metadata && f.metadata.size) || 0;
-    } else {
+    } else if (_reImg.test(f.name)) {
       var dname = clean.replace(_reImg, '');
       var key = '_s_' + f.name;
       groups[key] = {
         name: dname, type: 'foto',
         pages: [{ file: f, num: 1, url: pubUrl(pathPrefix + '/' + f.name), rawName: f.name }],
         totalSize: (f.metadata && f.metadata.size) || 0
+      };
+    } else {
+      // Generic file (docx, xlsx, zip, txt, etc.) — download-only, no thumbnail
+      var gname = f.name.replace(/^\d+_/, '');
+      var gext = gname.match(/\.([a-z0-9]+)$/i);
+      var gkey = '_f_' + f.name;
+      groups[gkey] = {
+        name: gname, type: 'file', ext: gext ? gext[1].toUpperCase() : '',
+        url: pubUrl(pathPrefix + '/' + f.name),
+        pages: [], totalSize: (f.metadata && f.metadata.size) || 0, rawName: f.name
       };
     }
   }
@@ -1709,6 +1725,7 @@ function renderDetailView(wId) {
   html += '<span class="detail-activity"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--' + (act.color === 'green' ? 'success' : act.color === 'yellow' ? 'warn' : 't3') + ');vertical-align:middle;margin-right:4px"></span>' + act.label + '</span>';
   html += '</div></div>';
   html += '<div class="detail-actions">';
+  html += '<button class="dl-btn primary" onclick="openPcFileUpload(\'' + escHtml(wId) + '\')">&#128228; Subir archivo</button>';
   html += '<button class="dl-btn gold" onclick="dlWorkerZip(\'' + escHtml(wId) + '\')">&#128230; Descargar todo ZIP</button>';
   html += '</div>';
   html += '</div>';
@@ -2064,6 +2081,9 @@ function renderFileCard(doc, pathPrefix) {
   } else if (doc.type === 'pdf-file') {
     typeBadge = 'PDF'; typeClass = 'badge-pdf';
     meta = 'PDF &middot; ' + fmtSize(doc.totalSize);
+  } else if (doc.type === 'file') {
+    typeBadge = doc.ext || 'ARCHIVO'; typeClass = 'badge-file';
+    meta = 'Archivo &middot; ' + fmtSize(doc.totalSize);
   } else {
     typeBadge = 'PDF'; typeClass = 'badge-pdf';
     meta = 'PDF &middot; ' + doc.pages.length + ' pags &middot; ' + fmtSize(doc.totalSize);
@@ -2089,7 +2109,9 @@ function renderFileCard(doc, pathPrefix) {
   html += '<div class="file-meta">' + meta + '</div>';
   html += '<div class="file-actions">';
 
-  if (doc.type === 'pdf-file') {
+  if (doc.type === 'file') {
+    html += '<button class="dl-btn primary" onclick="forceDl(\'' + escJs(doc.url) + '\',\'' + escJs(doc.name) + '\')">&#128190; Descargar</button>';
+  } else if (doc.type === 'pdf-file') {
     html += '<button class="dl-btn pdf" onclick="forceDl(\'' + escJs(doc.pdfUrl) + '\',\'' + escJs(doc.name) + '.pdf\')">&#128196; Descargar PDF</button>';
   } else if (doc.type === 'pdf') {
     if (doc.pdfUrl) {
@@ -2319,6 +2341,9 @@ async function downloadDocsAsZip(docs, zipName) {
       if (doc.pdfUrl) {
         files.push({ url: doc.pdfUrl, name: doc.name + '.pdf' });
       }
+      if (doc.type === 'file' && doc.url) {
+        files.push({ url: doc.url, name: doc.name });
+      }
     }
 
     // Download and add to ZIP in streaming batches (not all in memory at once)
@@ -2417,6 +2442,9 @@ async function dlWorkerZip(wId) {
         }
         if (doc.pdfUrl) {
           allFiles.push({ url: doc.pdfUrl, path: date + '/' + doc.name + '.pdf' });
+        }
+        if (doc.type === 'file' && doc.url) {
+          allFiles.push({ url: doc.url, path: date + '/' + doc.name });
         }
       }
     }
@@ -2926,6 +2954,58 @@ function softReloadDate(path) {
     delete _sbListCache[basePath + '/' + date + '/'];
     loadDateFiles(wId, date);
   }
+}
+
+/* =========================================================
+   UPLOAD FILE INTO A WORKER'S FOLDER (from the PC)
+   ========================================================= */
+function openPcFileUpload(wId) {
+  var input = document.getElementById('pcFileUploadInput');
+  input.setAttribute('data-wid', wId || '');
+  input.click();
+}
+
+function handlePcFileUpload(event) {
+  var input = event.target;
+  var file = input.files[0];
+  var wId = input.getAttribute('data-wid');
+  input.value = '';
+  input.removeAttribute('data-wid');
+  if (!file || !wId) return;
+  if (!allWorkerPaths[wId] && !allWorkersMap[wId]) { showToast('Persona no encontrada', 'error'); return; }
+
+  // Derive a safe filename (strip + sanitize original, keep extension)
+  var dot = file.name.lastIndexOf('.');
+  var baseName = dot > 0 ? file.name.substring(0, dot) : file.name;
+  var ext = dot > 0 ? file.name.substring(dot + 1).toLowerCase() : '';
+  var clean = baseName.replace(/[^a-zA-Z0-9\-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!clean) clean = 'documento';
+  var filename = clean + (ext ? '.' + ext : '');
+
+  var contentType = file.type || 'application/octet-stream';
+  var basePath = allWorkerPaths[wId] || 'workers/' + wId;
+  var today = todayStr();
+  var ts = Date.now();
+  var path = basePath + '/' + today + '/' + ts + '_' + filename;
+
+  showToast('Subiendo ' + filename + '...', 'info');
+
+  sb.storage.from(BUCKET).upload(path, file, { contentType: contentType, upsert: true })
+  .then(function(r) {
+    if (r.error) throw new Error(r.error.message);
+  }).then(function() {
+    showToast('Archivo subido', 'success');
+    // Refresh this worker's listing (and add today's folder if it was new)
+    sbListCacheClear();
+    var fi = allWorkerFiles[wId];
+    if (fi) {
+      if (fi.dates.indexOf(today) === -1) { fi.dates.push(today); fi.dates.sort(); }
+      delete fi.loaded[today];
+    }
+    if (currentWorkerId === wId) renderDetailView(wId);
+  }).catch(function(e) {
+    showToast('Error al subir: ' + e.message, 'error');
+  });
 }
 
 /* PC Editor crop drag — throttled with RAF */
