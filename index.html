@@ -1345,8 +1345,9 @@ var SB_BUCKET = 'documentos';
 // URL del Web App de Google (Apps Script) que escribe en la hoja oficial.
 var QX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxH2ZHmkZ9d68nFD7Sww40Shbv0lQ7FibzGfeRze48Powy5qj-ygD8rYPoCZy4qiAxEhw/exec'; // URL del Web App de Google (GERESA)
 var QX_SHEET_TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9'; // debe coincidir con TOKEN del script
-// CSV de la hoja (lectura directa, sin credenciales) para el botón "Sincronizar".
-var QX_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/gviz/tq?tqx=out:csv&gid=0';
+// CSV de la hoja oficial "HOSPITAL LAREDO" (la MISMA que escribe el Apps Script:
+// getSheets()[0]). Ojo: no usar gviz&gid=0, que apunta a otra hoja ("Hoja 2").
+var QX_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv';
 
 /* ===== SUPABASE CLIENT ===== */
 var sb = window.supabase.createClient(SB_URL, SB_KEY, {

@@ -22,7 +22,7 @@ for (const line of envText.split('\n')) {
 const URL_BASE = env.SUPABASE_URL || 'https://xqphjvppfgwabfruyjae.supabase.co';
 const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
-const SS_CSV = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv&gid=0';
+const SS_CSV = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv';
 
 // DNI falsos temporales para los 3 pacientes sin DNI (en orden de aparición en la hoja).
 const FAKE_DNIS = ['11111111', '22222222', '33333333'];

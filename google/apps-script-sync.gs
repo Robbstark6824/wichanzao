@@ -9,7 +9,8 @@
  *   2. Extensiones → Apps Script.
  *   3. Borra el contenido y pega TODO este archivo.
  *   4. Arriba edita las constantes (SS_ID ya está, TOKEN debe coincidir
- *      con el de la app, y revisa los datos del hospital).
+ *      con el de la app, SHEET_NAME es la pestaña exacta y revisa los
+ *      datos del hospital).
  *   5. Guarda (Ctrl+S).
  *   6. Desplegar → Nueva implementación → tipo "Aplicación web".
  *        - Ejecutar como: Yo
@@ -23,6 +24,10 @@
  */
 
 var SS_ID = '1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU';
+
+// Nombre EXACTO de la pestaña donde se escribe el reporte GERESA.
+// (blindado: si reordenas pestañas, esto no se rompe).
+var SHEET_NAME = 'HOSPITAL LAREDO';
 
 // Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN).
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -180,7 +185,8 @@ function buildColumnMap(sheet, headerRow) {
 
 function upsert(p) {
   var ss = SpreadsheetApp.openById(SS_ID);
-  var sheet = ss.getSheets()[0];
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('No se encontró la pestaña "' + SHEET_NAME + '". Verifica el nombre en la hoja.');
   var headerRow = findHeaderRow(sheet);
   if (!headerRow) throw new Error('No se encontró el bloque "FILA AZUL" (encabezado "ID registro").');
 

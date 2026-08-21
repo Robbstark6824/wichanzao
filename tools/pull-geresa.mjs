@@ -28,7 +28,9 @@ for (const line of envText.split('\n')) {
 const URL_BASE = env.SUPABASE_URL || 'https://xqphjvppfgwabfruyjae.supabase.co';
 const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
-const SS_CSV = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv&gid=0';
+// Hoja oficial "HOSPITAL LAREDO" (la misma que escribe el Apps Script: getSheets()[0]).
+// No usar gviz&gid=0: apunta a otra hoja ("Hoja 2").
+const SS_CSV = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv';
 
 // Turno por defecto cuando la hoja manda a "programada" y la app aún no tiene turno.
 const TURNO_DEFAULT = 'manana';
