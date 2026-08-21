@@ -5335,31 +5335,213 @@ async function qxExportarDia(){
   }
 }
 
-async function qxNuevo(){
+/* ============================================================
+   FORMULARIO GERESA — wizard de 6 pasos
+   Recorre el formato oficial de 47 columnas en orden.
+   qxFormulario(null) → nuevo; qxFormulario(QX_ACTUAL) → edición.
+   ============================================================ */
+var QX_WIZ_PASO = 1;
+var QX_WIZ_DATOS = {};
+var QX_WIZ_EDIT_ID = null;
+var QX_WIZ_STEP_TITLES = ['Identificación','Diagnóstico','Procedimiento','Evaluaciones','Exámenes prequirúrgicos','Programación'];
+
+function qxWizV(k){ var v = QX_WIZ_DATOS[k]; return (v===null||v===undefined)?'':qxEsc(String(v)); }
+function qxWizOpt(k, val, label){
+  var cur = QX_WIZ_DATOS[k];
+  var curStr = (cur===null||cur===undefined)?'':String(cur);
+  var sel = (curStr===val)?' selected':'';
+  return '<option value="'+val+'"'+sel+'>'+label+'</option>';
+}
+
+function qxFormulario(p){
+  var prev = document.querySelector('.qx-overlay'); if (prev) prev.remove();
+  QX_WIZ_PASO = 1;
+  QX_WIZ_EDIT_ID = p ? p.id : null;
+  QX_WIZ_DATOS = {};
+  var campos = ['dni','nombre','hcl','telefono','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','fecha_fase2','fecha_cirugia','turno'];
+  if (p){
+    for (var i=0;i<campos.length;i++) QX_WIZ_DATOS[campos[i]] = p[campos[i]];
+  } else {
+    QX_WIZ_DATOS.fecha_captacion = qxHoyStr();
+    QX_WIZ_DATOS.laboratorio_completo = false;
+    QX_WIZ_DATOS.ekg = false;
+  }
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
   ov.innerHTML = '<div class="qx-sheet">'
-    + '<div class="qx-sheet-head"><h3>Nuevo paciente · Fase 1</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
-    + '<div class="qx-sheet-body">'
-    + '<div class="qx-field"><label>DNI *</label><input id="qxNDni" placeholder="8 dígitos"></div>'
-    + '<div class="qx-field"><label>Nombre completo *</label><input id="qxNNombre" placeholder="Nombres y apellidos"></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxNHcl" placeholder="N° historia"></div>'
-    + '<div class="qx-field"><label>Teléfono</label><input id="qxNTel" placeholder="9XXXXXXXX"></div></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxNEdad" type="number" min="0" max="120" placeholder="Años"></div>'
-    + '<div class="qx-field"><label>Sexo</label><select id="qxNSexo"><option value="Femenino">Femenino</option><option value="Masculino">Masculino</option></select></div></div>'
-    + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxNDx" rows="2" placeholder="Motivo de cirugía"></textarea></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>CIE-10</label><input id="qxNCie10" placeholder="ej. N80"></div>'
-    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxNSeguro"><option value="">—</option><option value="SIS">SIS</option><option value="ESSALUD">ESSALUD</option><option value="SOAT">SOAT</option><option value="Particular">Particular</option><option value="Otro">Otro</option></select></div></div>'
-    + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxNProcedimiento" placeholder="ej. Quistectomía"></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Tipo de anestesia</label><select id="qxNAnestesia"><option value="">—</option><option value="Regional">Regional</option><option value="General">General</option><option value="Local">Local</option><option value="Combinada">Combinada</option></select></div>'
-    + '<div class="qx-field"><label>Nivel de cirugía</label><select id="qxNNivel"><option value="">—</option><option value="Menor">Menor</option><option value="Mayor">Mayor</option><option value="Alta complejidad">Alta complejidad</option></select></div></div>'
-    + '<div class="qx-field"><label>Fecha de captación</label><input type="date" id="qxNFechaCapt" value="'+qxHoyStr()+'"></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Interno de medicina</label><input id="qxNInterno" placeholder="Nombre del interno"></div>'
-    + '<div class="qx-field"><label>Doctor (DR)</label><input id="qxNDoctor" placeholder="Nombre del doctor"></div></div>'
-    + '<button class="qx-btn" style="width:100%" onclick="qxGuardarNuevo()">Guardar paciente</button>'
-    + '</div></div>';
+    + '<div class="qx-sheet-head"><h3>Formulario GERESA</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body" id="qxWizBody"></div>'
+    + '</div>';
   document.body.appendChild(ov);
+  qxWizRender();
 }
+
+function qxWizProgress(){
+  var html = '<div style="display:flex;gap:4px;margin-bottom:10px">';
+  for (var i=1;i<=6;i++){
+    html += '<div style="flex:1;height:5px;border-radius:3px;background:'+(i<=QX_WIZ_PASO?'var(--tl)':'var(--bd)')+'"></div>';
+  }
+  html += '</div>';
+  html += '<div style="font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:16px">Paso '+QX_WIZ_PASO+' de 6 · '+QX_WIZ_STEP_TITLES[QX_WIZ_PASO-1]+'</div>';
+  return html;
+}
+
+function qxWizPaso1Html(){
+  return ''
+    + '<div class="qx-field"><label>DNI *</label><input id="qxW_dni" placeholder="8 dígitos" value="'+qxWizV('dni')+'"></div>'
+    + '<div class="qx-field"><label>Nombre completo *</label><input id="qxW_nombre" placeholder="Apellidos y nombres" value="'+qxWizV('nombre')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxW_edad" type="number" min="0" max="120" placeholder="Años" value="'+qxWizV('edad')+'"></div>'
+    + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+qxWizOpt('sexo','Masculino','Masculino')+'</select></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxW_hcl" placeholder="N° historia" value="'+qxWizV('hcl')+'"></div>'
+    + '<div class="qx-field"><label>Celular</label><input id="qxW_telefono" placeholder="9XXXXXXXX" value="'+qxWizV('telefono')+'"></div></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+qxWizOpt('tipo_seguro','ESSALUD','ESSALUD')+qxWizOpt('tipo_seguro','SOAT','SOAT')+qxWizOpt('tipo_seguro','Particular','Particular')+qxWizOpt('tipo_seguro','Otro','Otro')+'</select></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Fecha de captación</label><input type="date" id="qxW_fecha_captacion" value="'+qxWizV('fecha_captacion')+'"></div>'
+    + '<div class="qx-field"><label>Interno de medicina</label><input id="qxW_interno_medicina" placeholder="Nombre del interno" value="'+qxWizV('interno_medicina')+'"></div></div>';
+}
+
+function qxWizPaso2Html(){
+  return ''
+    + '<div class="qx-field"><label>Cirujano responsable (DR)</label><input id="qxW_doctor" placeholder="Nombre del doctor" value="'+qxWizV('doctor')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>CIE-10 principal</label><input id="qxW_cie10" placeholder="ej. N80" value="'+qxWizV('cie10')+'"></div></div>'
+    + '<div class="qx-field"><label>Diagnóstico principal</label><textarea id="qxW_diagnostico" rows="2" placeholder="Motivo de cirugía">'+qxWizV('diagnostico')+'</textarea></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>CIE-10 secundario</label><input id="qxW_cie10_secundario" placeholder="ej. D25" value="'+qxWizV('cie10_secundario')+'"></div>'
+    + '<div class="qx-field"><label>Diagnóstico secundario</label><input id="qxW_diagnostico_secundario" value="'+qxWizV('diagnostico_secundario')+'"></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>CIE-10 terciario</label><input id="qxW_cie10_tercero" placeholder="ej. I10" value="'+qxWizV('cie10_tercero')+'"></div>'
+    + '<div class="qx-field"><label>Diagnóstico terciario</label><input id="qxW_diagnostico_tercero" value="'+qxWizV('diagnostico_tercero')+'"></div></div>';
+}
+
+function qxWizPaso3Html(){
+  return ''
+    + '<div class="qx-field"><label>Código de procedimiento</label><input id="qxW_codigo_procedimiento" placeholder="ej. 5A-123" value="'+qxWizV('codigo_procedimiento')+'"></div>'
+    + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxW_procedimiento" placeholder="ej. Quistectomía" value="'+qxWizV('procedimiento')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Nivel de cirugía</label><select id="qxW_nivel_cirugia">'+qxWizOpt('nivel_cirugia','','—')+qxWizOpt('nivel_cirugia','Menor','Menor')+qxWizOpt('nivel_cirugia','Mayor','Mayor')+qxWizOpt('nivel_cirugia','Alta complejidad','Alta complejidad')+'</select></div>'
+    + '<div class="qx-field"><label>Tipo de anestesia</label><select id="qxW_tipo_anestesia">'+qxWizOpt('tipo_anestesia','','—')+qxWizOpt('tipo_anestesia','Regional','Regional')+qxWizOpt('tipo_anestesia','General','General')+qxWizOpt('tipo_anestesia','Local','Local')+qxWizOpt('tipo_anestesia','Combinada','Combinada')+'</select></div></div>';
+}
+
+function qxWizPaso4Html(){
+  return ''
+    + '<div class="qx-field"><label>F. primera evaluación por cirugía</label><input type="date" id="qxW_fecha_primera_evaluacion" value="'+qxWizV('fecha_primera_evaluacion')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes?</label><select id="qxW_aplica_imagenes">'+qxWizOpt('aplica_imagenes','','—')+qxWizOpt('aplica_imagenes','Sí','Sí')+qxWizOpt('aplica_imagenes','No','No')+'</select></div>'
+    + '<div class="qx-field"><label>F. diagnóstico por imágenes</label><input type="date" id="qxW_fecha_imagenes" value="'+qxWizV('fecha_imagenes')+'"></div></div>'
+    + '<div class="qx-field"><label>F. riesgo quirúrgico</label><input type="date" id="qxW_fecha_cita_cardiologia" value="'+qxWizV('fecha_cita_cardiologia')+'"></div>'
+    + '<div class="qx-field"><label>F. evaluación anestésica</label><input type="date" id="qxW_fecha_cita_anestesiologia" value="'+qxWizV('fecha_cita_anestesiologia')+'"></div>'
+    + '<div class="qx-field"><label>F. evaluación preoperatoria</label><input type="date" id="qxW_fecha_evaluacion_preoperatoria" value="'+qxWizV('fecha_evaluacion_preoperatoria')+'"></div>';
+}
+
+function qxWizPaso5Html(){
+  return ''
+    + '<div class="qx-row"><div class="qx-field"><label>Laboratorio completo</label><select id="qxW_laboratorio_completo"><option value="true"'+(QX_WIZ_DATOS.laboratorio_completo?' selected':'')+'>Sí</option><option value="false"'+(QX_WIZ_DATOS.laboratorio_completo?'':' selected')+'>No</option></select></div>'
+    + '<div class="qx-field"><label>EKG</label><select id="qxW_ekg"><option value="true"'+(QX_WIZ_DATOS.ekg?' selected':'')+'>Sí</option><option value="false"'+(QX_WIZ_DATOS.ekg?'':' selected')+'>No</option></select></div></div>'
+    + '<div class="qx-field"><label>Fecha de exámenes</label><input type="date" id="qxW_fecha_fase2" value="'+qxWizV('fecha_fase2')+'"></div>';
+}
+
+function qxWizPaso6Html(){
+  return ''
+    + '<div class="qx-field"><label>N° orden de intervención</label><input id="qxW_orden_intervencion" placeholder="ej. 01" value="'+qxWizV('orden_intervencion')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Fecha de cirugía</label><input type="date" id="qxW_fecha_cirugia" value="'+qxWizV('fecha_cirugia')+'"></div>'
+    + '<div class="qx-field"><label>Turno</label><select id="qxW_turno">'+qxWizOpt('turno','','—')+qxWizOpt('turno','manana','Mañana')+qxWizOpt('turno','tarde','Tarde')+'</select></div></div>';
+}
+
+function qxWizNav(){
+  var html = '<div class="qx-row" style="margin-top:18px">';
+  if (QX_WIZ_PASO>1) html += '<button class="qx-btn" style="flex:1;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxWizAnterior()">‹ Anterior</button>';
+  if (QX_WIZ_PASO<6) html += '<button class="qx-btn" style="flex:1;background:var(--tl)" onclick="qxWizSiguiente()">Siguiente ›</button>';
+  else html += '<button class="qx-btn" style="flex:1;background:#16a34a" onclick="qxWizGuardar()">Guardar</button>';
+  html += '</div>';
+  return html;
+}
+
+function qxWizRender(){
+  var body = document.getElementById('qxWizBody'); if (!body) return;
+  var html = qxWizProgress();
+  if (QX_WIZ_PASO===1) html += qxWizPaso1Html();
+  else if (QX_WIZ_PASO===2) html += qxWizPaso2Html();
+  else if (QX_WIZ_PASO===3) html += qxWizPaso3Html();
+  else if (QX_WIZ_PASO===4) html += qxWizPaso4Html();
+  else if (QX_WIZ_PASO===5) html += qxWizPaso5Html();
+  else html += qxWizPaso6Html();
+  html += qxWizNav();
+  body.innerHTML = html;
+}
+
+function qxWizGuardarPaso(){
+  var campos = [];
+  if (QX_WIZ_PASO===1) campos = ['dni','nombre','edad','sexo','hcl','telefono','tipo_seguro','fecha_captacion','interno_medicina'];
+  else if (QX_WIZ_PASO===2) campos = ['doctor','cie10','diagnostico','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero'];
+  else if (QX_WIZ_PASO===3) campos = ['codigo_procedimiento','procedimiento','nivel_cirugia','tipo_anestesia'];
+  else if (QX_WIZ_PASO===4) campos = ['fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_cita_cardiologia','fecha_cita_anestesiologia','fecha_evaluacion_preoperatoria'];
+  else if (QX_WIZ_PASO===5) campos = ['laboratorio_completo','ekg','fecha_fase2'];
+  else campos = ['orden_intervencion','fecha_cirugia','turno'];
+  for (var i=0;i<campos.length;i++){
+    var el = document.getElementById('qxW_'+campos[i]);
+    if (!el) continue;
+    var v = el.value.trim();
+    if (campos[i]==='edad'){ QX_WIZ_DATOS.edad = v===''?null:parseInt(v,10); }
+    else if (campos[i]==='laboratorio_completo' || campos[i]==='ekg'){ QX_WIZ_DATOS[campos[i]] = (v==='true'); }
+    else { QX_WIZ_DATOS[campos[i]] = (v===''?null:v); }
+  }
+}
+
+function qxWizSiguiente(){
+  qxWizGuardarPaso();
+  if (QX_WIZ_PASO===1 && (!QX_WIZ_DATOS.dni || !QX_WIZ_DATOS.nombre)){ toast('DNI y nombre son obligatorios','error'); return; }
+  QX_WIZ_PASO++;
+  qxWizRender();
+}
+
+function qxWizAnterior(){
+  qxWizGuardarPaso();
+  if (QX_WIZ_PASO>1) QX_WIZ_PASO--;
+  qxWizRender();
+}
+
+async function qxWizGuardar(){
+  qxWizGuardarPaso();
+  var d = QX_WIZ_DATOS;
+  if (!d.dni || !d.nombre){ toast('DNI y nombre son obligatorios','error'); QX_WIZ_PASO=1; qxWizRender(); return; }
+  var payload = {
+    dni: d.dni, nombre: d.nombre, hcl: d.hcl||null, telefono: qxNormalizarTel(d.telefono||'')||null,
+    edad: d.edad||null, sexo: d.sexo||null, diagnostico: d.diagnostico||null,
+    cie10: d.cie10||null, procedimiento: d.procedimiento||null, tipo_seguro: d.tipo_seguro||null,
+    tipo_anestesia: d.tipo_anestesia||null, nivel_cirugia: d.nivel_cirugia||null,
+    fecha_captacion: d.fecha_captacion||null, interno_medicina: d.interno_medicina||null, doctor: d.doctor||null,
+    cie10_secundario: d.cie10_secundario||null, diagnostico_secundario: d.diagnostico_secundario||null,
+    cie10_tercero: d.cie10_tercero||null, diagnostico_tercero: d.diagnostico_tercero||null,
+    codigo_procedimiento: d.codigo_procedimiento||null,
+    fecha_primera_evaluacion: d.fecha_primera_evaluacion||null,
+    aplica_imagenes: d.aplica_imagenes||null, fecha_imagenes: d.fecha_imagenes||null,
+    fecha_cita_cardiologia: d.fecha_cita_cardiologia||null,
+    fecha_cita_anestesiologia: d.fecha_cita_anestesiologia||null,
+    fecha_evaluacion_preoperatoria: d.fecha_evaluacion_preoperatoria||null,
+    laboratorio_completo: d.laboratorio_completo===true, ekg: d.ekg===true,
+    fecha_fase2: d.fecha_fase2||null,
+    orden_intervencion: d.orden_intervencion||null,
+    fecha_cirugia: d.fecha_cirugia||null, turno: d.turno||null
+  };
+  var res;
+  if (QX_WIZ_EDIT_ID){
+    res = await sb.from('pacientes').update(payload).eq('id', QX_WIZ_EDIT_ID);
+  } else {
+    payload.estado = 'en_tramite';
+    res = await sb.from('pacientes').insert(payload).select();
+  }
+  if (res.error){
+    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
+    else toast('Error: '+res.error.message,'error');
+    return;
+  }
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  var id = QX_WIZ_EDIT_ID || (res.data && res.data[0] && res.data[0].id);
+  if (id) qxSyncSheets(id);
+  if (QX_WIZ_EDIT_ID && QX_ACTUAL){
+    for (var k in payload) QX_ACTUAL[k] = payload[k];
+    qxRenderDetalle();
+  }
+  toast(QX_WIZ_EDIT_ID ? 'Datos actualizados ✓' : 'Paciente registrada ✓', 'success');
+  qxLoad();
+}
+
+function qxNuevo(){ qxFormulario(null); }
 
 async function qxGuardarNuevo(){
   var dni = document.getElementById('qxNDni').value.trim();
@@ -5425,7 +5607,7 @@ function qxRenderDetalle(){
     + (p.interno_medicina ? ' · Interno: '+qxEsc(p.interno_medicina) : '')
     + (p.doctor ? ' · DR: '+qxEsc(p.doctor) : '')
     + '</div>'
-    + '<button class="qx-btn" style="margin-top:8px;width:100%;padding:7px 12px;font-size:12px" onclick="qxEditarBasicos()">✎ Editar datos de la paciente</button>'
+    + '<button class="qx-btn" style="margin-top:8px;width:100%;padding:7px 12px;font-size:12px" onclick="qxFormulario(QX_ACTUAL)">✎ Editar datos (formulario GERESA)</button>'
     + '</div>'
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
     + qxCheckHtml('laboratorio_completo','Laboratorio completo',p.laboratorio_completo,true)
