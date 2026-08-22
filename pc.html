@@ -794,7 +794,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 <div class="toast info" id="toast"></div>
 
 <!-- Hidden file input for uploading documents into a worker's folder -->
-<input type="file" id="pcFileUploadInput" style="display:none" onchange="handlePcFileUpload(event)">
+<input type="file" id="pcFileUploadInput" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="handlePcFileUpload(event)">
 
 <script>
 /* =========================================================

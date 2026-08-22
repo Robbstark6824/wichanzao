@@ -1323,7 +1323,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   <!-- Hidden file input for gallery -->
   <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleGalleryFile(event)">
   <!-- Hidden file input for uploading any document from the device -->
-  <input type="file" id="fileUploadInput" style="display:none" onchange="handleFileUpload(event)">
+  <input type="file" id="fileUploadInput" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="handleFileUpload(event)">
 </div>
 
 
@@ -2552,7 +2552,9 @@ function renderPrevFiles(container, dateStr, files) {
     }
     html += '<div class="pf-info"><span class="pf-name">' + escapeHtml(displayName) + '</span>';
     if (sizeStr) html += '<div class="pf-size">' + sizeStr + '</div>';
-    html += '</div></div>';
+    html += '</div>';
+    html += '<button class="pf-del" onclick="event.stopPropagation();deletePrevFile(\'' + dateStr + '\',' + i + ')" title="Eliminar" style="background:none;border:none;padding:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
+    html += '</div>';
   }
   container.innerHTML = html;
 }
@@ -2576,12 +2578,61 @@ function openPrevFile(dateStr, index) {
       var dataUrl = c.toDataURL('image/jpeg', 0.92);
       c.width = 0; c.height = 0;
       img.src = '';
+      editorPrevDate = dateStr;
+      editorPrevIndex = index;
       openPhotoEditor(dataUrl, 'prevDay');
     };
     img.onerror = function() {
       window.open(f.url, '_blank');
     };
     img.src = f.url;
+  }
+}
+
+function deletePrevFile(dateStr, index) {
+  var files = prevDatesCache[dateStr];
+  if (!files || !files[index]) return;
+  var f = files[index];
+
+  var displayName = (f.name || 'archivo').replace(/^\d+_/, '');
+  if (!confirm('¿Eliminar "' + displayName + '"?')) return;
+  haptic(30);
+
+  var folderPath = workerBasePath(worker) + '/' + dateStr + '/';
+  var storagePath = folderPath + f.name;
+
+  function done() {
+    files.splice(index, 1);
+    var container = document.getElementById('pdf-' + dateStr);
+    if (container) renderPrevFiles(container, dateStr, files);
+    toast('Archivo eliminado', 'success');
+  }
+  function fail(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+
+  // For PDFs: also delete their page images + thumbnails
+  if (f.type === 'pdf' && storagePath.match(/\.pdf$/i)) {
+    var fileName = storagePath.substring(storagePath.lastIndexOf('/') + 1);
+    var baseName = fileName.replace(/^\d+_/, '').replace(/\.pdf$/i, '');
+    sbList(folderPath).then(function(items) {
+      if (!Array.isArray(items)) items = [];
+      var pathsToDelete = [];
+      for (var i = 0; i < items.length; i++) {
+        if (!items[i].id || !items[i].name) continue;
+        var n = items[i].name;
+        if (n === fileName ||
+            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_pag\\d+\\.', 'i')) ||
+            n.match(new RegExp('\\d+_' + baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_thumb\\.', 'i'))
+        ) {
+          pathsToDelete.push(folderPath + n);
+        }
+      }
+      if (!pathsToDelete.length) pathsToDelete = [storagePath];
+      return sbDeleteFiles(pathsToDelete).then(done);
+    }).catch(fail);
+  } else {
+    sbDeleteFiles([storagePath]).then(done).catch(fail);
   }
 }
 
@@ -4085,6 +4136,8 @@ var editorDataUrl = null;
 var editorSource = 'foto'; // 'foto', 'pdf', or 'today'
 var editorPageIndex = -1;
 var editorTodayIndex = -1;
+var editorPrevDate = '';
+var editorPrevIndex = -1;
 var cropState = { dragging: false, handle: null, startX: 0, startY: 0, box: { x: 0, y: 0, w: 0, h: 0 }, imgRect: null };
 var cropModified = false; // true when user moved/resized crop box without applying
 
@@ -4164,7 +4217,11 @@ function deleteFromEditor() {
     // Stay on camera, user can re-capture this photo
   } else if (editorSource === 'prevDay') {
     closePhotoEditor();
-    toast('Archivo de dia anterior (solo lectura)', 'info');
+    if (editorPrevDate && editorPrevIndex >= 0) {
+      deletePrevFile(editorPrevDate, editorPrevIndex);
+    } else {
+      toast('Archivo de dia anterior (solo lectura)', 'info');
+    }
   } else {
     if (!confirm('¿Eliminar esta foto?')) return;
     capturedSingleImage = null;
