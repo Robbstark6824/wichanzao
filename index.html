@@ -3097,7 +3097,8 @@ function adminDeleteFolder(basePath) {
   }).then(function() {
     // Also delete worker from DB so both views stay in sync
     return sb.from('workers').delete().eq('folder_id', folderName);
-  }).then(function() {
+  }).then(function(res) {
+    if (res && res.error) throw new Error('No se pudo borrar el registro de la BD: ' + res.error.message);
     toast('Carpeta y registro eliminados ✓', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
