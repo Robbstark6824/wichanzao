@@ -43,14 +43,26 @@ var CONSTANTES = {
   especialidad:           'GINECOLOGIA'
 };
 
-var ESTADO_MAP = {
-  en_tramite:      'EN TRÁMITE',
-  apta_para_sala:  'APTA PARA SALA',
+// Desplegable "Estado de programación" (col 43): solo Pendiente de fecha | PROGRAMADO | PROGRAMADA.
+var ESTADO_PROGRAMACION_MAP = {
+  en_tramite:      '',
+  apta_para_sala:  'Pendiente de fecha',
   programada:      'PROGRAMADO',
-  hospitalizada:   'HOSPITALIZADA',
-  operada:         'OPERADO',
-  suspendida:      'SUSPENDIDO',
-  referida:        'REFERIDO'
+  hospitalizada:   'PROGRAMADO',
+  operada:         'PROGRAMADO',
+  suspendida:      'PROGRAMADO',
+  referida:        'PROGRAMADO'
+};
+
+// Desplegable "Estado actual del paciente" (col 47): solo Operado | En lista de espera.
+var ESTADO_ACTUAL_MAP = {
+  en_tramite:      'En lista de espera',
+  apta_para_sala:  'En lista de espera',
+  programada:      'En lista de espera',
+  hospitalizada:   'En lista de espera',
+  operada:         'Operado',
+  suspendida:      'En lista de espera',
+  referida:        'En lista de espera'
 };
 
 /** Normaliza texto para comparar encabezados (quita tildes y mayúsculas). */
@@ -122,11 +134,11 @@ function buildValues(p) {
   v['f. riesgo quirurgico']              = fmtFecha(p.fecha_cita_cardiologia);
   v['f. evaluacion anestesica']          = fmtFecha(p.fecha_cita_anestesiologia);
   v['resultado evaluacion preoperatoria'] = resultadoPreop(p);
-  v['estado de programacion']            = ESTADO_MAP[p.estado] || '';
+  v['estado de programacion']            = ESTADO_PROGRAMACION_MAP[p.estado] || '';
   v['fecha programacion quirurgica']     = fmtFecha(p.fecha_cirugia);
   v['motivo de espera']                  = mo.motivo;
   v['detalle motivo de espera']          = mo.detalle;
-  v['estado actual del paciente']        = ESTADO_MAP[p.estado] || '';
+  v['estado actual del paciente']        = ESTADO_ACTUAL_MAP[p.estado] || '';
 
   // --- Campos GERESA adicionales (v7) ---
   v['cie-10 secundario']                 = p.cie10_secundario || '';
@@ -138,9 +150,9 @@ function buildValues(p) {
   v['f. evaluacion preoperatoria por cirugia'] = fmtFecha(p.fecha_evaluacion_preoperatoria);
   v['n° orden de intervencion']          = p.orden_intervencion || '';
 
-  // Diagnóstico por imágenes (Sí/No → SÍ/NO)
+  // Diagnóstico por imágenes (Sí/No, tal cual el desplegable de la hoja)
   var ai = norm(p.aplica_imagenes);
-  v['¿aplica diagnostico por imagenes?'] = (ai === 'si' ? 'SÍ' : ai === 'no' ? 'NO' : '');
+  v['¿aplica diagnostico por imagenes?'] = (ai === 'si' ? 'Sí' : ai === 'no' ? 'No' : '');
   v['f. diagnostico por imagenes']       = fmtFecha(p.fecha_imagenes);
 
   // Exámenes prequirúrgicos (derivados de Fase 2)
@@ -196,11 +208,13 @@ function upsert(p) {
   var dniCol = colMap['dni'];
   var nombreCol = colMap['apellidos y nombres completos'];
   var idCol = colMap['id registro'];
+  var estCol = colMap['establecimiento quirurgico destino']; // col B: distingue filas "resumen" (ej. JERUSALEN)
   var lastRow = sheet.getLastRow();
 
-  // Lee DNI y nombre del bloque completo de una vez.
+  // Lee DNI, nombre y establecimiento-destino del bloque completo de una vez.
   var dniData = sheet.getRange(headerRow + 1, dniCol, lastRow - headerRow, 1).getValues();
   var nombreData = sheet.getRange(headerRow + 1, nombreCol, lastRow - headerRow, 1).getValues();
+  var estData = estCol ? sheet.getRange(headerRow + 1, estCol, lastRow - headerRow, 1).getValues() : null;
 
   var targetRow = 0;
   var esNuevo = true;
@@ -222,12 +236,14 @@ function upsert(p) {
     }
   }
 
-  // 3) Si sigue sin encontrar, usa la PRIMERA fila vacía del bloque (sin nombre
-  //    y sin DNI), en vez de pegar al final absoluto de la hoja (la plantilla
-  //    tiene filas pre-numeradas vacías más abajo).
+  // 3) Si sigue sin encontrar, usa la PRIMERA fila vacía del bloque (sin nombre,
+  //    sin DNI y sin establecimiento-destino) para insertar el paciente nuevo.
+  //    Ojo: la fila "resumen" (ej. HOSPITAL DISTRITAL JERUSALEN) no tiene nombre
+  //    ni DNI, pero sí "establecimiento destino"; no debe tratarse como vacía.
   if (!targetRow) {
     for (var k = 0; k < nombreData.length; k++) {
-      if (String(nombreData[k][0]).trim() === '' && String(dniData[k][0]).trim() === '') {
+      var esFilaResumen = estData && String(estData[k][0]).trim() !== '';
+      if (String(nombreData[k][0]).trim() === '' && String(dniData[k][0]).trim() === '' && !esFilaResumen) {
         targetRow = headerRow + 1 + k; break;
       }
     }
@@ -275,6 +291,44 @@ function doPost(e) {
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
+}
+
+/** Vuelca los desplegables (validación de datos) de la fila de encabezado AZUL.
+    Ejecutar manualmente: seleccioná `listarDesplegables` → Ejecutar → mirá el Log.
+    Devuelve una línea por columna con las opciones EXACTAS de cada desplegable. */
+function listarDesplegables() {
+  var ss = SpreadsheetApp.openById(SS_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('No se encontró la pestaña "' + SHEET_NAME + '".');
+  var headerRow = findHeaderRow(sheet);
+  if (!headerRow) throw new Error('No se encontró la fila AZUL (encabezado "ID registro").');
+  var lastCol = sheet.getLastColumn();
+  var header = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
+  var out = [];
+  for (var c = 0; c < header.length; c++) {
+    if (!norm(header[c])) continue;
+    var dv = sheet.getRange(headerRow + 1, c + 1).getDataValidation();
+    if (!dv) continue;
+    var valores = [];
+    try {
+      var tipo = dv.getCriteriaType();
+      if (tipo === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+        var cv = dv.getCriteriaValues();
+        var lista = cv && cv[0];
+        if (!Array.isArray(lista)) lista = [lista];
+        valores = lista.map(function (v) { return String(v); });
+      } else if (tipo === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+        valores = ['RANGO:' + dv.getCriteriaValues()[0].getA1Notation()];
+      } else {
+        valores = ['(tipo ' + tipo + ')'];
+      }
+    } catch (e) {
+      valores = ['(no legible)'];
+    }
+    out.push('COL ' + (c + 1) + ' · ' + header[c] + '  =>  ' + valores.join(' | '));
+  }
+  Logger.log('\n=== DESPLEGABLES DE LA HOJA ===\n' + out.join('\n'));
+  return out.join('\n');
 }
 
 // Para probar el script manualmente desde el editor (Ejecutar → test).

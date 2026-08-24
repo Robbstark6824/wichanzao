@@ -1343,7 +1343,7 @@ var SB_BUCKET = 'documentos';
 
 /* ===== SINCRONIZACIÓN CON GOOGLE SHEETS (GERESA) ===== */
 // URL del Web App de Google (Apps Script) que escribe en la hoja oficial.
-var QX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxH2ZHmkZ9d68nFD7Sww40Shbv0lQ7FibzGfeRze48Powy5qj-ygD8rYPoCZy4qiAxEhw/exec'; // URL del Web App de Google (GERESA)
+var QX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxG_kK9hAdaDvGMjIN0HkJtSyHc39FrFPOTiEeS5H0jOrVoNSxPpIrpzQv_Di-ac8tJ-A/exec'; // URL del Web App de Google (GERESA)
 var QX_SHEET_TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9'; // debe coincidir con TOKEN del script
 // CSV de la hoja oficial "HOSPITAL LAREDO" (la MISMA que escribe el Apps Script:
 // getSheets()[0]). Ojo: no usar gviz&gid=0, que apunta a otra hoja ("Hoja 2").
@@ -5577,10 +5577,10 @@ function qxWizPaso1Html(){
     + '<div class="qx-field"><label>DNI *</label><input id="qxW_dni" placeholder="8 dígitos" value="'+qxWizV('dni')+'"></div>'
     + '<div class="qx-field"><label>Nombre completo *</label><input id="qxW_nombre" placeholder="Apellidos y nombres" value="'+qxWizV('nombre')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxW_edad" type="number" min="0" max="120" placeholder="Años" value="'+qxWizV('edad')+'"></div>'
-    + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+qxWizOpt('sexo','Masculino','Masculino')+'</select></div></div>'
+    + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+'</select></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxW_hcl" placeholder="N° historia" value="'+qxWizV('hcl')+'"></div>'
     + '<div class="qx-field"><label>Celular</label><input id="qxW_telefono" placeholder="9XXXXXXXX" value="'+qxWizV('telefono')+'"></div></div>'
-    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+qxWizOpt('tipo_seguro','ESSALUD','ESSALUD')+qxWizOpt('tipo_seguro','SOAT','SOAT')+qxWizOpt('tipo_seguro','Particular','Particular')+qxWizOpt('tipo_seguro','Otro','Otro')+'</select></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+'</select></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Fecha de captación</label><input type="date" id="qxW_fecha_captacion" value="'+qxWizV('fecha_captacion')+'"></div>'
     + '<div class="qx-field"><label>Interno de medicina</label><input id="qxW_interno_medicina" placeholder="Nombre del interno" value="'+qxWizV('interno_medicina')+'"></div></div>';
 }
@@ -5601,7 +5601,7 @@ function qxWizPaso3Html(){
     + '<div class="qx-field"><label>Código de procedimiento</label><input id="qxW_codigo_procedimiento" placeholder="ej. 5A-123" value="'+qxWizV('codigo_procedimiento')+'"></div>'
     + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxW_procedimiento" placeholder="ej. Quistectomía" value="'+qxWizV('procedimiento')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Nivel de cirugía</label><select id="qxW_nivel_cirugia">'+qxWizOpt('nivel_cirugia','','—')+qxWizOpt('nivel_cirugia','Menor','Menor')+qxWizOpt('nivel_cirugia','Mayor','Mayor')+qxWizOpt('nivel_cirugia','Alta complejidad','Alta complejidad')+'</select></div>'
-    + '<div class="qx-field"><label>Tipo de anestesia</label><select id="qxW_tipo_anestesia">'+qxWizOpt('tipo_anestesia','','—')+qxWizOpt('tipo_anestesia','Regional','Regional')+qxWizOpt('tipo_anestesia','General','General')+qxWizOpt('tipo_anestesia','Local','Local')+qxWizOpt('tipo_anestesia','Combinada','Combinada')+'</select></div></div>';
+    + '<div class="qx-field"><label>Tipo de anestesia</label><select id="qxW_tipo_anestesia">'+qxWizOpt('tipo_anestesia','','—')+qxWizOpt('tipo_anestesia','Regional','Regional')+qxWizOpt('tipo_anestesia','General','General')+qxWizOpt('tipo_anestesia','Local','Local')+qxWizOpt('tipo_anestesia','Combinada','Combinada')+qxWizOpt('tipo_anestesia','Raquídea','Raquídea')+'</select></div></div>';
 }
 
 function qxWizPaso4Html(){
@@ -6018,12 +6018,12 @@ function qxEditarBasicos(){
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxEHcl" value="'+qxEsc(p.hcl||'')+'"></div>'
     + '<div class="qx-field"><label>Teléfono</label><input id="qxETel" value="'+qxEsc(p.telefono||'')+'"></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxEEdad" type="number" min="0" max="120" value="'+(p.edad||'')+'"></div>'
-    + '<div class="qx-field"><label>Sexo</label><select id="qxESexo"><option value="Femenino"'+(p.sexo==='Femenino'?' selected':'')+'>Femenino</option><option value="Masculino"'+(p.sexo==='Masculino'?' selected':'')+'>Masculino</option></select></div></div>'
+    + '<div class="qx-field"><label>Sexo</label><select id="qxESexo"><option value="Femenino"'+(p.sexo==='Femenino'?' selected':'')+'>Femenino</option></select></div></div>'
     + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxEDx" rows="2">'+qxEsc(p.diagnostico||'')+'</textarea></div>'
     + '<div class="qx-row"><div class="qx-field"><label>CIE-10</label><input id="qxECie10" value="'+qxEsc(p.cie10||'')+'" placeholder="ej. N80"></div>'
-    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxESeguro"><option value="">—</option><option value="SIS"'+(p.tipo_seguro==='SIS'?' selected':'')+'>SIS</option><option value="ESSALUD"'+(p.tipo_seguro==='ESSALUD'?' selected':'')+'>ESSALUD</option><option value="SOAT"'+(p.tipo_seguro==='SOAT'?' selected':'')+'>SOAT</option><option value="Particular"'+(p.tipo_seguro==='Particular'?' selected':'')+'>Particular</option><option value="Otro"'+(p.tipo_seguro==='Otro'?' selected':'')+'>Otro</option></select></div></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxESeguro"><option value="">—</option><option value="SIS"'+(p.tipo_seguro==='SIS'?' selected':'')+'>SIS</option></select></div></div>'
     + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxEProcedimiento" value="'+qxEsc(p.procedimiento||'')+'" placeholder="ej. Quistectomía"></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Tipo de anestesia</label><select id="qxEAnestesia"><option value="">—</option><option value="Regional"'+(p.tipo_anestesia==='Regional'?' selected':'')+'>Regional</option><option value="General"'+(p.tipo_anestesia==='General'?' selected':'')+'>General</option><option value="Local"'+(p.tipo_anestesia==='Local'?' selected':'')+'>Local</option><option value="Combinada"'+(p.tipo_anestesia==='Combinada'?' selected':'')+'>Combinada</option></select></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Tipo de anestesia</label><select id="qxEAnestesia"><option value="">—</option><option value="Regional"'+(p.tipo_anestesia==='Regional'?' selected':'')+'>Regional</option><option value="General"'+(p.tipo_anestesia==='General'?' selected':'')+'>General</option><option value="Local"'+(p.tipo_anestesia==='Local'?' selected':'')+'>Local</option><option value="Combinada"'+(p.tipo_anestesia==='Combinada'?' selected':'')+'>Combinada</option><option value="Raquídea"'+(p.tipo_anestesia==='Raquídea'?' selected':'')+'>Raquídea</option></select></div>'
     + '<div class="qx-field"><label>Nivel de cirugía</label><select id="qxENivel"><option value="">—</option><option value="Menor"'+(p.nivel_cirugia==='Menor'?' selected':'')+'>Menor</option><option value="Mayor"'+(p.nivel_cirugia==='Mayor'?' selected':'')+'>Mayor</option><option value="Alta complejidad"'+(p.nivel_cirugia==='Alta complejidad'?' selected':'')+'>Alta complejidad</option></select></div></div>'
     + '<details style="margin-top:14px;border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px">'
     + '<summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--t1)">📋 Datos GERESA (opcional)</summary>'
