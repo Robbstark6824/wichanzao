@@ -5848,6 +5848,7 @@ function qxRenderDetalle(){
     + qxFaseTsHtml(p.fecha_resolucion)
     + '</div>'
     + '<button class="qx-btn" style="width:100%;margin-top:6px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="this.closest(\'.qx-overlay\').remove()">← Volver al listado</button>'
+    + '<button class="qx-btn" style="width:100%;margin-top:10px;background:transparent;color:#dc2626;border:1px solid rgba(220,38,38,.35)" onclick="qxConfirmarEliminar()">🗑 Eliminar paciente</button>'
     + '</div></div>';
   document.body.appendChild(ov);
 }
