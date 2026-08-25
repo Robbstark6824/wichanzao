@@ -5018,6 +5018,7 @@ function qxFase2Completa(p){ return p.laboratorio_completo && p.ekg; }
 function qxFase3Completa(p){ return p.fecha_cita_cardiologia && p.fecha_cita_anestesiologia && p.riesgo_qx && p.riesgo_anestesiologico; }
 function qxFase4Completa(p){ return p.hcl_hospitalizacion && p.consentimientos && p.solicitud_sala_dejada && p.recetas_entregadas; }
 function qxProgramadaPendiente(p){ return !!(p.fecha_cirugia && p.turno) && p.estado === 'en_tramite'; }
+function qxEstadoTerminal(e){ return e==='operada'||e==='suspendida'||e==='referida'; }
 function qxEsc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===9) d='51'+d; return d; }
 function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
@@ -5164,6 +5165,10 @@ function qxMapFilaAzul(row){
     riesgo_qx: rq,
     riesgo_anestesiologico: ra,
     fecha_fase2: (lab||ekg) ? (qxParseDate(row[30]) || qxParseDate(row[32])) : null,
+    motivo_espera: (String(row[44]||'').trim()) || null,
+    detalle_motivo_espera: (String(row[45]||'').trim()) || null,
+    tipo_examen3: (String(row[33]||'').trim()) || null,
+    fecha_examen3: qxParseDate(row[34]),
     estado: qxSheetEstado(row)
   };
 }
@@ -5218,7 +5223,9 @@ async function qxSyncFromSheet(btn){
         orden_intervencion: sp.orden_intervencion, fecha_cirugia: sp.fecha_cirugia,
         fecha_captacion: sp.fecha_captacion, laboratorio_completo: sp.laboratorio_completo,
         ekg: sp.ekg, riesgo_qx: sp.riesgo_qx, riesgo_anestesiologico: sp.riesgo_anestesiologico,
-        fecha_fase2: sp.fecha_fase2, estado: est, turno: turno
+        fecha_fase2: sp.fecha_fase2, motivo_espera: sp.motivo_espera, detalle_motivo_espera: sp.detalle_motivo_espera,
+        tipo_examen3: sp.tipo_examen3, fecha_examen3: sp.fecha_examen3,
+        estado: est, turno: turno
       };
     });
     var payload = [];
@@ -5353,7 +5360,7 @@ function qxRenderCalendario(){
   var porDia = {};
   for (var i=0;i<QX_PACIENTES.length;i++){
     var p = QX_PACIENTES[i];
-    if (p.fecha_cirugia){ (porDia[p.fecha_cirugia] = porDia[p.fecha_cirugia] || []).push(p); }
+    if (p.fecha_cirugia && !qxEstadoTerminal(p.estado)){ (porDia[p.fecha_cirugia] = porDia[p.fecha_cirugia] || []).push(p); }
   }
 
   var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -5429,7 +5436,7 @@ async function qxExportarDia(){
   var porDia = {};
   for (var i=0;i<QX_PACIENTES.length;i++){
     var p = QX_PACIENTES[i];
-    if (p.fecha_cirugia){ (porDia[p.fecha_cirugia] = porDia[p.fecha_cirugia] || []).push(p); }
+    if (p.fecha_cirugia && !qxEstadoTerminal(p.estado)){ (porDia[p.fecha_cirugia] = porDia[p.fecha_cirugia] || []).push(p); }
   }
   var lista = porDia[QX_CAL_DIA] || [];
   if (lista.length === 0){ toast('No hay cirugías este día','error'); return; }
@@ -5543,7 +5550,7 @@ function qxFormulario(p){
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
   QX_WIZ_DATOS = {};
-  var campos = ['dni','nombre','hcl','telefono','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_cirugia','turno'];
+  var campos = ['dni','nombre','hcl','telefono','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3'];
   if (p){
     for (var i=0;i<campos.length;i++) QX_WIZ_DATOS[campos[i]] = p[campos[i]];
   } else {
@@ -5580,7 +5587,7 @@ function qxWizPaso1Html(){
     + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+'</select></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxW_hcl" placeholder="N° historia" value="'+qxWizV('hcl')+'"></div>'
     + '<div class="qx-field"><label>Celular</label><input id="qxW_telefono" placeholder="9XXXXXXXX" value="'+qxWizV('telefono')+'"></div></div>'
-    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+'</select></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+qxWizOpt('tipo_seguro','ESSALUD','ESSALUD')+qxWizOpt('tipo_seguro','SOAT','SOAT')+qxWizOpt('tipo_seguro','Particular','Particular')+qxWizOpt('tipo_seguro','Otro','Otro')+'</select></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Fecha de captación</label><input type="date" id="qxW_fecha_captacion" value="'+qxWizV('fecha_captacion')+'"></div>'
     + '<div class="qx-field"><label>Interno de medicina</label><input id="qxW_interno_medicina" placeholder="Nombre del interno" value="'+qxWizV('interno_medicina')+'"></div></div>';
 }
@@ -5611,7 +5618,9 @@ function qxWizPaso4Html(){
     + '<div class="qx-field"><label>Fecha de exámenes</label><input type="date" id="qxW_fecha_fase2" value="'+qxWizV('fecha_fase2')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes?</label><select id="qxW_aplica_imagenes">'+qxWizOpt('aplica_imagenes','','—')+qxWizOpt('aplica_imagenes','Sí','Sí')+qxWizOpt('aplica_imagenes','No','No')+'</select></div>'
     + '<div class="qx-field"><label>F. diagnóstico por imágenes</label><input type="date" id="qxW_fecha_imagenes" value="'+qxWizV('fecha_imagenes')+'"></div></div>'
-    + '<div class="qx-field"><label>F. primera evaluación por cirugía</label><input type="date" id="qxW_fecha_primera_evaluacion" value="'+qxWizV('fecha_primera_evaluacion')+'"></div>';
+    + '<div class="qx-field"><label>F. primera evaluación por cirugía</label><input type="date" id="qxW_fecha_primera_evaluacion" value="'+qxWizV('fecha_primera_evaluacion')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Tipo examen prequirúrgico 3</label><input id="qxW_tipo_examen3" placeholder="ej. Ecografía, Rayos X…" value="'+qxWizV('tipo_examen3')+'"></div>'
+    + '<div class="qx-field"><label>Fecha examen prequirúrgico 3</label><input type="date" id="qxW_fecha_examen3" value="'+qxWizV('fecha_examen3')+'"></div></div>';
 }
 
 function qxWizPaso5Html(){
@@ -5627,7 +5636,9 @@ function qxWizPaso6Html(){
   return ''
     + '<div class="qx-field"><label>N° orden de intervención</label><input id="qxW_orden_intervencion" placeholder="ej. 01" value="'+qxWizV('orden_intervencion')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Fecha de cirugía</label><input type="date" id="qxW_fecha_cirugia" value="'+qxWizV('fecha_cirugia')+'"></div>'
-    + '<div class="qx-field"><label>Turno</label><select id="qxW_turno">'+qxWizOpt('turno','','—')+qxWizOpt('turno','manana','Mañana')+qxWizOpt('turno','tarde','Tarde')+'</select></div></div>';
+    + '<div class="qx-field"><label>Turno</label><select id="qxW_turno">'+qxWizOpt('turno','','—')+qxWizOpt('turno','manana','Mañana')+qxWizOpt('turno','tarde','Tarde')+'</select></div></div>'
+    + '<div class="qx-field"><label>Motivo de espera</label><input id="qxW_motivo_espera" placeholder="ej. En lista de espera, SUSPENDIDO, REFERIDO…" value="'+qxWizV('motivo_espera')+'"></div>'
+    + '<div class="qx-field"><label>Detalle del motivo de espera</label><input id="qxW_detalle_motivo_espera" placeholder="Opcional" value="'+qxWizV('detalle_motivo_espera')+'"></div>';
 }
 
 function qxWizNav(){
@@ -5657,9 +5668,9 @@ function qxWizGuardarPaso(){
   if (QX_WIZ_PASO===1) campos = ['dni','nombre','edad','sexo','hcl','telefono','tipo_seguro','fecha_captacion','interno_medicina'];
   else if (QX_WIZ_PASO===2) campos = ['doctor','cie10','diagnostico','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero'];
   else if (QX_WIZ_PASO===3) campos = ['codigo_procedimiento','procedimiento','nivel_cirugia','tipo_anestesia'];
-  else if (QX_WIZ_PASO===4) campos = ['laboratorio_completo','ekg','fecha_fase2','aplica_imagenes','fecha_imagenes','fecha_primera_evaluacion'];
+  else if (QX_WIZ_PASO===4) campos = ['laboratorio_completo','ekg','fecha_fase2','aplica_imagenes','fecha_imagenes','fecha_primera_evaluacion','tipo_examen3','fecha_examen3'];
   else if (QX_WIZ_PASO===5) campos = ['fecha_cita_cardiologia','fecha_cita_anestesiologia','fecha_evaluacion_preoperatoria','riesgo_qx','riesgo_anestesiologico'];
-  else campos = ['orden_intervencion','fecha_cirugia','turno'];
+  else campos = ['orden_intervencion','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera'];
   for (var i=0;i<campos.length;i++){
     var el = document.getElementById('qxW_'+campos[i]);
     if (!el) continue;
@@ -5705,7 +5716,9 @@ async function qxWizGuardar(){
     fecha_fase2: d.fecha_fase2||null,
     riesgo_qx: d.riesgo_qx===true, riesgo_anestesiologico: d.riesgo_anestesiologico===true,
     orden_intervencion: d.orden_intervencion||null,
-    fecha_cirugia: d.fecha_cirugia||null, turno: d.turno||null
+    fecha_cirugia: d.fecha_cirugia||null, turno: d.turno||null,
+    motivo_espera: d.motivo_espera||null, detalle_motivo_espera: d.detalle_motivo_espera||null,
+    tipo_examen3: d.tipo_examen3||null, fecha_examen3: d.fecha_examen3||null
   };
   var res;
   if (QX_WIZ_EDIT_ID){
@@ -5844,12 +5857,13 @@ function qxRenderDetalle(){
         : ((p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.cama_hospitalizacion||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Programada"</div>'))
     + qxFaseTsHtml(p.fecha_hospitalizacion)
     + '</div>'
-    + '<div class="qx-phase'+(p.estado==='hospitalizada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">7</div><div><div class="ph-title">Resolución</div><div class="ph-hint">Solo si Hospitalizada</div></div></div>'
-    + (p.estado==='hospitalizada'
-        ? '<div class="qx-row"><button class="qx-btn" style="background:#16a34a;flex:1" onclick="qxResolver(\'operada\')">✔ Operada</button>'
+    + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">7</div><div><div class="ph-title">Resolución</div><div class="ph-hint">Marcar el desenlace o corregir el estado</div></div></div>'
+    + (qxEstadoTerminal(p.estado)
+        ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+(p.referencia_hospital?' · Referida a '+qxEsc(p.referencia_hospital):'')+'</div>'
+        : '<div class="qx-row"><button class="qx-btn" style="background:#16a34a;flex:1" onclick="qxResolver(\'operada\')">✔ Operada</button>'
         + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxResolverSusp()">✖ Suspendida</button>'
-        + '<button class="qx-btn" style="background:#d97706;flex:1" onclick="qxResolverRef()">→ Referida</button></div>'
-        : ((p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEstadoLabel(p.estado)+(p.motivo_suspension?' · '+qxEsc(p.motivo_suspension):'')+(p.referencia_hospital?' · Referida a '+qxEsc(p.referencia_hospital):'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Hospitalizada"</div>'))
+        + '<button class="qx-btn" style="background:#d97706;flex:1" onclick="qxResolverRef()">→ Referida</button></div>')
+    + '<button class="qx-btn" style="width:100%;margin-top:6px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxCambiarEstadoUI()">↩ Cambiar estado</button>'
     + qxFaseTsHtml(p.fecha_resolucion)
     + '</div>'
     + '<button class="qx-btn" style="width:100%;margin-top:6px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="this.closest(\'.qx-overlay\').remove()">← Volver al listado</button>'
@@ -6003,9 +6017,41 @@ async function qxConfirmarRef(){
   qxLoad();
 }
 
+function qxCambiarEstadoUI(){
+  var p = QX_ACTUAL; if(!p) return;
+  var opts = '';
+  for (var i=0;i<QX_ESTADOS.length;i++){
+    var e = QX_ESTADOS[i][0];
+    opts += '<option value="'+e+'"'+(p.estado===e?' selected':'')+'>'+QX_ESTADOS[i][1]+'</option>';
+  }
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Cambiar estado</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><label>Estado actual de la paciente</label><select id="qxEstadoNuevo">'+opts+'</select></div>'
+    + '<button class="qx-btn" style="width:100%;background:var(--tl)" onclick="qxAplicarEstado()">Guardar estado</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+async function qxAplicarEstado(){
+  var p = QX_ACTUAL; if(!p) return;
+  var target = document.getElementById('qxEstadoNuevo').value;
+  if (target === p.estado){ var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove(); return; }
+  if (target === 'programada' && (!p.fecha_cirugia || !p.turno)){ toast('Requiere fecha de cirugía y turno','error'); return; }
+  if (target === 'hospitalizada' && !p.cama_hospitalizacion){ toast('Requiere cama asignada','error'); return; }
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  if (target === 'suspendida'){ qxResolverSusp(); return; }
+  if (target === 'referida'){ qxResolverRef(); return; }
+  await qxSetEstado(p, target);
+  qxRenderDetalle();
+  qxLoad();
+}
+
 async function qxSetEstado(p, nuevo, motivo){
   var anterior = p.estado;
-  var resol = (nuevo==='operada'||nuevo==='suspendida'||nuevo==='referida') ? new Date().toISOString() : p.fecha_resolucion;
+  var resol = (nuevo==='operada'||nuevo==='suspendida'||nuevo==='referida') ? new Date().toISOString() : null;
   var res = await sb.from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p.estado = nuevo;

@@ -136,8 +136,8 @@ function buildValues(p) {
   v['resultado evaluacion preoperatoria'] = resultadoPreop(p);
   v['estado de programacion']            = ESTADO_PROGRAMACION_MAP[p.estado] || '';
   v['fecha programacion quirurgica']     = fmtFecha(p.fecha_cirugia);
-  v['motivo de espera']                  = mo.motivo;
-  v['detalle motivo de espera']          = mo.detalle;
+  v['motivo de espera']                  = (p.motivo_espera && String(p.motivo_espera).trim() !== '') ? p.motivo_espera : mo.motivo;
+  v['detalle motivo de espera']          = (p.detalle_motivo_espera && String(p.detalle_motivo_espera).trim() !== '') ? p.detalle_motivo_espera : mo.detalle;
   v['estado actual del paciente']        = ESTADO_ACTUAL_MAP[p.estado] || '';
 
   // --- Campos GERESA adicionales (v7) ---
@@ -163,8 +163,8 @@ function buildValues(p) {
   v['fecha examen prequirurgico 1'] = f1;
   v['tipo examen prequirurgico 2']  = t2;
   v['fecha examen prequirurgico 2'] = f2;
-  v['tipo examen prequirurgico 3']  = '';
-  v['fecha examen prequirurgico 3'] = '';
+  v['tipo examen prequirurgico 3']  = p.tipo_examen3 || '';
+  v['fecha examen prequirurgico 3'] = fmtFecha(p.fecha_examen3);
 
   return v;
 }
