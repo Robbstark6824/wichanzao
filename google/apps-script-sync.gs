@@ -157,7 +157,7 @@ function buildValues(p) {
 
   // Exámenes prequirúrgicos (derivados de Fase 2)
   var t1 = '', f1 = '', t2 = '', f2 = '';
-  if (p.laboratorio_completo === true) { t1 = 'LABORATORIO'; f1 = fmtFecha(p.fecha_fase2); }
+  if (p.laboratorio_completo === true) { t1 = 'Laboratorio'; f1 = fmtFecha(p.fecha_fase2); }
   if (p.ekg === true) { t2 = 'EKG'; f2 = fmtFecha(p.fecha_fase2); }
   v['tipo examen prequirurgico 1']  = t1;
   v['fecha examen prequirurgico 1'] = f1;
@@ -336,7 +336,7 @@ function test() {
   var p = {
     dni: '70515665', nombre: 'CALDERON OTINIANO, ELIZABETH', edad: 30, sexo: 'Femenino',
     telefono: '968202346', hcl: '12345', diagnostico: 'Endometrioma', cie10: 'N80',
-    procedimiento: 'Quistectomía', tipo_seguro: 'SIS', tipo_anestesia: 'Regional',
+    procedimiento: 'Quistectomía', tipo_seguro: 'SIS', tipo_anestesia: 'RAQUIDEA',
     nivel_cirugia: 'Mayor', doctor: 'DR. SHIMIZU', fecha_captacion: '2026-08-20',
     fecha_cita_cardiologia: '2026-08-15', fecha_cita_anestesiologia: '2026-08-16',
     riesgo_qx: true, riesgo_anestesiologico: true, fecha_cirugia: '2026-08-25',
