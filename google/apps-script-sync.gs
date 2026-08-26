@@ -282,6 +282,9 @@
         // las convierta a fecha y las muestre cada una con un formato distinto
         // (dd/mm/aa, dd/mm/aaaa, dd-mm-aa…). Así quedan todas iguales.
         if (esColumnaFecha(key)) rng.setNumberFormat('@');
+        // Celular: siempre TEXTO y centrado, para que no quede a veces pegado a
+        // la izquierda (escritura manual) y a veces centrado (script).
+        if (key === 'celular') rng.setNumberFormat('@').setHorizontalAlignment('center');
         rng.setValue(values[key]);
     }
     return targetRow;
