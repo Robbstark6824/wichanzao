@@ -5201,7 +5201,7 @@ async function qxSyncFromSheet(btn){
     }
     if (!hoja.length){ toast('No hay filas con DNI para sincronizar','error'); return; }
 
-    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,cama_hospitalizacion');
+    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,cama_hospitalizacion,id_registro');
     if (curRes.error){ toast('Error al leer pacientes: '+curRes.error.message,'error'); return; }
     var curMap = {};
     (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
@@ -5226,7 +5226,7 @@ async function qxSyncFromSheet(btn){
       // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila.
       // Evita el error de Postgres "ON CONFLICT DO UPDATE cannot affect row a second time".
       byDni[sp.dni] = {
-        id_registro: sp.id_registro, dni: sp.dni, nombre: sp.nombre, edad: sp.edad, sexo: sp.sexo, telefono: sp.telefono,
+        id_registro: (app && app.id_registro != null) ? app.id_registro : sp.id_registro, dni: sp.dni, nombre: sp.nombre, edad: sp.edad, sexo: sp.sexo, telefono: sp.telefono,
         establecimiento_destino: sp.establecimiento_destino, codigo_destino: sp.codigo_destino,
         establecimiento_origen: sp.establecimiento_origen, codigo_origen: sp.codigo_origen,
         tipo_seguro: sp.tipo_seguro, hcl: sp.hcl, doctor: sp.doctor, cie10: sp.cie10,

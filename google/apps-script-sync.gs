@@ -107,8 +107,9 @@
     function buildValues(p) {
     var mo = motivoEspera(p);
     var v = {};
-    // "ID registro" NO se incluye aquí: para filas nuevas lo calcula upsert()
-    // (máx+1) y para filas existentes no se toca (evita borrar el ID al editar).
+    // "ID registro" viene de la app (autoridad). Si viene vacío (p. ej. fila nueva
+    // agregada directo en la hoja), lo calcula upsert() con máx+1.
+    if (p.id_registro != null && p.id_registro !== '') v['id registro'] = p.id_registro;
     v['establecimiento quirurgico destino'] = p.establecimiento_destino || CONSTANTES.establecimientoDestino;
     v['codigo unico destino']              = p.codigo_destino || CONSTANTES.codigoDestino;
     v['red/ris destino']                   = CONSTANTES.red;
