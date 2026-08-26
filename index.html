@@ -5120,7 +5120,10 @@ function qxSheetEstado(row){
   if(actual.indexOf('HOSPITALIZAD')>=0) return 'hospitalizada';
   var prog=String(row[42]||'').trim().toUpperCase();
   if(prog==='PROGRAMADO'||prog==='PROGRAMADA') return 'programada';
-  if(prog==='PENDIENTE DE FECHA') return 'apta_para_sala';
+  // "Pendiente de fecha" solo es "apta para sala" si la evaluación preoperatoria
+  // ya dice APTO (exámenes y riesgos completos). Si dice NO APTO o está vacío,
+  // la paciente sigue en trámite (en lista de espera), no está apta.
+  if(prog==='PENDIENTE DE FECHA' && String(row[40]||'').trim().toUpperCase()==='APTO') return 'apta_para_sala';
   return 'en_tramite';
 }
 // Mapea una fila del bloque AZUL (índices 0-based) a los campos de la app.
