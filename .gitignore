@@ -23,3 +23,6 @@ tools/migrate-gineco.js
 tools/migrate-db.js
 tools/migrate-010.js
 tools/migrate-011.js
+
+# Sincronización completa app→hoja GERESA (credenciales BD embebidas)
+tools/sync-geresa-full.js
