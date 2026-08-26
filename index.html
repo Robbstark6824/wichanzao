@@ -5201,7 +5201,7 @@ async function qxSyncFromSheet(btn){
     }
     if (!hoja.length){ toast('No hay filas con DNI para sincronizar','error'); return; }
 
-    var curRes = await sb.from('pacientes').select('dni,estado,turno');
+    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,cama_hospitalizacion');
     if (curRes.error){ toast('Error al leer pacientes: '+curRes.error.message,'error'); return; }
     var curMap = {};
     (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
@@ -5214,6 +5214,15 @@ async function qxSyncFromSheet(btn){
       if (app && qxEstadoRank(app.estado) > qxEstadoRank(est)) est = app.estado; // nunca retrocede
       if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';        // sin fecha no puede ser programada
       var turno = (app && app.turno) ? app.turno : (est==='programada' ? 'manana' : null);
+      // Las CHECK de estado exigen campos que solo existen en la app (no en la hoja GERESA).
+      // Se preservan del paciente existente para no violarlas al conservar su estado.
+      var refHosp = app ? app.referencia_hospital : null;
+      var motSusp = app ? app.motivo_suspension : null;
+      var cama = app ? app.cama_hospitalizacion : null;
+      // Si el estado exige un campo que sigue vacío, se degrada a uno que no lo exige.
+      if (est==='referida' && !refHosp) est = 'en_tramite';
+      if (est==='suspendida' && !motSusp) est = 'en_tramite';
+      if (est==='hospitalizada' && !cama) est = 'apta_para_sala';
       // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila.
       // Evita el error de Postgres "ON CONFLICT DO UPDATE cannot affect row a second time".
       byDni[sp.dni] = {
@@ -5235,7 +5244,8 @@ async function qxSyncFromSheet(btn){
         fecha_fase2: sp.fecha_fase2, fecha_examen1: sp.fecha_examen1, fecha_examen2: sp.fecha_examen2,
         motivo_espera: sp.motivo_espera, detalle_motivo_espera: sp.detalle_motivo_espera,
         tipo_examen3: sp.tipo_examen3, fecha_examen3: sp.fecha_examen3,
-        estado: est, turno: turno
+        estado: est, turno: turno,
+        referencia_hospital: refHosp, motivo_suspension: motSusp, cama_hospitalizacion: cama
       };
     });
     var payload = [];
