@@ -5020,7 +5020,7 @@ function qxFase4Completa(p){ return p.hcl_hospitalizacion && p.consentimientos &
 function qxProgramadaPendiente(p){ return !!(p.fecha_cirugia && p.turno) && p.estado === 'en_tramite'; }
 function qxEstadoTerminal(e){ return e==='operada'||e==='suspendida'||e==='referida'; }
 function qxEsc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
-function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===9) d='51'+d; return d; }
+function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===11 && d.slice(0,2)==='51') d=d.slice(2); return d; }
 function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
 function qxFmtTs(ts){ if(!ts) return ''; var d=new Date(ts); if(isNaN(d.getTime())) return ''; return qxPad(d.getDate())+'/'+qxPad(d.getMonth()+1)+'/'+d.getFullYear()+' '+qxPad(d.getHours())+':'+qxPad(d.getMinutes()); }
 function qxHoyStr(){ var d=new Date(); return qxFechaStr(d.getFullYear(), d.getMonth(), d.getDate()); }
@@ -5939,7 +5939,8 @@ function qxWhatsAppLink(p){
   if (p.fecha_cita_cardiologia) partes.push('Cardiología '+qxFmtFecha(p.fecha_cita_cardiologia)+(p.hora_cita_cardiologia?' '+p.hora_cita_cardiologia:''));
   if (p.fecha_cita_anestesiologia) partes.push('Anestesiología '+qxFmtFecha(p.fecha_cita_anestesiologia)+(p.hora_cita_anestesiologia?' '+p.hora_cita_anestesiologia:''));
   var msg = 'Hola '+p.nombre+', te recordamos tus citas: '+partes.join(' y ')+'. Hospital de Laredo.';
-  return 'https://wa.me/'+qxNormalizarTel(p.telefono_contacto || p.telefono)+'?text='+encodeURIComponent(msg);
+  var tel = qxNormalizarTel(p.telefono_contacto || p.telefono);
+  return 'https://wa.me/'+(tel?'51'+tel:'')+'?text='+encodeURIComponent(msg);
 }
 
 async function qxToggle(campo){
