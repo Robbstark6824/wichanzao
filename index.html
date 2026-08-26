@@ -575,9 +575,14 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px;cursor:pointer;transition:transform .1s}
 .qx-card:active{transform:scale(.99)}
 .qx-card .top{display:flex;align-items:center;gap:10px}
-.qx-card .nm{font-weight:800;color:var(--t1);font-size:14px}
+.qx-card .nm{font-weight:800;color:var(--t1);font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qx-card .dni{font-size:11px;color:var(--t3)}
 .qx-card .dx{font-size:12px;color:var(--t2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qx-card .actions{display:flex;align-items:center;gap:8px;margin-left:10px;flex-shrink:0}
+.qx-act{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;flex-shrink:0;transition:transform .1s;line-height:1}
+.qx-act:active{transform:scale(.92)}
+.qx-act.tel{background:rgba(160,61,99,.10);border:1px solid rgba(160,61,99,.22)}
+.qx-act.wa{background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.30)}
 .qx-badge{margin-left:auto;font-size:9px;font-weight:800;padding:3px 10px;border-radius:12px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
 .qx-badge.en_tramite{background:rgba(244,180,0,.15);color:#b45309}
 .qx-badge.apta_para_sala{background:rgba(160,61,99,.15);color:var(--tl)}
@@ -5348,12 +5353,27 @@ function qxSetFilter(f){ QX_FILTER=f; qxRender(); }
 
 function qxSetView(v){ QX_VIEW = v; qxRender(); }
 
+function qxTelefono(p){ return qxNormalizarTel(p.telefono_contacto || p.telefono); }
+
+function qxAcciones(p){
+  var tel = qxTelefono(p);
+  if (!tel) return '';
+  var waMsg = 'Hola'+(p.nombre?' '+p.nombre.split(' ')[0]:'')+', le escribimos del Hospital de Laredo.';
+  var waHref = 'https://wa.me/51'+tel+'?text='+encodeURIComponent(waMsg);
+  return '<div class="qx-actions">'
+    + '<a class="qx-act tel" href="tel:+51'+tel+'" onclick="event.stopPropagation()" title="Llamar" aria-label="Llamar">📞</a>'
+    + '<a class="qx-act wa" href="'+waHref+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp">📲</a>'
+    + '</div>';
+}
+
 function qxTarjetaHtml(p){
   var prox = qxProximaAccion(p);
   var pend = qxProgramadaPendiente(p);
   return '<div class="qx-card" onclick="qxAbrir(\''+p.id+'\')">'
     + '<div class="top"><div class="nm">'+qxEsc(p.nombre)+'</div>'
-    + '<span class="qx-badge '+(pend?'programada_pendiente':p.estado)+'">'+(pend?'Programada · pendiente':qxEstadoLabel(p.estado))+'</span></div>'
+    + '<span class="qx-badge '+(pend?'programada_pendiente':p.estado)+'">'+(pend?'Programada · pendiente':qxEstadoLabel(p.estado))+'</span>'
+    + qxAcciones(p)
+    + '</div>'
     + '<div class="dni">DNI '+qxEsc(p.dni||'—')+' · HCL '+qxEsc(p.hcl||'—')+(p.edad?' · '+p.edad+' años':'')+(p.sexo?' · '+qxEsc(p.sexo):'')+'</div>'
     + (p.diagnostico ? '<div class="dx">'+qxEsc(p.diagnostico)+'</div>' : '')
     + (prox ? '<div class="dx" style="color:'+(pend?'#dc2626':'var(--tl)')+';font-weight:700">→ '+qxEsc(prox)+'</div>' : '')
