@@ -84,6 +84,12 @@
     return s; // ya está en otro formato, se deja igual
     }
 
+    /** ¿Es una columna de fecha? (para escribirla como texto, no como fecha). */
+    function esColumnaFecha(key) {
+    var n = norm(key);
+    return n.indexOf('fecha') === 0 || n.indexOf('f.') === 0;
+    }
+
     function mapSexo(s) {
     var n = norm(s);
     if (n === 'femenino' || n === 'f' || n === 'mujer') return 'F';
@@ -270,7 +276,13 @@
     // 5) Escribe cada valor en su columna (respeta el orden real del encabezado).
     for (var key in values) {
         var col = colMap[key];
-        if (col) sheet.getRange(targetRow, col).setValue(values[key]);
+        if (!col) continue;
+        var rng = sheet.getRange(targetRow, col);
+        // Columnas de fecha: se escriben como TEXTO para que Google Sheets no
+        // las convierta a fecha y las muestre cada una con un formato distinto
+        // (dd/mm/aa, dd/mm/aaaa, dd-mm-aa…). Así quedan todas iguales.
+        if (esColumnaFecha(key)) rng.setNumberFormat('@');
+        rng.setValue(values[key]);
     }
     return targetRow;
     }
