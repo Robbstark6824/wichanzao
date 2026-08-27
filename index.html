@@ -5009,6 +5009,37 @@ var QX_CAL_DIA = null;    // 'YYYY-MM-DD'
 var QX_CAPT_DESDE = '';
 var QX_CAPT_HASTA = '';
 
+/* Hospitales de destino. GERESA publica CAT_DESTINO con los 22 nombres y su
+   Red/RIS, pero con la columna de código VACÍA; los códigos se recuperaron
+   cruzando por nombre contra CAT_ORIGEN, que sí los trae. Los 4 sin código
+   (Belén, Regional Docente, IREN Norte, IRO JSU) no figuran en CAT_ORIGEN
+   porque no son establecimientos que refieran: ahí el código se escribe a mano.
+   Formato: [nombre, código único, red/RIS]. */
+var QX_CAT_DESTINO = [
+  ["DISTRITAL PACASMAYO", "00034853", "PACASMAYO"],
+  ["HOSPITAL BELEN DE TRUJILLO", "", "TRUJILLO"],
+  ["HOSPITAL DE APOYO CESAR ABRAHAM VALLEJO MENDOZA", "00005332", "SANTIAGO DE CHUCO"],
+  ["HOSPITAL DE APOYO CHEPEN", "00005299", "CHEPEN"],
+  ["HOSPITAL DE APOYO LEONCIO PRADO", "00005349", "SANCHEZ CARRION"],
+  ["HOSPITAL DE APOYO OTUZCO ELPIDIO BEROVIDES PEREZ", "00005314", "OTUZCO"],
+  ["HOSPITAL DE APOYO TOMAS LAFORA", "00005292", "PACASMAYO"],
+  ["HOSPITAL DISTRITAL ALTO MOCHE", "00005235", "TRUJILLO"],
+  ["HOSPITAL DISTRITAL EL ESFUERZO", "00005217", "VIRU"],
+  ["HOSPITAL DISTRITAL JERUSALEN", "00005226", "TRUJILLO"],
+  ["HOSPITAL DISTRITAL LAREDO", "00005231", "TRUJILLO"],
+  ["HOSPITAL DISTRITAL SANTA ISABEL", "00005209", "VIRU"],
+  ["HOSPITAL DISTRITAL VISTA ALEGRE", "00005243", "VIRU"],
+  ["HOSPITAL PROVINCIAL ASCOPE ROSA SANCHEZ DE SANTILLAN", "00005263", "ASCOPE"],
+  ["HOSPITAL PROVINCIAL DE BOLIVAR", "00005366", "BOLIVAR"],
+  ["HOSPITAL PROVINCIAL DE CASCAS", "00005277", "GRAN CHIMU"],
+  ["HOSPITAL PROVINCIAL DE JULCAN", "00005306", "JULCAN"],
+  ["HOSPITAL PROVINCIAL DE VIRU", "00005251", "VIRU"],
+  ["HOSPITAL PROVINCIAL TAYABAMBA", "00005375", "PATAZ"],
+  ["HOSPITAL REGIONAL DOCENTE DE TRUJILLO", "", "TRUJILLO"],
+  ["INSTITUTO REGIONAL DE ENFERMEDADES NEOPLASICAS - NORTE - DR. LUIS PINILLOS GANOZA", "", "TRUJILLO"],
+  ["IRO JSU", "", "TRUJILLO"]
+];
+
 /* Catálogo oficial de "Motivo cierre" (pestaña CATALOGOS de la hoja GERESA),
    partido según el tipo de cierre al que pertenece cada opción. */
 var QX_CAT_CIERRE_OPERADA = [
@@ -6014,6 +6045,57 @@ function qxWizOpt(k, val, label){
   return '<option value="'+val+'"'+sel+'>'+label+'</option>';
 }
 
+/* Picker de hospital de destino. Al elegir uno completa, en la misma pasada,
+   su código único y su Red/RIS: es lo que pidió el servicio — poner el hospital
+   en una columna y que el código aparezca solo en la siguiente. */
+var QX_DESTINO_DEST = null;   // ids de los inputs que hay que rellenar
+
+function qxDestinoPicker(ids){
+  QX_DESTINO_DEST = ids || { nombre:'qxW_establecimiento_destino', codigo:'qxW_codigo_destino', red:'qxW_red_destino' };
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.id = 'qxDestinoOv';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Hospital de destino</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><input id="qxDestinoBusca" placeholder="Buscar por nombre, red o código…" oninput="qxDestinoFiltrar(this.value)"></div>'
+    + '<div id="qxDestinoLista" style="max-height:56vh;overflow-y:auto;margin-top:8px;border:1px solid var(--bd);border-radius:10px"></div>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  var b = document.getElementById('qxDestinoBusca'); if (b) b.focus();
+  qxDestinoFiltrar('');
+}
+
+function qxDestinoFiltrar(txt){
+  var lista = document.getElementById('qxDestinoLista'); if (!lista) return;
+  var q = qxNorm(txt || '');
+  var html = '';
+  for (var i=0;i<QX_CAT_DESTINO.length;i++){
+    var e = QX_CAT_DESTINO[i];
+    if (q && qxNorm(e[0]).indexOf(q)===-1 && qxNorm(e[1]).indexOf(q)===-1 && qxNorm(e[2]).indexOf(q)===-1) continue;
+    html += '<div style="padding:10px 12px;border-bottom:1px solid var(--bd);cursor:pointer" onclick="qxDestinoElegir('+i+')">'
+      + '<div style="font-size:12px;color:var(--t1);line-height:1.25">'+qxEsc(e[0])+'</div>'
+      + '<div style="font-size:10px;color:var(--t3);margin-top:1px">'
+      + (e[1] ? 'Código '+qxEsc(e[1]) : '⚠️ sin código en el catálogo — escribilo a mano')
+      + ' · Red '+qxEsc(e[2])+'</div></div>';
+  }
+  if (!html) html = '<div style="padding:14px;font-size:12px;color:var(--t3);text-align:center">Sin resultados para “'+qxEsc(txt||'')+'”</div>';
+  lista.innerHTML = html;
+}
+
+function qxDestinoElegir(i){
+  var e = QX_CAT_DESTINO[i]; if (!e) return;
+  var d = QX_DESTINO_DEST || {};
+  function poner(id, val){ var el = id && document.getElementById(id); if (el) el.value = val; }
+  poner(d.nombre, e[0]); poner(d.codigo, e[1]); poner(d.red, e[2]);
+  if (d.nombre === 'qxW_establecimiento_destino'){
+    QX_WIZ_DATOS.establecimiento_destino = e[0];
+    QX_WIZ_DATOS.codigo_destino = e[1];
+    QX_WIZ_DATOS.red_destino = e[2];
+  }
+  var ov = document.getElementById('qxDestinoOv'); if (ov) ov.remove();
+}
+
 /* Picker de "Establecimiento origen" con búsqueda por palabra sobre CAT_ORIGEN. */
 function qxOrigenPicker(){
   var ov = document.createElement('div');
@@ -6170,7 +6252,7 @@ function qxWizPaso1Html(){
     + '<div class="qx-row"><div class="qx-field"><label>Fecha de referencia aceptada '+QX_REQ_C+' <span style="color:var(--t3);font-weight:400">(fecha de captación)</span></label><input type="date" id="qxW_fecha_captacion" value="'+qxWizV('fecha_captacion')+'"></div>'
     + '<div class="qx-field"><label>Interno de medicina</label><input id="qxW_interno_medicina" placeholder="Nombre del interno" value="'+qxWizV('interno_medicina')+'"></div></div>'
     + '<div style="border-top:1px solid var(--bd);margin:14px 0 6px;padding-top:10px;font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.3px">Establecimientos (referencia)</div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Establecimiento destino '+QX_REQ+'</label><input id="qxW_establecimiento_destino" placeholder="HOSPITAL DISTRITAL LAREDO" value="'+qxWizV('establecimiento_destino')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Establecimiento destino '+QX_REQ+'</label><input id="qxW_establecimiento_destino" placeholder="HOSPITAL DISTRITAL LAREDO" value="'+qxWizV('establecimiento_destino')+'" readonly onclick="qxDestinoPicker()" style="cursor:pointer;background:var(--s2)"><div style="font-size:10px;color:var(--t3);margin-top:2px">Toque para buscar 🔍</div></div>'
     + '<div class="qx-field"><label>Código destino</label><input id="qxW_codigo_destino" placeholder="00005231" value="'+qxWizV('codigo_destino')+'"></div></div>'
     + '<div class="qx-field"><label>Red / RIS destino</label><input id="qxW_red_destino" placeholder="TRUJILLO" value="'+qxWizV('red_destino')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Establecimiento origen '+QX_REQ+'</label><input id="qxW_establecimiento_origen" placeholder="N.A. - Paciente propio / no referido" value="'+qxWizV('establecimiento_origen')+'" readonly onclick="qxOrigenPicker()" style="cursor:pointer;background:var(--s2)"><div style="font-size:10px;color:var(--t3);margin-top:2px">Toque para buscar 🔍</div></div>'
@@ -6637,7 +6719,7 @@ function qxResolverRef(){
     + '<div class="qx-sheet-body">'
     + '<div class="qx-field"><label>Motivo de cierre '+QX_REQ+'</label><select id="qxRefMotivoCierre">'+opciones+'</select></div>'
     + '<div class="qx-field"><label>Fecha de cierre '+QX_REQ+'</label><input type="date" id="qxRefFecha" value="'+qxEsc((p&&p.fecha_cierre)||qxHoyStr())+'"></div>'
-    + '<div class="qx-field"><label>Hospital de destino <span style="color:var(--t3);font-weight:400">(solo si fue referida)</span></label><input id="qxRefHospital" value="'+qxEsc((p&&p.referencia_hospital)||'')+'" placeholder="Ej: Hospital Regional Docente de Trujillo"></div>'
+    + '<div class="qx-field"><label>Hospital de destino <span style="color:var(--t3);font-weight:400">(solo si fue referida)</span></label><input id="qxRefHospital" value="'+qxEsc((p&&p.referencia_hospital)||'')+'" placeholder="Ej: Hospital Regional Docente de Trujillo"><button class="qx-btn" style="margin-top:6px;width:100%;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxDestinoPicker({nombre:\'qxRefHospital\'})">🔍 Buscar en el catálogo</button></div>'
     + '<div class="qx-field"><label>Detalle (opcional)</label><textarea id="qxRefMotivo" rows="2" placeholder="Complemento del motivo"></textarea></div>'
     + '<button class="qx-btn" style="background:#d97706;width:100%" onclick="qxConfirmarRef()">Confirmar salida de lista</button>'
     + '</div></div>';
