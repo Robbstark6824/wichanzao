@@ -37,6 +37,12 @@ var SHEET_NAME = 'HOSPITAL LAREDO';
 var SS_ID_2 = '1IoT5KGuTcT83ZLyHh4SrLR4yhbFjIKkI';
 var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
 
+/* Sello del código desplegado. Viaja en TODA respuesta, incluso en la de token
+   inválido (que no toca las hojas), así que un ping basta para saber qué
+   versión está viva y si el "Nueva versión" del despliegue realmente tomó.
+   Subir esta fecha cada vez que se cambie este archivo. */
+var VERSION = '2026-08-27-genero-F';
+
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
 
@@ -596,6 +602,7 @@ function borrarDeHoja(ssId, sheetName, dni) {
  * ============================================================ */
 
 function json(obj) {
+  obj.version = VERSION;
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
