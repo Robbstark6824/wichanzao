@@ -201,17 +201,27 @@ function mapEstadoActual(e) {
 
 /** Resuelve origen (propio vs referido) y sus campos asociados. */
 function resolverOrigen(p) {
-  var o = norm(p.establecimiento_origen || '');
+  var nombre = String(p.establecimiento_origen || '');
+  var o = norm(nombre);
   var propio = !o || o === 'n.a.' || o.indexOf('paciente propio') >= 0
     || o.indexOf('hospital distrital laredo') >= 0;
   if (propio) {
     return { origen: CONSTANTES.establecimientoOrigen, codigo: '', provincia: '', distrito: '', fechaRef: '' };
   }
+  // La app guarda el nombre completo de CAT_ORIGEN con el formato
+  // "NOMBRE - PROVINCIA - DISTRITO". Extraer provincia (penúltimo) y
+  // distrito (último) del sufijo separado por " - ".
+  var provincia = '', distrito = '';
+  var partes = nombre.split(' - ');
+  if (partes.length >= 3) {
+    provincia = partes[partes.length - 2].trim();
+    distrito = partes[partes.length - 1].trim();
+  }
   return {
-    origen: p.establecimiento_origen,
+    origen: nombre,
     codigo: p.codigo_origen || '',
-    provincia: CONSTANTES.provincia,
-    distrito: CONSTANTES.distrito,
+    provincia: provincia,
+    distrito: distrito,
     fechaRef: fmtFecha(p.fecha_captacion)
   };
 }
