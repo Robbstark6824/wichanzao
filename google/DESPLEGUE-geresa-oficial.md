@@ -95,7 +95,9 @@ estar corriendo el código que escribe a las dos hojas.
 
 ## Campos obligatorios (según DICCIONARIO_DATOS de la hoja oficial)
 
-La app los marca con asterisco y **no deja guardar** sin ellos:
+La app los marca con asterisco para que quien llena sepa cuáles pide el formato.
+**Nunca bloquea el guardado** (una paciente se registra con lo que haya el día de
+la captación); el control real ocurre al **cerrar el caso**, ver más abajo.
 
 | Campo GERESA | Dónde se captura | Regla |
 |---|---|---|
@@ -110,12 +112,27 @@ La app los marca con asterisco y **no deja guardar** sin ellos:
 | F. primera evaluación por cirugía | Asistente · paso 4 | siempre |
 | Fecha referencia aceptada | Asistente · paso 1 | **solo si** el origen es una IPRESS real |
 | F. diagnóstico por imágenes | Asistente · paso 4 | **solo si** aplica imágenes = Sí |
-| Fecha programación quirúrgica | Asistente · paso 6 | **solo si** el estado es Programado |
+| Fecha programación quirúrgica | Asistente · paso 6 | **solo si** la paciente llegó a programarse (una referida sin fecha no cuenta) |
 | Estado de programación · Estado actual · Resultado eval. preoperatoria · Tipo/motivo cierre | — | los deriva el Apps Script del estado de la paciente |
 
 Marcador rojo `*` = obligatorio siempre · ámbar `*` = obligatorio condicional.
 Las reglas viven en `QX_GERESA_OBLIG` (index.html); si GERESA cambia el diccionario,
 se edita esa lista y nada más.
+
+### Aviso al cerrar el caso
+
+Antes de dejar a una paciente en un estado final —**Operada**, **Suspendida** o
+**Referida**, venga del botón que venga— la app lista los obligatorios que
+quedarían vacíos en la hoja y ofrece dos salidas:
+
+- **Completar ahora** → abre el asistente en el paso del primer faltante y
+  cancela el cambio de estado.
+- **Cerrar así de todos modos** → aplica el cierre igual.
+
+El punto de control es `qxSetEstado()`, así que cubre el botón de operada, los
+diálogos de suspensión y referencia, y el selector "Cambiar estado". Mientras la
+paciente sigue en trámite no molesta: el asistente solo muestra el recordatorio
+ámbar con lo que falta.
 
 ## Un dato, la hoja que corresponda
 

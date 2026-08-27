@@ -186,8 +186,12 @@ function mapResultadoPreop(p) {
   return 'Pendiente';   // aún sin ambas evaluaciones completas
 }
 
-function mapEstadoProgramacion(e) {
-  var programados = ['programada','hospitalizada','operada','suspendida','referida'];
+function mapEstadoProgramacion(p) {
+  if (p.fecha_cirugia) return 'Programado';
+  var e = p.estado;
+  // "referida" sale de la lista sin cirugía: si nunca tuvo fecha, no estuvo
+  // programada. Poner "Programado" con la fecha vacía rompe la fila.
+  var programados = ['programada','hospitalizada','operada','suspendida'];
   for (var i = 0; i < programados.length; i++) if (e === programados[i]) return 'Programado';
   return 'Pendiente de fecha';
 }
@@ -311,7 +315,7 @@ function buildValuesNew(p) {
   v['f. evaluacion preoperatoria por cirugia'] = fmtFecha(p.fecha_evaluacion_preoperatoria);
   v['resultado evaluacion preoperatoria'] = mapResultadoPreop(p);
   v['n° orden de intervencion']          = p.orden_intervencion || '';
-  v['estado de programacion']            = mapEstadoProgramacion(p.estado);
+  v['estado de programacion']            = mapEstadoProgramacion(p);
   v['fecha programacion quirurgica']     = fmtFecha(p.fecha_cirugia);
   v['motivo de espera']                  = mapMotivoEspera(p);
   v['detalle motivo de espera']          = p.detalle_motivo_espera || '';
@@ -389,7 +393,7 @@ function buildValuesOld(p) {
   v['f. riesgo quirurgico']              = fmtFecha(p.fecha_cita_cardiologia);
   v['f. evaluacion anestesica']          = fmtFecha(p.fecha_cita_anestesiologia);
   v['resultado evaluacion preoperatoria'] = mapResultadoPreop(p);
-  v['estado de programacion']            = mapEstadoProgramacion(p.estado);
+  v['estado de programacion']            = mapEstadoProgramacion(p);
   v['fecha programacion quirurgica']     = fmtFecha(p.fecha_cirugia);
   v['motivo de espera']                  = mapMotivoEspera(p);
   v['detalle motivo de espera']          = p.detalle_motivo_espera || '';

@@ -5956,8 +5956,18 @@ var QX_GERESA_OBLIG = [
   { k:'aplica_imagenes',         paso:4, label:'¿Aplica diagnóstico por imágenes?' },
   { k:'fecha_imagenes',          paso:4, label:'F. diagnóstico por imágenes',
     cond:function(d){ return qxNorm(d.aplica_imagenes) === 'si'; } },
-  { k:'fecha_primera_evaluacion',paso:4, label:'F. primera evaluación por cirugía' }
+  { k:'fecha_primera_evaluacion',paso:4, label:'F. primera evaluación por cirugía' },
+  { k:'fecha_cirugia',           paso:6, label:'Fecha programación quirúrgica',
+    cond:function(d){ return qxEstadoProgramado(d); } }
 ];
+
+/* Igual que mapEstadoProgramacion() del Apps Script: una referida que salió
+   de la lista sin llegar a programarse no cuenta como "Programado". */
+function qxEstadoProgramado(d){
+  if (d.fecha_cirugia) return true;
+  var e = d.estado;
+  return e==='programada' || e==='hospitalizada' || e==='operada' || e==='suspendida';
+}
 
 /* Campos GERESA que el formulario corto de edición realmente expone. */
 var QX_EDIT_KEYS = ['dni','nombre','cie10','diagnostico','procedimiento','tipo_anestesia',
@@ -6090,7 +6100,7 @@ function qxWizProgress(){
   if (falta.length){
     var nombres = [];
     for (var f=0;f<falta.length;f++) nombres.push(falta[f].label+' (paso '+falta[f].paso+')');
-    html += '<div style="background:rgba(220,38,38,.10);border:1px solid rgba(220,38,38,.30);color:#dc2626;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:700;line-height:1.45;margin-bottom:14px">Faltan '+falta.length+' obligatorio(s) GERESA: '+qxEsc(nombres.join(' · '))+'</div>';
+    html += '<div style="background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.30);color:#b45309;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:700;line-height:1.45;margin-bottom:14px">Pendientes para GERESA (podés guardar igual): '+qxEsc(nombres.join(' · '))+'</div>';
   }
   return html;
 }
@@ -6207,10 +6217,7 @@ function qxWizGuardarPaso(){
 
 function qxWizSiguiente(){
   qxWizGuardarPaso();
-  var pend = qxFaltantesGeresa(QX_WIZ_DATOS);
-  for (var i=0;i<pend.length;i++){
-    if (pend[i].paso === QX_WIZ_PASO){ toast('Falta «'+pend[i].label+'» — obligatorio GERESA','error'); return; }
-  }
+  if (QX_WIZ_PASO===1 && (!QX_WIZ_DATOS.dni || !QX_WIZ_DATOS.nombre)){ toast('DNI y nombre son obligatorios','error'); return; }
   QX_WIZ_PASO++;
   qxWizRender();
 }
@@ -6224,11 +6231,7 @@ function qxWizAnterior(){
 async function qxWizGuardar(){
   qxWizGuardarPaso();
   var d = QX_WIZ_DATOS;
-  var pend = qxFaltantesGeresa(d);
-  if (pend.length){
-    toast('Falta «'+pend[0].label+'» — obligatorio GERESA','error');
-    QX_WIZ_PASO = pend[0].paso; qxWizRender(); return;
-  }
+  if (!d.dni || !d.nombre){ toast('DNI y nombre son obligatorios','error'); QX_WIZ_PASO=1; qxWizRender(); return; }
   var payload = {
     dni: d.dni, nombre: d.nombre, hcl: d.hcl||null, telefono: qxNormalizarTel(d.telefono||'')||null,
     id_registro: d.id_registro||null,
@@ -6494,7 +6497,7 @@ async function qxHospitalizar(){
 
 async function qxResolver(resultado){
   var p = QX_ACTUAL; if(!p) return;
-  await qxSetEstado(p,resultado);
+  if (!(await qxSetEstado(p,resultado))) return;
   qxRenderDetalle();
   qxLoad();
 }
@@ -6536,7 +6539,7 @@ async function qxConfirmarSusp(){
   p.detalle_suspension = detalle||null;
   p.referencia_hospital = null;
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  await qxSetEstado(p,'suspendida',motivo);
+  if (!(await qxSetEstado(p,'suspendida',motivo))) return;
   qxRenderDetalle();
   qxLoad();
 }
@@ -6551,7 +6554,7 @@ async function qxConfirmarRef(){
   p.referencia_hospital = ref;
   p.motivo_suspension = motivo||null;
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  await qxSetEstado(p,'referida', 'Referida a '+ref+(motivo?' - '+motivo:''));
+  if (!(await qxSetEstado(p,'referida', 'Referida a '+ref+(motivo?' - '+motivo:'')))) return;
   qxRenderDetalle();
   qxLoad();
 }
@@ -6583,21 +6586,70 @@ async function qxAplicarEstado(){
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   if (target === 'suspendida'){ qxResolverSusp(); return; }
   if (target === 'referida'){ qxResolverRef(); return; }
-  await qxSetEstado(p, target);
+  if (!(await qxSetEstado(p, target))) return;
   qxRenderDetalle();
   qxLoad();
 }
 
+/* Resolutor pendiente del aviso de cierre (los onclick son globales). */
+var QX_AVISO_RESOLVE = null;
+
+/* Muestra los obligatorios GERESA que faltan antes de cerrar el caso.
+   Devuelve una promesa: true = cerrar igual, false = completar primero. */
+function qxAvisoCierreGeresa(p, nuevo){
+  return new Promise(function(resolve){
+    var d = {}; for (var k in p) d[k] = p[k];
+    d.estado = nuevo;   // la obligatoriedad se evalúa con el estado que tendrá
+    var falta = qxFaltantesGeresa(d);
+    if (!falta.length){ resolve(true); return; }
+    var items = '';
+    for (var i=0;i<falta.length;i++){
+      items += '<li style="margin-bottom:4px">'+qxEsc(falta[i].label)
+             + ' <span style="color:var(--t3);font-weight:400">· paso '+falta[i].paso+'</span></li>';
+    }
+    QX_AVISO_RESOLVE = resolve;
+    var ov = document.createElement('div');
+    ov.className = 'qx-overlay';
+    ov.id = 'qxAvisoGeresaOv';
+    ov.innerHTML = '<div class="qx-sheet">'
+      + '<div class="qx-sheet-head"><h3>Faltan datos para GERESA</h3></div>'
+      + '<div class="qx-sheet-body">'
+      + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:10px">Vas a cerrar a <b>'+qxEsc(p.nombre||'')+'</b> como <b>'+qxEsc(qxEstadoLabel(nuevo))+'</b>. El formato oficial exige estos campos y están vacíos:</div>'
+      + '<ul style="margin:0 0 14px;padding-left:20px;font-size:13px;color:var(--t1);font-weight:700">'+items+'</ul>'
+      + '<button class="qx-btn" style="width:100%;background:var(--tl)" onclick="qxAvisoResponder(false,'+falta[0].paso+')">✎ Completar ahora</button>'
+      + '<button class="qx-btn" style="width:100%;margin-top:8px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxAvisoResponder(true,0)">Cerrar así de todos modos</button>'
+      + '</div></div>';
+    document.body.appendChild(ov);
+  });
+}
+
+function qxAvisoResponder(cerrarIgual, paso){
+  var ov = document.getElementById('qxAvisoGeresaOv'); if (ov) ov.remove();
+  var resolver = QX_AVISO_RESOLVE; QX_AVISO_RESOLVE = null;
+  if (!cerrarIgual && paso){
+    // Abrir el asistente en el paso del primer faltante, sin overlays colgados.
+    var abiertos = document.querySelectorAll('.qx-overlay');
+    for (var i=0;i<abiertos.length;i++) abiertos[i].remove();
+    qxFormulario(QX_ACTUAL).then(function(){ QX_WIZ_PASO = paso; qxWizRender(); });
+  }
+  if (resolver) resolver(cerrarIgual);
+}
+
 async function qxSetEstado(p, nuevo, motivo){
+  if (qxEstadoTerminal(nuevo)){
+    var seguir = await qxAvisoCierreGeresa(p, nuevo);
+    if (!seguir) return;
+  }
   var anterior = p.estado;
   var resol = (nuevo==='operada'||nuevo==='suspendida'||nuevo==='referida') ? new Date().toISOString() : null;
   var res = await sb.from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('Error: '+res.error.message,'error'); return false; }
   p.estado = nuevo;
   await sb.from('historial_estados').insert({
     paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null
   });
   qxSyncSheets(p.id);
+  return true;
 }
 
 function qxEditarBasicos(){
@@ -6666,12 +6718,6 @@ async function qxGuardarEdicion(){
   var orden = document.getElementById('qxEOrden').value.trim();
   var lugar = document.getElementById('qxELugar').value.trim();
   var obs = document.getElementById('qxEObs').value.trim();
-  var pend = qxFaltantesGeresa({
-    dni:dni, nombre:nombre, cie10:cie10, diagnostico:dx, procedimiento:proc,
-    tipo_anestesia:anestesia, aplica_imagenes:img, fecha_imagenes:fimg,
-    fecha_primera_evaluacion:fprim
-  }, QX_EDIT_KEYS);
-  if (pend.length){ toast('Falta «'+pend[0].label+'» — obligatorio GERESA','error'); return; }
   var res = await sb.from('pacientes').update({
     dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null,
     edad: isNaN(edad) ? null : edad, sexo: sexo||null, diagnostico: dx||null,
