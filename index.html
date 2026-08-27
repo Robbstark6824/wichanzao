@@ -3100,10 +3100,11 @@ function adminDeleteFolder(basePath) {
     var paths = files.map(function(f) { return prefix + '/' + f; });
     return adminStorageDelete(paths);
   }).then(function() {
-    // Also delete worker from DB so both views stay in sync
-    return sb.from('workers').delete().eq('folder_id', folderName);
+    // Borra la fila de workers + la cuenta de Auth en una sola transacción
+    // (evita cuentas huérfanas). RPC protegida: solo admin autenticado.
+    return sb.rpc('admin_delete_worker', { p_folder_id: folderName });
   }).then(function(res) {
-    if (res && res.error) throw new Error('No se pudo borrar el registro de la BD: ' + res.error.message);
+    if (res && res.error) throw new Error(res.error.message);
     toast('Carpeta y registro eliminados ✓', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
