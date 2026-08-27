@@ -6045,6 +6045,72 @@ function qxWizOpt(k, val, label){
   return '<option value="'+val+'"'+sel+'>'+label+'</option>';
 }
 
+/* Buscador de procedimiento quirúrgico.
+   GERESA NO publica catálogo de procedimientos —su hoja solo trae CATALOGOS,
+   CAT_ORIGEN y CAT_DESTINO— y el instructivo dice que el procedimiento "se
+   registra como texto y será validado por el aplicativo al importar". Así que
+   la lista no se inventa: se arma con los procedimientos que este servicio ya
+   usó, ordenados por frecuencia. Se mantiene sola y evita que el mismo
+   procedimiento entre como tres textos distintos, que es lo que el diccionario
+   pide evitar ("evitar textos genéricos").
+   El campo sigue siendo escribible: si es uno nuevo, se tipea y queda en la
+   lista para la próxima. */
+function qxProcedimientosUsados(){
+  var cuenta = {}, orden = [];
+  var lista = (typeof QX_PACIENTES !== 'undefined' && QX_PACIENTES) ? QX_PACIENTES : [];
+  for (var i=0;i<lista.length;i++){
+    var v = String(lista[i] && lista[i].procedimiento || '').trim();
+    if (!v) continue;
+    var key = qxNorm(v);
+    if (!cuenta[key]) { cuenta[key] = { texto: v, veces: 0 }; orden.push(key); }
+    cuenta[key].veces++;
+  }
+  orden.sort(function(a,b){ return cuenta[b].veces - cuenta[a].veces; });
+  var out = [];
+  for (var j=0;j<orden.length;j++) out.push(cuenta[orden[j]]);
+  return out;
+}
+
+function qxProcedimientoPicker(){
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.id = 'qxProcOv';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Procedimiento quirúrgico</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><input id="qxProcBusca" placeholder="Buscar entre los ya usados…" oninput="qxProcFiltrar(this.value)"></div>'
+    + '<div id="qxProcLista" style="max-height:52vh;overflow-y:auto;margin-top:8px;border:1px solid var(--bd);border-radius:10px"></div>'
+    + '<div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.4">GERESA no publica catálogo de procedimientos. Esta lista sale de lo que el servicio ya registró; si es uno nuevo, cerrá y escribilo.</div>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  var b = document.getElementById('qxProcBusca'); if (b) b.focus();
+  qxProcFiltrar('');
+}
+
+function qxProcFiltrar(txt){
+  var lista = document.getElementById('qxProcLista'); if (!lista) return;
+  var q = qxNorm(txt || '');
+  var usados = qxProcedimientosUsados();
+  var html = '';
+  for (var i=0;i<usados.length;i++){
+    var e = usados[i];
+    if (q && qxNorm(e.texto).indexOf(q) === -1) continue;
+    html += '<div style="padding:10px 12px;border-bottom:1px solid var(--bd);cursor:pointer" onclick="qxProcElegir('+i+')">'
+      + '<div style="font-size:12px;color:var(--t1)">'+qxEsc(e.texto)+'</div>'
+      + '<div style="font-size:10px;color:var(--t3);margin-top:1px">usado '+e.veces+(e.veces===1?' vez':' veces')+'</div></div>';
+  }
+  if (!html) html = '<div style="padding:14px;font-size:12px;color:var(--t3);text-align:center">Ninguno registrado todavía con ese texto. Cerrá y escribilo.</div>';
+  lista.innerHTML = html;
+}
+
+function qxProcElegir(i){
+  var e = qxProcedimientosUsados()[i]; if (!e) return;
+  var inp = document.getElementById('qxW_procedimiento');
+  if (inp) inp.value = e.texto;
+  QX_WIZ_DATOS.procedimiento = e.texto;
+  var ov = document.getElementById('qxProcOv'); if (ov) ov.remove();
+}
+
 /* Picker de hospital de destino. Al elegir uno completa, en la misma pasada,
    su código único y su Red/RIS: es lo que pidió el servicio — poner el hospital
    en una columna y que el código aparezca solo en la siguiente. */
@@ -6276,8 +6342,8 @@ function qxWizPaso2Html(){
 function qxWizPaso3Html(){
   return ''
     + '<div class="qx-field"><label>Especialidad quirúrgica</label><input id="qxW_especialidad" placeholder="GINECOLOGIA" value="'+qxWizV('especialidad')+'"></div>'
-    + '<div class="qx-field"><label>Código de procedimiento</label><input id="qxW_codigo_procedimiento" placeholder="ej. 5A-123" value="'+qxWizV('codigo_procedimiento')+'"></div>'
-    + '<div class="qx-field"><label>Procedimiento quirúrgico '+QX_REQ+'</label><input id="qxW_procedimiento" placeholder="ej. Quistectomía" value="'+qxWizV('procedimiento')+'"></div>'
+    + '<div class="qx-field"><label>Código de procedimiento</label><input id="qxW_codigo_procedimiento" placeholder="Opcional — solo si el hospital maneja códigos" value="'+qxWizV('codigo_procedimiento')+'"></div>'
+    + '<div class="qx-field"><label>Procedimiento quirúrgico '+QX_REQ+'</label><input id="qxW_procedimiento" placeholder="Nombre del procedimiento" value="'+qxWizV('procedimiento')+'"><button class="qx-btn" style="margin-top:6px;width:100%;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxProcedimientoPicker()">🔍 Ver los ya usados</button></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Nivel de cirugía</label><select id="qxW_nivel_cirugia">'+qxWizOpt('nivel_cirugia','','—')+qxWizOpt('nivel_cirugia','Menor','Menor')+qxWizOpt('nivel_cirugia','Mayor','Mayor')+qxWizOpt('nivel_cirugia','Alta complejidad','Alta complejidad')+'</select></div>'
     + '<div class="qx-field"><label>Tipo de anestesia '+QX_REQ+'</label><select id="qxW_tipo_anestesia">'+qxWizOpt('tipo_anestesia','','—')+qxWizOpt('tipo_anestesia','REGIONAL','REGIONAL')+qxWizOpt('tipo_anestesia','GENERAL','GENERAL')+qxWizOpt('tipo_anestesia','LOCAL','LOCAL')+qxWizOpt('tipo_anestesia','COMBINADA','COMBINADA')+qxWizOpt('tipo_anestesia','RAQUIDEA','RAQUIDEA')+'</select></div></div>';
 }
@@ -6885,7 +6951,7 @@ function qxEditarBasicos(){
     + '<div class="qx-field"><label>Diagnóstico secundario</label><input id="qxEDxSec" value="'+qxEsc(p.diagnostico_secundario||'')+'"></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>CIE-10 terciario</label><input id="qxECie10Ter" value="'+qxEsc(p.cie10_tercero||'')+'" placeholder="ej. I10"></div>'
     + '<div class="qx-field"><label>Diagnóstico terciario</label><input id="qxEDxTer" value="'+qxEsc(p.diagnostico_tercero||'')+'"></div></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Código procedimiento</label><input id="qxECodProc" value="'+qxEsc(p.codigo_procedimiento||'')+'" placeholder="ej. 5A-123"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Código procedimiento</label><input id="qxECodProc" value="'+qxEsc(p.codigo_procedimiento||'')+'" placeholder="Opcional"></div>'
     + '<div class="qx-field"><label>N° orden intervención</label><input id="qxEOrden" value="'+qxEsc(p.orden_intervencion||'')+'"></div></div>'
     + '<div class="qx-field"><label>F. primera evaluación por cirugía '+QX_REQ+'</label><input type="date" id="qxEFechaPrimEval" value="'+(p.fecha_primera_evaluacion||'')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes? '+QX_REQ+'</label><select id="qxEImagenes"><option value="">—</option><option value="Sí"'+(p.aplica_imagenes==='Sí'?' selected':'')+'>Sí</option><option value="No"'+(p.aplica_imagenes==='No'?' selected':'')+'>No</option></select></div>'
