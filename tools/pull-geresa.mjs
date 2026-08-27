@@ -6,6 +6,8 @@
 //   - Actualiza los existentes por DNI.
 //   - El estado SOLO AVANZA (nunca retrocede), para no pisar
 //     cirugías ya hechas o suspensiones en la app.
+//   - NUNCA borra: si la hoja tiene una celda vacía y la app sí tiene el
+//     dato, se conserva el de la app. La hoja suma, no resta.
 //   - Las filas SIN DNI se omiten (se avisan), porque no se pueden
 //     emparejar de forma segura.
 // Uso:  node tools/pull-geresa.mjs         (jalado real)
@@ -157,6 +159,24 @@ function estadoRank(e) {
   return -1;
 }
 
+// La tabla tiene CHECK por estado: suspendida exige motivo, referida exige
+// hospital, hospitalizada exige cama y programada exige fecha + turno. Con
+// INSERT ... ON CONFLICT, Postgres valida la fila candidata ANTES de resolver
+// el conflicto, así que el payload debe llevar siempre el acompañante.
+function estadoViable(e, fila) {
+  if (e === 'suspendida') return !!fila.motivo_suspension;
+  if (e === 'referida') return !!fila.referencia_hospital;
+  if (e === 'hospitalizada') return !!fila.cama_hospitalizacion;
+  if (e === 'programada') return !!(fila.fecha_cirugia && fila.turno);
+  return true;
+}
+function degradarEstado(e) {
+  if (e === 'hospitalizada') return 'programada';
+  if (e === 'programada') return 'apta_para_sala';
+  if (e === 'suspendida' || e === 'referida') return 'en_tramite';
+  return e;
+}
+
 // ---------- leer hoja ----------
 const csvText = await (await fetch(SS_CSV)).text();
 const rows = parseCSV(csvText);
@@ -228,12 +248,12 @@ for (let r = headerIdx + 1; r < rows.length; r++) {
 
 // ---------- estado actual en la app (para no retroceder) ----------
 const headers = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
-const cur = await (await fetch(`${URL_BASE}/rest/v1/pacientes?select=dni,estado,turno`, { headers })).json();
+const cur = await (await fetch(`${URL_BASE}/rest/v1/pacientes?select=*`, { headers })).json();
 const curMap = {};
 for (const p of cur) curMap[p.dni] = p;
 
 // ---------- armar payload final (upsert, estado monotónico) ----------
-const nuevos = [], actualizados = [], cambiosEstado = [];
+const nuevos = [], actualizados = [], cambiosEstado = [], conservados = [], degradados = [];
 // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila (Postgres
 // no permite que ON CONFLICT DO UPDATE afecte 2 veces la misma fila).
 const deduped = [];
@@ -256,7 +276,45 @@ const payload = deduped.map(sp => {
   }
 
   const { _estado_sheet, ...rest } = sp;
-  return { ...rest, estado: estadoFinal, turno: turnoFinal };
+  const fila = { ...rest, estado: estadoFinal, turno: turnoFinal };
+
+  // La hoja no trae estos tres, pero los CHECK de la tabla los exigen según el
+  // estado: se arrastran desde la app para que el upsert no los pierda.
+  fila.motivo_suspension    = app ? (app.motivo_suspension    ?? null) : null;
+  fila.referencia_hospital  = app ? (app.referencia_hospital  ?? null) : null;
+  fila.cama_hospitalizacion = app ? (app.cama_hospitalizacion ?? null) : null;
+
+  // La hoja SUMA, no RESTA. Donde la hoja esté vacía y la app ya tenga el dato,
+  // se reenvía el valor de la app: con merge-duplicates, mandar null lo borraría.
+  // Caso típico: "Fecha referencia aceptada" va vacía para paciente propia
+  // (así lo pide GERESA), pero la app la usa como fecha de captación.
+  // No se puede omitir la clave: PostgREST exige que todas las filas del lote
+  // tengan exactamente el mismo juego de claves.
+  if (app) {
+    for (const k of Object.keys(fila)) {
+      if (k === 'dni') continue;
+      const v = fila[k];
+      const tieneApp = app[k] !== null && app[k] !== undefined && app[k] !== '';
+      if ((v === null || v === undefined || v === '') && tieneApp) {
+        conservados.push(`${sp.nombre} · ${k} (app: "${app[k]}")`);
+        fila[k] = app[k];
+      } else if (v === false && app[k] === true) {
+        // Un booleano en false tampoco debe bajar uno que la app tiene en true.
+        conservados.push(`${sp.nombre} · ${k} (app: true)`);
+        fila[k] = true;
+      }
+    }
+  }
+  // Si al estado le falta su acompañante, se baja al inmediato viable en vez
+  // de tumbar el lote entero con un error de CHECK.
+  let guarda = 0;
+  while (!estadoViable(fila.estado, fila) && guarda++ < 5) {
+    const menor = degradarEstado(fila.estado);
+    if (menor === fila.estado) break;
+    degradados.push(`${sp.nombre}: ${fila.estado} → ${menor} (le falta el dato que exige ese estado)`);
+    fila.estado = menor;
+  }
+  return fila;
 });
 
 // ---------- mostrar ----------
@@ -265,6 +323,14 @@ console.log(`Nuevos: ${nuevos.length}   Actualizados: ${actualizados.length}   O
 if (nuevos.length) { console.log('➕ NUEVOS:'); nuevos.forEach(x => console.log('   ' + x)); }
 if (cambiosEstado.length) { console.log('\n🔀 AVANCE DE ESTADO:'); cambiosEstado.forEach(x => console.log('   ' + x)); }
 if (omitidos.length) { console.log('\n⚠️  OMITIDOS (sin DNI en la hoja):'); omitidos.forEach(x => console.log('   ' + x)); }
+if (degradados.length) {
+  console.log('\n⬇️  ESTADO AJUSTADO (falta el dato que ese estado exige):');
+  degradados.forEach(x => console.log('   ' + x));
+}
+if (conservados.length) {
+  console.log(`\n🛡  CONSERVADOS (la hoja está vacía ahí, se respeta el dato de la app): ${conservados.length}`);
+  conservados.forEach(x => console.log('   ' + x));
+}
 console.log('');
 
 if (DRY) { console.log('(MODO --dry: no se escribió nada.)\n'); process.exit(0); }
