@@ -41,7 +41,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-27-todo-capturado';
+var VERSION = '2026-08-27-id-correlativo';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -539,16 +539,28 @@ function upsert(ssId, sheetName, values, p) {
     if (!targetRow) targetRow = lastRow + 1;
   }
 
-  // 4) "ID registro" solo para filas nuevas.
-  if (esNuevo) {
-    var nextId = 1;
-    if (idCol) {
+  // 4) "ID registro".
+  //
+  //    En la hoja OFICIAL es el correlativo de la propia hoja: su posición
+  //    entre las filas de datos. Esa hoja la comparten varios servicios y cada
+  //    uno traía su propia numeración, así que los IDs se pisaban (1..6 salían
+  //    duplicados). Por posición quedan únicos y ordenados solos, y las filas
+  //    de los otros servicios conservan el valor que ya tienen porque están
+  //    arriba: su posición coincide con su ID actual.
+  //
+  //    En la hoja ANTIGUA, que es solo de este servicio, manda el id_registro
+  //    de la app y solo se autonumera al insertar una fila nueva.
+  if (idCol) {
+    if (ssId === SS_ID_2) {
+      sheet.getRange(targetRow, idCol).setValue(targetRow - headerRow);
+    } else if (esNuevo) {
+      var nextId = 1;
       var idData = sheet.getRange(headerRow + 1, idCol, lastRow - headerRow, 1).getValues();
       for (var m = 0; m < idData.length; m++) {
         var tieneDato = String(nombreData[m][0]).trim() !== '' || String(dniData[m][0]).trim() !== '';
         if (!tieneDato) continue;
-        var n = parseInt(String(idData[m][0]), 10);
-        if (!isNaN(n) && n >= nextId) nextId = n + 1;
+        var num = parseInt(String(idData[m][0]), 10);
+        if (!isNaN(num) && num >= nextId) nextId = num + 1;
       }
       sheet.getRange(targetRow, idCol).setValue(nextId);
     }

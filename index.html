@@ -5436,17 +5436,48 @@ async function qxLoad(){
 
 /* Empuja un paciente a la hoja de Google (GERESA). Fire-and-forget:
    si Google falla, nunca bloquea la app. */
+/* Antes esto fallaba en silencio: si Google rechazaba la escritura, la app
+   igual decía "guardado" y las hojas quedaban desactualizadas sin que nadie se
+   enterara. Pasó durante días. Ahora avisa. */
 async function qxSyncSheets(id){
   if (!QX_SHEET_URL || !id) return;
+  var r;
   try {
-    var r = await sb.from('pacientes').select('*').eq('id', id).single();
+    r = await sb.from('pacientes').select('*').eq('id', id).single();
     if (r.error || !r.data) return;
-    await fetch(QX_SHEET_URL, {
+  } catch(e) { return; }
+
+  var texto;
+  try {
+    var resp = await fetch(QX_SHEET_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ token: QX_SHEET_TOKEN, paciente: r.data })
     });
-  } catch(e) {}
+    texto = await resp.text();
+  } catch(e) {
+    // Sin red, o el navegador no dejó leer la respuesta. La app sigue andando
+    // y el dato ya está en la base: no se afirma nada que no se pueda probar.
+    return;
+  }
+
+  var out = null;
+  try { out = JSON.parse(texto); } catch(e) {}
+  if (!out) return;   // respuesta ilegible: mejor callar que dar un falso error
+
+  if (out.ok === false) {
+    var motivo = (out.error)
+      || (out.antiguo && out.antiguo.error)
+      || (out.oficial && out.oficial.error)
+      || 'la hoja rechazó la escritura';
+    toast('Guardado en la app, pero NO en las hojas: ' + motivo, 'error');
+    return;
+  }
+  // Celdas sueltas que alguna hoja rechazó por su validación de datos.
+  var rech = []
+    .concat((out.antiguo && out.antiguo.rechazadas) || [])
+    .concat((out.oficial && out.oficial.rechazadas) || []);
+  if (rech.length) toast('La hoja no aceptó: ' + rech.join(' · '), 'error');
 }
 
 /* ===== Sincronizar desde la hoja (hoja → app) =====
