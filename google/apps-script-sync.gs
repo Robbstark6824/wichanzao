@@ -41,7 +41,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-27-cierre-completo';
+var VERSION = '2026-08-27-todo-capturado';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -221,23 +221,42 @@ function mapEstadoActual(e) {
   return 'En lista de espera';
 }
 
-/** Resuelve origen (propio vs referido) y sus campos asociados. */
+/** Resuelve origen (propio vs referido) y sus campos asociados.
+ *
+ * Provincia y distrito salen, en este orden:
+ *   1. De lo que la app capturó explícitamente (campos editables).
+ *   2. Del sufijo del catálogo CAT_ORIGEN: "NOMBRE - PROVINCIA - DISTRITO".
+ *   3. Si la paciente es propia, de las constantes del propio hospital.
+ *
+ * GERESA no exige estas dos columnas para paciente propia —de hecho los demás
+ * hospitales de la hoja regional las dejan vacías— pero el servicio pidió
+ * verlas siempre llenas, así que para propia van TRUJILLO / LAREDO.
+ */
 function resolverOrigen(p) {
   var nombre = String(p.establecimiento_origen || '');
   var o = norm(nombre);
   var propio = !o || o === 'n.a.' || o.indexOf('paciente propio') >= 0
     || /hospital distrital (de )?laredo/.test(o);
-  if (propio) {
-    return { origen: CONSTANTES.establecimientoOrigen, codigo: '', provincia: '', distrito: '', fechaRef: '' };
+
+  var provincia = String(p.provincia_origen || '').trim();
+  var distrito  = String(p.distrito_origen  || '').trim();
+
+  if (!provincia || !distrito) {
+    var partes = nombre.split(' - ');
+    if (partes.length >= 3) {
+      if (!provincia) provincia = partes[partes.length - 2].trim();
+      if (!distrito)  distrito  = partes[partes.length - 1].trim();
+    }
   }
-  // La app guarda el nombre completo de CAT_ORIGEN con el formato
-  // "NOMBRE - PROVINCIA - DISTRITO". Extraer provincia (penúltimo) y
-  // distrito (último) del sufijo separado por " - ".
-  var provincia = '', distrito = '';
-  var partes = nombre.split(' - ');
-  if (partes.length >= 3) {
-    provincia = partes[partes.length - 2].trim();
-    distrito = partes[partes.length - 1].trim();
+
+  if (propio) {
+    return {
+      origen: CONSTANTES.establecimientoOrigen,
+      codigo: '',
+      provincia: provincia || CONSTANTES.provincia,
+      distrito:  distrito  || CONSTANTES.distrito,
+      fechaRef: ''
+    };
   }
   return {
     origen: nombre,
@@ -288,7 +307,7 @@ function buildValuesNew(p) {
   if (p.id_registro != null && p.id_registro !== '') v['id registro'] = p.id_registro;
   v['establecimiento quirurgico destino'] = p.establecimiento_destino || CONSTANTES.establecimientoDestino;
   v['codigo unico destino']              = p.codigo_destino || CONSTANTES.codigoDestino;
-  v['red/ris destino']                   = CONSTANTES.red;
+  v['red/ris destino']                   = p.red_destino || CONSTANTES.red;
   v['establecimiento origen que refiere'] = o.origen;
   v['codigo unico origen']               = o.codigo;
   v['provincia origen']                  = o.provincia;
@@ -301,7 +320,7 @@ function buildValuesNew(p) {
   v['celular']                           = String(p.telefono || '');
   v['tipo de seguro']                    = mapSeguro(p.tipo_seguro);
   v['n° historia clinica']               = p.hcl;
-  v['especialidad quirurgica']           = CONSTANTES.especialidad;
+  v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
   v['diagnostico principal']             = p.diagnostico;
@@ -393,7 +412,7 @@ function buildValuesOld(p) {
   if (p.id_registro != null && p.id_registro !== '') v['id registro'] = p.id_registro;
   v['establecimiento quirurgico destino'] = p.establecimiento_destino || CONSTANTES.establecimientoDestino;
   v['codigo unico destino']              = p.codigo_destino || CONSTANTES.codigoDestino;
-  v['red/ris destino']                   = CONSTANTES.red;
+  v['red/ris destino']                   = p.red_destino || CONSTANTES.red;
   v['establecimiento origen que refiere'] = o.origen;
   v['codigo unico origen']               = o.codigo;
   v['provincia origen']                  = o.provincia;
@@ -406,7 +425,7 @@ function buildValuesOld(p) {
   v['celular']                           = String(p.telefono || '');
   v['tipo de seguro']                    = mapSeguro(p.tipo_seguro);
   v['n° historia clinica']               = p.hcl;
-  v['especialidad quirurgica']           = CONSTANTES.especialidad;
+  v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
   v['diagnostico principal']             = p.diagnostico;

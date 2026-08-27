@@ -6049,12 +6049,33 @@ function qxOrigenFiltrar(txt){
   lista.innerHTML = html;
 }
 
+/* El catálogo CAT_ORIGEN trae el nombre como "ESTABLECIMIENTO - PROVINCIA -
+   DISTRITO", así que provincia y distrito salen del sufijo. Para paciente
+   propia se usan las del propio hospital: GERESA las deja opcionales ahí, pero
+   el servicio quiere verlas llenas siempre. */
+function qxProvinciaDistrito(nombre){
+  if (!qxOrigenEsReferido(nombre)) return { provincia:'TRUJILLO', distrito:'LAREDO' };
+  var partes = String(nombre || '').split(' - ');
+  if (partes.length >= 3) {
+    return {
+      provincia: partes[partes.length - 2].trim(),
+      distrito:  partes[partes.length - 1].trim()
+    };
+  }
+  return { provincia:'', distrito:'' };
+}
+
 function qxOrigenElegir(i){
   var e = QX_CAT_ORIGEN[i]; if (!e) return;
   QX_WIZ_DATOS.establecimiento_origen = e[0];
   QX_WIZ_DATOS.codigo_origen = e[1] || '';
+  var pd = qxProvinciaDistrito(e[0]);
+  QX_WIZ_DATOS.provincia_origen = pd.provincia;
+  QX_WIZ_DATOS.distrito_origen = pd.distrito;
   var inp = document.getElementById('qxW_establecimiento_origen'); if (inp) inp.value = e[0];
   var cod = document.getElementById('qxW_codigo_origen'); if (cod) cod.value = e[1] || '';
+  var pv = document.getElementById('qxW_provincia_origen'); if (pv) pv.value = pd.provincia;
+  var ds = document.getElementById('qxW_distrito_origen'); if (ds) ds.value = pd.distrito;
   var ov = document.getElementById('qxOrigenOv'); if (ov) ov.remove();
 }
 
@@ -6078,14 +6099,21 @@ async function qxFormulario(p){
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
   QX_WIZ_DATOS = {};
-  var campos = ['dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','establecimiento_destino','codigo_destino','establecimiento_origen','codigo_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop'];
+  var campos = ['dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop'];
   if (p){
     for (var i=0;i<campos.length;i++) QX_WIZ_DATOS[campos[i]] = p[campos[i]];
     // Registros antiguos pueden no tener los establecimientos: se completan con
     // los valores fijos del hospital para no bloquear la edición.
     if (!QX_WIZ_DATOS.establecimiento_destino) QX_WIZ_DATOS.establecimiento_destino = 'HOSPITAL DISTRITAL LAREDO';
     if (!QX_WIZ_DATOS.codigo_destino) QX_WIZ_DATOS.codigo_destino = '00005231';
+    if (!QX_WIZ_DATOS.red_destino) QX_WIZ_DATOS.red_destino = 'TRUJILLO';
+    if (!QX_WIZ_DATOS.especialidad) QX_WIZ_DATOS.especialidad = 'GINECOLOGIA';
     if (!QX_WIZ_DATOS.establecimiento_origen) QX_WIZ_DATOS.establecimiento_origen = 'N.A. - Paciente propio / no referido';
+    if (!QX_WIZ_DATOS.provincia_origen || !QX_WIZ_DATOS.distrito_origen) {
+      var pd0 = qxProvinciaDistrito(QX_WIZ_DATOS.establecimiento_origen);
+      if (!QX_WIZ_DATOS.provincia_origen) QX_WIZ_DATOS.provincia_origen = pd0.provincia;
+      if (!QX_WIZ_DATOS.distrito_origen) QX_WIZ_DATOS.distrito_origen = pd0.distrito;
+    }
   } else {
     QX_WIZ_DATOS.fecha_captacion = qxHoyStr();
     QX_WIZ_DATOS.laboratorio_completo = false;
@@ -6094,6 +6122,10 @@ async function qxFormulario(p){
     QX_WIZ_DATOS.codigo_destino = '00005231';
     QX_WIZ_DATOS.establecimiento_origen = 'N.A. - Paciente propio / no referido';
     QX_WIZ_DATOS.codigo_origen = '';
+    QX_WIZ_DATOS.provincia_origen = 'TRUJILLO';
+    QX_WIZ_DATOS.distrito_origen = 'LAREDO';
+    QX_WIZ_DATOS.red_destino = 'TRUJILLO';
+    QX_WIZ_DATOS.especialidad = 'GINECOLOGIA';
     QX_WIZ_DATOS.id_registro = await qxProximoIdRegistro();
   }
   var ov = document.createElement('div');
@@ -6140,8 +6172,12 @@ function qxWizPaso1Html(){
     + '<div style="border-top:1px solid var(--bd);margin:14px 0 6px;padding-top:10px;font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.3px">Establecimientos (referencia)</div>'
     + '<div class="qx-row"><div class="qx-field"><label>Establecimiento destino '+QX_REQ+'</label><input id="qxW_establecimiento_destino" placeholder="HOSPITAL DISTRITAL LAREDO" value="'+qxWizV('establecimiento_destino')+'"></div>'
     + '<div class="qx-field"><label>Código destino</label><input id="qxW_codigo_destino" placeholder="00005231" value="'+qxWizV('codigo_destino')+'"></div></div>'
+    + '<div class="qx-field"><label>Red / RIS destino</label><input id="qxW_red_destino" placeholder="TRUJILLO" value="'+qxWizV('red_destino')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Establecimiento origen '+QX_REQ+'</label><input id="qxW_establecimiento_origen" placeholder="N.A. - Paciente propio / no referido" value="'+qxWizV('establecimiento_origen')+'" readonly onclick="qxOrigenPicker()" style="cursor:pointer;background:var(--s2)"><div style="font-size:10px;color:var(--t3);margin-top:2px">Toque para buscar 🔍</div></div>'
-    + '<div class="qx-field"><label>Código origen</label><input id="qxW_codigo_origen" placeholder="(vacío si es propio)" value="'+qxWizV('codigo_origen')+'" readonly></div></div>';
+    + '<div class="qx-field"><label>Código origen</label><input id="qxW_codigo_origen" placeholder="(vacío si es propio)" value="'+qxWizV('codigo_origen')+'" readonly></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Provincia origen</label><input id="qxW_provincia_origen" placeholder="TRUJILLO" value="'+qxWizV('provincia_origen')+'"></div>'
+    + '<div class="qx-field"><label>Distrito origen</label><input id="qxW_distrito_origen" placeholder="LAREDO" value="'+qxWizV('distrito_origen')+'"></div></div>'
+    + '<div style="font-size:10px;color:var(--t3);margin:-6px 0 12px">Se completan solas al elegir el establecimiento. Podés corregirlas a mano.</div>';
 }
 
 function qxWizPaso2Html(){
@@ -6157,6 +6193,7 @@ function qxWizPaso2Html(){
 
 function qxWizPaso3Html(){
   return ''
+    + '<div class="qx-field"><label>Especialidad quirúrgica</label><input id="qxW_especialidad" placeholder="GINECOLOGIA" value="'+qxWizV('especialidad')+'"></div>'
     + '<div class="qx-field"><label>Código de procedimiento</label><input id="qxW_codigo_procedimiento" placeholder="ej. 5A-123" value="'+qxWizV('codigo_procedimiento')+'"></div>'
     + '<div class="qx-field"><label>Procedimiento quirúrgico '+QX_REQ+'</label><input id="qxW_procedimiento" placeholder="ej. Quistectomía" value="'+qxWizV('procedimiento')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Nivel de cirugía</label><select id="qxW_nivel_cirugia">'+qxWizOpt('nivel_cirugia','','—')+qxWizOpt('nivel_cirugia','Menor','Menor')+qxWizOpt('nivel_cirugia','Mayor','Mayor')+qxWizOpt('nivel_cirugia','Alta complejidad','Alta complejidad')+'</select></div>'
@@ -6172,7 +6209,7 @@ function qxWizPaso4Html(){
     + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes? '+QX_REQ+'</label><select id="qxW_aplica_imagenes">'+qxWizOpt('aplica_imagenes','','—')+qxWizOpt('aplica_imagenes','Sí','Sí')+qxWizOpt('aplica_imagenes','No','No')+'</select></div>'
     + '<div class="qx-field"><label>F. diagnóstico por imágenes '+QX_REQ_C+'</label><input type="date" id="qxW_fecha_imagenes" value="'+qxWizV('fecha_imagenes')+'"></div></div>'
     + '<div class="qx-field"><label>F. primera evaluación por cirugía '+QX_REQ+'</label><input type="date" id="qxW_fecha_primera_evaluacion" value="'+qxWizV('fecha_primera_evaluacion')+'"></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Tipo examen prequirúrgico 3</label><input id="qxW_tipo_examen3" placeholder="ej. Ecografía, Rayos X…" value="'+qxWizV('tipo_examen3')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Tipo examen prequirúrgico 3</label><select id="qxW_tipo_examen3">'+qxWizOpt('tipo_examen3','','—')+qxWizOpt('tipo_examen3','Laboratorio','Laboratorio')+qxWizOpt('tipo_examen3','EKG','EKG')+'</select></div>'
     + '<div class="qx-field"><label>Fecha examen prequirúrgico 3</label><input type="date" id="qxW_fecha_examen3" value="'+qxWizV('fecha_examen3')+'"></div></div>';
 }
 
@@ -6219,9 +6256,9 @@ function qxWizRender(){
 
 function qxWizGuardarPaso(){
   var campos = [];
-  if (QX_WIZ_PASO===1) campos = ['dni','nombre','edad','sexo','hcl','telefono','tipo_seguro','fecha_captacion','interno_medicina','establecimiento_destino','codigo_destino','establecimiento_origen','codigo_origen'];
+  if (QX_WIZ_PASO===1) campos = ['dni','nombre','edad','sexo','hcl','telefono','tipo_seguro','fecha_captacion','interno_medicina','establecimiento_destino','codigo_destino','red_destino','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen'];
   else if (QX_WIZ_PASO===2) campos = ['doctor','cie10','diagnostico','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero'];
-  else if (QX_WIZ_PASO===3) campos = ['codigo_procedimiento','procedimiento','nivel_cirugia','tipo_anestesia'];
+  else if (QX_WIZ_PASO===3) campos = ['especialidad','codigo_procedimiento','procedimiento','nivel_cirugia','tipo_anestesia'];
   else if (QX_WIZ_PASO===4) campos = ['laboratorio_completo','ekg','fecha_examen1','fecha_examen2','aplica_imagenes','fecha_imagenes','fecha_primera_evaluacion','tipo_examen3','fecha_examen3'];
   else if (QX_WIZ_PASO===5) campos = ['fecha_cita_cardiologia','fecha_cita_anestesiologia','fecha_evaluacion_preoperatoria','riesgo_qx','riesgo_anestesiologico','resultado_preop'];
   else campos = ['orden_intervencion','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera'];
@@ -6256,7 +6293,9 @@ async function qxWizGuardar(){
     dni: d.dni, nombre: d.nombre, hcl: d.hcl||null, telefono: qxNormalizarTel(d.telefono||'')||null,
     id_registro: d.id_registro||null,
     establecimiento_destino: d.establecimiento_destino||null, codigo_destino: d.codigo_destino||null,
+    red_destino: d.red_destino||null, especialidad: d.especialidad||null,
     establecimiento_origen: d.establecimiento_origen||null, codigo_origen: d.codigo_origen||null,
+    provincia_origen: d.provincia_origen||null, distrito_origen: d.distrito_origen||null,
     edad: d.edad||null, sexo: d.sexo||null, diagnostico: d.diagnostico||null,
     cie10: d.cie10||null, procedimiento: d.procedimiento||null, tipo_seguro: d.tipo_seguro||null,
     tipo_anestesia: d.tipo_anestesia||null, nivel_cirugia: d.nivel_cirugia||null,
