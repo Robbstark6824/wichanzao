@@ -41,7 +41,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-27-id-correlativo';
+var VERSION = '2026-08-27-id-correlativo-2';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -304,7 +304,13 @@ function buildValuesNew(p) {
   var esSuspendida = (p.estado === 'suspendida');
   var v = {};
 
-  if (p.id_registro != null && p.id_registro !== '') v['id registro'] = p.id_registro;
+  // OJO: el "ID registro" de la hoja OFICIAL NO se manda desde acá.
+  // Esa hoja la comparten varios servicios del hospital y cada uno numeraba por
+  // su cuenta, así que mandar el id_registro interno de la app duplicaba los
+  // IDs 1..6 contra los de Cirugía General. Lo asigna upsert() como correlativo
+  // de la propia hoja (su posición entre las filas de datos). Si se vuelve a
+  // poner esta línea, el bucle de escritura pisa ese correlativo y vuelven los
+  // duplicados.
   v['establecimiento quirurgico destino'] = p.establecimiento_destino || CONSTANTES.establecimientoDestino;
   v['codigo unico destino']              = p.codigo_destino || CONSTANTES.codigoDestino;
   v['red/ris destino']                   = p.red_destino || CONSTANTES.red;
