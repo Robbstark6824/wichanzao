@@ -5006,6 +5006,344 @@ var QX_CAL_DIA = null;    // 'YYYY-MM-DD'
 var QX_CAPT_DESDE = '';
 var QX_CAPT_HASTA = '';
 
+var QX_CAT_ORIGEN = [
+  ["N.A. - Paciente propio / no referido", ""],
+  ["1° DE MAYO- SECTOR 10 EL MILAGRO - TRUJILLO - HUANCHACO", "00020157"],
+  ["24 DE JUNIO - SANCHEZ CARRION - SANAGORAN", "00019765"],
+  ["3 DE OCTUBRE -ROMA - ASCOPE - CASA GRANDE", "00005275"],
+  ["AGALLPAMPA - OTUZCO - AGALLPAMPA", "00005318"],
+  ["AGOCAS - SANCHEZ CARRION - MARCABAL", "00013552"],
+  ["ALLACDAY - OTUZCO - OTUZCO", "00018298"],
+  ["ALPAMARCA - PATAZ - PARCOY", "00016975"],
+  ["ALTO  TRUJILLO - TRUJILLO - ALTO TRUJILLO", "00005220"],
+  ["ALTO MOCHE - TRUJILLO - MOCHE", "00005235"],
+  ["ALTO PERU - ASCOPE - CHICAMA", "00005265"],
+  ["ANGASMARCA - SANTIAGO DE CHUCO - ANGASMARCA", "00005337"],
+  ["ARAGOSTAY - SANCHEZ CARRION - COCHORCO", "00013810"],
+  ["ARANJUEZ - TRUJILLO - TRUJILLO", "00005201"],
+  ["ARCAYPATA - PATAZ - BULDIBUYO", "00018092"],
+  ["ARICAPAMPA - SANCHEZ CARRION - COCHORCO", "00005356"],
+  ["AURORA DIAZ - TRUJILLO - SALAVERRY", "00005240"],
+  ["AYANGAY - JULCAN - JULCAN", "00006775"],
+  ["BAMBAMARCA - BOLIVAR - BAMBAMARCA", "00005367"],
+  ["BARRIO 1 - TRUJILLO - ALTO TRUJILLO", "00012229"],
+  ["BARRO NEGRO - JULCAN - CALAMARCA", "00007247"],
+  ["BARRO NEGRO - OTUZCO - USQUIL", "00005330"],
+  ["BELLAVISTA - OTUZCO - SALPO", "00005327"],
+  ["BELLAVISTA - PATAZ - CHILLIA", "00016645"],
+  ["BELLAVISTA - TRUJILLO - LA ESPERANZA", "00005229"],
+  ["BUEN PASTOR - TRUJILLO - EL PORVENIR", "00005210"],
+  ["BUENA VISTA - VIRU - CHAO", "00005260"],
+  ["BUENOS AIRES SUR - TRUJILLO - VICTOR LARCO HERRERA", "00005244"],
+  ["BULDIBUYO - PATAZ - BULDIBUYO", "00005377"],
+  ["C.S.M.I. CHICAMA - ASCOPE - CHICAMA", "00005264"],
+  ["CACHULLA BAJA - SANTIAGO DE CHUCO - QUIRUVILCA", "00013577"],
+  ["CALAMARCA - JULCAN - CALAMARCA", "00005308"],
+  ["CALEMAR - BOLIVAR - BAMBAMARCA", "00005368"],
+  ["CALIFORNIA - VIRU - VIRU", "00005253"],
+  ["CALIPUY - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00005333"],
+  ["CALLANCAS - OTUZCO - CHARAT", "00005321"],
+  ["CANIBAMBA BAJO - OTUZCO - USQUIL", "00018274"],
+  ["CANRAZ - JULCAN - HUASO", "00006771"],
+  ["CANUCUBAMBA - SANCHEZ CARRION - CHUGAY", "00018225"],
+  ["CAPACHIQUE - OTUZCO - USQUIL", "00006803"],
+  ["CARABAMBA - JULCAN - CARABAMBA", "00005310"],
+  ["CARABAMBA - SANCHEZ CARRION - HUAMACHUCO", "00035708"],
+  ["CARATA - OTUZCO - AGALLPAMPA", "00006934"],
+  ["CAYANCHAL - OTUZCO - CHARAT", "00016900"],
+  ["CENTRO DE SALUD CACHICADAN - SANTIAGO DE CHUCO - CACHICADAN", "00005338"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIA  DRA. FRIDA ALAYZA COSSÍO - TRUJILLO - TRUJILLO", "00021228"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIA EL PORVENIR - TRUJILLO - EL PORVENIR", "00021226"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIA FLORENCIA DE MORA - TRUJILLO - FLORENCIA DE MORA", "00021227"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIA LA ESPERANZA - TRUJILLO - LA ESPERANZA", "00026352"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIA SAN CRISPIN - TRUJILLO - EL PORVENIR", "00021224"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIA VIRU - VIRU - VIRU", "00021225"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO \"MAEICH MUCHIK\" - TRUJILLO - MOCHE", "00026345"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO \"RENACER\" - OTUZCO - OTUZCO - OTUZCO", "00026346"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO \"VALLE DE ESPERANZA\" - ASCOPE - CASA GRANDE", "00031283"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO ABRAZA LA VIDA - CHEPEN - PUEBLO NUEVO", "00030155"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO ABRAZO SIN LIMITES - TRUJILLO - VICTOR LARCO HERRERA", "00033966"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO CONECTANDO VIDAS - PACASMAYO - SAN PEDRO DE LLOC", "00033708"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO CUENTA CONMIGO - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00035658"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO FORTALECIENDO VIDAS - GRAN CHIMU - CASCAS", "00034214"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO FORTALEZA DEL SOL CHAO - VIRU - CHAO", "00031087"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO LUZ DE VIDA - TRUJILLO - LAREDO", "00038793"],
+  ["CENTRO DE SALUD MENTAL COMUNITARIO SEMBRANDO ESPERANZA DE HUAMACHUCO - SANCHEZ CARRION - HUAMACHUCO", "00026446"],
+  ["CERPAQUINO - SANCHEZ CARRION - SARIN", "00011627"],
+  ["CHAGAVARA - SANTIAGO DE CHUCO - SITABAMBA", "00017604"],
+  ["CHAGUAL - PATAZ - PATAZ", "00005388"],
+  ["CHAGUIN - SANTIAGO DE CHUCO - QUIRUVILCA", "00005344"],
+  ["CHAQUICOCHA - PATAZ - TAYABAMBA", "00005376"],
+  ["CHAQUILBAMBA - SANCHEZ CARRION - MARCABAL", "00013825"],
+  ["CHARAT - OTUZCO - CHARAT", "00005322"],
+  ["CHAZKA - JULCAN - CALAMARCA", "00007248"],
+  ["CHEQUEN - CHEPEN - CHEPEN", "00005300"],
+  ["CHILIA - PATAZ - CHILLIA", "00005378"],
+  ["CHINCHINVARA - JULCAN - HUASO", "00006770"],
+  ["CHOCOFAN - PACASMAYO - SAN PEDRO DE LLOC", "00005291"],
+  ["CHOCONDAY - OTUZCO - USQUIL", "00013742"],
+  ["CHOCOPE - ASCOPE - CHOCOPE", "00005266"],
+  ["CHOQUIZONGUILLO - SANCHEZ CARRION - HUAMACHUCO", "00005350"],
+  ["CHOROBAL - VIRU - CHAO", "00005261"],
+  ["CHOTA - OTUZCO - AGALLPAMPA", "00005319"],
+  ["CHUGAY - SANCHEZ CARRION - CHUGAY", "00005352"],
+  ["CHUGURPAMPA - JULCAN - JULCAN", "00006963"],
+  ["CHUQUILLANQUI - GRAN CHIMU - LUCMA", "00005283"],
+  ["CHUQUIZONGO - OTUZCO - USQUIL", "00005329"],
+  ["CIUDAD DE DIOS - PACASMAYO - GUADALUPE", "00005293"],
+  ["CLUB DE LEONES - TRUJILLO - TRUJILLO", "00031725"],
+  ["COCHABAMBA - SANCHEZ CARRION - CHUGAY", "00005354"],
+  ["COCHACARA - PATAZ - HUANCASPATA", "00018795"],
+  ["COCHAPAMPA - SANTIAGO DE CHUCO - SANTA CRUZ DE CHUCA", "00005346"],
+  ["COINA - OTUZCO - USQUIL", "00016919"],
+  ["COMPIN - GRAN CHIMU - MARMOT", "00005286"],
+  ["CONDORMARCA - BOLIVAR - CONDORMARCA", "00005369"],
+  ["CORMOT - GRAN CHIMU - MARMOT", "00005285"],
+  ["CORRAL GRANDE - SANCHEZ CARRION - SANAGORAN", "00007241"],
+  ["CRUZ DE MAYO - OTUZCO - MACHE", "00013974"],
+  ["CS. CASA GRANDE - ASCOPE - CASA GRANDE", "00007631"],
+  ["CUCAHUASI - PATAZ - HUAYO", "00017633"],
+  ["CURGOS-WALTER JUNIOR VELARDE ARTEAGA - SANCHEZ CARRION - CURGOS", "00005357"],
+  ["CURVA DE SUN - TRUJILLO - MOCHE", "00007151"],
+  ["CUSHCANDAY - OTUZCO - AGALLPAMPA", "00008336"],
+  ["CUSIPAMPA - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00011943"],
+  ["CUYUCHUGO - OTUZCO - USQUIL", "00005331"],
+  ["DISTRITAL PACASMAYO - PACASMAYO - PACASMAYO", "00034853"],
+  ["EL BOSQUE - TRUJILLO - TRUJILLO", "00005202"],
+  ["EL CALVARIO - SANCHEZ CARRION - CURGOS", "00021652"],
+  ["EL CAPULI - SANCHEZ CARRION - HUAMACHUCO", "00018226"],
+  ["EL CARMELO - VIRU - VIRU", "00005255"],
+  ["EL MOLINO - GRAN CHIMU - CASCAS", "00005280"],
+  ["EL NIÑO - VIRU - VIRU", "00005256"],
+  ["EL OLIVO - SANCHEZ CARRION - HUAMACHUCO", "00018123"],
+  ["EL PALLAR - SANCHEZ CARRION - HUAMACHUCO", "00005355"],
+  ["EL PORVENIR - GRAN CHIMU - SAYAPULLO", "00005288"],
+  ["EL PORVENIR - PATAZ - BULDIBUYO", "00018093"],
+  ["EL SAUCO - SANTIAGO DE CHUCO - QUIRUVILCA", "00017341"],
+  ["EL TROPICO - TRUJILLO - HUANCHACO", "00011007"],
+  ["ELIO JACOBO CAFFO - TRUJILLO - MOCHE", "00005236"],
+  ["FLORENCIA DE MORA - PARTE ALTA - TRUJILLO - FLORENCIA DE MORA", "00005218"],
+  ["GRAN CHIMU - TRUJILLO - EL PORVENIR", "00005211"],
+  ["GUADALUPITO - VIRU - GUADALUPITO", "00005262"],
+  ["HOSPITAL DE APOYO CESAR ABRAHAM VALLEJO MENDOZA - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00005332"],
+  ["HOSPITAL DE APOYO CHEPEN - CHEPEN - CHEPEN", "00005299"],
+  ["HOSPITAL DE APOYO LEONCIO PRADO - SANCHEZ CARRION - HUAMACHUCO", "00005349"],
+  ["HOSPITAL DE APOYO OTUZCO ELPIDIO BEROVIDES PEREZ - OTUZCO - OTUZCO", "00005314"],
+  ["HOSPITAL DE APOYO TOMAS LAFORA - PACASMAYO - GUADALUPE", "00005292"],
+  ["HOSPITAL DE ESPECIALIDADES BASICAS LA NORIA - TRUJILLO - TRUJILLO", "00005204"],
+  ["HOSPITAL DISTRITAL ALTO MOCHE-WALTER CRUZ VILCA - TRUJILLO - MOCHE", "00007152"],
+  ["HOSPITAL DISTRITAL DE EL PORVENIR SANTA ISABEL - TRUJILLO - EL PORVENIR", "00005209"],
+  ["HOSPITAL DISTRITAL EL ESFUERZO DE FLORENCIA DE MORA - TRUJILLO - FLORENCIA DE MORA", "00005217"],
+  ["HOSPITAL DISTRITAL JERUSALEN - TRUJILLO - LA ESPERANZA", "00005226"],
+  ["HOSPITAL DISTRITAL LAREDO - TRUJILLO - LAREDO", "00005231"],
+  ["HOSPITAL DISTRITAL VISTA ALEGRE - TRUJILLO - VICTOR LARCO HERRERA", "00005243"],
+  ["HOSPITAL PROVINCIAL ASCOPE \"ROSA SANCHEZ DE SANTILLAN\" - ASCOPE - ASCOPE", "00005263"],
+  ["HOSPITAL PROVINCIAL DE BOLIVAR - BOLIVAR - BOLIVAR", "00005366"],
+  ["HOSPITAL PROVINCIAL DE CASCAS - GRAN CHIMU - CASCAS", "00005277"],
+  ["HOSPITAL PROVINCIAL DE JULCAN - JULCAN - JULCAN", "00005306"],
+  ["HOSPITAL PROVINCIAL DE TAYABAMBA - PATAZ - TAYABAMBA", "00005375"],
+  ["HOSPITAL PROVINCIAL DE VIRU - VIRU - VIRU", "00005251"],
+  ["HUACAMOCHAL - OTUZCO - USQUIL", "00016899"],
+  ["HUACAPONGO - VIRU - VIRU", "00005254"],
+  ["HUAGAL - JULCAN - CALAMARCA", "00016424"],
+  ["HUAGUIL - SANCHEZ CARRION - CHUGAY", "00018297"],
+  ["HUALASGOSDAY - SANCHEZ CARRION - SANAGORAN", "00007240"],
+  ["HUAMAN - TRUJILLO - VICTOR LARCO HERRERA", "00005246"],
+  ["HUANCAQUITO ALTO - VIRU - VIRU", "00005252"],
+  ["HUANCAQUITO BAJO - VIRU - VIRU", "00009689"],
+  ["HUANCASPATA - PATAZ - HUANCASPATA", "00005380"],
+  ["HUANCAY - GRAN CHIMU - MARMOT", "00016831"],
+  ["HUANCHACO - TRUJILLO - HUANCHACO", "00005221"],
+  ["HUANCHAQUITO - TRUJILLO - HUANCHACO", "00011629"],
+  ["HUANCHAY - PATAZ - SANTIAGO DE CHALLAS", "00017922"],
+  ["HUARAN UNINGAMBAL - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00013576"],
+  ["HUARANCHAL - OTUZCO - HUARANCHAL", "00005323"],
+  ["HUASO - JULCAN - HUASO", "00005312"],
+  ["HUAYAUCITO - PATAZ - CHILLIA", "00005379"],
+  ["HUAYLILLAS - PATAZ - HUAYLILLAS", "00005381"],
+  ["HUAYLLAGUAL - SANCHEZ CARRION - CURGOS", "00021651"],
+  ["HUAYO - GRAN CHIMU - LUCMA", "00009814"],
+  ["HUAYO - PATAZ - HUAYO", "00005382"],
+  ["HUAYOBAMBA - OTUZCO - HUARANCHAL", "00005324"],
+  ["INDOAMERICA - TRUJILLO - EL PORVENIR", "00005215"],
+  ["JEQUETEPEQUE - PACASMAYO - JEQUETEPEQUE", "00005295"],
+  ["JOSE CARLOS MARIATEGUI - SANTIAGO DE CHUCO - QUIRUVILCA", "00017340"],
+  ["LA BANDA - GRAN CHIMU - LUCMA", "00005282"],
+  ["LA CABAÑA - TRUJILLO - FLORENCIA DE MORA", "00017752"],
+  ["LA COLPA - GRAN CHIMU - SAYAPULLO", "00006962"],
+  ["LA CUESTA - OTUZCO - LA CUESTA", "00005247"],
+  ["LA MORADA - OTUZCO - AGALLPAMPA", "00013930"],
+  ["LA RAMADA - OTUZCO - CHARAT", "00016898"],
+  ["LA UNION - JULCAN - HUASO", "00016422"],
+  ["LA UNION - TRUJILLO - TRUJILLO", "00005199"],
+  ["LA VEGA - JULCAN - HUASO", "00006772"],
+  ["LA VICTORIA - SANCHEZ CARRION - SARTIMBAMBA", "00017925"],
+  ["LA YEGUADA - SANTIAGO DE CHUCO - MOLLEPATA", "00017586"],
+  ["LABUNDAY - OTUZCO - AGALLPAMPA", "00024601"],
+  ["LIBERACION SOCIAL - TRUJILLO - VICTOR LARCO HERRERA", "00005245"],
+  ["LIBERTAD - TRUJILLO - TRUJILLO", "00005206"],
+  ["LLACUABAMBA - PATAZ - PARCOY", "00005386"],
+  ["LLAGUEN - OTUZCO - SINSICAP", "00005276"],
+  ["LLAMPAO - PATAZ - BULDIBUYO", "00018091"],
+  ["LLUCHUBAMBA - PATAZ - CHILLIA", "00018806"],
+  ["LLUCHUBAMBA - SANCHEZ CARRION - MARCABAL", "00013794"],
+  ["LLUIN - OTUZCO - MACHE", "00012823"],
+  ["LONGOTEA - BOLIVAR - LONGOTEA", "00005371"],
+  ["LOS GRANADOS \"SAGRADO CORAZON\" - TRUJILLO - TRUJILLO", "00005203"],
+  ["LOS JARDINES - TRUJILLO - TRUJILLO", "00005200"],
+  ["LUCMA - GRAN CHIMU - LUCMA", "00005281"],
+  ["M.I. EL MILAGRO - TRUJILLO - HUANCHACO", "00005222"],
+  ["MACABI BAJO - ASCOPE - PAIJAN", "00005270"],
+  ["MACHE - OTUZCO - MACHE", "00005325"],
+  ["MAGDALENA DE CAO - ASCOPE - MAGDALENA DE CAO", "00005268"],
+  ["MANUEL AREVALO - TRUJILLO - LA ESPERANZA", "00007115"],
+  ["MARCABAL GRANDE - SANCHEZ CARRION - SARTIMBAMBA", "00005365"],
+  ["MARCABALITO - SANCHEZ CARRION - MARCABAL", "00005358"],
+  ["MARISCAL CASTILLA - PACASMAYO - GUADALUPE", "00015186"],
+  ["MAZANCA - PACASMAYO - SAN PEDRO DE LLOC", "00005290"],
+  ["MENOCUCHO - TRUJILLO - LAREDO", "00005232"],
+  ["MIGUEL GRAU - TRUJILLO - EL PORVENIR", "00005212"],
+  ["MOCAN - ASCOPE - CASA GRANDE", "00005274"],
+  ["MOLINO VIEJO - SANCHEZ CARRION - COCHORCO", "00013808"],
+  ["MOLINOS DE CAJANLEQUE - ASCOPE - CHOCOPE", "00005267"],
+  ["MOLLEBAMBA - SANTIAGO DE CHUCO - MOLLEBAMBA", "00005339"],
+  ["MOLLEPATA - SANTIAGO DE CHUCO - MOLLEPATA", "00005341"],
+  ["MONCHACAP - OTUZCO - USQUIL", "00005320"],
+  ["MOTIL - OTUZCO - AGALLPAMPA", "00013931"],
+  ["MUNGURRAL - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00011942"],
+  ["MUNMALCA - SANCHEZ CARRION - SARIN", "00011624"],
+  ["NARANJOPAMPA - SANCHEZ CARRION - MARCABAL", "00013827"],
+  ["NIMPANA - PATAZ - PATAZ", "00005370"],
+  ["NUEVO CHAO - VIRU - CHAO", "00007457"],
+  ["NUEVO HUAYCHO - SANCHEZ CARRION - CHUGAY", "00024527"],
+  ["ONGON - PATAZ - ONGON", "00005383"],
+  ["OROGOLDAY - SANCHEZ CARRION - SARIN", "00005362"],
+  ["OSAIGUE - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00017587"],
+  ["OYON - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00005336"],
+  ["PACANGA - CHEPEN - PACANGA", "00005301"],
+  ["PACANGUILLA - CHEPEN - PACANGA", "00005302"],
+  ["PACHIN ALTO - OTUZCO - OTUZCO", "00006932"],
+  ["PAIHUAL - OTUZCO - AGALLPAMPA", "00013928"],
+  ["PAIJAN - ASCOPE - PAIJAN", "00005269"],
+  ["PALLAR ALTO - SANCHEZ CARRION - HUAMACHUCO", "00029010"],
+  ["PAMPA GRANDE - OTUZCO - OTUZCO", "00018299"],
+  ["PANGO - OTUZCO - OTUZCO", "00005315"],
+  ["PARAISO - OTUZCO - AGALLPAMPA", "00006933"],
+  ["PARAN - PATAZ - CHILLIA", "00018807"],
+  ["PARANDAY - OTUZCO - PARANDAY", "00005248"],
+  ["PARASIVE - JULCAN - HUASO", "00005313"],
+  ["PARCOY - PATAZ - PARCOY", "00005385"],
+  ["PARIAMARCA - PATAZ - URPAY", "00005394"],
+  ["PARUQUE BAJO - JULCAN - JULCAN", "00006774"],
+  ["PATAZ - PATAZ - PATAZ", "00005389"],
+  ["PESQUEDA III - TRUJILLO - TRUJILLO", "00005207"],
+  ["PIAS - PATAZ - PIAS", "00005390"],
+  ["PIJOBAMBA - SANTIAGO DE CHUCO - SITABAMBA", "00005347"],
+  ["POMABAMBA - SANCHEZ CARRION - SARTIMBAMBA", "00035704"],
+  ["POROTO - TRUJILLO - POROTO", "00005238"],
+  ["PORTADA DE LA SIERRA - PACASMAYO - SAN JOSE", "00036166"],
+  ["PUEBLO LIBRE - OTUZCO - AGALLPAMPA", "00013929"],
+  ["PUEBLO LIBRE - PATAZ - HUANCASPATA", "00012357"],
+  ["PUEBLO LIBRE. - TRUJILLO - LA ESPERANZA", "00005228"],
+  ["PUEBLO NUEVO - CHEPEN - PUEBLO NUEVO", "00005303"],
+  ["PUENTE CHAO - VIRU - CHAO", "00005258"],
+  ["PUENTE PIEDRA - SANCHEZ CARRION - HUAMACHUCO", "00005351"],
+  ["PUERTO MORIN - VIRU - VIRU", "00005257"],
+  ["PUESTO DE SALUD AHIJADERO - SANCHEZ CARRION - CHUGAY", "00029509"],
+  ["PUESTO DE SALUD CHOROBAMBA - SANCHEZ CARRION - MARCABAL", "00037261"],
+  ["PUESTO DE SALUD FUSTAN ALTO - SANCHEZ CARRION - MARCABAL", "00037260"],
+  ["PUESTO DE SALUD MUSHIT - SANCHEZ CARRION - CHUGAY", "00036951"],
+  ["PUESTO DE SALUD PAJA BLANCA - SANCHEZ CARRION - CHUGAY", "00031804"],
+  ["PUESTO DE SALUD SHALCAPATA - SANCHEZ CARRION - MARCABAL", "00037259"],
+  ["PUNCHAYPAMPA - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00005334"],
+  ["PUNTA MORENO - GRAN CHIMU - CASCAS", "00005279"],
+  ["PUSAC - BOLIVAR - LONGOTEA", "00005372"],
+  ["QUIRUVILCA - SANTIAGO DE CHUCO - QUIRUVILCA", "00005342"],
+  ["RAMON CASTILLA - OTUZCO - OTUZCO", "00005317"],
+  ["RAYAMPAMPA - OTUZCO - SALPO", "00013043"],
+  ["RAZURI - ASCOPE - RAZURI", "00005271"],
+  ["RECUAYCITO - GRAN CHIMU - LUCMA", "00016937"],
+  ["RIO SECO - \"SANTA ROSA\" - TRUJILLO - EL PORVENIR", "00005213"],
+  ["SALAVERRY - TRUJILLO - SALAVERRY", "00005239"],
+  ["SALPO - OTUZCO - SALPO", "00005326"],
+  ["SAMNE - OTUZCO - OTUZCO", "00005316"],
+  ["SAN AGUSTIN - JULCAN - JULCAN", "00007249"],
+  ["SAN AGUSTIN - OTUZCO - AGALLPAMPA", "00013932"],
+  ["SAN ALFONSO - SANCHEZ CARRION - SARTIMBAMBA", "00005364"],
+  ["SAN ANTONIO - JULCAN - JULCAN", "00016423"],
+  ["SAN FELIPE - GRAN CHIMU - CASCAS", "00005278"],
+  ["SAN IDELFONSO - CHEPEN - PUEBLO NUEVO", "00005304"],
+  ["SAN IGNACIO DE LOYOLA - OTUZCO - SINSICAP", "00005250"],
+  ["SAN ISIDRO - OTUZCO - OTUZCO", "00006931"],
+  ["SAN JOSE - PACASMAYO - SAN JOSE", "00005297"],
+  ["SAN JOSE DE PORCON - SANTIAGO DE CHUCO - QUIRUVILCA", "00011945"],
+  ["SAN JOSE DE SALO BAJO - JULCAN - CARABAMBA", "00005311"],
+  ["SAN MARTIN - TRUJILLO - LA ESPERANZA", "00005227"],
+  ["SAN MARTIN DE PORRES - PACASMAYO - SAN JOSE", "00005298"],
+  ["SAN MARTIN DE PORRES - TRUJILLO - TRUJILLO", "00005198"],
+  ["SAN PEDRO - LAS DELICIAS - TRUJILLO - MOCHE", "00005237"],
+  ["SANAGORAN - SANCHEZ CARRION - SANAGORAN", "00005359"],
+  ["SANTA CATALINA - PACASMAYO - SAN PEDRO DE LLOC", "00005289"],
+  ["SANTA CLARA DE TULPO - SANTIAGO DE CHUCO - MOLLEBAMBA", "00005340"],
+  ["SANTA CRUZ DE CHUCA - SANTIAGO DE CHUCO - SANTA CRUZ DE CHUCA", "00005345"],
+  ["SANTA ELENA - VIRU - VIRU", "00016609"],
+  ["SANTA LUCIA DE MOCHE - TRUJILLO - MOCHE", "00005234"],
+  ["SANTA RITA - VIRU - CHAO", "00005259"],
+  ["SANTA ROSA - CHEPEN - PUEBLO NUEVO", "00005305"],
+  ["SANTA ROSA - OTUZCO - OTUZCO", "00030225"],
+  ["SANTA ROSA DE CARTAVIO - ASCOPE - SANTIAGO DE CAO", "00031252"],
+  ["SANTA TERESA - JULCAN - JULCAN", "00005307"],
+  ["SANTIAGO DE CAO - ASCOPE - SANTIAGO DE CAO", "00005272"],
+  ["SANTIAGO DE CHALLAS - PATAZ - SANTIAGO DE CHALLAS", "00005391"],
+  ["SANTISIMO SACRAMENTO - TRUJILLO - LA ESPERANZA", "00005225"],
+  ["SANTO DOMINGO - TRUJILLO - LAREDO", "00005233"],
+  ["SANTO TORIBIO DE MOGROVEJO - TRUJILLO - FLORENCIA DE MORA", "00005219"],
+  ["SARIN - SANCHEZ CARRION - SARIN", "00005361"],
+  ["SARTIMBAMBA - SANCHEZ CARRION - SARTIMBAMBA", "00005363"],
+  ["SAUCO - OTUZCO - SALPO", "00031018"],
+  ["SAYAPULLO - GRAN CHIMU - SAYAPULLO", "00005287"],
+  ["SHIRACORRAL - SANCHEZ CARRION - SARIN", "00011628"],
+  ["SHITA - SANCHEZ CARRION - MARCABAL", "00013550"],
+  ["SHOREY CHICO - SANTIAGO DE CHUCO - QUIRUVILCA", "00005343"],
+  ["SHULGON - OTUZCO - SALPO", "00007042"],
+  ["SICCHAL - JULCAN - CALAMARCA", "00005309"],
+  ["SIMBAL - TRUJILLO - SIMBAL", "00005241"],
+  ["SIMBRON - GRAN CHIMU - SAYAPULLO", "00005284"],
+  ["SINSICAP - OTUZCO - SINSICAP", "00005249"],
+  ["SITABAMBA - SANTIAGO DE CHUCO - SITABAMBA", "00005348"],
+  ["SUCCHACENTRO - SANCHEZ CARRION - COCHORCO", "00013800"],
+  ["SUCCHAMARCA - SANCHEZ CARRION - COCHORCO", "00013802"],
+  ["SURUVARA - SANTIAGO DE CHUCO - SANTIAGO DE CHUCO", "00013755"],
+  ["TANGUCHE - VIRU - CHAO", "00006769"],
+  ["TAURIJA - PATAZ - TAURIJA", "00005392"],
+  ["UCHUBAMBA - SANCHEZ CARRION - CHUGAY", "00005353"],
+  ["UCHUCUAYO - PATAZ - PARCOY", "00016974"],
+  ["UCHUMARCA - BOLIVAR - UCHUMARCA", "00005373"],
+  ["UCHUY - SANCHEZ CARRION - CHUGAY", "00017924"],
+  ["UCRUMARCA - PATAZ - TAYABAMBA", "00016646"],
+  ["UCTUBAMBA - PATAZ - ONGON", "00005384"],
+  ["UCUNCHA - BOLIVAR - UCUNCHA", "00005374"],
+  ["UNINGAMBAL - JULCAN - HUASO", "00005335"],
+  ["URPAY - PATAZ - URPAY", "00005393"],
+  ["USCA - PATAZ - HUAYO", "00017632"],
+  ["USHNOVAL - SANTIAGO DE CHUCO - SITABAMBA", "00013754"],
+  ["USQUIL - OTUZCO - USQUIL", "00005328"],
+  ["VAQUERIA DE ANDAS - PATAZ - PARCOY", "00005387"],
+  ["VENTANAS - SANCHEZ CARRION - SANAGORAN", "00005360"],
+  ["VICTOR LARCO - TRUJILLO - VICTOR LARCO HERRERA", "00005242"],
+  ["VICTOR RAUL - TRUJILLO - EL PORVENIR", "00005214"],
+  ["VICTOR RAUL HAYA DE LA TORRE - TRUJILLO - HUANCHACO", "00012228"],
+  ["VICTOR RAUL HAYA DE LA TORRE - VIRU - VIRU", "00006827"],
+  ["VIJUS - PATAZ - PATAZ", "00007239"],
+  ["VILLA DEL MAR - TRUJILLO - HUANCHACO", "00005223"],
+  ["VILLA MARIA - JULCAN - CARABAMBA", "00006773"],
+  ["VILLA SAN ISIDRO - PACASMAYO - GUADALUPE", "00005294"],
+  ["VILLACRUZ DE ALGALLAMA - SANTIAGO DE CHUCO - SANTA CRUZ DE CHUCA", "00011944"],
+  ["VIRGEN DEL CARMEN - TRUJILLO - EL PORVENIR", "00005216"],
+  ["WICHANZAO - TRUJILLO - LA ESPERANZA", "00005230"],
+  ["ZARUMILLA - PATAZ - PATAZ", "00031853"],
+];
+
 var QX_ESTADOS = [
   ['en_tramite','En trámite'],
   ['apta_para_sala','Apta para sala'],
@@ -5589,6 +5927,50 @@ function qxWizOpt(k, val, label){
   return '<option value="'+val+'"'+sel+'>'+label+'</option>';
 }
 
+/* Picker de "Establecimiento origen" con búsqueda por palabra sobre CAT_ORIGEN. */
+function qxOrigenPicker(){
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.id = 'qxOrigenOv';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Establecimiento origen</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-field"><input id="qxOrigenBusca" placeholder="Buscar por nombre, distrito o código…" oninput="qxOrigenFiltrar(this.value)"></div>'
+    + '<div id="qxOrigenLista" style="max-height:56vh;overflow-y:auto;margin-top:8px;border:1px solid var(--bd);border-radius:10px"></div>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  var b = document.getElementById('qxOrigenBusca'); if (b) b.focus();
+  qxOrigenFiltrar('');
+}
+
+function qxOrigenFiltrar(txt){
+  var lista = document.getElementById('qxOrigenLista'); if (!lista) return;
+  var q = qxNorm(txt || '');
+  var html = '', n = 0;
+  for (var i=0;i<QX_CAT_ORIGEN.length;i++){
+    var nombre = QX_CAT_ORIGEN[i][0];
+    var cod = QX_CAT_ORIGEN[i][1];
+    if (q && qxNorm(nombre).indexOf(q)===-1 && qxNorm(cod).indexOf(q)===-1) continue;
+    html += '<div style="padding:10px 12px;border-bottom:1px solid var(--bd);cursor:pointer" onclick="qxOrigenElegir('+i+')">'
+      + '<div style="font-size:12px;color:var(--t1);line-height:1.25">'+qxEsc(nombre)+'</div>'
+      + (cod ? '<div style="font-size:10px;color:var(--t3);margin-top:1px">Código '+qxEsc(cod)+'</div>' : '')
+      + '</div>';
+    n++;
+    if (n>=120){ html += '<div style="padding:10px;font-size:11px;color:var(--t3);text-align:center">Muestra 120 resultados · afina la búsqueda</div>'; break; }
+  }
+  if (!html) html = '<div style="padding:14px;font-size:12px;color:var(--t3);text-align:center">Sin resultados para “'+qxEsc(txt||'')+'”</div>';
+  lista.innerHTML = html;
+}
+
+function qxOrigenElegir(i){
+  var e = QX_CAT_ORIGEN[i]; if (!e) return;
+  QX_WIZ_DATOS.establecimiento_origen = e[0];
+  QX_WIZ_DATOS.codigo_origen = e[1] || '';
+  var inp = document.getElementById('qxW_establecimiento_origen'); if (inp) inp.value = e[0];
+  var cod = document.getElementById('qxW_codigo_origen'); if (cod) cod.value = e[1] || '';
+  var ov = document.getElementById('qxOrigenOv'); if (ov) ov.remove();
+}
+
 async function qxProximoIdRegistro(){
   var max = 0;
   try {
@@ -5616,10 +5998,10 @@ async function qxFormulario(p){
     QX_WIZ_DATOS.fecha_captacion = qxHoyStr();
     QX_WIZ_DATOS.laboratorio_completo = false;
     QX_WIZ_DATOS.ekg = false;
-    QX_WIZ_DATOS.establecimiento_destino = 'HOSPITAL DISTRITAL DE LAREDO';
-    QX_WIZ_DATOS.codigo_destino = '5231';
-    QX_WIZ_DATOS.establecimiento_origen = 'HOSPITAL DISTRITAL DE LAREDO';
-    QX_WIZ_DATOS.codigo_origen = '5231';
+    QX_WIZ_DATOS.establecimiento_destino = 'HOSPITAL DISTRITAL LAREDO';
+    QX_WIZ_DATOS.codigo_destino = '00005231';
+    QX_WIZ_DATOS.establecimiento_origen = 'N.A. - Paciente propio / no referido';
+    QX_WIZ_DATOS.codigo_origen = '';
     QX_WIZ_DATOS.id_registro = await qxProximoIdRegistro();
   }
   var ov = document.createElement('div');
@@ -5653,14 +6035,14 @@ function qxWizPaso1Html(){
     + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+'</select></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxW_hcl" placeholder="N° historia" value="'+qxWizV('hcl')+'"></div>'
     + '<div class="qx-field"><label>Celular</label><input id="qxW_telefono" placeholder="9XXXXXXXX" value="'+qxWizV('telefono')+'"></div></div>'
-    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+qxWizOpt('tipo_seguro','ESSALUD','ESSALUD')+qxWizOpt('tipo_seguro','SOAT','SOAT')+qxWizOpt('tipo_seguro','Particular','Particular')+qxWizOpt('tipo_seguro','Otro','Otro')+'</select></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+qxWizOpt('tipo_seguro','ESSALUD','ESSALUD')+qxWizOpt('tipo_seguro','FISSAL','FISSAL')+qxWizOpt('tipo_seguro','Particular','Particular')+qxWizOpt('tipo_seguro','Otro','Otro')+'</select></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Fecha de referencia aceptada <span style="color:var(--t3);font-weight:400">(fecha de captación)</span></label><input type="date" id="qxW_fecha_captacion" value="'+qxWizV('fecha_captacion')+'"></div>'
     + '<div class="qx-field"><label>Interno de medicina</label><input id="qxW_interno_medicina" placeholder="Nombre del interno" value="'+qxWizV('interno_medicina')+'"></div></div>'
     + '<div style="border-top:1px solid var(--bd);margin:14px 0 6px;padding-top:10px;font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.3px">Establecimientos (referencia)</div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Establecimiento destino</label><input id="qxW_establecimiento_destino" placeholder="HOSPITAL DISTRITAL DE LAREDO" value="'+qxWizV('establecimiento_destino')+'"></div>'
-    + '<div class="qx-field"><label>Código destino</label><input id="qxW_codigo_destino" placeholder="5231" value="'+qxWizV('codigo_destino')+'"></div></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Establecimiento origen</label><input id="qxW_establecimiento_origen" placeholder="HOSPITAL DISTRITAL DE LAREDO" value="'+qxWizV('establecimiento_origen')+'"></div>'
-    + '<div class="qx-field"><label>Código origen</label><input id="qxW_codigo_origen" placeholder="5231" value="'+qxWizV('codigo_origen')+'"></div></div>';
+    + '<div class="qx-row"><div class="qx-field"><label>Establecimiento destino</label><input id="qxW_establecimiento_destino" placeholder="HOSPITAL DISTRITAL LAREDO" value="'+qxWizV('establecimiento_destino')+'"></div>'
+    + '<div class="qx-field"><label>Código destino</label><input id="qxW_codigo_destino" placeholder="00005231" value="'+qxWizV('codigo_destino')+'"></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Establecimiento origen</label><input id="qxW_establecimiento_origen" placeholder="N.A. - Paciente propio / no referido" value="'+qxWizV('establecimiento_origen')+'" readonly onclick="qxOrigenPicker()" style="cursor:pointer;background:var(--s2)"><div style="font-size:10px;color:var(--t3);margin-top:2px">Toque para buscar 🔍</div></div>'
+    + '<div class="qx-field"><label>Código origen</label><input id="qxW_codigo_origen" placeholder="(vacío si es propio)" value="'+qxWizV('codigo_origen')+'" readonly></div></div>';
 }
 
 function qxWizPaso2Html(){
@@ -5709,7 +6091,7 @@ function qxWizPaso6Html(){
     + '<div class="qx-field"><label>N° orden de intervención</label><input id="qxW_orden_intervencion" placeholder="ej. 01" value="'+qxWizV('orden_intervencion')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Fecha de cirugía</label><input type="date" id="qxW_fecha_cirugia" value="'+qxWizV('fecha_cirugia')+'"></div>'
     + '<div class="qx-field"><label>Turno</label><select id="qxW_turno">'+qxWizOpt('turno','','—')+qxWizOpt('turno','manana','Mañana')+qxWizOpt('turno','tarde','Tarde')+'</select></div></div>'
-    + '<div class="qx-field"><label>Motivo de espera</label><input id="qxW_motivo_espera" placeholder="ej. En lista de espera, SUSPENDIDO, REFERIDO…" value="'+qxWizV('motivo_espera')+'"></div>'
+    + '<div class="qx-field"><label>Motivo de espera</label><select id="qxW_motivo_espera">'+qxWizOpt('motivo_espera','','—')+qxWizOpt('motivo_espera','Falta de insumos quirúrgicos','Falta de insumos quirúrgicos')+qxWizOpt('motivo_espera','Falta de medicamentos','Falta de medicamentos')+qxWizOpt('motivo_espera','Inoperatividad de sala de operaciones','Inoperatividad de sala de operaciones')+qxWizOpt('motivo_espera','Central de esterilización en mantenimiento','Central de esterilización en mantenimiento')+qxWizOpt('motivo_espera','Falta de recurso humano','Falta de recurso humano')+qxWizOpt('motivo_espera','Equipo biomédico inoperativo y/o en mantenimiento','Equipo biomédico inoperativo y/o en mantenimiento')+qxWizOpt('motivo_espera','Otros','Otros')+'</select></div>'
     + '<div class="qx-field"><label>Detalle del motivo de espera</label><input id="qxW_detalle_motivo_espera" placeholder="Opcional" value="'+qxWizV('detalle_motivo_espera')+'"></div>';
 }
 
@@ -6046,7 +6428,8 @@ function qxResolverSusp(){
   ov.innerHTML = '<div class="qx-sheet">'
     + '<div class="qx-sheet-head"><h3>Suspender cirugía</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
     + '<div class="qx-sheet-body">'
-    + '<div class="qx-field"><label>Motivo de la suspensión</label><textarea id="qxMotivo" rows="3" placeholder="Ej: paciente no se presentó, falta de exámenes..."></textarea></div>'
+    + '<div class="qx-field"><label>Motivo de la suspensión</label><select id="qxMotivo"><option value="">Selecciona…</option><option>Paciente no acudió el día de la cirugía</option><option>Incumplimiento de preparación preoperatoria / ayuno</option><option>Condición clínica no favorable del paciente</option><option>Evaluación anestésica no favorable</option><option>Falta de insumos quirúrgicos</option><option>Falta de medicamentos</option><option>Inoperatividad de sala de operaciones</option><option>Central de esterilización en mantenimiento</option><option>Falta de recurso humano</option><option>Equipo biomédico inoperativo y/o en mantenimiento</option><option>Emergencia quirúrgica desplazó la programación</option><option>Error administrativo o de programación</option><option>Otro motivo</option></select></div>'
+    + '<div class="qx-field"><label>Detalle (opcional)</label><textarea id="qxDetalleSusp" rows="2" placeholder="Complemento del motivo"></textarea></div>'
     + '<button class="qx-btn" style="background:#dc2626;width:100%" onclick="qxConfirmarSusp()">Confirmar suspensión</button>'
     + '</div></div>';
   document.body.appendChild(ov);
@@ -6068,10 +6451,12 @@ function qxResolverRef(){
 async function qxConfirmarSusp(){
   var motivo = document.getElementById('qxMotivo').value.trim();
   if (!motivo){ toast('Indica el motivo','error'); return; }
+  var detalle = document.getElementById('qxDetalleSusp').value.trim();
   var p = QX_ACTUAL;
-  var res = await sb.from('pacientes').update({motivo_suspension:motivo, referencia_hospital:null}).eq('id',p.id);
+  var res = await sb.from('pacientes').update({motivo_suspension:motivo, detalle_suspension:detalle||null, referencia_hospital:null}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p.motivo_suspension = motivo;
+  p.detalle_suspension = detalle||null;
   p.referencia_hospital = null;
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   await qxSetEstado(p,'suspendida',motivo);
@@ -6153,7 +6538,7 @@ function qxEditarBasicos(){
     + '<div class="qx-field"><label>Sexo</label><select id="qxESexo"><option value="Femenino"'+(p.sexo==='Femenino'?' selected':'')+'>Femenino</option></select></div></div>'
     + '<div class="qx-field"><label>Diagnóstico</label><textarea id="qxEDx" rows="2">'+qxEsc(p.diagnostico||'')+'</textarea></div>'
     + '<div class="qx-row"><div class="qx-field"><label>CIE-10</label><input id="qxECie10" value="'+qxEsc(p.cie10||'')+'" placeholder="ej. N80"></div>'
-    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxESeguro"><option value="">—</option><option value="SIS"'+(p.tipo_seguro==='SIS'?' selected':'')+'>SIS</option></select></div></div>'
+    + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxESeguro"><option value="">—</option><option value="SIS"'+(p.tipo_seguro==='SIS'?' selected':'')+'>SIS</option><option value="FISSAL"'+(p.tipo_seguro==='FISSAL'?' selected':'')+'>FISSAL</option><option value="ESSALUD"'+(p.tipo_seguro==='ESSALUD'?' selected':'')+'>ESSALUD</option><option value="Particular"'+(p.tipo_seguro==='Particular'?' selected':'')+'>Particular</option><option value="Otro"'+(p.tipo_seguro==='Otro'?' selected':'')+'>Otro</option></select></div></div>'
     + '<div class="qx-field"><label>Procedimiento quirúrgico</label><input id="qxEProcedimiento" value="'+qxEsc(p.procedimiento||'')+'" placeholder="ej. Quistectomía"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Tipo de anestesia</label><select id="qxEAnestesia"><option value="">—</option><option value="REGIONAL"'+(p.tipo_anestesia==='REGIONAL'?' selected':'')+'>REGIONAL</option><option value="GENERAL"'+(p.tipo_anestesia==='GENERAL'?' selected':'')+'>GENERAL</option><option value="LOCAL"'+(p.tipo_anestesia==='LOCAL'?' selected':'')+'>LOCAL</option><option value="COMBINADA"'+(p.tipo_anestesia==='COMBINADA'?' selected':'')+'>COMBINADA</option><option value="RAQUIDEA"'+(p.tipo_anestesia==='RAQUIDEA'?' selected':'')+'>RAQUIDEA</option></select></div>'
     + '<div class="qx-field"><label>Nivel de cirugía</label><select id="qxENivel"><option value="">—</option><option value="Menor"'+(p.nivel_cirugia==='Menor'?' selected':'')+'>Menor</option><option value="Mayor"'+(p.nivel_cirugia==='Mayor'?' selected':'')+'>Mayor</option><option value="Alta complejidad"'+(p.nivel_cirugia==='Alta complejidad'?' selected':'')+'>Alta complejidad</option></select></div></div>'
@@ -6169,6 +6554,8 @@ function qxEditarBasicos(){
     + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes?</label><select id="qxEImagenes"><option value="">—</option><option value="Sí"'+(p.aplica_imagenes==='Sí'?' selected':'')+'>Sí</option><option value="No"'+(p.aplica_imagenes==='No'?' selected':'')+'>No</option></select></div>'
     + '<div class="qx-field"><label>F. diagnóstico por imágenes</label><input type="date" id="qxEFechaImg" value="'+(p.fecha_imagenes||'')+'"></div></div>'
     + '<div class="qx-field"><label>F. evaluación preoperatoria</label><input type="date" id="qxEFechaEvalPreop" value="'+(p.fecha_evaluacion_preoperatoria||'')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Lugar de la cirugía</label><input id="qxELugar" value="'+qxEsc(p.lugar_cirugia||'')+'" placeholder="HOSPITAL DISTRITAL LAREDO"></div>'
+    + '<div class="qx-field"><label>Observación</label><input id="qxEObs" value="'+qxEsc(p.observacion||'')+'" placeholder="Opcional"></div></div>'
     + '</details>'
     + '<button class="qx-btn" style="width:100%" onclick="qxGuardarEdicion()">Guardar</button>'
     + '</div></div>';
@@ -6200,6 +6587,8 @@ async function qxGuardarEdicion(){
   var fimg = document.getElementById('qxEFechaImg').value.trim();
   var fevalpre = document.getElementById('qxEFechaEvalPreop').value.trim();
   var orden = document.getElementById('qxEOrden').value.trim();
+  var lugar = document.getElementById('qxELugar').value.trim();
+  var obs = document.getElementById('qxEObs').value.trim();
   var res = await sb.from('pacientes').update({
     dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null,
     edad: isNaN(edad) ? null : edad, sexo: sexo||null, diagnostico: dx||null,
@@ -6209,7 +6598,8 @@ async function qxGuardarEdicion(){
     cie10_tercero: cie10ter||null, diagnostico_tercero: dxter||null,
     codigo_procedimiento: codproc||null, fecha_primera_evaluacion: fprim||null,
     aplica_imagenes: img||null, fecha_imagenes: fimg||null,
-    fecha_evaluacion_preoperatoria: fevalpre||null, orden_intervencion: orden||null
+    fecha_evaluacion_preoperatoria: fevalpre||null, orden_intervencion: orden||null,
+    lugar_cirugia: lugar||null, observacion: obs||null
   }).eq('id', p.id);
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
@@ -6225,6 +6615,7 @@ async function qxGuardarEdicion(){
   p.codigo_procedimiento = codproc||null; p.fecha_primera_evaluacion = fprim||null;
   p.aplica_imagenes = img||null; p.fecha_imagenes = fimg||null;
   p.fecha_evaluacion_preoperatoria = fevalpre||null; p.orden_intervencion = orden||null;
+  p.lugar_cirugia = lugar||null; p.observacion = obs||null;
   toast('Datos actualizados ✓','success');
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   qxSyncSheets(p.id);
