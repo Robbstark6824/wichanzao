@@ -503,6 +503,35 @@ function upsert(ssId, sheetName, values, p) {
   return targetRow;
 }
 
+/* Borra TODAS las filas de una hoja cuyo DNI coincide (normalmente 1).
+ * Solo se dispara cuando eliminan una paciente en la app, así que es
+ * una acción deliberada del usuario, no una limpieza automática. */
+function borrarDeHoja(ssId, sheetName, dni) {
+  var ss = SpreadsheetApp.openById(ssId);
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('No se encontró la pestaña "' + sheetName + '" (ID ' + ssId + ').');
+  var headerRow = findHeaderRow(sheet);
+  if (!headerRow) throw new Error('No se encontró el encabezado "ID registro" en "' + sheetName + '".');
+
+  var colMap = buildColumnMap(sheet, headerRow);
+  var dniCol = colMap['dni'];
+  if (!dniCol) return { ok: true, filasBorradas: 0 };
+
+  var lastRow = sheet.getLastRow();
+  var dniData = sheet.getRange(headerRow + 1, dniCol, lastRow - headerRow, 1).getValues();
+
+  // Recorrer de abajo hacia arriba para no desfasar los índices al borrar.
+  var filasBorradas = 0;
+  var dniBuscado = String(dni || '').trim();
+  for (var i = dniData.length - 1; i >= 0; i--) {
+    if (String(dniData[i][0]).trim() === dniBuscado) {
+      sheet.deleteRow(headerRow + 1 + i);
+      filasBorradas++;
+    }
+  }
+  return { ok: true, filasBorradas: filasBorradas };
+}
+
 /* ============================================================
  * Endpoint
  * ============================================================ */
@@ -517,6 +546,18 @@ function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents || '{}');
     if (body.token !== TOKEN) return json({ ok: false, error: 'token no válido' });
+
+    // Borrado explícito (eliminar paciente en la app): borra por DNI en ambas hojas.
+    if (body.accion === 'borrar') {
+      if (!body.dni) return json({ ok: false, error: 'falta dni' });
+      var d1 = { ok: false, error: '' }, d2 = { ok: false, error: '' };
+      try { d1 = borrarDeHoja(SS_ID, SHEET_NAME, body.dni); }
+      catch (err) { d1 = { ok: false, error: String(err) }; }
+      try { d2 = borrarDeHoja(SS_ID_2, SHEET_NAME_2, body.dni); }
+      catch (err) { d2 = { ok: false, error: String(err) }; }
+      return json({ ok: (d1.ok && d2.ok), antiguo: d1, oficial: d2 });
+    }
+
     var p = body.paciente || {};
     if (!p.dni) return json({ ok: false, error: 'falta dni' });
 

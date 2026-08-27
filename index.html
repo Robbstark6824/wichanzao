@@ -6639,8 +6639,19 @@ function qxConfirmarEliminar(){
 
 async function qxEliminar(){
   var p = QX_ACTUAL; if (!p) return;
+  var dni = p.dni;
   var res = await sb.from('pacientes').delete().eq('id', p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  // Borrar también de las dos hojas de GERESA (mejor esfuerzo: no bloquea si falla).
+  if (dni) {
+    try {
+      await fetch(QX_SHEET_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'borrar', dni: dni })
+      });
+    } catch(e) { console.error('sheet delete:', e); }
+  }
   toast('Paciente eliminada ✓','success');
   document.querySelectorAll('.qx-overlay').forEach(function(o){ o.remove(); });
   QX_ACTUAL = null;
