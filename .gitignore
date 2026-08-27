@@ -26,3 +26,7 @@ tools/migrate-011.js
 
 # Sincronización completa app→hoja GERESA (credenciales BD embebidas)
 tools/sync-geresa-full.js
+
+# Exports del sheet GERESA (contienen DNIs y nombres de pacientes) — NUNCA subir
+gs.csv
+/*.csv
