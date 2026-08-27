@@ -336,71 +336,47 @@ function buildValuesNew(p) {
 }
 
 /* ============================================================
- * MAPEO para la hoja ANTIGUA (formato "FILA AZUL", sin cambios)
+ * MAPEO para la hoja ANTIGUA (formato "FILA AZUL").
+ * Los VALORES ahora siguen el catálogo oficial GERESA (igual que la
+ * hoja oficial): una sola fuente de instrucciones para ambas hojas.
+ * La hoja antigua solo recibe el subconjunto de columnas que tiene,
+ * pero con los mismos valores que la hoja oficial.
  * ============================================================ */
 
-var ESTADO_PROGRAMACION_MAP = {
-  en_tramite: '', apta_para_sala: 'Pendiente de fecha',
-  programada: 'PROGRAMADO', hospitalizada: 'PROGRAMADO',
-  operada: 'PROGRAMADO', suspendida: 'PROGRAMADO', referida: 'PROGRAMADO'
-};
-var ESTADO_ACTUAL_MAP = {
-  en_tramite: 'En lista de espera', apta_para_sala: 'En lista de espera',
-  programada: 'En lista de espera', hospitalizada: 'En lista de espera',
-  operada: 'Operado', suspendida: 'Suspendido', referida: 'Referido'
-};
-
-function mapSexo(s) {
-  var n = norm(s);
-  if (n === 'femenino' || n === 'f' || n === 'mujer') return 'F';
-  if (n === 'masculino' || n === 'm' || n === 'hombre') return 'M';
-  return s || '';
-}
-function resultadoPreop(p) {
-  if (p.riesgo_qx === true && p.riesgo_anestesiologico === true) return 'APTO';
-  return 'NO APTO';
-}
-function motivoEspera(p) {
-  if (p.estado === 'suspendida') return { motivo: 'SUSPENDIDO', detalle: p.motivo_suspension || '' };
-  if (p.estado === 'referida')   return { motivo: 'REFERIDO',   detalle: p.referencia_hospital || '' };
-  if (p.estado === 'operada')    return { motivo: '',           detalle: '' };
-  return { motivo: 'En lista de espera', detalle: '' };
-}
-
 function buildValuesOld(p) {
-  var mo = motivoEspera(p);
+  var o = resolverOrigen(p);
   var v = {};
   if (p.id_registro != null && p.id_registro !== '') v['id registro'] = p.id_registro;
   v['establecimiento quirurgico destino'] = p.establecimiento_destino || CONSTANTES.establecimientoDestino;
   v['codigo unico destino']              = p.codigo_destino || CONSTANTES.codigoDestino;
   v['red/ris destino']                   = CONSTANTES.red;
-  v['establecimiento origen que refiere'] = p.establecimiento_origen || CONSTANTES.establecimientoOrigen;
-  v['codigo unico origen']               = p.codigo_origen || CONSTANTES.codigoOrigen;
-  v['provincia origen']                  = CONSTANTES.provincia;
-  v['distrito origen']                   = CONSTANTES.distrito;
-  v['fecha referencia aceptada']         = fmtFecha(p.fecha_captacion);
+  v['establecimiento origen que refiere'] = o.origen;
+  v['codigo unico origen']               = o.codigo;
+  v['provincia origen']                  = o.provincia;
+  v['distrito origen']                   = o.distrito;
+  v['fecha referencia aceptada']         = o.fechaRef;
   v['dni']                               = p.dni;
   v['apellidos y nombres completos']     = p.nombre;
   v['edad']                              = p.edad;
-  v['genero']                            = mapSexo(p.sexo);
+  v['genero']                            = mapGenero(p.sexo);
   v['celular']                           = String(p.telefono || '');
-  v['tipo de seguro']                    = p.tipo_seguro || '';
+  v['tipo de seguro']                    = mapSeguro(p.tipo_seguro);
   v['n° historia clinica']               = p.hcl;
   v['especialidad quirurgica']           = CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
   v['diagnostico principal']             = p.diagnostico;
   v['procedimiento quirurgico propuesto'] = p.procedimiento;
-  v['nivel de cirugia']                  = p.nivel_cirugia;
-  v['tipo de anestesia']                 = p.tipo_anestesia;
+  v['nivel de cirugia']                  = mapNivel(p.nivel_cirugia);
+  v['tipo de anestesia']                 = mapAnestesia(p.tipo_anestesia);
   v['f. riesgo quirurgico']              = fmtFecha(p.fecha_cita_cardiologia);
   v['f. evaluacion anestesica']          = fmtFecha(p.fecha_cita_anestesiologia);
-  v['resultado evaluacion preoperatoria'] = resultadoPreop(p);
-  v['estado de programacion']            = ESTADO_PROGRAMACION_MAP[p.estado] || '';
+  v['resultado evaluacion preoperatoria'] = mapResultadoPreop(p);
+  v['estado de programacion']            = mapEstadoProgramacion(p.estado);
   v['fecha programacion quirurgica']     = fmtFecha(p.fecha_cirugia);
-  v['motivo de espera']                  = (p.motivo_espera && String(p.motivo_espera).trim() !== '') ? p.motivo_espera : mo.motivo;
-  v['detalle motivo de espera']          = (p.detalle_motivo_espera && String(p.detalle_motivo_espera).trim() !== '') ? p.detalle_motivo_espera : mo.detalle;
-  v['estado actual del paciente']        = ESTADO_ACTUAL_MAP[p.estado] || '';
+  v['motivo de espera']                  = mapMotivoEspera(p);
+  v['detalle motivo de espera']          = p.detalle_motivo_espera || '';
+  v['estado actual del paciente']        = mapEstadoActual(p.estado);
   v['cie-10 secundario']                 = p.cie10_secundario || '';
   v['diagnostico secundario']            = p.diagnostico_secundario || '';
   v['cie-10 tercero']                    = p.cie10_tercero || '';
@@ -409,8 +385,7 @@ function buildValuesOld(p) {
   v['f. primera evaluacion por cirugia'] = fmtFecha(p.fecha_primera_evaluacion);
   v['f. evaluacion preoperatoria por cirugia'] = fmtFecha(p.fecha_evaluacion_preoperatoria);
   v['n° orden de intervencion']          = p.orden_intervencion || '';
-  var ai = norm(p.aplica_imagenes);
-  v['¿aplica diagnostico por imagenes?'] = (ai === 'si' ? 'Sí' : ai === 'no' ? 'No' : '');
+  v['¿aplica diagnostico por imagenes?'] = mapImagenes(p.aplica_imagenes);
   v['f. diagnostico por imagenes']       = fmtFecha(p.fecha_imagenes);
   var t1 = '', f1 = '', t2 = '', f2 = '';
   if (p.laboratorio_completo === true) { t1 = 'Laboratorio'; f1 = fmtFecha(p.fecha_examen1 || p.fecha_fase2); }
