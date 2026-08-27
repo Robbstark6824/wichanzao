@@ -14,18 +14,20 @@ Ejecutar en **Supabase Dashboard → SQL Editor**:
 
 Agrega `detalle_suspension`, `lugar_cirugia` y `observacion` a `public.pacientes`.
 
-## 2) Preparar la hoja OFICIAL (la nueva)
+## 2) La hoja OFICIAL (la nueva) — NO borres nada
 
-1. Abre la hoja nueva:
-   `https://docs.google.com/spreadsheets/d/1IoT5KGuTcT83ZLyHh4SrLR4yhbFjIKkI`
-2. Pestaña `LISTA_ESPERA_QX`.
-3. **Borra todas las filas de ejemplo** (filas 4 a 95). Son 16 pacientes de muestra
-   (Cirugía General) + filas vacías pre-numeradas con IDs. Deben quedar **solo los
-   encabezados** (fila 3) y nada más abajo.
-   - Nota: la fila 20 trae `HOSPITAL DISTRITAL LAREDO` pre-llenado en la columna B;
-     bórrala también para que el primer paciente caiga limpio.
-4. No toques los encabezados ni las pestañas `CATALOGOS`, `CAT_ORIGEN`, `CAT_DESTINO`,
-   `DICCIONARIO_DATOS`, etc.
+**No borres ninguna fila.** Las filas que ya tiene la hoja son **datos oficiales**:
+hay pacientes de otras especialidades y también pacientes nuestras que solo falta
+completar con los datos nuevos que pide GERESA.
+
+El script **no borra ni reemplaza**: hace *upsert*:
+- Si encuentra a la paciente por **DNI** (o por nombre en una fila aún sin DNI),
+  **actualiza esa misma fila** completando los datos que faltan.
+- Si no la encuentra, **inserta en la primera fila vacía** de abajo.
+
+Así que la hoja se deja **exactamente como está**. Los pacientes que ya existen en la
+hoja antigua aparecerán en la oficial cuando la app los vuelva a guardar/editar
+(y luego se pueden migrar en lote, ver más abajo).
 
 ## 3) Actualizar el Apps Script (sin romper el acceso público)
 
@@ -60,6 +62,21 @@ de que el script use una cuenta con acceso de edición a ambas hojas.
    paciente de prueba en **ambas** hojas.
 2. Desde la app, registra/edita una paciente y verifica que aparezca en la pestaña
    `LISTA_ESPERA_QX` de la hoja nueva **y** en la hoja antigua.
+
+## 6) Migrar en lote las pacientes que ya existen (opcional)
+
+La sync solo dispara cuando la app **guarda/edita** a una paciente. Para que TODAS las
+pacientes que ya tienes en la hoja antigua (y en Supabase) aparezcan en la oficial **sin
+abrirlas una por una**, hay que re-enviarlas en lote al `/exec`:
+
+- Claude puede hacerlo por ti: lee todas las pacientes de ginecología desde Supabase y
+  hace un `POST` al endpoint por cada una. El script hace *upsert*, así que:
+  - Las que ya estén en la oficial por DNI → se actualizan (se completan datos).
+  - Las que no → se insertan en filas vacías.
+  - Las de **otras especialidades** que ya están en la hoja → **no se tocan**.
+
+Esto se hace **después** de desplegar el script nuevo (paso 3), porque el `/exec` debe
+estar corriendo el código que escribe a las dos hojas.
 
 ## Cómo se llena cada columna (resumen)
 

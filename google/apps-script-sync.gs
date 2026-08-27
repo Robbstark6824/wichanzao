@@ -480,11 +480,14 @@ function upsert(ssId, sheetName, values, p) {
       if (String(dniData[i][0]).trim() === dniBuscado) { targetRow = headerRow + 1 + i; esNuevo = false; break; }
     }
   }
-  // 2) Por nombre.
+  // 2) Por nombre (solo filas a las que aún NO se les llenó el DNI en la hoja,
+  //    para no pisar a un paciente de otra especialidad que comparta nombre).
   if (!targetRow && norm(p.nombre)) {
     var nomBuscado = norm(p.nombre);
     for (var j = 0; j < nombreData.length; j++) {
-      if (norm(nombreData[j][0]) === nomBuscado) { targetRow = headerRow + 1 + j; esNuevo = false; break; }
+      if (norm(nombreData[j][0]) === nomBuscado && String(dniData[j][0]).trim() === '') {
+        targetRow = headerRow + 1 + j; esNuevo = false; break;
+      }
     }
   }
   // 3) Primera fila vacía (sin nombre, sin DNI y sin establecimiento-destino).
