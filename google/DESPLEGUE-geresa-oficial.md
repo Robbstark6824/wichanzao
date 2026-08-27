@@ -93,6 +93,48 @@ estar corriendo el código que escribe a las dos hojas.
 - **Cierre**: se llena solo al operar (`Cirugía realizada`) o referir (`Salida de lista sin cirugía`),
   con fecha, lugar de cirugía (`lugar_cirugia`) y observaciones (`observacion`).
 
+## Campos obligatorios (según DICCIONARIO_DATOS de la hoja oficial)
+
+La app los marca con asterisco y **no deja guardar** sin ellos:
+
+| Campo GERESA | Dónde se captura | Regla |
+|---|---|---|
+| Establecimiento quirúrgico destino | Asistente · paso 1 | siempre (viene con el valor fijo del hospital) |
+| Establecimiento origen que refiere | Asistente · paso 1 (buscador CAT_ORIGEN) | siempre (`N.A.` si es propia) |
+| DNI **o** N° historia clínica | Asistente · paso 1 | la app exige DNI, que además es la llave del *upsert* |
+| CIE-10 principal | Asistente · paso 2 | siempre |
+| Diagnóstico principal | Asistente · paso 2 | siempre |
+| Procedimiento quirúrgico propuesto | Asistente · paso 3 | siempre |
+| Tipo de anestesia | Asistente · paso 3 | siempre |
+| ¿Aplica diagnóstico por imágenes? | Asistente · paso 4 | siempre |
+| F. primera evaluación por cirugía | Asistente · paso 4 | siempre |
+| Fecha referencia aceptada | Asistente · paso 1 | **solo si** el origen es una IPRESS real |
+| F. diagnóstico por imágenes | Asistente · paso 4 | **solo si** aplica imágenes = Sí |
+| Fecha programación quirúrgica | Asistente · paso 6 | **solo si** el estado es Programado |
+| Estado de programación · Estado actual · Resultado eval. preoperatoria · Tipo/motivo cierre | — | los deriva el Apps Script del estado de la paciente |
+
+Marcador rojo `*` = obligatorio siempre · ámbar `*` = obligatorio condicional.
+Las reglas viven en `QX_GERESA_OBLIG` (index.html); si GERESA cambia el diccionario,
+se edita esa lista y nada más.
+
+## Un dato, la hoja que corresponda
+
+Los valores se escriben por **nombre de encabezado**, no por posición
+(`upsert()` → `for (var key in values) { var col = colMap[key]; if (!col) continue; }`).
+Consecuencia práctica: cada hoja recibe solo las columnas que realmente tiene.
+
+- La hoja **antigua** tiene 47 columnas; la **oficial**, 56. La antigua es un
+  subconjunto exacto de la oficial.
+- Las 9 columnas que solo existen en la oficial son las de cierre:
+  `Fecha suspensión`, `Motivo suspensión`, `Detalle motivo suspensión`,
+  `Tipo cierre`, `Motivo cierre`, `Fecha cierre`, `Fecha real de operación`,
+  `Lugar/IPRESS donde se realizó la cirugía` y `Observación`.
+- Por eso `buildValuesOld()` ni las calcula: si se colaran, la escritura las
+  ignoraría igual. Agregar un campo nuevo a una sola hoja no rompe la otra.
+- `Observación` (solo oficial) recoge lo que la app captura y el formato no
+  tiene dónde poner: el hospital al que se refirió a la paciente y el motivo
+  escrito a mano al cerrar el caso.
+
 ## Columnas que la app NO captura (porque no aplican a ginecología o las calcula el aplicativo)
 
 Los "campos calculados" (fecha base de oportunidad, días, vigencia, prioridad, calidad de

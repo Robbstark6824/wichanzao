@@ -204,7 +204,7 @@ function resolverOrigen(p) {
   var nombre = String(p.establecimiento_origen || '');
   var o = norm(nombre);
   var propio = !o || o === 'n.a.' || o.indexOf('paciente propio') >= 0
-    || o.indexOf('hospital distrital laredo') >= 0;
+    || /hospital distrital (de )?laredo/.test(o);
   if (propio) {
     return { origen: CONSTANTES.establecimientoOrigen, codigo: '', provincia: '', distrito: '', fechaRef: '' };
   }
@@ -341,7 +341,14 @@ function buildValuesNew(p) {
     v['lugar/ipress donde se realizo la cirugia'] = '';
   }
 
-  v['observacion'] = p.observacion || '';
+  // "Observación" es el único destino que el formato deja para datos que la
+  // app captura y que no tienen columna propia (hospital al que se refirió a
+  // la paciente y el motivo del cierre escrito a mano).
+  var obs = [];
+  if (p.observacion) obs.push(String(p.observacion));
+  if (esReferida && p.referencia_hospital) obs.push('Referida a ' + p.referencia_hospital);
+  if (esReferida && p.motivo_suspension) obs.push(String(p.motivo_suspension));
+  v['observacion'] = obs.join(' · ');
   return v;
 }
 
