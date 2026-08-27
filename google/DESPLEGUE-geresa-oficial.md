@@ -134,6 +134,11 @@ diálogos de suspensión y referencia, y el selector "Cambiar estado". Mientras 
 paciente sigue en trámite no molesta: el asistente solo muestra el recordatorio
 ámbar con lo que falta.
 
+> La tabla de arriba se puede regenerar contra las hojas en vivo con
+> `node tools/matriz-geresa.mjs`: cruza las 56 columnas oficiales con las 47 de
+> la hoja antigua, la obligatoriedad del diccionario y la línea del Apps Script
+> que llena cada una. Es solo lectura y no usa credenciales.
+
 ## Un dato, la hoja que corresponda
 
 Los valores se escriben por **nombre de encabezado**, no por posición
