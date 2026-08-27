@@ -832,6 +832,12 @@ var allWorkersMap = {}; // wId -> worker object (O(1) lookup)
 var allWorkerFiles = {};
 var allWorkerPaths = {}; // wId -> basePath (e.g. 'medicina/workers/maria')
 var servicioFilter = localStorage.getItem('wichanzao_pc_servicio') || 'all';
+// Si el servicio guardado ya no existe (p.ej. tras consolidar todo en
+// 'ginecologia'), vuelve a 'all' para mostrar el hub y no una lista vacía.
+if (servicioFilter !== 'all' && !SERVICIOS[servicioFilter]) {
+  servicioFilter = 'all';
+  localStorage.removeItem('wichanzao_pc_servicio');
+}
 var legacyFolders = [];
 var currentWorkerId = null;
 var expandedDates = {};
