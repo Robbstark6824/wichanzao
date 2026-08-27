@@ -5397,6 +5397,15 @@ var QX_CAT_ORIGEN = [
   ["ZARUMILLA - PATAZ - PATAZ", "00031853"],
 ];
 
+/* Estados internos de la app y su equivalencia EXACTA en la columna
+   "Estado actual del paciente" de los dos formatos. El catálogo oficial solo
+   tiene cuatro valores: En lista de espera · Operado · Suspendido · Cerrado
+   sin cirugía. Los cuatro primeros estados de la app son etapas del trámite y
+   todos caen en "En lista de espera".
+   El estado interno se sigue llamando "referida" por compatibilidad con la
+   base de datos, pero de cara al usuario es "Cerrado sin cirugía", que es lo
+   que dicen las hojas — y el motivo puede ser referencia, fallecimiento,
+   renuncia y el resto del catálogo de cierre. */
 var QX_ESTADOS = [
   ['en_tramite','En trámite'],
   ['apta_para_sala','Apta para sala'],
@@ -5404,8 +5413,20 @@ var QX_ESTADOS = [
   ['hospitalizada','Hospitalizada'],
   ['operada','Operada'],
   ['suspendida','Suspendida'],
-  ['referida','Referida']
+  ['referida','Cerrado sin cirugía']
 ];
+
+/* Lo que GERESA verá en la última columna de ambos formatos. Espejo de
+   mapEstadoActual() del Apps Script: si uno cambia, el otro también. */
+var QX_ESTADO_GERESA = {
+  en_tramite:     'En lista de espera',
+  apta_para_sala: 'En lista de espera',
+  programada:     'En lista de espera',
+  hospitalizada:  'En lista de espera',
+  operada:        'Operado',
+  suspendida:     'Suspendido',
+  referida:       'Cerrado sin cirugía'
+};
 
 function qxEstadoLabel(e){
   for (var i=0;i<QX_ESTADOS.length;i++) if (QX_ESTADOS[i][0]===e) return QX_ESTADOS[i][1];
@@ -5768,7 +5789,7 @@ function qxProximaAccion(p){
   }
   if (p.estado==='apta_para_sala') return 'Programar cirugía (Fase 5)';
   if (p.estado==='programada') return 'Asignar cama (Fase 6)';
-  if (p.estado==='hospitalizada') return 'Resolver (Operada / Suspendida / Referida)';
+  if (p.estado==='hospitalizada') return 'Resolver (Operada / Suspendida / Cerrada sin cirugía)';
   return '';
 }
 
@@ -6868,14 +6889,17 @@ function qxCambiarEstadoUI(){
   var opts = '';
   for (var i=0;i<QX_ESTADOS.length;i++){
     var e = QX_ESTADOS[i][0];
-    opts += '<option value="'+e+'"'+(p.estado===e?' selected':'')+'>'+QX_ESTADOS[i][1]+'</option>';
+    var enHoja = QX_ESTADO_GERESA[e] || '';
+    var etiqueta = QX_ESTADOS[i][1] + (enHoja && enHoja !== QX_ESTADOS[i][1] ? '  →  ' + enHoja : '');
+    opts += '<option value="'+e+'"'+(p.estado===e?' selected':'')+'>'+qxEsc(etiqueta)+'</option>';
   }
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
   ov.innerHTML = '<div class="qx-sheet">'
     + '<div class="qx-sheet-head"><h3>Cambiar estado</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
     + '<div class="qx-sheet-body">'
-    + '<div class="qx-field"><label>Estado actual de la paciente</label><select id="qxEstadoNuevo">'+opts+'</select></div>'
+    + '<div class="qx-field"><label>Estado actual de la paciente</label><select id="qxEstadoNuevo">'+opts+'</select>'
+    + '<div style="font-size:10px;color:var(--t3);margin-top:4px;line-height:1.4">A la derecha de la flecha, lo que se escribe en la última columna de los dos formatos. El catálogo oficial solo admite esos cuatro valores.</div></div>'
     + '<button class="qx-btn" style="width:100%;background:var(--tl)" onclick="qxAplicarEstado()">Guardar estado</button>'
     + '</div></div>';
   document.body.appendChild(ov);
