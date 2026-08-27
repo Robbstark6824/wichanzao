@@ -70,6 +70,19 @@ function fuente(bloque, k) {
   return m ? m[1].trim().replace(/\s+/g, ' ') : null;
 }
 
+/* "la escribe el script" no es lo mismo que "la capta la app": clasificar. */
+function clasificar(f, k) {
+  if (k === 'id registro') return 'auto';
+  if (!f) return '—';
+  if (/^CONSTANTES./.test(f.trim())) return 'FIJO';
+  const campo = /p.[a-z_0-9]+/.test(f);
+  const local = /(tipoCierre|motivoCierre|obs|t1|t2|f1|f2)|o.[a-z]+/.test(f);
+  if (campo && /(CONSTANTES.|CAT.)/.test(f)) return 'capta (+respaldo)';
+  if (campo) return 'capta';
+  if (local) return 'capta (derivado)';
+  return 'deriva';
+}
+
 const filas = [];
 for (const h of OFI) {
   if (!h) continue;
@@ -80,18 +93,21 @@ for (const h of OFI) {
     obligatoriedad: OBL[k] || '—',
     en47: ANT.has(k) ? 'sí' : 'NO',
     escrita: f ? 'sí' : (k === 'id registro' ? 'sí (auto)' : 'NO'),
-    fuente: f ? f.slice(0, 58) : (k === 'id registro' ? 'correlativo de la hoja' : '—'),
+    capta: clasificar(f, k),
+    fuente: f ? f.slice(0, 44) : (k === 'id registro' ? 'correlativo de la hoja' : '—'),
   });
 }
 
-const W = [42, 38, 5, 9, 58];
-const head = ['COLUMNA OFICIAL (56)', 'OBLIGATORIEDAD GERESA', 'en47', 'la llena', 'de dónde sale'];
+const W = [40, 34, 5, 17, 44];
+const head = ['COLUMNA OFICIAL (56)', 'OBLIGATORIEDAD GERESA', 'en47', 'la capta la app', 'de dónde sale'];
 console.log(head.map((h, i) => h.padEnd(W[i])).join(' │ '));
 console.log(W.map(w => '─'.repeat(w)).join('─┼─'));
 for (const f of filas) {
-  console.log([f.col, f.obligatoriedad, f.en47, f.escrita, f.fuente].map((c, i) => String(c).slice(0, W[i]).padEnd(W[i])).join(' │ '));
+  console.log([f.col, f.obligatoriedad, f.en47, f.capta, f.fuente].map((c, i) => String(c).slice(0, W[i]).padEnd(W[i])).join(' │ '));
 }
 console.log('\nColumnas oficiales: ' + filas.length);
 const huecos = filas.filter(f => f.obligatoriedad.startsWith('OBLIGATORIO') && f.escrita === 'NO').map(f => f.col);
 console.log('Obligatorias que NADIE llena: ' + (huecos.length ? huecos.join(', ') : '(ninguna) ✓'));
+const fijas = filas.filter(f => f.capta === 'FIJO').map(f => f.col);
+console.log('Valores FIJOS por código (la app no los puede cambiar): ' + (fijas.length ? fijas.join(' · ') : '(ninguno)'));
 console.log('Solo en la oficial (no están en las 47): ' + filas.filter(f => f.en47 === 'NO').map(f => f.col).join(' · '));

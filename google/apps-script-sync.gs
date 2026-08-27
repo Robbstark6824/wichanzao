@@ -41,7 +41,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-27-genero-F';
+var VERSION = '2026-08-27-cierre-completo';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -196,6 +196,10 @@ function mapImagenes(s) {
 }
 
 function mapResultadoPreop(p) {
+  // Lo elegido explícitamente en la app manda: es el único camino por el que
+  // puede llegar "No apto", que no se deduce de los dos booleanos.
+  var elegido = catalogMatch(p.resultado_preop, CAT.resultadoPreop);
+  if (elegido) return elegido;
   if (p.riesgo_qx === true && p.riesgo_anestesiologico === true) return 'Apto';
   return 'Pendiente';   // aún sin ambas evaluaciones completas
 }
@@ -336,21 +340,26 @@ function buildValuesNew(p) {
   v['estado actual del paciente']        = mapEstadoActual(p.estado);
 
   // Suspensión (solo si la cirugía programada no se realizó)
-  v['fecha suspension']      = esSuspendida ? fmtFecha(p.fecha_resolucion) : '';
+  v['fecha suspension']      = esSuspendida ? fmtFecha(p.fecha_suspension || p.fecha_resolucion) : '';
   v['motivo suspension']     = mapMotivoSuspension(p);
   v['detalle motivo suspension'] = p.detalle_suspension || '';
 
-  // Cierre (salida definitiva de lista, con o sin cirugía)
+  // Cierre (salida definitiva de lista, con o sin cirugía).
+  // Lo que la persona eligió en la app manda; los valores fijos quedan como
+  // respaldo para las filas viejas que se cerraron antes de que la app
+  // pudiera capturarlos.
+  var tipoCierre   = catalogMatch(p.tipo_cierre,   CAT.tipoCierre);
+  var motivoCierre = catalogMatch(p.motivo_cierre, CAT.motivoCierre);
   if (esOperada) {
-    v['tipo cierre']   = CAT.tipoCierre[0];                       // Cirugía realizada
-    v['motivo cierre'] = CAT.motivoCierre[0];                     // Cirugía realizada en la IPRESS
-    v['fecha cierre']  = fmtFecha(p.fecha_resolucion);
-    v['fecha real de operacion'] = fmtFecha(p.fecha_resolucion);
+    v['tipo cierre']   = tipoCierre || CAT.tipoCierre[0];         // Cirugía realizada
+    v['motivo cierre'] = motivoCierre || CAT.motivoCierre[0];     // …en la IPRESS
+    v['fecha cierre']  = fmtFecha(p.fecha_cierre || p.fecha_real_operacion || p.fecha_resolucion);
+    v['fecha real de operacion'] = fmtFecha(p.fecha_real_operacion || p.fecha_cirugia || p.fecha_resolucion);
     v['lugar/ipress donde se realizo la cirugia'] = p.lugar_cirugia || CONSTANTES.lugarCirugia;
   } else if (esReferida) {
-    v['tipo cierre']   = CAT.tipoCierre[1];                       // Salida de lista sin cirugía
-    v['motivo cierre'] = 'Paciente referido o transferido a otra institución';
-    v['fecha cierre']  = fmtFecha(p.fecha_resolucion);
+    v['tipo cierre']   = tipoCierre || CAT.tipoCierre[1];         // Salida de lista sin cirugía
+    v['motivo cierre'] = motivoCierre || 'Paciente referido o transferido a otra institución';
+    v['fecha cierre']  = fmtFecha(p.fecha_cierre || p.fecha_resolucion);
   } else {
     v['tipo cierre']   = '';
     v['motivo cierre'] = '';
