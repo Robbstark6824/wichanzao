@@ -146,6 +146,14 @@ function catalogMatch(val, lista) {
  * MAPEO para la hoja OFICIAL (valores de los catálogos)
  * ============================================================ */
 
+/* La hoja ANTIGUA tiene su propia validación de datos y solo acepta "F"/"M";
+   el catálogo GERESA ("Femenino"/"Masculino") es exclusivo de la hoja oficial.
+   Escribir el valor largo ahí reventaba la escritura ENTERA de ambas hojas. */
+function mapGeneroCorto(s) {
+  var g = mapGenero(s);
+  return g ? g.charAt(0).toUpperCase() : '';
+}
+
 function mapGenero(s) {
   var n = norm(s);
   if (n === 'femenino' || n === 'f' || n === 'mujer') return 'Femenino';
@@ -379,7 +387,7 @@ function buildValuesOld(p) {
   v['dni']                               = p.dni;
   v['apellidos y nombres completos']     = p.nombre;
   v['edad']                              = p.edad;
-  v['genero']                            = mapGenero(p.sexo);
+  v['genero']                            = mapGeneroCorto(p.sexo);
   v['celular']                           = String(p.telefono || '');
   v['tipo de seguro']                    = mapSeguro(p.tipo_seguro);
   v['n° historia clinica']               = p.hcl;
@@ -513,15 +521,45 @@ function upsert(ssId, sheetName, values, p) {
   }
 
   // 5) Escribe cada valor en su columna.
+  //
+  //    Cada hoja tiene su propia validación de datos. Un setValue que la
+  //    infringe NO lanza en el momento: revienta al hacer flush, o sea DESPUÉS
+  //    de que doPost devolvió su JSON. Google entonces reemplaza la respuesta
+  //    por una página HTML de error y se pierde la escritura completa — la de
+  //    esta hoja Y la de la otra. Una sola celda mal validada tumbaba todo.
+  //
+  //    Por eso el flush se fuerza acá adentro: si el lote falla, se reintenta
+  //    celda por celda y se saltan las rechazadas, que se devuelven al llamador
+  //    para que queden registradas en vez de desaparecer.
+  var pendientes = [];
   for (var key in values) {
     var col = colMap[key];
     if (!col) continue;
-    var rng = sheet.getRange(targetRow, col);
-    if (esColumnaFecha(key)) rng.setNumberFormat('@');
-    if (key === 'celular') rng.setNumberFormat('@').setHorizontalAlignment('center');
-    rng.setValue(values[key]);
+    pendientes.push({ key: key, col: col, val: values[key] });
   }
-  return targetRow;
+
+  function escribirCelda(x) {
+    var rng = sheet.getRange(targetRow, x.col);
+    if (esColumnaFecha(x.key)) rng.setNumberFormat('@');
+    if (x.key === 'celular') rng.setNumberFormat('@').setHorizontalAlignment('center');
+    rng.setValue(x.val);
+  }
+
+  var rechazadas = [];
+  try {
+    for (var w = 0; w < pendientes.length; w++) escribirCelda(pendientes[w]);
+    SpreadsheetApp.flush();
+  } catch (errLote) {
+    for (var z = 0; z < pendientes.length; z++) {
+      try {
+        escribirCelda(pendientes[z]);
+        SpreadsheetApp.flush();
+      } catch (errCelda) {
+        rechazadas.push(pendientes[z].key + ' = "' + pendientes[z].val + '"');
+      }
+    }
+  }
+  return { row: targetRow, rechazadas: rechazadas };
 }
 
 /* Borra TODAS las filas de una hoja cuyo DNI coincide (normalmente 1).
@@ -583,10 +621,14 @@ function doPost(e) {
     if (!p.dni) return json({ ok: false, error: 'falta dni' });
 
     var r1 = { ok: false, error: '' }, r2 = { ok: false, error: '' };
-    try { r1 = { ok: true, row: upsert(SS_ID, SHEET_NAME, buildValuesOld(p), p) }; }
-    catch (err) { r1 = { ok: false, error: String(err) }; }
-    try { r2 = { ok: true, row: upsert(SS_ID_2, SHEET_NAME_2, buildValuesNew(p), p) }; }
-    catch (err) { r2 = { ok: false, error: String(err) }; }
+    try {
+      var u1 = upsert(SS_ID, SHEET_NAME, buildValuesOld(p), p);
+      r1 = { ok: true, row: u1.row, rechazadas: u1.rechazadas };
+    } catch (err) { r1 = { ok: false, error: String(err) }; }
+    try {
+      var u2 = upsert(SS_ID_2, SHEET_NAME_2, buildValuesNew(p), p);
+      r2 = { ok: true, row: u2.row, rechazadas: u2.rechazadas };
+    } catch (err) { r2 = { ok: false, error: String(err) }; }
 
     return json({ ok: (r1.ok && r2.ok), antiguo: r1, oficial: r2 });
   } catch (err) {
