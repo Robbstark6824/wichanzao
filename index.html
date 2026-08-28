@@ -5616,6 +5616,12 @@ function qxEstadoRank(e){
 function qxSheetEstado(row){
   var actual=String(row[46]||'').trim().toUpperCase();
   if(actual.indexOf('OPERAD')>=0) return 'operada';
+  // La hoja SÍ sabe decir que el caso se cerró ("Suspendido" / "Cerrado sin
+  // cirugía"): son dos de los cuatro valores del catálogo oficial y la app los
+  // escribe ahí. Antes no se leían, así que una paciente cerrada volvía de la
+  // hoja como "programada"/"en trámite".
+  if(actual.indexOf('SUSPENDID')>=0) return 'suspendida';
+  if(actual.indexOf('CERRADO SIN')>=0) return 'referida';
   if(actual.indexOf('HOSPITALIZAD')>=0) return 'hospitalizada';
   var prog=String(row[42]||'').trim().toUpperCase();
   if(prog==='PROGRAMADO'||prog==='PROGRAMADA') return 'programada';
@@ -5703,7 +5709,7 @@ async function qxSyncFromSheet(btn){
     }
     if (!hoja.length){ toast('No hay filas con DNI para sincronizar','error'); return; }
 
-    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,cama_hospitalizacion,id_registro');
+    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,motivo_cierre,cama_hospitalizacion,id_registro');
     if (curRes.error){ toast('Error al leer pacientes: '+curRes.error.message,'error'); return; }
     var curMap = {};
     (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
@@ -5713,16 +5719,26 @@ async function qxSyncFromSheet(btn){
     hoja.forEach(function(sp){
       var app = curMap[sp.dni];
       var est = sp.estado;
-      if (app && qxEstadoRank(app.estado) > qxEstadoRank(est)) est = app.estado; // nunca retrocede
-      if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';        // sin fecha no puede ser programada
-      var turno = (app && app.turno) ? app.turno : (est==='programada' ? 'manana' : null);
       // Las CHECK de estado exigen campos que solo existen en la app (no en la hoja GERESA).
       // Se preservan del paciente existente para no violarlas al conservar su estado.
       var refHosp = app ? app.referencia_hospital : null;
       var motSusp = app ? app.motivo_suspension : null;
+      var motCierre = app ? app.motivo_cierre : null;
       var cama = app ? app.cama_hospitalizacion : null;
+      // La resolución la decide una persona en la app (fase 7), no la hoja: si
+      // la paciente ya está operada / suspendida / cerrada sin cirugía, la
+      // sincronización NO puede deshacerlo. Antes sí lo hacía y el cierre se
+      // perdía a los segundos, sin aviso.
+      if (app && qxEstadoTerminal(app.estado)) est = app.estado;
+      else if (app && qxEstadoRank(app.estado) > qxEstadoRank(est)) est = app.estado; // nunca retrocede
+      if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';        // sin fecha no puede ser programada
+      var turno = (app && app.turno) ? app.turno : (est==='programada' ? 'manana' : null);
       // Si el estado exige un campo que sigue vacío, se degrada a uno que no lo exige.
-      if (est==='referida' && !refHosp) est = 'en_tramite';
+      // "referida" (salida de lista sin cirugía) se contenta con el motivo de
+      // cierre: el catálogo tiene salidas sin hospital de destino (fallecimiento,
+      // renuncia, paciente no ubicable, duplicidad). Exigir el hospital mandaba
+      // esos cierres de vuelta a "en trámite".
+      if (est==='referida' && !refHosp && !motCierre) est = 'en_tramite';
       if (est==='suspendida' && !motSusp) est = 'en_tramite';
       if (est==='hospitalizada' && !cama) est = 'apta_para_sala';
       // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila.
@@ -7090,9 +7106,14 @@ async function qxSetEstado(p, nuevo, motivo){
   }
   var anterior = p.estado;
   var resol = (nuevo==='operada'||nuevo==='suspendida'||nuevo==='referida') ? new Date().toISOString() : null;
-  var res = await sb.from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id);
+  // Con .select() la base devuelve la fila que realmente quedó escrita. Sin él,
+  // un UPDATE que no toca ninguna fila vuelve sin error y la app daría por
+  // guardado un cambio que nunca ocurrió.
+  var res = await sb.from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id).select('id,estado');
   if (res.error){ toast('Error: '+res.error.message,'error'); return false; }
+  if (!res.data || !res.data.length){ toast('No se pudo guardar el estado: la base no aceptó el cambio','error'); return false; }
   p.estado = nuevo;
+  p.fecha_resolucion = resol;
   await sb.from('historial_estados').insert({
     paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null
   });
