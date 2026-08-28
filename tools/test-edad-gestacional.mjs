@@ -15,6 +15,10 @@ const G = new Function(
   uno(/function qxPad\(n\)\{[^\n]*\}/) + '\n' +
   bloque('function qxSumarDias(f, n){') + '\n' +
   bloque('function qxDiasEntreFechas(a, b){') + '\n' +
+  bloque('function qxEcoUsable(p){') + '\n' +
+  bloque('function qxTrimestreEco(p){') + '\n' +
+  bloque('function qxFurDeEco(p){') + '\n' +
+  bloque('function qxUsaEco(p){') + '\n' +
   bloque('function qxFurEfectiva(p){') + '\n' +
   bloque('function qxEG(p, fecha){') + '\n' +
   uno(/function qxFpp\(p\)\{[^\n]*\}/) + '\n' +
