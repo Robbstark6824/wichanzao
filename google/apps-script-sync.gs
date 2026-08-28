@@ -41,7 +41,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-27-id-correlativo-2';
+var VERSION = '2026-08-28-sync-bidireccional';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -805,4 +805,351 @@ function describirValores(v) {
   var out = [];
   for (var k in v) out.push('  ' + k + ' = ' + (v[k] === '' || v[k] == null ? '(vacío)' : v[k]));
   return out.join('\n');
+}
+
+/* ============================================================
+ * SINCRONIZACIÓN COMPLETA — hojas ⇄ app
+ * ============================================================
+ * Hasta ahora la app escribía a las hojas, pero lo que se escribía A MANO en
+ * las hojas no llegaba a ninguna parte: no existía para el servicio ni para el
+ * otro formato. Esto lo cierra en las dos direcciones, sin que nadie tenga que
+ * abrir la app.
+ *
+ * PUESTA EN MARCHA (una sola vez):
+ *   1. Configuración del proyecto (⚙) → Propiedades del script → Añadir:
+ *        SUPABASE_KEY = <la clave service_role del proyecto>
+ *      Va ahí y NO en el código: el código se guarda en el repositorio.
+ *   2. Ejecutar `probarSincronizacion` y leer el registro. NO ESCRIBE NADA:
+ *      solo dice qué haría. Compruébalo antes de seguir.
+ *   3. Cuando el informe cuadre, ejecutar `instalarDisparador` una vez.
+ *      A partir de ahí corre solo cada 15 minutos.
+ *
+ * REGLAS (deliberadas, para no repetir errores que ya costaron caro):
+ *
+ *   · La hoja NUNCA pisa un dato que la app ya tiene. Solo rellena huecos.
+ *     Si los dos tienen valor y no coinciden, no se toca nada: se anota como
+ *     discrepancia para que una persona decida.
+ *   · La hoja NUNCA cambia el estado de una paciente que ya existe. La
+ *     resolución (operada / suspendida / cerrada sin cirugía) la decide una
+ *     persona en la app, que es donde queda el historial de quién y cuándo.
+ *   · Un cierre no se importa a ciegas: exige datos que la hoja no trae. Una
+ *     paciente nueva que en la hoja figura cerrada entra EN TRÁMITE y alguien
+ *     la cierra a mano.
+ *   · De la hoja OFICIAL solo se importan las filas de GINECOLOGÍA. Esa hoja
+ *     la comparten varios servicios del hospital; sin este filtro nos
+ *     llevaríamos a las pacientes de Cirugía General.
+ *   · El tipo de anestesia no se importa: el catálogo de la hoja agrupa
+ *     "Regional/General" en un solo valor y no se puede deshacer sin inventar.
+ * ============================================================ */
+
+var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
+
+function sbKey_() {
+  var k = PropertiesService.getScriptProperties().getProperty('SUPABASE_KEY');
+  if (!k) throw new Error('Falta la propiedad SUPABASE_KEY (Configuración del proyecto → Propiedades del script).');
+  return k;
+}
+
+function sbFetch_(metodo, path, cuerpo, prefer) {
+  var k = sbKey_();
+  var opts = {
+    method: metodo,
+    contentType: 'application/json',
+    headers: { apikey: k, Authorization: 'Bearer ' + k },
+    muteHttpExceptions: true
+  };
+  if (prefer) opts.headers['Prefer'] = prefer;
+  if (cuerpo) opts.payload = JSON.stringify(cuerpo);
+  var r = UrlFetchApp.fetch(SB_URL + '/rest/v1/' + path, opts);
+  var code = r.getResponseCode(), txt = r.getContentText();
+  if (code < 200 || code >= 300) throw new Error('Supabase ' + code + ': ' + txt);
+  return txt ? JSON.parse(txt) : null;
+}
+
+function pad2_(n) { return (n < 10 ? '0' : '') + n; }
+
+/** Fecha de una celda → 'AAAA-MM-DD'. Acepta lo que escriba una persona a mano:
+ *  una fecha de verdad, 25/8/26, 25-08-2026 o 2026-08-25. Si no se entiende,
+ *  devuelve null en vez de adivinar. */
+function fechaISO_(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    if (isNaN(v.getTime())) return null;
+    return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  var s = String(v).trim();
+  var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return m[1] + '-' + pad2_(+m[2]) + '-' + pad2_(+m[3]);
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) {
+    var d = +m[1], mo = +m[2], y = +m[3];
+    if (y < 100) y += 2000;
+    if (d < 1 || d > 31 || mo < 1 || mo > 12) return null;
+    return y + '-' + pad2_(mo) + '-' + pad2_(d);
+  }
+  return null;
+}
+
+/** Traduce una fila de la hoja a los campos de la app (el inverso de
+ *  buildValuesNew/buildValuesOld). Solo campos que se pueden traducir sin
+ *  perder ni inventar información. */
+function filaAPaciente_(v) {
+  var txt = function (k) { var s = String(v[k] === null || v[k] === undefined ? '' : v[k]).trim(); return s || null; };
+  var p = {};
+
+  p.dni        = txt('dni');
+  p.nombre     = txt('apellidos y nombres completos');
+  var edad     = parseInt(String(v['edad'] || '').replace(/\D/g, ''), 10);
+  p.edad       = isNaN(edad) ? null : edad;
+  p.sexo       = catalogMatch(mapGenero(v['genero']), CAT.genero);
+  p.telefono   = txt('celular') ? String(txt('celular')).replace(/\s+/g, '') : null;
+  p.tipo_seguro = catalogMatch(v['tipo de seguro'], CAT.seguro);
+  p.hcl        = txt('n° historia clinica');
+  p.doctor     = txt('cirujano responsable');
+  p.especialidad = txt('especialidad quirurgica');
+
+  p.cie10                  = txt('cie-10 principal');
+  p.diagnostico            = txt('diagnostico principal');
+  p.cie10_secundario       = txt('cie-10 secundario');
+  p.diagnostico_secundario = txt('diagnostico secundario');
+  p.cie10_tercero          = txt('cie-10 tercero');
+  p.diagnostico_tercero    = txt('diagnostico tercero');
+
+  p.codigo_procedimiento = txt('codigo procedimiento');
+  p.procedimiento        = txt('procedimiento quirurgico propuesto');
+  p.nivel_cirugia        = mapNivel(v['nivel de cirugia']) || null;
+  // tipo_anestesia: a propósito NO se importa (ver cabecera del bloque).
+
+  p.establecimiento_destino = txt('establecimiento quirurgico destino');
+  p.codigo_destino          = txt('codigo unico destino');
+  p.red_destino             = txt('red/ris destino');
+  p.establecimiento_origen  = txt('establecimiento origen que refiere');
+  p.codigo_origen           = txt('codigo unico origen');
+  p.provincia_origen        = txt('provincia origen');
+  p.distrito_origen         = txt('distrito origen');
+
+  p.fecha_primera_evaluacion       = fechaISO_(v['f. primera evaluacion por cirugia']);
+  p.aplica_imagenes                = mapImagenes(v['¿aplica diagnostico por imagenes?']) || null;
+  p.fecha_imagenes                 = fechaISO_(v['f. diagnostico por imagenes']);
+  p.fecha_cita_cardiologia         = fechaISO_(v['f. riesgo quirurgico']);
+  p.fecha_cita_anestesiologia      = fechaISO_(v['f. evaluacion anestesica']);
+  p.fecha_evaluacion_preoperatoria = fechaISO_(v['f. evaluacion preoperatoria por cirugia']);
+  // Solo se importa "No apto". Es el único de los tres que una persona tiene
+  // que decidir: "Apto" y "Pendiente" los deduce la app de los dos riesgos.
+  // Guardar "Pendiente" como si lo hubiera elegido alguien apaga esa deducción
+  // y la paciente se queda en Pendiente aunque luego se completen los riesgos.
+  var preop = catalogMatch(v['resultado evaluacion preoperatoria'], CAT.resultadoPreop);
+  p.resultado_preop = (preop === 'No apto') ? preop : null;
+  p.orden_intervencion             = txt('n° orden de intervencion');
+  p.fecha_cirugia                  = fechaISO_(v['fecha programacion quirurgica']);
+  p.motivo_espera                  = catalogMatch(v['motivo de espera'], CAT.motivoEspera);
+  p.detalle_motivo_espera          = txt('detalle motivo de espera');
+  p.observacion                    = txt('observacion');
+
+  // Exámenes prequirúrgicos: la hoja los guarda como "tipo + fecha".
+  var t1 = norm(v['tipo examen prequirurgico 1']), t2 = norm(v['tipo examen prequirurgico 2']);
+  if (t1.indexOf('laboratorio') >= 0 || t2.indexOf('laboratorio') >= 0) {
+    p.laboratorio_completo = true;
+    p.fecha_examen1 = fechaISO_(v[t1.indexOf('laboratorio') >= 0 ? 'fecha examen prequirurgico 1' : 'fecha examen prequirurgico 2']);
+  }
+  if (t1.indexOf('ekg') >= 0 || t2.indexOf('ekg') >= 0) {
+    p.ekg = true;
+    p.fecha_examen2 = fechaISO_(v[t1.indexOf('ekg') >= 0 ? 'fecha examen prequirurgico 1' : 'fecha examen prequirurgico 2']);
+  }
+  p.tipo_examen3  = txt('tipo examen prequirurgico 3');
+  p.fecha_examen3 = fechaISO_(v['fecha examen prequirurgico 3']);
+
+  // "Apto" en la hoja significa que los dos riesgos están evaluados: eso sí se
+  // trae, porque son datos y no una deducción.
+  if (preop === 'Apto') {
+    p.riesgo_qx = true;
+    p.riesgo_anestesiologico = true;
+  }
+  return p;
+}
+
+/** Estado con el que entra una paciente NUEVA vista en la hoja. */
+function estadoDeFila_(v, campos) {
+  var actual = norm(v['estado actual del paciente']);
+  // Un cierre no se importa a ciegas: entra en trámite y alguien lo confirma.
+  if (actual.indexOf('operad') >= 0 || actual.indexOf('suspendid') >= 0 || actual.indexOf('cerrado sin') >= 0) return 'en_tramite';
+  if (norm(v['estado de programacion']) === 'programado' && campos.fecha_cirugia) return 'programada';
+  if (catalogMatch(v['resultado evaluacion preoperatoria'], CAT.resultadoPreop) === 'Apto') return 'apta_para_sala';
+  return 'en_tramite';
+}
+
+/* Sello de versión del bloque de sincronización, para saber qué hay desplegado. */
+function versionSync() {
+  return VERSION;
+}
+
+/** Lee el bloque GERESA de una hoja. Devuelve una entrada por paciente. */
+function leerHoja_(ssId, sheetName, soloGinecologia) {
+  var sheet = SpreadsheetApp.openById(ssId).getSheetByName(sheetName);
+  if (!sheet) throw new Error('No existe la pestaña "' + sheetName + '".');
+  var headerRow = findHeaderRow(sheet);
+  if (!headerRow) throw new Error('No se encontró el encabezado "ID registro" en "' + sheetName + '".');
+  var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
+  if (lastRow <= headerRow) return [];
+
+  var colMap = buildColumnMap(sheet, headerRow);
+  var datos = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, lastCol).getValues();
+  var out = [];
+  for (var i = 0; i < datos.length; i++) {
+    var v = {};
+    for (var key in colMap) v[key] = datos[i][colMap[key] - 1];
+    var dni = String(v['dni'] || '').trim();
+    if (!dni || !String(v['apellidos y nombres completos'] || '').trim()) continue;
+    if (soloGinecologia && norm(v['especialidad quirurgica']) !== norm(CONSTANTES.especialidad)) continue;
+    var idReg = parseInt(String(v['id registro'] || '').trim(), 10);
+    out.push({
+      dni: dni,
+      fila: headerRow + 1 + i,
+      crudo: v,
+      campos: filaAPaciente_(v),
+      idRegistro: isNaN(idReg) ? null : idReg
+    });
+  }
+  return out;
+}
+
+/** Campos que la hoja llenaría y en la app están vacíos, y los que chocan. */
+function compararConApp_(app, campos) {
+  var patch = {}, choques = [];
+  for (var k in campos) {
+    var nuevo = campos[k];
+    if (nuevo === null || nuevo === undefined || nuevo === '') continue;
+    if (k === 'dni') continue;                       // es la clave, no se toca
+    var actual = app[k];
+    if (actual === null || actual === undefined || actual === '' || actual === false) { patch[k] = nuevo; continue; }
+    if (String(actual) !== String(nuevo)) choques.push(k + ': app «' + actual + '» != hoja «' + nuevo + '»');
+  }
+  return { patch: patch, choques: choques };
+}
+
+/** El trabajo de verdad. simular=true no escribe nada. */
+function reconciliar_(simular) {
+  var props = PropertiesService.getScriptProperties();
+  var t0 = new Date();
+  var r = { altas: [], rellenos: [], discrepancias: [], empujadas: 0, errores: [], simulado: !!simular };
+
+  var pacientes = sbFetch_('get', 'pacientes?select=*');
+  var porDni = {}, idsUsados = {};
+  pacientes.forEach(function (p) {
+    porDni[String(p.dni || '').trim()] = p;
+    if (p.id_registro !== null && p.id_registro !== undefined) idsUsados[p.id_registro] = true;
+  });
+
+  var hojas = [
+    { ssId: SS_ID,   name: SHEET_NAME,   soloGineco: false, etiqueta: 'hoja antigua' },
+    { ssId: SS_ID_2, name: SHEET_NAME_2, soloGineco: true,  etiqueta: 'hoja oficial' }
+  ];
+
+  // ---- HOJAS -> APP ------------------------------------------------------
+  var vistos = {};
+  hojas.forEach(function (h) {
+    var filas;
+    try { filas = leerHoja_(h.ssId, h.name, h.soloGineco); }
+    catch (e) { r.errores.push(h.etiqueta + ': ' + e.message); return; }
+
+    filas.forEach(function (f) {
+      if (vistos[f.dni]) return;         // ya tratada desde la otra hoja
+      vistos[f.dni] = true;
+      var app = porDni[f.dni];
+
+      if (!app) {
+        var fila = {};
+        for (var k in f.campos) if (f.campos[k] !== null && f.campos[k] !== undefined) fila[k] = f.campos[k];
+        fila.estado = estadoDeFila_(f.crudo, f.campos);
+        fila.turno  = (fila.estado === 'programada') ? 'manana' : null;
+        fila.origen = 'hoja';
+        if (f.idRegistro && !idsUsados[f.idRegistro]) { fila.id_registro = f.idRegistro; idsUsados[f.idRegistro] = true; }
+        r.altas.push((fila.nombre || f.dni) + ' · ' + h.etiqueta + ' fila ' + f.fila + ' -> ' + fila.estado);
+        if (!simular) {
+          try { sbFetch_('post', 'pacientes', fila, 'return=minimal'); }
+          catch (e) { r.errores.push('alta ' + (fila.nombre || f.dni) + ': ' + e.message); }
+        }
+        return;
+      }
+
+      var cmp = compararConApp_(app, f.campos);
+      // El estado y el turno los manda la app: la hoja no los toca nunca.
+      delete cmp.patch.estado; delete cmp.patch.turno;
+      var claves = [];
+      for (var c in cmp.patch) claves.push(c);
+      if (claves.length) {
+        r.rellenos.push((app.nombre || f.dni) + ' · ' + h.etiqueta + ' -> ' + claves.join(', '));
+        if (!simular) {
+          try { sbFetch_('patch', 'pacientes?id=eq.' + app.id, cmp.patch, 'return=minimal'); }
+          catch (e) { r.errores.push('relleno ' + (app.nombre || f.dni) + ': ' + e.message); }
+        }
+      }
+      if (cmp.choques.length) r.discrepancias.push((app.nombre || f.dni) + ' · ' + h.etiqueta + ' -> ' + cmp.choques.join(' | '));
+    });
+  });
+
+  // ---- APP -> LAS DOS HOJAS ---------------------------------------------
+  // Solo lo que cambió desde la última pasada, incluido lo que se acaba de
+  // importar arriba. Así lo escrito a mano en una hoja acaba en la otra.
+  var desde = props.getProperty('ULTIMA_SYNC') || '1970-01-01T00:00:00Z';
+  var cambiadas = sbFetch_('get', 'pacientes?select=*&updated_at=gt.' + encodeURIComponent(desde));
+  cambiadas.forEach(function (p) {
+    if (simular) { r.empujadas++; return; }
+    try {
+      upsert(SS_ID, SHEET_NAME, buildValuesOld(p), p);
+      upsert(SS_ID_2, SHEET_NAME_2, buildValuesNew(p), p);
+      r.empujadas++;
+    } catch (e) { r.errores.push('empujar ' + p.nombre + ': ' + e.message); }
+  });
+
+  if (!simular) props.setProperty('ULTIMA_SYNC', t0.toISOString());
+  Logger.log(informe_(r));
+  return r;
+}
+
+function informe_(r) {
+  var L = [];
+  L.push(r.simulado ? '=== SIMULACIÓN (no se escribió nada) ===' : '=== SINCRONIZACIÓN ===');
+  L.push('Altas nuevas desde las hojas: ' + r.altas.length);
+  r.altas.forEach(function (x) { L.push('   + ' + x); });
+  L.push('Huecos rellenados en la app: ' + r.rellenos.length);
+  r.rellenos.forEach(function (x) { L.push('   ~ ' + x); });
+  L.push('Fichas empujadas a las dos hojas: ' + r.empujadas);
+  L.push('Discrepancias (NO se tocó nada, decide una persona): ' + r.discrepancias.length);
+  r.discrepancias.forEach(function (x) { L.push('   ! ' + x); });
+  if (r.errores.length) {
+    L.push('ERRORES: ' + r.errores.length);
+    r.errores.forEach(function (x) { L.push('   x ' + x); });
+  }
+  return L.join('\n');
+}
+
+/** Dice qué haría, sin escribir NADA. Ejecútala antes de instalar nada. */
+function probarSincronizacion() { return reconciliar_(true); }
+
+/** La que corre sola cada 15 minutos. */
+function sincronizarTodo() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) { Logger.log('Otra pasada sigue en marcha; esta se salta.'); return; }
+  try { return reconciliar_(false); }
+  finally { lock.releaseLock(); }
+}
+
+/** Ejecutar UNA vez para dejarlo automático. Vuelve a ejecutarse sin problema:
+ *  borra el disparador anterior antes de crear el nuevo. */
+function instalarDisparador() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'sincronizarTodo') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('sincronizarTodo').timeBased().everyMinutes(15).create();
+  Logger.log('Listo: sincronizarTodo corre cada 15 minutos.');
+}
+
+/** Para apagarlo sin borrar el código. */
+function quitarDisparador() {
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'sincronizarTodo') { ScriptApp.deleteTrigger(t); n++; }
+  });
+  Logger.log('Disparadores retirados: ' + n);
 }
