@@ -10,20 +10,29 @@
 *      ESPERA QUIRÚRGICA") con los valores exactos de sus catálogos
 *      (INSTRUCTIVO / DICCIONARIO_DATOS / CATALOGOS).
 *
-* CÓMO INSTALAR:
-*   1. Abre la hoja ANTIGUA de Google (la del reporte GERESA que ya usas).
-*   2. Extensiones → Apps Script.
-*   3. Borra el contenido y pega TODO este archivo.
-*   4. Arriba edita las constantes (SS_ID, SS_ID_2, SHEET_NAME,
+* DÓNDE VIVE ESTE CÓDIGO:
+*   En un proyecto INDEPENDIENTE de Apps Script, propiedad del hospital, NO
+*   dentro de las hojas. Las hojas son de la GERESA y no se pueden modificar,
+*   así que "Extensiones → Apps Script" no es una opción: no habría permiso.
+*   Por eso el código abre las hojas por su ID (SpreadsheetApp.openById) y se
+*   ejecuta con la cuenta del proyecto, que sí tiene acceso de edición a ellas.
+*
+* CÓMO ACTUALIZARLO:
+*   1. script.google.com → Mis proyectos → abre el proyecto que ya tiene la
+*      implementación en uso (su URL /exec termina en qj-ygD8rYPoCZy4qiAxEhw).
+*   2. Selecciona todo el código viejo y pega TODO este archivo encima.
+*   3. Comprueba las constantes de abajo (SS_ID, SS_ID_2, SHEET_NAME,
 *      SHEET_NAME_2 y TOKEN deben coincidir con los de la app).
-*   5. Guarda (Ctrl+S).
-*   6. Desplegar → Nueva implementación → tipo "Aplicación web".
-*        - Ejecutar como: Yo
-*        - Quién tiene acceso: Cualquier persona
-*      ⚠️ Si el proyecto ya está desplegado, usa "Administrar implementaciones"
-*         → ✏️ Editar → "Nueva versión" (NO crees un proyecto nuevo, así la
-*         URL /exec de la app NO cambia).
-*   7. La URL "/exec" es la que usa la app (QX_SHEET_URL de index.html).
+*   4. Guarda (Ctrl+S).
+*   5. Implementar → Administrar implementaciones → ✏️ Editar →
+*      Versión: "Nueva versión" → Implementar.
+*      ⚠️ NUNCA "Nueva implementación": crea una URL distinta que pide iniciar
+*         sesión, y la app deja de poder escribir en las hojas.
+*   6. La URL "/exec" es la que usa la app (QX_SHEET_URL de index.html).
+*
+*   El disparador de sincronización (sincronizarTodo) NO depende de la
+*   implementación: corre con el código guardado. Pero debe existir en UN SOLO
+*   proyecto, o las hojas se escribirían dos veces.
 *
 * IMPORTANTE: los valores de CONSTANTES y CAT son los que GERESA exige.
 * ============================================================
