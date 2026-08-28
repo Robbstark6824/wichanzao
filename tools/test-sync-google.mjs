@@ -90,6 +90,23 @@ Object.keys(muestra.campos).sort().forEach(k => {
 });
 console.log('');
 
+// La regla que más cara costó: la hoja no puede deshacer una resolución.
+// compararConApp_ SÍ propone el estado (no sabe de esa regla); quien lo impide
+// es reconciliar_, que lo descarta antes de escribir. Se comprueban las dos
+// mitades, porque si desaparece el descarte la protección se pierde en silencio.
+const operada = pacientes.find(p => p.estado === 'operada');
+if (operada) {
+  const prop = G.compararConApp_({ ...operada, estado: null }, { estado: 'en_tramite' });
+  console.log('Protección de la resolución:');
+  console.log('  ' + (prop.patch.estado === 'en_tramite' ? '✓' : '✗') +
+    ' compararConApp_ propondría el estado de la hoja (por eso hay que descartarlo)');
+  const hayGuardia = gs.includes('delete cmp.patch.estado');
+  if (!hayGuardia) fallos++;
+  console.log('  ' + (hayGuardia ? '✓' : '✗ FALTA') +
+    ' reconciliar_ lo descarta antes de escribir (delete cmp.patch.estado)');
+  console.log('');
+}
+
 // Y que un choque real se detecta en vez de pisarse:
 const victima = pacientes.find(p => p.diagnostico);
 const choque = G.compararConApp_(victima, { diagnostico: 'OTRA COSA DISTINTA', hcl: null });

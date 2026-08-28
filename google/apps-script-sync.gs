@@ -50,7 +50,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-28-sync-bidireccional';
+var VERSION = '2026-08-28-sync-a-peticion';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -667,6 +667,26 @@ function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents || '{}');
     if (body.token !== TOKEN) return json({ ok: false, error: 'token no válido' });
+
+    // Sincronizar ahora, a petición de la app.
+    //
+    // Existe para que la hoja NO tenga que estar publicada en la web. Antes la
+    // app leía el CSV público desde el móvil —sin poder autenticarse en Google—
+    // y eso obligaba a dejar la hoja abierta a cualquiera con el enlace, con
+    // nombres, DNI y teléfonos dentro. Ahora la lectura ocurre aquí, con la
+    // cuenta autorizada, y la app solo pide el resultado.
+    if (body.accion === 'sincronizar') {
+      var res = sincronizarTodo();
+      if (!res) return json({ ok: false, error: 'otra sincronización estaba en marcha; inténtalo en un minuto' });
+      return json({
+        ok: res.errores.length === 0,
+        altas: res.altas.length,
+        rellenos: res.rellenos.length,
+        discrepancias: res.discrepancias,
+        empujadas: res.empujadas,
+        errores: res.errores
+      });
+    }
 
     // Borrado explícito (eliminar paciente en la app): borra por DNI en ambas hojas.
     if (body.accion === 'borrar') {

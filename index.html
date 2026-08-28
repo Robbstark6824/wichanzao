@@ -1405,7 +1405,6 @@ var QX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxH2ZHmkZ9d68nFD7Sww
 var QX_SHEET_TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9'; // debe coincidir con TOKEN del script
 // CSV de la hoja oficial "HOSPITAL LAREDO" (la MISMA que escribe el Apps Script:
 // getSheets()[0]). Ojo: no usar gviz&gid=0, que apunta a otra hoja ("Hoja 2").
-var QX_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv';
 
 /* ===== SUPABASE CLIENT ===== */
 var sb = window.supabase.createClient(SB_URL, SB_KEY, {
@@ -5534,7 +5533,6 @@ async function qxLoad(){
     }
   }
   qxRender();
-  qxDetectarPendientes();   // en segundo plano: nunca retrasa la lista
 }
 
 /* De dónde salió esta ficha. Sin esto, rastrear a una paciente que apareció de
@@ -5594,246 +5592,42 @@ async function qxSyncSheets(id){
   if (rech.length) toast('La hoja no aceptó: ' + rech.join(' · '), 'error');
 }
 
-/* ===== Sincronizar desde la hoja (hoja → app) =====
-   Trae los cambios manuales de la hoja GERESA sin borrar nada.
-   Suma nuevos, actualiza por DNI, y el estado solo avanza (nunca retrocede). */
-function qxNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim(); }
-function qxParseCSV(text){
-  var rows=[], row=[], field='', inQ=false;
-  for (var i=0;i<text.length;i++){
-    var c=text[i];
-    if (inQ){
-      if (c==='"'){ if (text[i+1]==='"'){ field+='"'; i++; } else inQ=false; }
-      else field+=c;
-    } else {
-      if (c==='"') inQ=true;
-      else if (c===','){ row.push(field); field=''; }
-      else if (c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
-      else if (c==='\r'){}
-      else field+=c;
-    }
-  }
-  if (field!=='' || row.length){ row.push(field); rows.push(row); }
-  return rows;
-}
-function qxPad(n){ return (n<10?'0':'')+n; }
-function qxParseDate(s){
-  if(!s) return null;
-  s=String(s).trim();
-  var m=s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
-  if(!m) return null;
-  var d=+m[1], mo=+m[2], y=+m[3];
-  if(y<100) y+=2000;
-  if(d<1||d>31||mo<1||mo>12) return null;
-  return String(y)+'-'+qxPad(mo)+'-'+qxPad(d);
-}
-function qxNormCie10(code){
-  if(!code) return null;
-  var c=String(code).trim().toUpperCase();
-  c=c.replace(/^DO/,'D0');
-  if(/^[A-Z]\d{3}$/.test(c)) c=c[0]+c[1]+c[2]+'.'+c[3];
-  return c;
-}
-function qxCleanPhone(s){ if(!s) return null; return s.split('//')[0].trim().replace(/\s+/g,'')||null; }
-function qxMapSexo(s){
-  var v=String(s||'').trim().toUpperCase();
-  if(v==='F'||v==='FEMENINO'||v==='MUJER') return 'Femenino';
-  if(v==='M'||v==='MASCULINO'||v==='HOMBRE') return 'Masculino';
-  return null;
-}
-function qxMapImagenes(s){
-  var v=String(s||'').trim().toLowerCase();
-  if(v.charAt(0)==='s') return 'Sí';
-  if(v.charAt(0)==='n') return 'No';
-  return null;
-}
-function qxEstadoRank(e){
-  if(e==='en_tramite') return 0;
-  if(e==='apta_para_sala') return 1;
-  if(e==='programada') return 2;
-  if(e==='hospitalizada') return 3;
-  if(e==='operada') return 4;
-  if(e==='suspendida'||e==='referida') return 5;
-  return -1;
-}
-function qxSheetEstado(row){
-  var actual=String(row[46]||'').trim().toUpperCase();
-  if(actual.indexOf('OPERAD')>=0) return 'operada';
-  // La hoja SÍ sabe decir que el caso se cerró ("Suspendido" / "Cerrado sin
-  // cirugía"): son dos de los cuatro valores del catálogo oficial y la app los
-  // escribe ahí. Antes no se leían, así que una paciente cerrada volvía de la
-  // hoja como "programada"/"en trámite".
-  if(actual.indexOf('SUSPENDID')>=0) return 'suspendida';
-  if(actual.indexOf('CERRADO SIN')>=0) return 'referida';
-  if(actual.indexOf('HOSPITALIZAD')>=0) return 'hospitalizada';
-  var prog=String(row[42]||'').trim().toUpperCase();
-  if(prog==='PROGRAMADO'||prog==='PROGRAMADA') return 'programada';
-  // "Pendiente de fecha" solo es "apta para sala" si la evaluación preoperatoria
-  // ya dice APTO (exámenes y riesgos completos). Si dice NO APTO o está vacío,
-  // la paciente sigue en trámite (en lista de espera), no está apta.
-  if(prog==='PENDIENTE DE FECHA' && String(row[40]||'').trim().toUpperCase()==='APTO') return 'apta_para_sala';
-  return 'en_tramite';
-}
-// Mapea una fila del bloque AZUL (índices 0-based) a los campos de la app.
-function qxMapFilaAzul(row){
-  var t1=String(row[29]||'').toLowerCase();
-  var t2=String(row[31]||'').toLowerCase();
-  var lab = t1.indexOf('laboratorio')>=0 || t2.indexOf('laboratorio')>=0;
-  var ekg = t1.indexOf('ekg')>=0 || t2.indexOf('ekg')>=0;
-  var resPreop = String(row[40]||'').trim().toUpperCase();
-  var rq=false, ra=false;
-  if (resPreop==='APTO'){ rq=true; ra=true; }
-  return {
-    id_registro: (row[0] && String(row[0]).trim()) ? parseInt(String(row[0]).trim(),10) : null,
-    establecimiento_destino: String(row[1]||'').trim() || null,
-    codigo_destino: String(row[2]||'').trim() || null,
-    establecimiento_origen: String(row[4]||'').trim() || null,
-    codigo_origen: String(row[5]||'').trim() || null,
-    dni: String(row[9]||'').trim(),
-    nombre: String(row[10]||'').trim(),
-    edad: (row[11] && String(row[11]).trim()) ? parseInt(String(row[11]).trim(),10) : null,
-    sexo: qxMapSexo(row[12]),
-    telefono: qxCleanPhone(row[13]),
-    tipo_seguro: String(row[14]||'').trim() || null,
-    hcl: String(row[15]||'').trim() || null,
-    doctor: String(row[17]||'').trim() || null,
-    cie10: qxNormCie10(row[18]),
-    diagnostico: String(row[19]||'').trim() || null,
-    cie10_secundario: qxNormCie10(row[20]),
-    diagnostico_secundario: String(row[21]||'').trim() || null,
-    cie10_tercero: qxNormCie10(row[22]),
-    diagnostico_tercero: String(row[23]||'').trim() || null,
-    codigo_procedimiento: String(row[24]||'').trim() || null,
-    procedimiento: String(row[25]||'').trim() || null,
-    nivel_cirugia: String(row[26]||'').trim() || null,
-    tipo_anestesia: String(row[27]||'').trim() || null,
-    fecha_primera_evaluacion: qxParseDate(row[28]),
-    aplica_imagenes: qxMapImagenes(row[35]),
-    fecha_imagenes: qxParseDate(row[36]),
-    fecha_cita_cardiologia: qxParseDate(row[37]),
-    fecha_cita_anestesiologia: qxParseDate(row[38]),
-    fecha_evaluacion_preoperatoria: qxParseDate(row[39]),
-    orden_intervencion: String(row[41]||'').trim() || null,
-    fecha_cirugia: qxParseDate(row[43]),
-    fecha_captacion: qxParseDate(row[8]),
-    laboratorio_completo: lab,
-    ekg: ekg,
-    riesgo_qx: rq,
-    riesgo_anestesiologico: ra,
-    fecha_fase2: (lab||ekg) ? (qxParseDate(row[30]) || qxParseDate(row[32])) : null,
-    fecha_examen1: lab ? qxParseDate(row[30]) : null,
-    fecha_examen2: ekg ? qxParseDate(row[32]) : null,
-    motivo_espera: (String(row[44]||'').trim()) || null,
-    detalle_motivo_espera: (String(row[45]||'').trim()) || null,
-    tipo_examen3: (String(row[33]||'').trim()) || null,
-    fecha_examen3: qxParseDate(row[34]),
-    estado: qxSheetEstado(row)
-  };
-}
+/* ===== Sincronizar ahora (a petición) =====
+   Antes la app se descargaba el CSV de la hoja desde el móvil y hacía aquí la
+   reconciliación. Eso obligaba a tener la hoja PUBLICADA en la web —legible por
+   cualquiera con el enlace, con nombres, DNI y teléfonos dentro—, porque el
+   navegador no puede autenticarse en Google.
+
+   Ahora esto solo pide al Apps Script que sincronice: él lee las dos hojas con
+   la cuenta autorizada y aplica las mismas reglas que el disparador de cada 15
+   minutos. El botón sirve para no esperar a la siguiente pasada. */
+function qxNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
+
 async function qxSyncFromSheet(btn){
   var orig = btn ? btn.innerHTML : '';
   if (btn){ btn.disabled = true; btn.innerHTML = '↻ Sincronizando…'; }
   try {
-    var resp = await fetch(QX_SHEET_CSV_URL);
-    if (!resp.ok) throw new Error('No se pudo leer la hoja (HTTP '+resp.status+')');
-    var rows = qxParseCSV(await resp.text());
-    // Encuentra el encabezado del bloque AZUL: col 9 = "DNI", col 10 = "Apellidos y nombres completos".
-    var hi = -1;
-    for (var i=0;i<rows.length;i++){
-      if (qxNorm(rows[i][9])==='dni' && qxNorm(rows[i][10])==='apellidos y nombres completos'){ hi=i; break; }
-    }
-    if (hi<0){ toast('No se encontró el bloque GERESA en la hoja','error'); return; }
-    var hoja=[];
-    for (var r=hi+1; r<rows.length; r++){
-      var row = rows[r];
-      if (!String(row[10]||'').trim()) continue;      // fila vacía
-      if (!String(row[9]||'').trim()) continue;        // sin DNI → se omite
-      hoja.push(qxMapFilaAzul(row));
-    }
-    if (!hoja.length){ toast('No hay filas con DNI para sincronizar','error'); return; }
-
-    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,motivo_cierre,cama_hospitalizacion,id_registro,origen');
-    if (curRes.error){ toast('Error al leer pacientes: '+curRes.error.message,'error'); return; }
-    var curMap = {};
-    (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
-
-    var nuevos=0, act=0;
-    var byDni = {};
-    var estadoHoja = {};   // lo que decía la hoja, para detectar en qué filas mandó la app
-    hoja.forEach(function(sp){
-      var app = curMap[sp.dni];
-      var est = sp.estado;
-      estadoHoja[sp.dni] = sp.estado;
-      // Las CHECK de estado exigen campos que solo existen en la app (no en la hoja GERESA).
-      // Se preservan del paciente existente para no violarlas al conservar su estado.
-      var refHosp = app ? app.referencia_hospital : null;
-      var motSusp = app ? app.motivo_suspension : null;
-      var motCierre = app ? app.motivo_cierre : null;
-      var cama = app ? app.cama_hospitalizacion : null;
-      // La resolución la decide una persona en la app (fase 7), no la hoja: si
-      // la paciente ya está operada / suspendida / cerrada sin cirugía, la
-      // sincronización NO puede deshacerlo. Antes sí lo hacía y el cierre se
-      // perdía a los segundos, sin aviso.
-      if (app && qxEstadoTerminal(app.estado)) est = app.estado;
-      else if (app && qxEstadoRank(app.estado) > qxEstadoRank(est)) est = app.estado; // nunca retrocede
-      if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';        // sin fecha no puede ser programada
-      var turno = (app && app.turno) ? app.turno : (est==='programada' ? 'manana' : null);
-      // Si el estado exige un campo que sigue vacío, se degrada a uno que no lo exige.
-      // "referida" (salida de lista sin cirugía) se contenta con el motivo de
-      // cierre: el catálogo tiene salidas sin hospital de destino (fallecimiento,
-      // renuncia, paciente no ubicable, duplicidad). Exigir el hospital mandaba
-      // esos cierres de vuelta a "en trámite".
-      if (est==='referida' && !refHosp && !motCierre) est = 'en_tramite';
-      if (est==='suspendida' && !motSusp) est = 'en_tramite';
-      if (est==='hospitalizada' && !cama) est = 'apta_para_sala';
-      // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila.
-      // Evita el error de Postgres "ON CONFLICT DO UPDATE cannot affect row a second time".
-      byDni[sp.dni] = {
-        // Quien ya tiene origen conocido lo conserva: sincronizar no puede
-        // convertir en "importada" a una paciente que registró una persona.
-        origen: (app && app.origen) ? app.origen : 'hoja',
-        id_registro: (app && app.id_registro != null) ? app.id_registro : sp.id_registro, dni: sp.dni, nombre: sp.nombre, edad: sp.edad, sexo: sp.sexo, telefono: sp.telefono,
-        establecimiento_destino: sp.establecimiento_destino, codigo_destino: sp.codigo_destino,
-        establecimiento_origen: sp.establecimiento_origen, codigo_origen: sp.codigo_origen,
-        tipo_seguro: sp.tipo_seguro, hcl: sp.hcl, doctor: sp.doctor, cie10: sp.cie10,
-        diagnostico: sp.diagnostico, cie10_secundario: sp.cie10_secundario,
-        diagnostico_secundario: sp.diagnostico_secundario, cie10_tercero: sp.cie10_tercero,
-        diagnostico_tercero: sp.diagnostico_tercero, codigo_procedimiento: sp.codigo_procedimiento,
-        procedimiento: sp.procedimiento, nivel_cirugia: sp.nivel_cirugia, tipo_anestesia: sp.tipo_anestesia,
-        fecha_primera_evaluacion: sp.fecha_primera_evaluacion, aplica_imagenes: sp.aplica_imagenes,
-        fecha_imagenes: sp.fecha_imagenes, fecha_cita_cardiologia: sp.fecha_cita_cardiologia,
-        fecha_cita_anestesiologia: sp.fecha_cita_anestesiologia,
-        fecha_evaluacion_preoperatoria: sp.fecha_evaluacion_preoperatoria,
-        orden_intervencion: sp.orden_intervencion, fecha_cirugia: sp.fecha_cirugia,
-        fecha_captacion: sp.fecha_captacion, laboratorio_completo: sp.laboratorio_completo,
-        ekg: sp.ekg, riesgo_qx: sp.riesgo_qx, riesgo_anestesiologico: sp.riesgo_anestesiologico,
-        fecha_fase2: sp.fecha_fase2, fecha_examen1: sp.fecha_examen1, fecha_examen2: sp.fecha_examen2,
-        motivo_espera: sp.motivo_espera, detalle_motivo_espera: sp.detalle_motivo_espera,
-        tipo_examen3: sp.tipo_examen3, fecha_examen3: sp.fecha_examen3,
-        estado: est, turno: turno,
-        referencia_hospital: refHosp, motivo_suspension: motSusp, cama_hospitalizacion: cama
-      };
+    var resp = await fetch(QX_SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'sincronizar' })
     });
-    var payload = [];
-    for (var d in byDni){ if (curMap[d]) act++; else nuevos++; payload.push(byDni[d]); }
-
-    var upRes = await sb.from('pacientes').upsert(payload, { onConflict: 'dni' }).select('id,dni');
-    if (upRes.error){ toast('Error al sincronizar: '+upRes.error.message,'error'); return; }
-
-    // Sincronizar no es solo traer: donde la app se quedó con un estado distinto
-    // al de la hoja (una resolución registrada aquí manda), esa fila se devuelve
-    // a las dos hojas. Si no, el formato oficial seguiría diciendo lo contrario.
-    var devueltas = 0, filas = upRes.data || [];
-    for (var f=0; f<filas.length; f++){
-      var bd = byDni[filas[f].dni];
-      if (bd && bd.estado !== estadoHoja[filas[f].dni]){ await qxSyncSheets(filas[f].id); devueltas++; }
+    var out = JSON.parse(await resp.text());
+    if (out.ok === false){
+      toast('No se pudo sincronizar: ' + ((out.errores && out.errores.join(' · ')) || out.error || 'la hoja no respondió'), 'error');
+      return;
     }
-
-    toast('Sincronizado: '+nuevos+' nuevo(s), '+act+' actualizado(s)'
-        + (devueltas ? ' · '+devueltas+' devuelta(s) a las hojas' : ''),'success');
+    var partes = [];
+    if (out.altas)    partes.push(out.altas + (out.altas===1 ? ' paciente nueva del Excel' : ' pacientes nuevas del Excel'));
+    if (out.rellenos) partes.push(out.rellenos + (out.rellenos===1 ? ' ficha completada' : ' fichas completadas'));
+    toast(partes.length ? 'Sincronizado: ' + partes.join(' · ') : 'Todo al día: nada que traer', 'success');
+    // Las discrepancias no se tocan a propósito: las decide una persona.
+    if (out.discrepancias && out.discrepancias.length){
+      toast('Revisar, la hoja y la app no coinciden: ' + out.discrepancias.join(' | '), 'error');
+    }
     qxLoad();
   } catch(e){
-    toast('Error al sincronizar: '+(e && e.message ? e.message : e),'error');
+    toast('No se pudo sincronizar: ' + (e && e.message ? e.message : e), 'error');
   } finally {
     if (btn){ btn.disabled = false; btn.innerHTML = orig; }
   }
@@ -5883,7 +5677,6 @@ function qxRender(){
     fl.innerHTML = c;
   }
   if (!list) return;
-  var aviso = qxAvisoPendientesHtml();
   var data = QX_FILTER==='todos' ? QX_PACIENTES : QX_PACIENTES.filter(function(p){return p.estado===QX_FILTER;});
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     data = data.filter(function(p){
@@ -5894,126 +5687,16 @@ function qxRender(){
     });
   }
   if (data.length===0){
-    list.innerHTML = aviso + '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
+    list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
     return;
   }
-  var html = aviso;
+  var html = '';
   for (var k=0;k<data.length;k++){
     html += qxTarjetaHtml(data[k]);
   }
   list.innerHTML = html;
 }
 
-/* ===== Pacientes escritas a mano en el Excel =====
-   Hay médicos que no usan la app y llenan la hoja directamente. Eso no llegaba
-   a ningún lado: nadie pulsaba "Sincronizar" y la paciente sencillamente no
-   existía para el servicio. Ahora la app lo detecta sola al entrar y avisa.
-   Solo mira y avisa: no importa nada por su cuenta. */
-var QX_PENDIENTES = [];     // filas de la hoja cuyo DNI no está en la app
-var QX_PEND_ULT = 0;        // última comprobación, para no leer la hoja a cada paso
-
-function qxAvisoPendientesHtml(){
-  var n = QX_PENDIENTES.length;
-  if (!n) return '';
-  return '<div style="background:rgba(212,168,83,.14);border:1px solid rgba(212,168,83,.45);border-radius:12px;padding:12px 14px;margin-bottom:12px">'
-    + '<div style="font-size:13px;font-weight:800;color:var(--t1)">📋 '+n+(n===1?' paciente está':' pacientes están')+' en el Excel y no en la app</div>'
-    + '<div style="font-size:11px;color:var(--t2);line-height:1.5;margin-top:4px">Alguien '+(n===1?'la':'las')+' escribió a mano en la hoja GERESA. Mientras no '+(n===1?'la':'las')+' importes, no '+(n===1?'aparece':'aparecen')+' en la lista ni en el formato oficial.</div>'
-    + '<button class="qx-btn" style="width:100%;margin-top:10px;padding:8px 12px;font-size:12px;background:var(--gd)" onclick="qxRevisarPendientes()">Revisar e importar</button>'
-    + '</div>';
-}
-
-async function qxDetectarPendientes(forzar){
-  var ahora = Date.now();
-  if (!forzar && (ahora - QX_PEND_ULT) < 120000) return;   // como mucho cada 2 minutos
-  QX_PEND_ULT = ahora;
-  try {
-    var resp = await fetch(QX_SHEET_CSV_URL, {cache:'no-store'});
-    if (!resp.ok) return;
-    var rows = qxParseCSV(await resp.text());
-    var hi = -1;
-    for (var i=0;i<rows.length;i++){
-      if (qxNorm(rows[i][9])==='dni' && qxNorm(rows[i][10])==='apellidos y nombres completos'){ hi=i; break; }
-    }
-    if (hi<0) return;
-    var tengo = {};
-    for (var j=0;j<QX_PACIENTES.length;j++) tengo[String(QX_PACIENTES[j].dni||'').trim()] = true;
-    var faltan = [], vistos = {};
-    for (var r=hi+1; r<rows.length; r++){
-      var row = rows[r];
-      var dni = String(row[9]||'').trim();
-      if (!dni || !String(row[10]||'').trim()) continue;   // fila vacía o sin DNI
-      if (tengo[dni] || vistos[dni]) continue;
-      vistos[dni] = true;
-      faltan.push(qxMapFilaAzul(row));
-    }
-    var cambio = faltan.length !== QX_PENDIENTES.length;
-    QX_PENDIENTES = faltan;
-    if (cambio) qxRender();
-  } catch(e){
-    // Sin red o la hoja no responde: no se avisa de nada. Callar es mejor que
-    // decir "no falta nadie" sin haber podido mirar.
-  }
-}
-
-function qxRevisarPendientes(){
-  if (!QX_PENDIENTES.length) return;
-  var items = '';
-  for (var i=0;i<QX_PENDIENTES.length;i++){
-    var p = QX_PENDIENTES[i];
-    items += '<label style="display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--bd)">'
-      + '<input type="checkbox" class="qxPendCk" data-i="'+i+'" checked style="margin-top:2px;width:19px;height:19px;flex:none">'
-      + '<div style="min-width:0">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--t1)">'+qxEsc(p.nombre||'(sin nombre)')+'</div>'
-      + '<div style="font-size:11px;color:var(--t2);margin-top:2px">DNI '+qxEsc(p.dni)+(p.edad?' · '+p.edad+' años':'')+(p.diagnostico?' · '+qxEsc(p.diagnostico):'')+'</div>'
-      + (p.fecha_cirugia?'<div style="font-size:11px;color:var(--t3);margin-top:2px">📅 Fecha de cirugía en el Excel: '+qxFmtFecha(p.fecha_cirugia)+'</div>':'')
-      + '</div></label>';
-  }
-  var ov = document.createElement('div');
-  ov.className = 'qx-overlay';
-  ov.innerHTML = '<div class="qx-sheet">'
-    + '<div class="qx-sheet-head"><h3>Pacientes solo en el Excel</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
-    + '<div class="qx-sheet-body">'
-    + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:6px">Se traen con lo que dice la hoja. Entran <b>en trámite</b> (o programada, si tienen fecha): lo que no consta en el Excel se completa después, aquí. Ninguna paciente que ya esté en la app se toca.</div>'
-    + items
-    + '<button class="qx-btn" style="width:100%;margin-top:14px;background:#16a34a" onclick="qxImportarPendientes(this)">Importar las marcadas</button>'
-    + '</div></div>';
-  document.body.appendChild(ov);
-}
-
-async function qxImportarPendientes(btn){
-  var cks = document.querySelectorAll('.qxPendCk');
-  var elegidas = [];
-  for (var i=0;i<cks.length;i++){
-    if (cks[i].checked) elegidas.push(QX_PENDIENTES[parseInt(cks[i].getAttribute('data-i'),10)]);
-  }
-  if (!elegidas.length){ toast('No marcaste ninguna','error'); return; }
-  if (btn){ btn.disabled = true; btn.innerHTML = 'Importando…'; }
-  var usuario = await qxUsuarioId();
-  var creadas = 0, fallidas = [];
-  for (var k=0;k<elegidas.length;k++){
-    var sp = elegidas[k];
-    var fila = {}; for (var c in sp) fila[c] = sp[c];
-    // Un cierre (operada / suspendida / cerrada sin cirugía) no se importa a
-    // ciegas: exige datos que la hoja no trae y que alguien debe confirmar.
-    var est = sp.estado;
-    if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';
-    if (qxEstadoTerminal(est) || est==='hospitalizada') est = 'en_tramite';
-    fila.estado = est;
-    fila.turno = (est==='programada') ? 'manana' : null;
-    fila.origen = 'hoja';
-    fila.created_by = usuario;
-    fila.id_registro = await qxIdRegistroLibre(sp.id_registro);
-    var res = await sb.from('pacientes').insert(fila).select('id').single();
-    if (res.error || !res.data){ fallidas.push((sp.nombre||sp.dni)+': '+((res.error&&res.error.message)||'no se pudo crear')); continue; }
-    creadas++;
-    await qxSyncSheets(res.data.id);   // y de aquí sale hacia los DOS formatos
-  }
-  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  if (creadas) toast(creadas+(creadas===1?' paciente importada ✓':' pacientes importadas ✓'),'success');
-  if (fallidas.length) toast('No se pudo importar: '+fallidas.join(' · '),'error');
-  await qxLoad();
-  qxDetectarPendientes(true);
-}
 
 function qxProximaAccion(p){
   if (p.estado==='en_tramite'){
