@@ -1,4 +1,4 @@
-// Aplica sql/023-origen-y-autoria.sql
+// Aplica sql/024-edad-gestacional.sql
 const { Client } = require('pg');
 const fs = require('fs');
 
@@ -10,7 +10,7 @@ const c = new Client({
 
 (async () => {
   await c.connect();
-  const sql = fs.readFileSync('sql/023-origen-y-autoria.sql', 'utf8');
+  const sql = fs.readFileSync('sql/024-edad-gestacional.sql', 'utf8');
   const r = await c.query(sql);
   const last = Array.isArray(r) ? r[r.length - 1] : r;
   console.log('Migración aplicada. Origen actual:', JSON.stringify(last.rows));

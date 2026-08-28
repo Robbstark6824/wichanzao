@@ -5503,6 +5503,79 @@ function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.l
 function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
 function qxFmtTs(ts){ if(!ts) return ''; var d=new Date(ts); if(isNaN(d.getTime())) return ''; return qxPad(d.getDate())+'/'+qxPad(d.getMonth()+1)+'/'+d.getFullYear()+' '+qxPad(d.getHours())+':'+qxPad(d.getMinutes()); }
 function qxHoyStr(){ var d=new Date(); return qxFechaStr(d.getFullYear(), d.getMonth(), d.getDate()); }
+
+/* ===== Edad gestacional =====
+   El servicio capta gestantes hacia la semana 36 con el feto en percentil 97 y
+   las programa esperando a la 38. Pero las semanas AVANZAN: la que se escribió
+   el día de la captación miente al día siguiente, y había que recalcularla a
+   mano una y otra vez.
+
+   Por eso NO se guardan las semanas. Se guarda el punto de partida —la FUR o la
+   ecografía del primer trimestre— y se cuentan los días cada vez que se mira.
+   Así la ficha está al día sola, sin que nadie la toque. */
+
+function qxSumarDias(f, n){
+  if (!f) return null;
+  var p = String(f).slice(0,10).split('-');
+  var d = new Date(Date.UTC(+p[0], +p[1]-1, +p[2]));
+  if (isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.getUTCFullYear()+'-'+qxPad(d.getUTCMonth()+1)+'-'+qxPad(d.getUTCDate());
+}
+function qxDiasEntreFechas(a, b){
+  if (!a || !b) return null;
+  var pa = String(a).slice(0,10).split('-'), pb = String(b).slice(0,10).split('-');
+  var ua = Date.UTC(+pa[0], +pa[1]-1, +pa[2]), ub = Date.UTC(+pb[0], +pb[1]-1, +pb[2]);
+  if (isNaN(ua) || isNaN(ub)) return null;
+  return Math.round((ub - ua) / 86400000);
+}
+
+/* Desde dónde se cuenta. La ecografía del primer trimestre manda sobre la FUR:
+   es más fiable que la fecha que recuerda la paciente. */
+function qxFurEfectiva(p){
+  if (p.eco_fecha && (p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')){
+    var d = (parseInt(p.eco_semanas,10)||0)*7 + (parseInt(p.eco_dias,10)||0);
+    return qxSumarDias(p.eco_fecha, -d);
+  }
+  return p.fur ? String(p.fur).slice(0,10) : null;
+}
+
+/* Edad gestacional en la fecha que se pida, en la notación del servicio: 38ss 2/7. */
+function qxEG(p, fecha){
+  var fur = qxFurEfectiva(p);
+  if (!fur || !fecha) return null;
+  var d = qxDiasEntreFechas(fur, fecha);
+  // Fuera de un embarazo posible no se afirma nada: mejor callar que mentir.
+  if (d === null || d < 0 || d > 315) return null;
+  return { dias:d, semanas:Math.floor(d/7), resto:d%7, texto:Math.floor(d/7)+'ss '+(d%7)+'/7' };
+}
+function qxFpp(p){ var f = qxFurEfectiva(p); return f ? qxSumarDias(f, 280) : null; }
+
+/* Para el listado: la edad gestacional de un vistazo, sin abrir la ficha. */
+function qxEGChip(p){
+  var eg = qxEG(p, qxEstadoTerminal(p.estado) ? (p.fecha_real_operacion || p.fecha_cirugia || qxHoyStr()) : qxHoyStr());
+  return eg ? ' · <b style="color:var(--tl)">'+eg.texto+'</b>' : '';
+}
+
+/* La línea que se ve en la ficha. Solo aparece si hay de dónde contar. */
+function qxGestacionHtml(p){
+  var hoy = qxEG(p, qxHoyStr());
+  if (!hoy) return '';
+  var enQx = (p.fecha_cirugia && !qxEstadoTerminal(p.estado)) ? qxEG(p, p.fecha_cirugia) : null;
+  var real = (p.estado === 'operada' && p.fecha_real_operacion) ? qxEG(p, p.fecha_real_operacion) : null;
+  var fpp = qxFpp(p);
+  var origen = (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')
+    ? 'por eco del 1.er trimestre' : 'por FUR';
+  return '<div style="margin-top:8px;padding:9px 11px;border:1px solid var(--bd);border-radius:9px;background:var(--s2)">'
+    + '<div style="font-size:15px;font-weight:800;color:var(--t1)">'
+    + (real ? real.texto + ' <span style="font-size:11px;font-weight:600;color:var(--t2)">el día de la operación</span>'
+            : hoy.texto + ' <span style="font-size:11px;font-weight:600;color:var(--t2)">hoy</span>')
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--t2);margin-top:3px;line-height:1.5">'
+    + (enQx ? '📅 <b>'+enQx.texto+'</b> el día de la cirugía ('+qxFmtFecha(p.fecha_cirugia)+')<br>' : '')
+    + (fpp ? 'FPP ' + qxFmtFecha(fpp) + ' · ' : '') + origen
+    + '</div></div>';
+}
 function qxFaseTsHtml(ts){ return ts ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">⏱ Completada '+qxFmtTs(ts)+'</div>' : ''; }
 function qxResumenPendientes(p){ var it=qxChecklistItems(p); var faltan=[]; for(var i=0;i<it.length;i++){ if(!it[i].h && !it[i].ok) faltan.push(it[i].label); } return faltan.length===0?'Ninguno':faltan.join(', '); }
 async function qxMarcarFases(p){ var patch={}; var now=new Date().toISOString(); if(qxFase2Completa(p)&&!p.fecha_fase2)patch.fecha_fase2=now; if(qxFase3Completa(p)&&!p.fecha_fase3)patch.fecha_fase3=now; if(qxFase4Completa(p)&&!p.fecha_fase4)patch.fecha_fase4=now; if(Object.keys(patch).length===0)return; var res=await sb.from('pacientes').update(patch).eq('id',p.id); if(!res.error){ for(var k in patch)p[k]=patch[k]; } }
@@ -5787,7 +5860,7 @@ function qxTarjetaHtml(p){
     + (dias === null ? '' : '<div class="qx-espera'+peso+'">'+dias+'<small>'+(terminal?'días en lista':'días de espera')+'</small></div>')
     + qxAcciones(p)
     + '</div>'
-    + '<div class="dni">'+qxEsc(p.dni||'—')+(p.hcl?' · HC '+qxEsc(p.hcl):'')+(p.edad?' · '+p.edad+'a':'')+'</div>'
+    + '<div class="dni">'+qxEsc(p.dni||'—')+(p.hcl?' · HC '+qxEsc(p.hcl):'')+(p.edad?' · '+p.edad+'a':'')+qxEGChip(p)+'</div>'
     + (p.diagnostico ? '<div class="dx">'+qxEsc(p.diagnostico)+'</div>' : '')
     + qxRielHtml(p)
     + '</div>';
@@ -6299,7 +6372,7 @@ async function qxFormulario(p){
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
   QX_WIZ_DATOS = {};
-  var campos = ['dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop'];
+  var campos = ['dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop','fur','eco_fecha','eco_semanas','eco_dias'];
   if (p){
     for (var i=0;i<campos.length;i++) QX_WIZ_DATOS[campos[i]] = p[campos[i]];
     // Registros antiguos pueden no tener los establecimientos: se completan con
@@ -6364,6 +6437,14 @@ function qxWizPaso1Html(){
     + '<div class="qx-field"><label>Nombre completo '+QX_REQ+'</label><input id="qxW_nombre" placeholder="Apellidos y nombres" value="'+qxWizV('nombre')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxW_edad" type="number" min="0" max="120" placeholder="Años" value="'+qxWizV('edad')+'"></div>'
     + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+'</select></div></div>'
+    + '<details style="margin:10px 0;border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px"'+((qxWizV('fur')||qxWizV('eco_fecha'))?' open':'')+'>'
+    + '<summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--t1)">🤰 Gestante — para calcular las semanas solas</summary>'
+    + '<div style="font-size:11px;color:var(--t3);line-height:1.5;margin:8px 0 10px">Con esto la app cuenta la edad gestacional cada día y te dice cuántas semanas tendrá el día de la cirugía. Si hay eco del primer trimestre, manda ella.</div>'
+    + '<div class="qx-field"><label>FUR (fecha de última regla)</label><input type="date" id="qxW_fur" value="'+qxWizV('fur')+'"></div>'
+    + '<div class="qx-field"><label>Fecha de la eco del 1.er trimestre</label><input type="date" id="qxW_eco_fecha" value="'+qxWizV('eco_fecha')+'"></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Semanas en esa eco</label><input id="qxW_eco_semanas" type="number" min="0" max="45" placeholder="ej. 12" value="'+qxWizV('eco_semanas')+'"></div>'
+    + '<div class="qx-field"><label>Días sueltos (0-6)</label><input id="qxW_eco_dias" type="number" min="0" max="6" placeholder="ej. 3" value="'+qxWizV('eco_dias')+'"></div></div>'
+    + '</details>'
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxW_hcl" placeholder="N° historia" value="'+qxWizV('hcl')+'"></div>'
     + '<div class="qx-field"><label>Celular</label><input id="qxW_telefono" placeholder="9XXXXXXXX" value="'+qxWizV('telefono')+'"></div></div>'
     + '<div class="qx-field"><label>Tipo de seguro</label><select id="qxW_tipo_seguro">'+qxWizOpt('tipo_seguro','','—')+qxWizOpt('tipo_seguro','SIS','SIS')+qxWizOpt('tipo_seguro','ESSALUD','ESSALUD')+qxWizOpt('tipo_seguro','FISSAL','FISSAL')+qxWizOpt('tipo_seguro','Particular','Particular')+qxWizOpt('tipo_seguro','Otro','Otro')+'</select></div>'
@@ -6462,7 +6543,7 @@ function qxWizRender(){
 
 function qxWizGuardarPaso(){
   var campos = [];
-  if (QX_WIZ_PASO===1) campos = ['dni','nombre','edad','sexo','hcl','telefono','tipo_seguro','fecha_captacion','interno_medicina','establecimiento_destino','codigo_destino','red_destino','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen'];
+  if (QX_WIZ_PASO===1) campos = ['dni','nombre','edad','sexo','hcl','telefono','tipo_seguro','fecha_captacion','interno_medicina','establecimiento_destino','codigo_destino','red_destino','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','fur','eco_fecha','eco_semanas','eco_dias'];
   else if (QX_WIZ_PASO===2) campos = ['doctor','cie10','diagnostico','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero'];
   else if (QX_WIZ_PASO===3) campos = ['especialidad','codigo_procedimiento','procedimiento','nivel_cirugia','tipo_anestesia'];
   else if (QX_WIZ_PASO===4) campos = ['laboratorio_completo','ekg','fecha_examen1','fecha_examen2','aplica_imagenes','fecha_imagenes','fecha_primera_evaluacion','tipo_examen3','fecha_examen3'];
@@ -6503,6 +6584,9 @@ async function qxWizGuardar(){
     establecimiento_origen: d.establecimiento_origen||null, codigo_origen: d.codigo_origen||null,
     provincia_origen: d.provincia_origen||null, distrito_origen: d.distrito_origen||null,
     edad: d.edad||null, sexo: d.sexo||null, diagnostico: d.diagnostico||null,
+    fur: d.fur||null, eco_fecha: d.eco_fecha||null,
+    eco_semanas: (d.eco_semanas===''||d.eco_semanas==null)?null:parseInt(d.eco_semanas,10),
+    eco_dias: (d.eco_dias===''||d.eco_dias==null)?null:parseInt(d.eco_dias,10),
     cie10: d.cie10||null, procedimiento: d.procedimiento||null, tipo_seguro: d.tipo_seguro||null,
     tipo_anestesia: d.tipo_anestesia||null, nivel_cirugia: d.nivel_cirugia||null,
     fecha_captacion: d.fecha_captacion||null, interno_medicina: d.interno_medicina||null, doctor: d.doctor||null,
@@ -6628,6 +6712,7 @@ function qxRenderDetalle(){
     + (qxProgramadaPendiente(p) ? '<div style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.32);color:#dc2626;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:12px">⚠️ Programada con pendientes: aún faltan exámenes o checks por completar</div>' : '')
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">1</div><div><div class="ph-title">Captación</div><div class="ph-hint">DNI '+qxEsc(p.dni)+' · HCL '+qxEsc(p.hcl||'—')+' · Tel '+qxEsc(p.telefono||'—')+(p.edad?' · '+p.edad+' años':'')+(p.sexo?' · '+qxEsc(p.sexo):'')+'</div></div></div>'
     + (p.diagnostico?'<div style="font-size:13px;color:var(--t1)">'+qxEsc(p.diagnostico)+'</div>':'')
+    + qxGestacionHtml(p)
     + '<div style="font-size:11px;color:var(--t2);margin-top:6px">'
     + (p.fecha_captacion ? '📅 Captada el '+qxFmtFecha(p.fecha_captacion) : '')
     + (p.interno_medicina ? ' · Interno: '+qxEsc(p.interno_medicina) : '')
