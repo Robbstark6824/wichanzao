@@ -50,7 +50,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-28-sync-a-peticion';
+var VERSION = '2026-08-28-eg-en-las-hojas';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -143,6 +143,83 @@ function fmtFecha(v) {
 function esColumnaFecha(key) {
   var n = norm(key);
   return n.indexOf('fecha') === 0 || n.indexOf('f.') === 0;
+}
+
+/* ============================================================
+ * EDAD GESTACIONAL EN LAS HOJAS
+ * ============================================================
+ * El servicio capta gestantes hacia la semana 36 y las opera hacia la 38. Las
+ * semanas avanzan cada día, así que un diagnóstico escrito una vez ("GU 36ss
+ * 2/7") miente al día siguiente, también en el Excel.
+ *
+ * Aquí se recalcula al escribir: el diagnóstico que va a las hojas lleva la
+ * edad gestacional del día, y el disparador refresca a las gestantes activas
+ * una vez al día aunque nadie toque su ficha.
+ *
+ * Lo que se guarda en la base sigue siendo el texto que escribió una persona.
+ * El sufijo se añade solo al salir hacia la hoja, y se quita al leerla de
+ * vuelta, para que la app no acabe importando su propio cálculo como si fuera
+ * parte del diagnóstico.
+ * ============================================================ */
+
+function esTerminal_(e) { return e === 'operada' || e === 'suspendida' || e === 'referida'; }
+
+function hoyStr_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function sumarDias_(f, n) {
+  if (!f) return null;
+  var p = String(f).slice(0, 10).split('-');
+  var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+  if (isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.getUTCFullYear() + '-' + pad2_(d.getUTCMonth() + 1) + '-' + pad2_(d.getUTCDate());
+}
+
+function diasEntre_(a, b) {
+  if (!a || !b) return null;
+  var pa = String(a).slice(0, 10).split('-'), pb = String(b).slice(0, 10).split('-');
+  var ua = Date.UTC(+pa[0], +pa[1] - 1, +pa[2]), ub = Date.UTC(+pb[0], +pb[1] - 1, +pb[2]);
+  if (isNaN(ua) || isNaN(ub)) return null;
+  return Math.round((ub - ua) / 86400000);
+}
+
+/** Desde dónde se cuenta. La eco del primer trimestre manda sobre la FUR. */
+function furEfectiva_(p) {
+  if (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '') {
+    var d = (parseInt(p.eco_semanas, 10) || 0) * 7 + (parseInt(p.eco_dias, 10) || 0);
+    return sumarDias_(p.eco_fecha, -d);
+  }
+  return p.fur ? String(p.fur).slice(0, 10) : null;
+}
+
+/** '38ss 2/7' en la fecha pedida, o null si no hay de dónde contar. */
+function egEn_(p, fecha) {
+  var fur = furEfectiva_(p);
+  if (!fur || !fecha) return null;
+  var d = diasEntre_(fur, fecha);
+  if (d === null || d < 0 || d > 315) return null;
+  return Math.floor(d / 7) + 'ss ' + (d % 7) + '/7';
+}
+
+/** El diagnóstico tal como va a la hoja: el texto de la persona, y detrás la
+ *  edad gestacional del día. En una ficha ya cerrada se congela en la fecha de
+ *  la operación: un caso cerrado no debe seguir moviéndose. */
+function dxConEG_(p) {
+  var dx = p.diagnostico ? String(p.diagnostico) : '';
+  var fecha = esTerminal_(p.estado) ? (p.fecha_real_operacion || p.fecha_cirugia) : hoyStr_();
+  var eg = egEn_(p, fecha);
+  if (!eg) return dx;
+  return (dx ? dx + ' · ' : '') + 'EG ' + eg + ' (' + fmtFecha(fecha) + ')';
+}
+
+/** Quita ese sufijo al leer la hoja, para no importar el cálculo como si fuera
+ *  diagnóstico. Va anclado al final y con formato fijo: si alguien escribe algo
+ *  parecido a mano, no coincide y se respeta lo que puso. */
+function quitarEG_(s) {
+  if (!s) return s;
+  return String(s).replace(/\s*·\s*EG\s+\d+ss\s+\d\/7\s*\([^)]*\)\s*$/, '').trim() || null;
 }
 
 /** Devuelve el valor EXACTO del catálogo si coincide (ignora tildes/mayúsculas),
@@ -338,7 +415,7 @@ function buildValuesNew(p) {
   v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
-  v['diagnostico principal']             = p.diagnostico;
+  v['diagnostico principal']             = dxConEG_(p);
   v['cie-10 secundario']                 = p.cie10_secundario || '';
   v['diagnostico secundario']            = p.diagnostico_secundario || '';
   v['cie-10 tercero']                    = p.cie10_tercero || '';
@@ -443,7 +520,7 @@ function buildValuesOld(p) {
   v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
-  v['diagnostico principal']             = p.diagnostico;
+  v['diagnostico principal']             = dxConEG_(p);
   v['procedimiento quirurgico propuesto'] = p.procedimiento;
   v['nivel de cirugia']                  = mapNivel(p.nivel_cirugia);
   v['tipo de anestesia']                 = mapAnestesia(p.tipo_anestesia);
@@ -971,7 +1048,7 @@ function filaAPaciente_(v) {
   p.especialidad = txt('especialidad quirurgica');
 
   p.cie10                  = txt('cie-10 principal');
-  p.diagnostico            = txt('diagnostico principal');
+  p.diagnostico            = quitarEG_(txt('diagnostico principal'));
   p.cie10_secundario       = txt('cie-10 secundario');
   p.diagnostico_secundario = txt('diagnostico secundario');
   p.cie10_tercero          = txt('cie-10 tercero');
@@ -1155,6 +1232,23 @@ function reconciliar_(simular) {
   // importar arriba. Así lo escrito a mano en una hoja acaba en la otra.
   var desde = props.getProperty('ULTIMA_SYNC') || '1970-01-01T00:00:00Z';
   var cambiadas = sbFetch_('get', 'pacientes?select=*&updated_at=gt.' + encodeURIComponent(desde));
+
+  // La edad gestacional avanza aunque la ficha no se toque, así que empujar
+  // "solo lo que cambió" dejaría el Excel congelado en las semanas del día que
+  // se registró. Una vez al día se refrescan las gestantes que siguen en lista.
+  var hoyEG = hoyStr_();
+  if (props.getProperty('ULTIMO_DIA_EG') !== hoyEG) {
+    var yaVan = {};
+    cambiadas.forEach(function (p) { yaVan[p.id] = true; });
+    var gestantes = 0;
+    pacientes.forEach(function (p) {
+      if (yaVan[p.id] || esTerminal_(p.estado) || !furEfectiva_(p)) return;
+      cambiadas.push(p);
+      gestantes++;
+    });
+    if (gestantes) r.rellenos.push(gestantes + ' gestante(s): edad gestacional del día al Excel');
+    if (!simular) props.setProperty('ULTIMO_DIA_EG', hoyEG);
+  }
   cambiadas.forEach(function (p) {
     if (simular) { r.empujadas++; return; }
     try {
