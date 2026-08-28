@@ -7,7 +7,9 @@
 import fs from 'fs';
 
 // Acepta otra copia de index.html como argumento, para comparar versiones.
-const html = fs.readFileSync(process.argv[2] || 'index.html', 'utf8');
+// Se normalizan los saltos de línea: en Windows el archivo puede quedar con CRLF
+// y los recortes de abajo buscan \n.
+const html = fs.readFileSync(process.argv[2] || 'index.html', 'utf8').replace(/\r\n/g, '\n');
 
 const entre = (desde, hasta) => {
   const a = html.indexOf(desde);
