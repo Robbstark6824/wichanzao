@@ -846,8 +846,41 @@ var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 
 function sbKey_() {
   var k = PropertiesService.getScriptProperties().getProperty('SUPABASE_KEY');
-  if (!k) throw new Error('Falta la propiedad SUPABASE_KEY (Configuración del proyecto → Propiedades del script).');
+  if (!k) throw new Error('Falta SUPABASE_KEY. Ejecuta guardarClaveSupabase una vez (ver arriba del todo).');
   return k;
+}
+
+/* ------------------------------------------------------------
+ * PUESTA EN MARCHA: guardar la clave sin pelearse con el menú
+ * ------------------------------------------------------------
+ * En español, "Propiedades del script" se llama "Propiedades de la secuencia
+ * de comandos", y en algunas cuentas esa sección ni siquiera aparece. Esta
+ * función hace lo mismo desde el código.
+ *
+ *   1. Pega la clave service_role entre las comillas de abajo.
+ *   2. Ejecuta `guardarClaveSupabase` una sola vez.
+ *   3. BORRA la clave de esta línea y guarda con Ctrl+S.
+ *
+ * El paso 3 importa: la clave queda guardada en el proyecto, no hace falta
+ * que siga escrita aquí, y aquí es donde cualquiera que abra el editor la ve.
+ * ------------------------------------------------------------ */
+function guardarClaveSupabase() {
+  var CLAVE = '';   // <-- pega la clave aquí, entre las comillas
+
+  if (!CLAVE) {
+    Logger.log('Pega la clave en la variable CLAVE (línea de arriba) y vuelve a ejecutar.');
+    return;
+  }
+  PropertiesService.getScriptProperties().setProperty('SUPABASE_KEY', CLAVE.trim());
+  Logger.log('Clave guardada. ' + comprobarClave());
+  Logger.log('AHORA borra la clave de la línea de CLAVE y guarda con Ctrl+S.');
+}
+
+/** Dice si la clave está guardada, sin enseñarla entera. */
+function comprobarClave() {
+  var k = PropertiesService.getScriptProperties().getProperty('SUPABASE_KEY');
+  if (!k) return 'NO hay clave guardada todavía.';
+  return 'Clave guardada: ' + k.length + ' caracteres, de "' + k.slice(0, 6) + '..." a "...' + k.slice(-4) + '".';
 }
 
 function sbFetch_(metodo, path, cuerpo, prefer) {
