@@ -5716,9 +5716,11 @@ async function qxSyncFromSheet(btn){
 
     var nuevos=0, act=0;
     var byDni = {};
+    var estadoHoja = {};   // lo que decía la hoja, para detectar en qué filas mandó la app
     hoja.forEach(function(sp){
       var app = curMap[sp.dni];
       var est = sp.estado;
+      estadoHoja[sp.dni] = sp.estado;
       // Las CHECK de estado exigen campos que solo existen en la app (no en la hoja GERESA).
       // Se preservan del paciente existente para no violarlas al conservar su estado.
       var refHosp = app ? app.referencia_hospital : null;
@@ -5769,10 +5771,20 @@ async function qxSyncFromSheet(btn){
     var payload = [];
     for (var d in byDni){ if (curMap[d]) act++; else nuevos++; payload.push(byDni[d]); }
 
-    var upRes = await sb.from('pacientes').upsert(payload, { onConflict: 'dni' });
+    var upRes = await sb.from('pacientes').upsert(payload, { onConflict: 'dni' }).select('id,dni');
     if (upRes.error){ toast('Error al sincronizar: '+upRes.error.message,'error'); return; }
 
-    toast('Sincronizado: '+nuevos+' nuevo(s), '+act+' actualizado(s)','success');
+    // Sincronizar no es solo traer: donde la app se quedó con un estado distinto
+    // al de la hoja (una resolución registrada aquí manda), esa fila se devuelve
+    // a las dos hojas. Si no, el formato oficial seguiría diciendo lo contrario.
+    var devueltas = 0, filas = upRes.data || [];
+    for (var f=0; f<filas.length; f++){
+      var bd = byDni[filas[f].dni];
+      if (bd && bd.estado !== estadoHoja[filas[f].dni]){ await qxSyncSheets(filas[f].id); devueltas++; }
+    }
+
+    toast('Sincronizado: '+nuevos+' nuevo(s), '+act+' actualizado(s)'
+        + (devueltas ? ' · '+devueltas+' devuelta(s) a las hojas' : ''),'success');
     qxLoad();
   } catch(e){
     toast('Error al sincronizar: '+(e && e.message ? e.message : e),'error');
@@ -6667,7 +6679,6 @@ async function qxWizGuardar(){
   }
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   var id = QX_WIZ_EDIT_ID || (res.data && res.data[0] && res.data[0].id);
-  if (id) qxSyncSheets(id);
   if (QX_WIZ_EDIT_ID && QX_ACTUAL){
     for (var k in payload) QX_ACTUAL[k] = payload[k];
     await qxMarcarFases(QX_ACTUAL);
@@ -6677,6 +6688,9 @@ async function qxWizGuardar(){
     }
     qxRenderDetalle();
   }
+  // Al final, no antes: así la fila que sube a las hojas ya incluye las fechas de
+  // fase y el estado que este guardado pudo cambiar.
+  if (id) qxSyncSheets(id);
   toast(QX_WIZ_EDIT_ID ? 'Datos actualizados ✓' : 'Paciente registrada ✓', 'success');
   qxLoad();
 }
@@ -6885,7 +6899,9 @@ async function qxHospitalizar(){
   var res = await sb.from('pacientes').update({cama_hospitalizacion:cama, fecha_hospitalizacion:new Date().toISOString()}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   p.cama_hospitalizacion = cama;
-  await qxSetEstado(p,'hospitalizada');
+  // Si el paso a "hospitalizada" no prospera, la cama ya está en la base: se
+  // sube igual, para que las hojas no queden atrasadas respecto a la app.
+  if (!(await qxSetEstado(p,'hospitalizada'))) qxSyncSheets(p.id);
   qxRenderDetalle();
   qxLoad();
 }
@@ -6936,7 +6952,9 @@ async function qxConfirmarOp(){
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   for (var k in patch) p[k] = patch[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  if (!(await qxSetEstado(p,'operada'))) return;
+  // Si el cierre se pospone (faltan datos GERESA), lo ya guardado igual sube a
+  // las hojas: nada que esté en la base se queda sin reflejar en los formatos.
+  if (!(await qxSetEstado(p,'operada'))){ qxSyncSheets(p.id); return; }
   qxRenderDetalle();
   qxLoad();
 }
@@ -6991,7 +7009,7 @@ async function qxConfirmarSusp(){
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   for (var k in patchS) p[k] = patchS[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  if (!(await qxSetEstado(p,'suspendida',motivo))) return;
+  if (!(await qxSetEstado(p,'suspendida',motivo))){ qxSyncSheets(p.id); return; }
   qxRenderDetalle();
   qxLoad();
 }
@@ -7014,7 +7032,7 @@ async function qxConfirmarRef(){
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   for (var k in patchR) p[k] = patchR[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  if (!(await qxSetEstado(p,'referida', motivoCierre+(ref?' → '+ref:'')+(detalle?' - '+detalle:'')))) return;
+  if (!(await qxSetEstado(p,'referida', motivoCierre+(ref?' → '+ref:'')+(detalle?' - '+detalle:'')))){ qxSyncSheets(p.id); return; }
   qxRenderDetalle();
   qxLoad();
 }
