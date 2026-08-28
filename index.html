@@ -6471,6 +6471,18 @@ function qxOrigenElegir(i){
   var ov = document.getElementById('qxOrigenOv'); if (ov) ov.remove();
 }
 
+/* El correlativo se calcula al ABRIR el formulario. Si queda abierto un rato y
+   entretanto entra otra paciente, el número ya está tomado y se repetiría en la
+   hoja oficial: pasó con el ID 12. Se comprueba justo antes de guardar. */
+async function qxIdRegistroLibre(deseado){
+  var n = parseInt(deseado, 10);
+  if (!isNaN(n) && n > 0){
+    var r = await sb.from('pacientes').select('id').eq('id_registro', n).limit(1);
+    if (!r.error && (!r.data || !r.data.length)) return n;   // sigue libre
+  }
+  return await qxProximoIdRegistro();
+}
+
 async function qxProximoIdRegistro(){
   var max = 0;
   try {
@@ -6730,6 +6742,7 @@ async function qxWizGuardar(){
     payload.estado = 'en_tramite';
     payload.created_by = await qxUsuarioId();   // quién la registró
     payload.origen = 'app';                     // y por qué vía
+    payload.id_registro = await qxIdRegistroLibre(payload.id_registro);
     res = await sb.from('pacientes').insert(payload).select();
   }
   if (res.error){
