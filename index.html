@@ -5551,29 +5551,59 @@ function qxEG(p, fecha){
 }
 function qxFpp(p){ var f = qxFurEfectiva(p); return f ? qxSumarDias(f, 280) : null; }
 
+/* La fecha en la que se cuenta.
+   Mientras el caso sigue abierto, hoy. En cuanto se declara operada, suspendida
+   o cerrada sin cirugía, PARA en el día en que ocurrió: un caso cerrado no
+   puede seguir envejeciendo.
+   Y para en todos lados a la vez porque todos preguntan por esta misma función:
+   la ficha, el listado y —a través de su gemela en el Apps Script— las dos
+   hojas de GERESA. */
+function qxFechaCorte(p){
+  if (p.estado === 'operada')    return p.fecha_real_operacion || p.fecha_cirugia || p.fecha_cierre || null;
+  if (p.estado === 'suspendida') return p.fecha_suspension || p.fecha_cierre || p.fecha_cirugia || null;
+  if (p.estado === 'referida')   return p.fecha_cierre || p.fecha_suspension || null;
+  return qxHoyStr();
+}
+
+/* De dónde se dedujo. Es parte del diagnóstico, no un adorno. */
+function qxFuenteEG(p){
+  return (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')
+    ? 'x eco 1TRI' : 'x FUR';
+}
+
+/* El diagnóstico 1 de una gestante, escrito por el sistema. Devuelve null si no
+   hay FUR ni eco: entonces el diagnóstico 1 es texto de una persona y no se
+   toca ni se actualiza nunca. */
+function qxDxGestacion(p){
+  var eg = qxEG(p, qxFechaCorte(p));
+  return eg ? ('EU ' + eg.texto + ' ' + qxFuenteEG(p)) : null;
+}
+
+/* Lo que se muestra como diagnóstico principal. */
+function qxDxPrincipal(p){ return qxDxGestacion(p) || p.diagnostico || ''; }
+
 /* Para el listado: la edad gestacional de un vistazo, sin abrir la ficha. */
 function qxEGChip(p){
-  var eg = qxEG(p, qxEstadoTerminal(p.estado) ? (p.fecha_real_operacion || p.fecha_cirugia || qxHoyStr()) : qxHoyStr());
+  var eg = qxEG(p, qxFechaCorte(p));
   return eg ? ' · <b style="color:var(--tl)">'+eg.texto+'</b>' : '';
 }
 
-/* La línea que se ve en la ficha. Solo aparece si hay de dónde contar. */
+/* El recuadro de la ficha. Solo aparece si hay de dónde contar. */
 function qxGestacionHtml(p){
-  var hoy = qxEG(p, qxHoyStr());
-  if (!hoy) return '';
-  var enQx = (p.fecha_cirugia && !qxEstadoTerminal(p.estado)) ? qxEG(p, p.fecha_cirugia) : null;
-  var real = (p.estado === 'operada' && p.fecha_real_operacion) ? qxEG(p, p.fecha_real_operacion) : null;
+  var corte = qxFechaCorte(p);
+  var eg = qxEG(p, corte);
+  if (!eg) return '';
+  var cerrado = qxEstadoTerminal(p.estado);
+  var enQx = (!cerrado && p.fecha_cirugia) ? qxEG(p, p.fecha_cirugia) : null;
   var fpp = qxFpp(p);
-  var origen = (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')
-    ? 'por eco del 1.er trimestre' : 'por FUR';
   return '<div style="margin-top:8px;padding:9px 11px;border:1px solid var(--bd);border-radius:9px;background:var(--s2)">'
-    + '<div style="font-size:15px;font-weight:800;color:var(--t1)">'
-    + (real ? real.texto + ' <span style="font-size:11px;font-weight:600;color:var(--t2)">el día de la operación</span>'
-            : hoy.texto + ' <span style="font-size:11px;font-weight:600;color:var(--t2)">hoy</span>')
-    + '</div>'
+    + '<div style="font-size:15px;font-weight:800;color:var(--t1)">' + eg.texto
+    + ' <span style="font-size:11px;font-weight:600;color:var(--t2)">'
+    + (cerrado ? 'al cerrarse el caso · ' + qxFmtFecha(corte) : 'hoy') + '</span></div>'
     + '<div style="font-size:11px;color:var(--t2);margin-top:3px;line-height:1.5">'
     + (enQx ? '📅 <b>'+enQx.texto+'</b> el día de la cirugía ('+qxFmtFecha(p.fecha_cirugia)+')<br>' : '')
-    + (fpp ? 'FPP ' + qxFmtFecha(fpp) + ' · ' : '') + origen
+    + (cerrado ? '⏹ Detenida: el caso está cerrado.'
+               : (fpp ? 'FPP ' + qxFmtFecha(fpp) + ' · ' : '') + qxFuenteEG(p))
     + '</div></div>';
 }
 function qxFaseTsHtml(ts){ return ts ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">⏱ Completada '+qxFmtTs(ts)+'</div>' : ''; }
@@ -5861,7 +5891,7 @@ function qxTarjetaHtml(p){
     + qxAcciones(p)
     + '</div>'
     + '<div class="dni">'+qxEsc(p.dni||'—')+(p.hcl?' · HC '+qxEsc(p.hcl):'')+(p.edad?' · '+p.edad+'a':'')+qxEGChip(p)+'</div>'
-    + (p.diagnostico ? '<div class="dx">'+qxEsc(p.diagnostico)+'</div>' : '')
+    + (qxDxPrincipal(p) ? '<div class="dx">'+qxEsc(qxDxPrincipal(p))+'</div>' : '')
     + qxRielHtml(p)
     + '</div>';
 }
@@ -6113,7 +6143,9 @@ var QX_GERESA_OBLIG = [
   { k:'fecha_captacion',         paso:1, label:'Fecha referencia aceptada',
     cond:function(d){ return qxOrigenEsReferido(d.establecimiento_origen); } },
   { k:'cie10',                   paso:2, label:'CIE-10 principal' },
-  { k:'diagnostico',             paso:2, label:'Diagnóstico principal' },
+  // En una gestante lo escribe el sistema, así que no se reclama como faltante.
+  { k:'diagnostico',             paso:2, label:'Diagnóstico principal',
+    cond:function(d){ return !qxDxGestacion(d); } },
   { k:'procedimiento',           paso:3, label:'Procedimiento quirúrgico propuesto' },
   { k:'tipo_anestesia',          paso:3, label:'Tipo de anestesia' },
   { k:'aplica_imagenes',         paso:4, label:'¿Aplica diagnóstico por imágenes?' },
@@ -6462,10 +6494,38 @@ function qxWizPaso1Html(){
 }
 
 function qxWizPaso2Html(){
+  // Si en el paso 1 se puso FUR o eco, el diagnóstico 1 lo escribe el sistema y
+  // se bloquea: es la gestación, y se actualiza sola cada día. Lo que hubiera
+  // escrito a mano NO se pierde en silencio — se mueve al diagnóstico 2 aquí
+  // delante, antes de guardar, para que se vea y se pueda corregir.
+  var auto = qxDxGestacion(QX_WIZ_DATOS);
+  var movido = '', sinHueco = false;
+  if (auto && QX_WIZ_DATOS.diagnostico){
+    if (!QX_WIZ_DATOS.diagnostico_secundario){
+      QX_WIZ_DATOS.diagnostico_secundario = QX_WIZ_DATOS.diagnostico;
+      movido = 'Lo que decía el diagnóstico 1 se movió al 2. Revísalo y quita lo que ya diga el automático.';
+    } else if (!QX_WIZ_DATOS.diagnostico_tercero){
+      QX_WIZ_DATOS.diagnostico_tercero = QX_WIZ_DATOS.diagnostico;
+      movido = 'Lo que decía el diagnóstico 1 se movió al 3. Revísalo y quita lo que ya diga el automático.';
+    } else {
+      sinHueco = true;
+      movido = '⚠️ El diagnóstico 1 decía «'+qxEsc(QX_WIZ_DATOS.diagnostico)+'» y el 2 y el 3 ya están ocupados. Cópialo donde corresponda antes de guardar.';
+    }
+    if (!sinHueco) QX_WIZ_DATOS.diagnostico = null;
+  }
   return ''
     + '<div class="qx-field"><label>Cirujano responsable (DR)</label><input id="qxW_doctor" placeholder="Nombre del doctor" value="'+qxWizV('doctor')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>CIE-10 principal '+QX_REQ+'</label><input id="qxW_cie10" placeholder="ej. N80" value="'+qxWizV('cie10')+'"></div></div>'
-    + '<div class="qx-field"><label>Diagnóstico principal '+QX_REQ+'</label><textarea id="qxW_diagnostico" rows="2" placeholder="Motivo de cirugía">'+qxWizV('diagnostico')+'</textarea></div>'
+    + (auto
+        ? '<div class="qx-field"><label>Diagnóstico principal 🔒</label>'
+          // Id distinto a propósito: qxWizGuardarPaso busca "qxW_diagnostico" y
+          // no lo encuentra, así que NO guarda el texto calculado. Si se guardara
+          // quedaría congelado, que es el problema del que partimos.
+          + '<textarea id="qxW_diagnostico_auto" rows="2" readonly style="background:var(--s2);color:var(--t1);font-weight:700;cursor:not-allowed">'+qxEsc(auto)+'</textarea>'
+          + '<div style="font-size:10px;color:var(--t3);margin-top:3px;line-height:1.5">Lo escribe el sistema con la FUR o la eco del paso 1, y se actualiza solo cada día. Se detiene el día que se cierre el caso. Los demás diagnósticos van abajo.</div>'
+          + (movido ? '<div style="font-size:11px;color:var(--gd2);margin-top:5px;font-weight:700;line-height:1.5">'+movido+'</div>' : '')
+          + '</div>'
+        : '<div class="qx-field"><label>Diagnóstico principal '+QX_REQ+'</label><textarea id="qxW_diagnostico" rows="2" placeholder="Motivo de cirugía">'+qxWizV('diagnostico')+'</textarea></div>')
     + '<div class="qx-row"><div class="qx-field"><label>CIE-10 secundario</label><input id="qxW_cie10_secundario" placeholder="ej. D25" value="'+qxWizV('cie10_secundario')+'"></div>'
     + '<div class="qx-field"><label>Diagnóstico secundario</label><input id="qxW_diagnostico_secundario" value="'+qxWizV('diagnostico_secundario')+'"></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>CIE-10 terciario</label><input id="qxW_cie10_tercero" placeholder="ej. I10" value="'+qxWizV('cie10_tercero')+'"></div>'
@@ -6711,7 +6771,7 @@ function qxRenderDetalle(){
     + '<div class="qx-sheet-body">'
     + (qxProgramadaPendiente(p) ? '<div style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.32);color:#dc2626;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:12px">⚠️ Programada con pendientes: aún faltan exámenes o checks por completar</div>' : '')
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">1</div><div><div class="ph-title">Captación</div><div class="ph-hint">DNI '+qxEsc(p.dni)+' · HCL '+qxEsc(p.hcl||'—')+' · Tel '+qxEsc(p.telefono||'—')+(p.edad?' · '+p.edad+' años':'')+(p.sexo?' · '+qxEsc(p.sexo):'')+'</div></div></div>'
-    + (p.diagnostico?'<div style="font-size:13px;color:var(--t1)">'+qxEsc(p.diagnostico)+'</div>':'')
+    + (qxDxPrincipal(p)?'<div style="font-size:13px;color:var(--t1)">'+qxEsc(qxDxPrincipal(p))+'</div>':'')
     + qxGestacionHtml(p)
     + '<div style="font-size:11px;color:var(--t2);margin-top:6px">'
     + (p.fecha_captacion ? '📅 Captada el '+qxFmtFecha(p.fecha_captacion) : '')

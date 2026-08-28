@@ -50,7 +50,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-28-eg-en-las-hojas';
+var VERSION = '2026-08-28-dx1-automatico';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -203,23 +203,30 @@ function egEn_(p, fecha) {
   return Math.floor(d / 7) + 'ss ' + (d % 7) + '/7';
 }
 
-/** El diagnóstico tal como va a la hoja: el texto de la persona, y detrás la
- *  edad gestacional del día. En una ficha ya cerrada se congela en la fecha de
- *  la operación: un caso cerrado no debe seguir moviéndose. */
-function dxConEG_(p) {
-  var dx = p.diagnostico ? String(p.diagnostico) : '';
-  var fecha = esTerminal_(p.estado) ? (p.fecha_real_operacion || p.fecha_cirugia) : hoyStr_();
-  var eg = egEn_(p, fecha);
-  if (!eg) return dx;
-  return (dx ? dx + ' · ' : '') + 'EG ' + eg + ' (' + fmtFecha(fecha) + ')';
+/** La fecha en la que se cuenta. Gemela de qxFechaCorte en index.html: mientras
+ *  el caso sigue abierto, hoy; en cuanto se cierra, PARA en el día en que se
+ *  cerró. Así la hoja de GERESA deja de moverse a la vez que la app. */
+function fechaCorte_(p) {
+  if (p.estado === 'operada')    return p.fecha_real_operacion || p.fecha_cirugia || p.fecha_cierre || null;
+  if (p.estado === 'suspendida') return p.fecha_suspension || p.fecha_cierre || p.fecha_cirugia || null;
+  if (p.estado === 'referida')   return p.fecha_cierre || p.fecha_suspension || null;
+  return hoyStr_();
 }
 
-/** Quita ese sufijo al leer la hoja, para no importar el cálculo como si fuera
- *  diagnóstico. Va anclado al final y con formato fijo: si alguien escribe algo
- *  parecido a mano, no coincide y se respeta lo que puso. */
-function quitarEG_(s) {
-  if (!s) return s;
-  return String(s).replace(/\s*·\s*EG\s+\d+ss\s+\d\/7\s*\([^)]*\)\s*$/, '').trim() || null;
+function fuenteEG_(p) {
+  return (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')
+    ? 'x eco 1TRI' : 'x FUR';
+}
+
+/** El diagnóstico 1 tal como va a la hoja.
+ *  Si la paciente tiene FUR o eco, lo escribe el sistema entero y se actualiza
+ *  solo. Si no, es el texto que escribió una persona y no se toca jamás: así,
+ *  una edad gestacional escrita a mano sin FUR se queda quieta, que es lo
+ *  honesto — el sistema no sabe desde cuándo contarla. */
+function dxPrincipal_(p) {
+  var eg = egEn_(p, fechaCorte_(p));
+  if (eg) return 'EU ' + eg + ' ' + fuenteEG_(p);
+  return p.diagnostico ? String(p.diagnostico) : '';
 }
 
 /** Devuelve el valor EXACTO del catálogo si coincide (ignora tildes/mayúsculas),
@@ -415,7 +422,7 @@ function buildValuesNew(p) {
   v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
-  v['diagnostico principal']             = dxConEG_(p);
+  v['diagnostico principal']             = dxPrincipal_(p);
   v['cie-10 secundario']                 = p.cie10_secundario || '';
   v['diagnostico secundario']            = p.diagnostico_secundario || '';
   v['cie-10 tercero']                    = p.cie10_tercero || '';
@@ -520,7 +527,7 @@ function buildValuesOld(p) {
   v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
-  v['diagnostico principal']             = dxConEG_(p);
+  v['diagnostico principal']             = dxPrincipal_(p);
   v['procedimiento quirurgico propuesto'] = p.procedimiento;
   v['nivel de cirugia']                  = mapNivel(p.nivel_cirugia);
   v['tipo de anestesia']                 = mapAnestesia(p.tipo_anestesia);
@@ -1048,7 +1055,11 @@ function filaAPaciente_(v) {
   p.especialidad = txt('especialidad quirurgica');
 
   p.cie10                  = txt('cie-10 principal');
-  p.diagnostico            = quitarEG_(txt('diagnostico principal'));
+  // El diagnostico 1 de una gestante lo escribe el sistema. Se importa solo
+  // cuando la fila NO trae FUR ni eco... pero la hoja no tiene esas columnas,
+  // asi que la decision se toma arriba, en compararConApp_: si la paciente ya
+  // existe en la app con FUR/eco, su diagnostico no se importa de vuelta.
+  p.diagnostico            = txt('diagnostico principal');
   p.cie10_secundario       = txt('cie-10 secundario');
   p.diagnostico_secundario = txt('diagnostico secundario');
   p.cie10_tercero          = txt('cie-10 tercero');
@@ -1155,10 +1166,15 @@ function leerHoja_(ssId, sheetName, soloGinecologia) {
 /** Campos que la hoja llenaría y en la app están vacíos, y los que chocan. */
 function compararConApp_(app, campos) {
   var patch = {}, choques = [];
+  // Si la paciente es gestante, su diagnóstico 1 lo escribe el sistema: lo que
+  // hay en la hoja es ese cálculo, y volver a importarlo lo congelaría dentro
+  // de la app. Se ignora, sin marcarlo siquiera como discrepancia.
+  var esGestante = !!furEfectiva_(app);
   for (var k in campos) {
     var nuevo = campos[k];
     if (nuevo === null || nuevo === undefined || nuevo === '') continue;
     if (k === 'dni') continue;                       // es la clave, no se toca
+    if (k === 'diagnostico' && esGestante) continue;
     var actual = app[k];
     if (actual === null || actual === undefined || actual === '' || actual === false) { patch[k] = nuevo; continue; }
     if (String(actual) !== String(nuevo)) choques.push(k + ': app «' + actual + '» != hoja «' + nuevo + '»');
