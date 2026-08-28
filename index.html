@@ -5508,13 +5508,43 @@ function qxFaseTsHtml(ts){ return ts ? '<div style="font-size:10px;color:var(--t
 function qxResumenPendientes(p){ var it=qxChecklistItems(p); var faltan=[]; for(var i=0;i<it.length;i++){ if(!it[i].h && !it[i].ok) faltan.push(it[i].label); } return faltan.length===0?'Ninguno':faltan.join(', '); }
 async function qxMarcarFases(p){ var patch={}; var now=new Date().toISOString(); if(qxFase2Completa(p)&&!p.fecha_fase2)patch.fecha_fase2=now; if(qxFase3Completa(p)&&!p.fecha_fase3)patch.fecha_fase3=now; if(qxFase4Completa(p)&&!p.fecha_fase4)patch.fecha_fase4=now; if(Object.keys(patch).length===0)return; var res=await sb.from('pacientes').update(patch).eq('id',p.id); if(!res.error){ for(var k in patch)p[k]=patch[k]; } }
 
+/* UUID de quien está usando la app. Es lo que se firma en created_by, para que
+   nunca vuelva a haber una paciente que apareció y nadie sabe de dónde. */
+async function qxUsuarioId(){
+  try {
+    var s = await sb.auth.getSession();
+    return (s && s.data && s.data.session && s.data.session.user) ? s.data.session.user.id : null;
+  } catch(e){ return null; }
+}
+
+var QX_AUTORES = {};        // uuid → nombre, para mostrar quién registró a cada una
+var QX_AUTORES_OK = false;
+
 async function qxLoad(){
   var list = document.getElementById('qxList');
   if (list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
   var res = await sb.from('pacientes').select('*').order('created_at',{ascending:false}).limit(500);
   if (res.error){ toast('Error al cargar pacientes: '+res.error.message,'error'); return; }
   QX_PACIENTES = res.data || [];
+  if (!QX_AUTORES_OK){
+    var w = await sb.from('workers').select('id,name');
+    if (!w.error && w.data){
+      for (var i=0;i<w.data.length;i++) QX_AUTORES[w.data[i].id] = w.data[i].name;
+      QX_AUTORES_OK = true;
+    }
+  }
   qxRender();
+}
+
+/* De dónde salió esta ficha. Sin esto, rastrear a una paciente que apareció de
+   la nada obligaba a cruzar la base, la hoja de Google y los inicios de sesión. */
+function qxOrigenTexto(p){
+  var alta = p.created_at ? qxFmtTs(p.created_at) : '';
+  if (p.origen === 'hoja') return '📄 Importada de la hoja GERESA'+(alta?' el '+alta:'');
+  var autor = p.created_by ? QX_AUTORES[p.created_by] : null;
+  if (autor) return '👤 Registrada por '+qxEsc(autor)+(alta?' el '+alta:'');
+  if (p.created_by) return '👤 Registrada por un usuario que ya no está en la lista'+(alta?' el '+alta:'');
+  return '❓ Origen no registrado'+(alta?' · alta '+alta:'');
 }
 
 /* Empuja un paciente a la hoja de Google (GERESA). Fire-and-forget:
@@ -5721,7 +5751,7 @@ async function qxSyncFromSheet(btn){
     }
     if (!hoja.length){ toast('No hay filas con DNI para sincronizar','error'); return; }
 
-    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,motivo_cierre,cama_hospitalizacion,id_registro');
+    var curRes = await sb.from('pacientes').select('dni,estado,turno,referencia_hospital,motivo_suspension,motivo_cierre,cama_hospitalizacion,id_registro,origen');
     if (curRes.error){ toast('Error al leer pacientes: '+curRes.error.message,'error'); return; }
     var curMap = {};
     (curRes.data||[]).forEach(function(p){ curMap[p.dni]=p; });
@@ -5758,6 +5788,9 @@ async function qxSyncFromSheet(btn){
       // Dedup por DNI: si la hoja repite un DNI, se queda con la última fila.
       // Evita el error de Postgres "ON CONFLICT DO UPDATE cannot affect row a second time".
       byDni[sp.dni] = {
+        // Quien ya tiene origen conocido lo conserva: sincronizar no puede
+        // convertir en "importada" a una paciente que registró una persona.
+        origen: (app && app.origen) ? app.origen : 'hoja',
         id_registro: (app && app.id_registro != null) ? app.id_registro : sp.id_registro, dni: sp.dni, nombre: sp.nombre, edad: sp.edad, sexo: sp.sexo, telefono: sp.telefono,
         establecimiento_destino: sp.establecimiento_destino, codigo_destino: sp.codigo_destino,
         establecimiento_origen: sp.establecimiento_origen, codigo_origen: sp.codigo_origen,
@@ -6695,6 +6728,8 @@ async function qxWizGuardar(){
     res = await sb.from('pacientes').update(payload).eq('id', QX_WIZ_EDIT_ID);
   } else {
     payload.estado = 'en_tramite';
+    payload.created_by = await qxUsuarioId();   // quién la registró
+    payload.origen = 'app';                     // y por qué vía
     res = await sb.from('pacientes').insert(payload).select();
   }
   if (res.error){
@@ -6747,7 +6782,8 @@ async function qxGuardarNuevo(){
     fecha_captacion: fcapt||null, interno_medicina: interno||null, doctor: doctor||null,
     cie10: cie10||null, procedimiento: proc||null, tipo_seguro: seguro||null,
     tipo_anestesia: anestesia||null, nivel_cirugia: nivel||null,
-    estado:'en_tramite'
+    estado:'en_tramite',
+    created_by: await qxUsuarioId(), origen: 'app'
   }).select().single();
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
@@ -6788,6 +6824,7 @@ function qxRenderDetalle(){
     + (p.interno_medicina ? ' · Interno: '+qxEsc(p.interno_medicina) : '')
     + (p.doctor ? ' · DR: '+qxEsc(p.doctor) : '')
     + '</div>'
+    + '<div style="font-size:10px;color:var(--t3);margin-top:4px">'+qxOrigenTexto(p)+'</div>'
     + '<button class="qx-btn" style="margin-top:8px;width:100%;padding:7px 12px;font-size:12px" onclick="qxFormulario(QX_ACTUAL)">✎ Editar datos de la paciente</button>'
     + '</div>'
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
@@ -7237,7 +7274,8 @@ async function qxSetEstado(p, nuevo, motivo){
   p.estado = nuevo;
   p.fecha_resolucion = resol;
   await sb.from('historial_estados').insert({
-    paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null
+    paciente_id:p.id, estado_anterior:anterior, estado_nuevo:nuevo, motivo:motivo||null,
+    created_by: await qxUsuarioId()   // quién movió el estado, no solo cuándo
   });
   qxSyncSheets(p.id);
   return true;

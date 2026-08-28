@@ -769,7 +769,15 @@ function listarDesplegables() {
   return out.join('\n');
 }
 
-// Para probar manualmente: test() escribe en AMBAS hojas.
+/* Comprobación manual del mapeo de columnas. SIMULA: no escribe nada.
+ *
+ * Antes escribía en las DOS hojas de producción, y eso no se queda ahí: en
+ * cuanto alguien pulsa "Sincronizar", la app importa esa fila como paciente
+ * real. Pasó de verdad — "CALDERON OTINIANO, ELIZABETH" entró así el 26/08/2026
+ * con fechas de cirugía inventadas, y nadie en el servicio sabía quién era.
+ *
+ * Si alguna vez hace falta escribir de verdad para probar, hágase con un DNI
+ * que no exista y bórrese después desde la app (que limpia las dos hojas). */
 function test() {
   var p = {
     dni: '70515665', nombre: 'CALDERON OTINIANO, ELIZABETH', edad: 30, sexo: 'Femenino',
@@ -787,7 +795,14 @@ function test() {
     fecha_evaluacion_preoperatoria: '2026-08-18', orden_intervencion: '01',
     laboratorio_completo: true, ekg: true, fecha_examen1: '2026-08-14', fecha_examen2: '2026-08-14'
   };
-  var r1 = upsert(SS_ID, SHEET_NAME, buildValuesOld(p), p);
-  var r2 = upsert(SS_ID_2, SHEET_NAME_2, buildValuesNew(p), p);
-  Logger.log('Antigua: fila ' + r1 + ' · Oficial: fila ' + r2);
+  Logger.log('SIMULACIÓN — no se ha escrito nada en ninguna hoja.');
+  Logger.log('\n=== HOJA ANTIGUA ===\n' + describirValores(buildValuesOld(p)));
+  Logger.log('\n=== HOJA OFICIAL ===\n' + describirValores(buildValuesNew(p)));
+}
+
+/* Muestra el mapeo columna → valor que se habría escrito. */
+function describirValores(v) {
+  var out = [];
+  for (var k in v) out.push('  ' + k + ' = ' + (v[k] === '' || v[k] == null ? '(vacío)' : v[k]));
+  return out.join('\n');
 }

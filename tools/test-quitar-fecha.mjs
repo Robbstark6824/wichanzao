@@ -28,13 +28,13 @@ const sbFake = {
   }
 };
 
-const api = new Function('sb', 'toast', 'qxSyncSheets', 'qxAvisoCierreGeresa',
+const api = new Function('sb', 'toast', 'qxSyncSheets', 'qxAvisoCierreGeresa', 'qxUsuarioId',
   html.match(/function qxEstadoTerminal\(e\)\{[^\n]*\}/)[0] + '\n' +
   html.match(/function qxFase4Completa\(p\)\{[^\n]*\}/)[0] + '\n' +
   fn('async function qxSetEstado(p, nuevo, motivo){') + '\n' +
   fn('async function qxQuitarFechaCirugia(p, motivo, detalle){') + '\n' +
   'return { qxQuitarFechaCirugia: qxQuitarFechaCirugia };'
-)(sbFake, () => {}, () => {}, () => Promise.resolve(true));
+)(sbFake, () => {}, () => {}, () => Promise.resolve(true), () => Promise.resolve('usuario-de-prueba'));
 
 let fallos = 0;
 const check = (cond, txt) => { console.log((cond ? '  ✓ ' : '  ✗ ') + txt); if (!cond) fallos++; };
@@ -55,7 +55,9 @@ check(upd1[0] && upd1[0].patch.estado === 'apta_para_sala', 'PRIMERO cambia el e
 check(upd1[0] && !('fecha_cirugia' in upd1[0].patch), 'ese primer paso NO toca la fecha (si lo hiciera, la base lo rechaza)');
 check(upd1[1] && upd1[1].patch.fecha_cirugia === null && upd1[1].patch.turno === null, 'DESPUÉS borra fecha y turno');
 check(upd1[1] && upd1[1].patch.motivo_espera === 'Falta de insumos quirúrgicos', 'guarda el motivo de espera que pide GERESA');
-check(calls.some(c => c.tabla === 'historial_estados'), 'deja constancia en el historial');
+const hist = calls.find(c => c.tabla === 'historial_estados');
+check(!!hist, 'deja constancia en el historial');
+check(hist && hist.row.created_by === 'usuario-de-prueba', 'y firma quién lo hizo');
 check(p1.estado === 'apta_para_sala' && p1.fecha_cirugia === null, 'la pantalla queda coherente con la base');
 
 // --- Caso 2: programada sin fase 4 completa -------------------------------
