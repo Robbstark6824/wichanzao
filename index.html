@@ -5530,14 +5530,56 @@ function qxDiasEntreFechas(a, b){
   return Math.round((ub - ua) / 86400000);
 }
 
-/* Desde dónde se cuenta. La ecografía del primer trimestre manda sobre la FUR:
-   es más fiable que la fecha que recuerda la paciente. */
+function qxEcoUsable(p){
+  return !!(p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '');
+}
+
+/* El trimestre NO se pregunta: lo determinan las semanas que marcaba la propia
+   ecografía. Así no puede contradecir al dato del que sale.
+   1.er trimestre hasta 13+6 · 2.º hasta 27+6 · 3.º desde 28. */
+function qxTrimestreEco(p){
+  if (!qxEcoUsable(p)) return null;
+  var s = parseInt(p.eco_semanas,10)||0;
+  return s <= 13 ? 1 : (s <= 27 ? 2 : 3);
+}
+
+/* La FUR que se deduce hacia atrás desde la ecografía. */
+function qxFurDeEco(p){
+  if (!qxEcoUsable(p)) return null;
+  var d = (parseInt(p.eco_semanas,10)||0)*7 + (parseInt(p.eco_dias,10)||0);
+  return qxSumarDias(p.eco_fecha, -d);
+}
+
+/* Cuál de las dos manda.
+   La ecografía del PRIMER trimestre sí: es la más fiable que existe para datar,
+   con margen de días. Una del segundo o del tercero NO desplaza a la FUR — su
+   margen es de una a tres semanas, y dejarla ganar movería la fecha de una
+   cesárea por un dato menos preciso que el que ya se tenía. Si no hay FUR, se
+   usa la eco que haya: es lo único de lo que se dispone, y se dice cuál es. */
+function qxUsaEco(p){
+  if (!qxEcoUsable(p)) return false;
+  if (!p.fur) return true;
+  return qxTrimestreEco(p) === 1;
+}
+
+/* Desde dónde se cuenta. */
 function qxFurEfectiva(p){
-  if (p.eco_fecha && (p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')){
-    var d = (parseInt(p.eco_semanas,10)||0)*7 + (parseInt(p.eco_dias,10)||0);
-    return qxSumarDias(p.eco_fecha, -d);
-  }
+  if (qxUsaEco(p)) return qxFurDeEco(p);
   return p.fur ? String(p.fur).slice(0,10) : null;
+}
+
+/* Cuánto se llevan la FUR y la eco, cuando están las dos. No se resuelve solo:
+   se enseña, para que lo mire una persona. */
+function qxDiscrepanciaEG(p){
+  if (!qxEcoUsable(p) || !p.fur) return null;
+  var dif = qxDiasEntreFechas(String(p.fur).slice(0,10), qxFurDeEco(p));
+  if (dif === null || dif === 0) return null;
+  var corte = qxFechaCorte(p);
+  return {
+    dias: Math.abs(dif),
+    porEco: qxEG({eco_fecha:p.eco_fecha, eco_semanas:p.eco_semanas, eco_dias:p.eco_dias}, corte),
+    porFur: qxEG({fur:p.fur}, corte)
+  };
 }
 
 /* Edad gestacional en la fecha que se pida, en la notación del servicio: 38ss 2/7. */
@@ -5565,10 +5607,12 @@ function qxFechaCorte(p){
   return qxHoyStr();
 }
 
-/* De dónde se dedujo. Es parte del diagnóstico, no un adorno. */
+/* De dónde se dedujo, con el trimestre de la eco. Es parte del diagnóstico, no
+   un adorno: quien lea la hoja tiene que saber con qué precisión se dató. */
 function qxFuenteEG(p){
-  return (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')
-    ? 'x eco 1TRI' : 'x FUR';
+  if (!qxUsaEco(p)) return 'x FUR';
+  var t = qxTrimestreEco(p);
+  return 'x eco ' + (t === 1 ? '1TRI' : t + 'T');
 }
 
 /* El diagnóstico 1 de una gestante, escrito por el sistema. Devuelve null si no
@@ -5588,6 +5632,24 @@ function qxEGChip(p){
   return eg ? ' · <b style="color:var(--tl)">'+eg.texto+'</b>' : '';
 }
 
+/* Cuando la FUR y la eco no coinciden, se dice. La app no elige por criterio
+   clínico entre dos fechas que se contradicen: enseña las dos, dice cuál está
+   usando y por qué, y deja decidir. */
+function qxDiscrepanciaHtml(p){
+  var d = qxDiscrepanciaEG(p);
+  if (!d || !d.porEco || !d.porFur) return '';
+  var t = qxTrimestreEco(p);
+  var manda = qxUsaEco(p) ? 'la eco' : 'la FUR';
+  var porque = qxUsaEco(p)
+    ? 'la eco del 1.er trimestre es la más precisa para datar'
+    : 'una eco de ' + (t === 2 ? '2.º' : '3.er') + ' trimestre tiene un margen de una a tres semanas, más que la FUR';
+  return '<div style="margin-top:7px;padding-top:7px;border-top:1px dashed var(--bd);font-size:11px;color:var(--t2);line-height:1.55">'
+    + '⚠️ <b>'+d.dias+' días</b> de diferencia entre las dos fechas.<br>'
+    + 'Por FUR: <b>'+d.porFur.texto+'</b> · Por eco: <b>'+d.porEco.texto+'</b><br>'
+    + 'Se está usando <b>'+manda+'</b>, porque '+porque+'.'
+    + '</div>';
+}
+
 /* El recuadro de la ficha. Solo aparece si hay de dónde contar. */
 function qxGestacionHtml(p){
   var corte = qxFechaCorte(p);
@@ -5604,7 +5666,9 @@ function qxGestacionHtml(p){
     + (enQx ? '📅 <b>'+enQx.texto+'</b> el día de la cirugía ('+qxFmtFecha(p.fecha_cirugia)+')<br>' : '')
     + (cerrado ? '⏹ Detenida: el caso está cerrado.'
                : (fpp ? 'FPP ' + qxFmtFecha(fpp) + ' · ' : '') + qxFuenteEG(p))
-    + '</div></div>';
+    + '</div>'
+    + qxDiscrepanciaHtml(p)
+    + '</div>';
 }
 function qxFaseTsHtml(ts){ return ts ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">⏱ Completada '+qxFmtTs(ts)+'</div>' : ''; }
 function qxResumenPendientes(p){ var it=qxChecklistItems(p); var faltan=[]; for(var i=0;i<it.length;i++){ if(!it[i].h && !it[i].ok) faltan.push(it[i].label); } return faltan.length===0?'Ninguno':faltan.join(', '); }
@@ -6473,9 +6537,15 @@ function qxWizPaso1Html(){
     + '<summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--t1)">🤰 Gestante — para calcular las semanas solas</summary>'
     + '<div style="font-size:11px;color:var(--t3);line-height:1.5;margin:8px 0 10px">Con esto la app cuenta la edad gestacional cada día y te dice cuántas semanas tendrá el día de la cirugía. Si hay eco del primer trimestre, manda ella.</div>'
     + '<div class="qx-field"><label>FUR (fecha de última regla)</label><input type="date" id="qxW_fur" value="'+qxWizV('fur')+'"></div>'
-    + '<div class="qx-field"><label>Fecha de la eco del 1.er trimestre</label><input type="date" id="qxW_eco_fecha" value="'+qxWizV('eco_fecha')+'"></div>'
+    + '<div class="qx-field"><label>Fecha de la ecografía</label><input type="date" id="qxW_eco_fecha" value="'+qxWizV('eco_fecha')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Semanas en esa eco</label><input id="qxW_eco_semanas" type="number" min="0" max="45" placeholder="ej. 12" value="'+qxWizV('eco_semanas')+'"></div>'
     + '<div class="qx-field"><label>Días sueltos (0-6)</label><input id="qxW_eco_dias" type="number" min="0" max="6" placeholder="ej. 3" value="'+qxWizV('eco_dias')+'"></div></div>'
+    + (qxTrimestreEco(QX_WIZ_DATOS)
+        ? '<div style="font-size:11px;color:var(--t2);line-height:1.5;margin-top:-4px">Es una eco del <b>'+
+          (qxTrimestreEco(QX_WIZ_DATOS)===1 ? '1.er' : (qxTrimestreEco(QX_WIZ_DATOS)===2 ? '2.º' : '3.er'))+
+          ' trimestre</b> — se deduce de las semanas, no hay que marcarlo. '+
+          (qxUsaEco(QX_WIZ_DATOS) ? 'Se contará por ella.' : 'Se contará por la FUR, que es más precisa que una eco tardía.')+'</div>'
+        : '')
     + '</details>'
     + '<div class="qx-row"><div class="qx-field"><label>HCL</label><input id="qxW_hcl" placeholder="N° historia" value="'+qxWizV('hcl')+'"></div>'
     + '<div class="qx-field"><label>Celular</label><input id="qxW_telefono" placeholder="9XXXXXXXX" value="'+qxWizV('telefono')+'"></div></div>'

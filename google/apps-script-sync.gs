@@ -50,7 +50,7 @@ var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-28-dx1-automatico';
+var VERSION = '2026-08-28-trimestre-eco';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -185,12 +185,37 @@ function diasEntre_(a, b) {
   return Math.round((ub - ua) / 86400000);
 }
 
-/** Desde dónde se cuenta. La eco del primer trimestre manda sobre la FUR. */
+function ecoUsable_(p) {
+  return !!(p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '');
+}
+
+/** El trimestre lo determinan las semanas que marcaba la propia ecografía, así
+ *  que no hace falta preguntarlo: 1.º hasta 13+6, 2.º hasta 27+6, 3.º desde 28. */
+function trimestreEco_(p) {
+  if (!ecoUsable_(p)) return null;
+  var s = parseInt(p.eco_semanas, 10) || 0;
+  return s <= 13 ? 1 : (s <= 27 ? 2 : 3);
+}
+
+function furDeEco_(p) {
+  if (!ecoUsable_(p)) return null;
+  var d = (parseInt(p.eco_semanas, 10) || 0) * 7 + (parseInt(p.eco_dias, 10) || 0);
+  return sumarDias_(p.eco_fecha, -d);
+}
+
+/** Cuál manda. Gemela de qxUsaEco en index.html: solo la eco del PRIMER
+ *  trimestre desplaza a la FUR. Una del segundo o del tercero tiene un margen
+ *  de una a tres semanas y movería la fecha de una cesárea por un dato menos
+ *  preciso del que ya se tenía. */
+function usaEco_(p) {
+  if (!ecoUsable_(p)) return false;
+  if (!p.fur) return true;
+  return trimestreEco_(p) === 1;
+}
+
+/** Desde dónde se cuenta. */
 function furEfectiva_(p) {
-  if (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '') {
-    var d = (parseInt(p.eco_semanas, 10) || 0) * 7 + (parseInt(p.eco_dias, 10) || 0);
-    return sumarDias_(p.eco_fecha, -d);
-  }
+  if (usaEco_(p)) return furDeEco_(p);
   return p.fur ? String(p.fur).slice(0, 10) : null;
 }
 
@@ -213,9 +238,12 @@ function fechaCorte_(p) {
   return hoyStr_();
 }
 
+/** Con qué precisión se dató. Va en el diagnóstico porque quien lea la hoja
+ *  necesita saberlo: no es lo mismo una eco de 12 semanas que una de 34. */
 function fuenteEG_(p) {
-  return (p.eco_fecha && p.eco_semanas !== null && p.eco_semanas !== undefined && p.eco_semanas !== '')
-    ? 'x eco 1TRI' : 'x FUR';
+  if (!usaEco_(p)) return 'x FUR';
+  var t = trimestreEco_(p);
+  return 'x eco ' + (t === 1 ? '1TRI' : t + 'T');
 }
 
 /** El diagnóstico 1 tal como va a la hoja.
