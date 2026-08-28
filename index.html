@@ -5534,6 +5534,7 @@ async function qxLoad(){
     }
   }
   qxRender();
+  qxDetectarPendientes();   // en segundo plano: nunca retrasa la lista
 }
 
 /* De dónde salió esta ficha. Sin esto, rastrear a una paciente que apareció de
@@ -5882,6 +5883,7 @@ function qxRender(){
     fl.innerHTML = c;
   }
   if (!list) return;
+  var aviso = qxAvisoPendientesHtml();
   var data = QX_FILTER==='todos' ? QX_PACIENTES : QX_PACIENTES.filter(function(p){return p.estado===QX_FILTER;});
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     data = data.filter(function(p){
@@ -5892,14 +5894,125 @@ function qxRender(){
     });
   }
   if (data.length===0){
-    list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
+    list.innerHTML = aviso + '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
     return;
   }
-  var html = '';
+  var html = aviso;
   for (var k=0;k<data.length;k++){
     html += qxTarjetaHtml(data[k]);
   }
   list.innerHTML = html;
+}
+
+/* ===== Pacientes escritas a mano en el Excel =====
+   Hay médicos que no usan la app y llenan la hoja directamente. Eso no llegaba
+   a ningún lado: nadie pulsaba "Sincronizar" y la paciente sencillamente no
+   existía para el servicio. Ahora la app lo detecta sola al entrar y avisa.
+   Solo mira y avisa: no importa nada por su cuenta. */
+var QX_PENDIENTES = [];     // filas de la hoja cuyo DNI no está en la app
+var QX_PEND_ULT = 0;        // última comprobación, para no leer la hoja a cada paso
+
+function qxAvisoPendientesHtml(){
+  var n = QX_PENDIENTES.length;
+  if (!n) return '';
+  return '<div style="background:rgba(212,168,83,.14);border:1px solid rgba(212,168,83,.45);border-radius:12px;padding:12px 14px;margin-bottom:12px">'
+    + '<div style="font-size:13px;font-weight:800;color:var(--t1)">📋 '+n+(n===1?' paciente está':' pacientes están')+' en el Excel y no en la app</div>'
+    + '<div style="font-size:11px;color:var(--t2);line-height:1.5;margin-top:4px">Alguien '+(n===1?'la':'las')+' escribió a mano en la hoja GERESA. Mientras no '+(n===1?'la':'las')+' importes, no '+(n===1?'aparece':'aparecen')+' en la lista ni en el formato oficial.</div>'
+    + '<button class="qx-btn" style="width:100%;margin-top:10px;padding:8px 12px;font-size:12px;background:var(--gd)" onclick="qxRevisarPendientes()">Revisar e importar</button>'
+    + '</div>';
+}
+
+async function qxDetectarPendientes(forzar){
+  var ahora = Date.now();
+  if (!forzar && (ahora - QX_PEND_ULT) < 120000) return;   // como mucho cada 2 minutos
+  QX_PEND_ULT = ahora;
+  try {
+    var resp = await fetch(QX_SHEET_CSV_URL, {cache:'no-store'});
+    if (!resp.ok) return;
+    var rows = qxParseCSV(await resp.text());
+    var hi = -1;
+    for (var i=0;i<rows.length;i++){
+      if (qxNorm(rows[i][9])==='dni' && qxNorm(rows[i][10])==='apellidos y nombres completos'){ hi=i; break; }
+    }
+    if (hi<0) return;
+    var tengo = {};
+    for (var j=0;j<QX_PACIENTES.length;j++) tengo[String(QX_PACIENTES[j].dni||'').trim()] = true;
+    var faltan = [], vistos = {};
+    for (var r=hi+1; r<rows.length; r++){
+      var row = rows[r];
+      var dni = String(row[9]||'').trim();
+      if (!dni || !String(row[10]||'').trim()) continue;   // fila vacía o sin DNI
+      if (tengo[dni] || vistos[dni]) continue;
+      vistos[dni] = true;
+      faltan.push(qxMapFilaAzul(row));
+    }
+    var cambio = faltan.length !== QX_PENDIENTES.length;
+    QX_PENDIENTES = faltan;
+    if (cambio) qxRender();
+  } catch(e){
+    // Sin red o la hoja no responde: no se avisa de nada. Callar es mejor que
+    // decir "no falta nadie" sin haber podido mirar.
+  }
+}
+
+function qxRevisarPendientes(){
+  if (!QX_PENDIENTES.length) return;
+  var items = '';
+  for (var i=0;i<QX_PENDIENTES.length;i++){
+    var p = QX_PENDIENTES[i];
+    items += '<label style="display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--bd)">'
+      + '<input type="checkbox" class="qxPendCk" data-i="'+i+'" checked style="margin-top:2px;width:19px;height:19px;flex:none">'
+      + '<div style="min-width:0">'
+      + '<div style="font-size:13px;font-weight:800;color:var(--t1)">'+qxEsc(p.nombre||'(sin nombre)')+'</div>'
+      + '<div style="font-size:11px;color:var(--t2);margin-top:2px">DNI '+qxEsc(p.dni)+(p.edad?' · '+p.edad+' años':'')+(p.diagnostico?' · '+qxEsc(p.diagnostico):'')+'</div>'
+      + (p.fecha_cirugia?'<div style="font-size:11px;color:var(--t3);margin-top:2px">📅 Fecha de cirugía en el Excel: '+qxFmtFecha(p.fecha_cirugia)+'</div>':'')
+      + '</div></label>';
+  }
+  var ov = document.createElement('div');
+  ov.className = 'qx-overlay';
+  ov.innerHTML = '<div class="qx-sheet">'
+    + '<div class="qx-sheet-head"><h3>Pacientes solo en el Excel</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:6px">Se traen con lo que dice la hoja. Entran <b>en trámite</b> (o programada, si tienen fecha): lo que no consta en el Excel se completa después, aquí. Ninguna paciente que ya esté en la app se toca.</div>'
+    + items
+    + '<button class="qx-btn" style="width:100%;margin-top:14px;background:#16a34a" onclick="qxImportarPendientes(this)">Importar las marcadas</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+
+async function qxImportarPendientes(btn){
+  var cks = document.querySelectorAll('.qxPendCk');
+  var elegidas = [];
+  for (var i=0;i<cks.length;i++){
+    if (cks[i].checked) elegidas.push(QX_PENDIENTES[parseInt(cks[i].getAttribute('data-i'),10)]);
+  }
+  if (!elegidas.length){ toast('No marcaste ninguna','error'); return; }
+  if (btn){ btn.disabled = true; btn.innerHTML = 'Importando…'; }
+  var usuario = await qxUsuarioId();
+  var creadas = 0, fallidas = [];
+  for (var k=0;k<elegidas.length;k++){
+    var sp = elegidas[k];
+    var fila = {}; for (var c in sp) fila[c] = sp[c];
+    // Un cierre (operada / suspendida / cerrada sin cirugía) no se importa a
+    // ciegas: exige datos que la hoja no trae y que alguien debe confirmar.
+    var est = sp.estado;
+    if (est==='programada' && !sp.fecha_cirugia) est = 'apta_para_sala';
+    if (qxEstadoTerminal(est) || est==='hospitalizada') est = 'en_tramite';
+    fila.estado = est;
+    fila.turno = (est==='programada') ? 'manana' : null;
+    fila.origen = 'hoja';
+    fila.created_by = usuario;
+    fila.id_registro = await qxIdRegistroLibre(sp.id_registro);
+    var res = await sb.from('pacientes').insert(fila).select('id').single();
+    if (res.error || !res.data){ fallidas.push((sp.nombre||sp.dni)+': '+((res.error&&res.error.message)||'no se pudo crear')); continue; }
+    creadas++;
+    await qxSyncSheets(res.data.id);   // y de aquí sale hacia los DOS formatos
+  }
+  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+  if (creadas) toast(creadas+(creadas===1?' paciente importada ✓':' pacientes importadas ✓'),'success');
+  if (fallidas.length) toast('No se pudo importar: '+fallidas.join(' · '),'error');
+  await qxLoad();
+  qxDetectarPendientes(true);
 }
 
 function qxProximaAccion(p){
