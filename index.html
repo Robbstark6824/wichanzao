@@ -6967,9 +6967,13 @@ async function qxProgramar(){
   var fecha = document.getElementById('qxFechaQx').value;
   var turno = document.getElementById('qxTurno').value;
   if (!fecha){ toast('Indica la fecha de cirugía','error'); return; }
-  var res = await sb.from('pacientes').update({fecha_cirugia:fecha, turno:turno, fecha_fase5:new Date().toISOString()}).eq('id',p.id);
+  // Al poner fecha se acaba la espera: si venía de un "quitar fecha" con un
+  // motivo guardado, ese motivo ya no aplica y no debe seguir viajando a las
+  // hojas junto a un "Programado" que lo contradice.
+  var patchProg = {fecha_cirugia:fecha, turno:turno, fecha_fase5:new Date().toISOString(), motivo_espera:null, detalle_motivo_espera:null};
+  var res = await sb.from('pacientes').update(patchProg).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
-  p.fecha_cirugia = fecha; p.turno = turno; p.fecha_fase5 = new Date().toISOString();
+  for (var kProg in patchProg) p[kProg] = patchProg[kProg];
   if (p.estado==='apta_para_sala'){
     await qxSetEstado(p,'programada');
   } else {
@@ -7015,10 +7019,15 @@ async function qxRpPostergar(){
   var fecha = document.getElementById('qxRpFecha').value.trim();
   if (!fecha){ toast('Indica la nueva fecha, o usa “Quitar la fecha”','error'); return; }
   var turno = document.getElementById('qxRpTurno').value;
-  var res = await sb.from('pacientes').update({fecha_cirugia:fecha, turno:turno}).eq('id',p.id).select('id');
+  // El N° de orden y el motivo de espera son del día y del vacío que dejaba
+  // la programación ANTERIOR: con una fecha nueva ninguno de los dos sigue
+  // significando algo, así que se sueltan también (si no, viajan a las hojas
+  // como si la paciente siguiera esperando por el motivo de antes).
+  var patchPost = {fecha_cirugia:fecha, turno:turno, orden_intervencion:null, motivo_espera:null, detalle_motivo_espera:null};
+  var res = await sb.from('pacientes').update(patchPost).eq('id',p.id).select('id');
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
   if (!res.data || !res.data.length){ toast('No se pudo guardar la nueva fecha','error'); return; }
-  p.fecha_cirugia = fecha; p.turno = turno;
+  for (var kPost in patchPost) p[kPost] = patchPost[kPost];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   qxSyncSheets(p.id);
   toast('Postergada al '+qxFmtFecha(fecha)+' ✓','success');
