@@ -6883,7 +6883,7 @@ function qxRenderDetalle(){
         + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
         + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">'+(p.estado==='en_tramite'?'Programar (anticipado)':'Programar cirugía')+'</button>'
         : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
-    + (p.estado==='programada' ? '<button class="qx-btn" style="width:100%;margin-top:8px;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxReprogramar()">📅 Postergar o quitar la fecha</button>' : '')
+    + ((p.estado==='programada' || (p.estado==='en_tramite' && p.fecha_cirugia)) ? '<button class="qx-btn" style="width:100%;margin-top:8px;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxReprogramar()">📅 Postergar o quitar la fecha</button>' : '')
     + qxFaseTsHtml(p.fecha_fase5)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='programada'?'':' locked')+'"><div class="ph-head"><div class="ph-num">6</div><div><div class="ph-title">Hospitalización</div><div class="ph-hint">Solo si Programada</div></div></div>'
@@ -6997,7 +6997,7 @@ function qxReprogramar(){
   ov.innerHTML = '<div class="qx-sheet">'
     + '<div class="qx-sheet-head"><h3>Postergar o quitar la fecha</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove()">×</button></div>'
     + '<div class="qx-sheet-body">'
-    + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:12px">Programada para <b>'+qxEsc(qxFmtFecha(p.fecha_cirugia)||'—')+'</b>'+(p.turno?' · turno '+qxEsc(p.turno==='manana'?'mañana':'tarde'):'')+'.</div>'
+    + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:12px">'+(p.estado==='programada'?'Programada':'Fecha anticipada')+' para <b>'+qxEsc(qxFmtFecha(p.fecha_cirugia)||'—')+'</b>'+(p.turno?' · turno '+qxEsc(p.turno==='manana'?'mañana':'tarde'):'')+'.</div>'
     + '<div class="qx-row"><div class="qx-field"><label>Nueva fecha de cirugía</label><input type="date" id="qxRpFecha" value="'+(p.fecha_cirugia||'')+'"></div>'
     + '<div class="qx-field"><label>Turno</label><select id="qxRpTurno"><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
     + '<button class="qx-btn tl" style="width:100%" onclick="qxRpPostergar()">Guardar la nueva fecha</button>'

@@ -76,5 +76,20 @@ await api.qxQuitarFechaCirugia(p3, '', '');
 check(!calls.some(c => c.tabla === 'historial_estados'), 'no escribe historial de más');
 check(calls.length === 1 && calls[0].patch.fecha_cirugia === null, 'solo borra la fecha');
 
+// --- Caso 4: fecha anticipada, en trámite ---------------------------------
+// "Programar (anticipado)" pone fecha_cirugia en una paciente todavía "en
+// trámite" (aún no completó Fase 4). Ahí se queda con fecha puesta y sin
+// pasar a "programada" hasta que complete los checks — y hasta ahora era
+// justo ese caso el que no tenía botón para quitarle la fecha.
+console.log('\nFecha anticipada (en trámite, Fase 4 incompleta) → debe poder vaciarse igual:');
+calls = [];
+const p4 = { id: 'p4', estado: 'en_tramite', fecha_cirugia: '2026-09-15', turno: 'tarde', orden_intervencion: '01' };
+const ok4 = await api.qxQuitarFechaCirugia(p4, '', '');
+check(ok4 === true, 'la operación se completa');
+check(!calls.some(c => c.tabla === 'historial_estados'), 'no inventa un cambio de estado ni su historial');
+check(calls.length === 1, 'una sola escritura (no había estado que cambiar antes)');
+check(calls[0] && calls[0].patch.fecha_cirugia === null && calls[0].patch.turno === null && calls[0].patch.orden_intervencion === null, 'borra fecha, turno y N° de orden');
+check(p4.estado === 'en_tramite' && p4.fecha_cirugia === null, 'sigue en trámite, simplemente sin fecha');
+
 console.log('\n' + (fallos ? 'FALLA: ' + fallos + ' comprobación(es)' : 'OK: quitar la fecha nunca rompe la regla de la base.'));
 process.exit(fallos ? 1 : 0);
