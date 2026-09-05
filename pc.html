@@ -1074,6 +1074,21 @@ function fetchProfileCached(basePath) {
   return p;
 }
 
+// La PRIMERA llamada a Supabase Storage en cada carga de página tarda ~1s
+// (conexión fría) contra ~200-800ms de las siguientes — medido contra el
+// proyecto real. loadAllData() encadenaba esa primera llamada justo después
+// del login, así que quien recién entraba se comía ese segundo de golpe.
+// Disparando el mismo listado ACÁ, apenas carga pc.html (mientras la
+// persona todavía está escribiendo la contraseña), la conexión ya está
+// caliente — y como sbList() cachea 30s, si loadAllData() llega a tiempo
+// ni siquiera repite la llamada.
+(function warmUpConexion() {
+  sbList('').catch(function() {});
+  for (var wk = 0; wk < SERVICIOS_KEYS.length; wk++) {
+    sbList(SERVICIOS_KEYS[wk] + '/workers/').catch(function() {});
+  }
+})();
+
 async function sbDelete(paths) {
   var r = await sb.storage.from(BUCKET).remove(paths);
   if (r.error) throw new Error(r.error.message);
@@ -1197,21 +1212,33 @@ async function loadAllData() {
   }
 
   try {
-    // 1. List all items at bucket root
-    var rootItems = await sbList('');
+    // 1+2. La raíz del bucket Y cada prefijo candidato (cada servicio
+    // conocido + la carpeta legado "workers/") se piden A LA VEZ, en vez de
+    // esperar a que la raíz responda para recién preguntar por
+    // "ginecologia/workers/" — que en la práctica es el único que existe.
+    // Especular no cuesta nada: si un candidato no existe de verdad,
+    // sbList() devuelve una lista vacía, no un error.
+    var candidatePrefixes = SERVICIOS_KEYS.map(function(sKey) {
+      return { servicio: sKey, prefix: sKey + '/workers/' };
+    }).concat([{ servicio: '', prefix: 'workers/' }]);
+
+    var rootPromise = sbList('');
+    var candidatePromise = Promise.all(candidatePrefixes.map(function(sp) {
+      return sbList(sp.prefix).then(function(items) {
+        return { servicio: sp.servicio, prefix: sp.prefix, folders: items.filter(function(i) { return i.id === null && i.name; }) };
+      }).catch(function() { return { servicio: sp.servicio, prefix: sp.prefix, folders: [] }; });
+    }));
+
+    var rootItems = await rootPromise;
     var rootFolders = rootItems.filter(function(i) { return i.id === null && i.name; });
 
-    // 2. Build search prefixes: each servicio + legacy workers/
-    var searchPrefixes = [];
+    // La raíz ya llegó: decide cuáles de los candidatos (que ya están en
+    // camino o ya llegaron) de verdad corresponden a una carpeta real.
+    var existingServicios = {};
     for (var sk = 0; sk < SERVICIOS_KEYS.length; sk++) {
-      var sKey = SERVICIOS_KEYS[sk];
-      if (rootFolders.some(function(f) { return f.name === sKey; })) {
-        searchPrefixes.push({ servicio: sKey, prefix: sKey + '/workers/' });
-      }
+      if (rootFolders.some(function(f) { return f.name === SERVICIOS_KEYS[sk]; })) existingServicios[SERVICIOS_KEYS[sk]] = true;
     }
-    if (rootFolders.some(function(f) { return f.name === 'workers'; })) {
-      searchPrefixes.push({ servicio: '', prefix: 'workers/' });
-    }
+    var legacyExists = rootFolders.some(function(f) { return f.name === 'workers'; });
 
     // Known system folders to exclude from legacy listing
     var SYSTEM_FOLDERS = ['archivos anteriores', 'censo', 'hospi', 'hospi_temp', 'temp', '.emptyFolderPlaceholder'];
@@ -1223,11 +1250,10 @@ async function loadAllData() {
     var workers = [];
     var newWorkerPaths = {};
 
-    var prefixResults = await Promise.all(searchPrefixes.map(function(sp) {
-      return sbList(sp.prefix).then(function(items) {
-        return { servicio: sp.servicio, prefix: sp.prefix, folders: items.filter(function(i) { return i.id === null && i.name; }) };
-      }).catch(function() { return { servicio: sp.servicio, prefix: sp.prefix, folders: [] }; });
-    }));
+    var allCandidateResults = await candidatePromise;
+    var prefixResults = allCandidateResults.filter(function(pRes) {
+      return pRes.servicio ? !!existingServicios[pRes.servicio] : legacyExists;
+    });
 
     // Collect all folder entries with their base paths
     var allEntries = [];
