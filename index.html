@@ -651,6 +651,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-viewtoggle{display:flex;gap:8px;margin-bottom:12px}
 .qx-vt{flex:1;padding:9px;border-radius:4px;font-family:var(--mono);letter-spacing:.04em;border:1px solid var(--bd);background:var(--s1);color:var(--t2);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
 .qx-vt.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+/* Pestañas activas/historial: lo resuelto deja de mezclarse con lo en curso. */
+.qx-tabs{display:flex;background:var(--s1);border:1px solid var(--bd);border-radius:4px;overflow:hidden;margin-bottom:14px}
+.qx-tabs button{flex:1;padding:11px 8px;background:none;border:none;border-bottom:2.5px solid transparent;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.01em;color:var(--t2);cursor:pointer}
+.qx-tabs button.active{color:var(--t1);border-bottom-color:var(--tl)}
+.qx-tabs span{font-family:var(--mono);font-weight:500;opacity:.65;margin-left:4px;font-size:11px}
 .qx-cal{background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:14px 14px 10px;margin-bottom:12px}
 .qx-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .qx-cal-title{font-weight:600;color:var(--t1);font-size:15px;letter-spacing:-.01em}
@@ -664,7 +669,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-cal-dow{text-align:left;font-family:var(--mono);font-size:9px;font-weight:500;color:var(--t3);
   text-transform:uppercase;letter-spacing:.12em;padding:6px 6px 5px;
   border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);background:var(--s2)}
-.qx-cal-day{position:relative;min-height:58px;background:var(--s1);cursor:pointer;
+.qx-cal-day{position:relative;min-height:46px;background:var(--s1);cursor:pointer;
   padding:5px 6px 6px;display:flex;flex-direction:column;align-items:stretch;gap:5px;
   border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);transition:background .12s}
 .qx-cal-day.other{background:var(--s2);cursor:default}
@@ -673,19 +678,18 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
   font-variant-numeric:tabular-nums}
 /* Hoy: la fecha en verde con una regla debajo, como el día marcado a mano. */
 .qx-cal-day.today .d{color:var(--tl);font-weight:700;box-shadow:0 2px 0 -1px var(--tl)}
-.qx-cal-day.sel{background:var(--n2)}
-.qx-cal-day.sel .d{color:var(--s1)}
-.qx-cal-day.sel.today .d{color:var(--gd);box-shadow:0 2px 0 -1px var(--gd)}
+/* Seleccionado: un realce suave, no un bloque invertido — se lee sin
+   perder de vista el resto de la semana alrededor. */
+.qx-cal-day.sel{background:rgba(46,125,110,.14);box-shadow:inset 0 0 0 1.5px var(--tl)}
+.qx-cal-day.sel .d{color:var(--t1);font-weight:700}
+.qx-cal-day.sel.today .d{color:var(--tl);box-shadow:0 2px 0 -1px var(--tl)}
 
-/* FIRMA (2) · una marca por cirugía. La carga del día se lee por altura
-   ocupada, no por un número que hay que interpretar. */
-.qx-cal-marcas{display:flex;flex-direction:column;gap:2px;margin-top:auto}
-.qx-cal-marcas i{height:4px;border-radius:1px;background:var(--tl)}
+/* FIRMA (2) · un punto por cirugía, hasta 5. La hoja reglada se conserva;
+   el punto reemplaza a la barra apilada por una lectura más limpia. */
+.qx-cal-marcas{display:flex;flex-wrap:wrap;gap:3px;margin-top:auto}
+.qx-cal-marcas i{width:5px;height:5px;border-radius:50%;background:var(--tl);flex-shrink:0}
 .qx-cal-marcas i.pend{background:var(--alarma)}
-.qx-cal-day.sel .qx-cal-marcas i{background:var(--gd)}
-.qx-cal-day.sel .qx-cal-marcas i.pend{background:#E8867F}
 .qx-cal-mas{font-family:var(--mono);font-size:8px;color:var(--t3);line-height:1;letter-spacing:.06em}
-.qx-cal-day.sel .qx-cal-mas{color:var(--gd)}
 .qx-cal-leyenda{display:flex;align-items:center;gap:14px;margin-top:10px;padding-top:9px;
   border-top:1px solid var(--bd);font-family:var(--mono);font-size:9px;color:var(--t3);
   letter-spacing:.08em;text-transform:uppercase}
@@ -1070,11 +1074,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <button class="qx-btn" style="padding:7px 12px;font-size:12px" onclick="qxNuevo()">+ Nuevo</button>
         </div>
         <div class="module-body">
-          <div class="qx-stats" id="qxStats"></div>
           <div class="qx-viewtoggle">
             <button class="qx-vt active" id="qxVtLista" onclick="qxSetView('lista')">📋 Lista</button>
             <button class="qx-vt" id="qxVtCal" onclick="qxSetView('calendario')">📅 Calendario</button>
           </div>
+          <div class="qx-tabs" id="qxTabs"></div>
+          <div class="qx-stats" id="qxStats"></div>
           <div class="qx-captfilter" id="qxCaptFilter">
             <span style="font-size:11px;font-weight:700;color:var(--t2)">Captadas del</span>
             <input type="date" id="qxCaptDesde" onchange="qxFiltrarCaptacion()">
@@ -5053,6 +5058,7 @@ var QX_PACIENTES = [];
 var QX_FILTER = 'todos';
 var QX_ACTUAL = null;
 var QX_VIEW = 'lista';
+var QX_TAB = 'activas';   // 'activas' | 'historial' — separa lo en curso de lo ya resuelto
 var QX_CAL = null;        // {y, m}
 var QX_CAL_DIA = null;    // 'YYYY-MM-DD'
 var QX_CAPT_DESDE = '';
@@ -5476,6 +5482,10 @@ var QX_ESTADOS = [
   ['suspendida','Suspendida'],
   ['referida','Cerrado sin cirugía']
 ];
+// La lista ya no mezcla lo en curso con lo resuelto: dos vistas (pestañas)
+// sobre el mismo catálogo, sin duplicar el criterio de qué es "terminal".
+var QX_ESTADOS_ACTIVOS = QX_ESTADOS.filter(function(x){ return !qxEstadoTerminal(x[0]); });
+var QX_ESTADOS_HISTORIAL = QX_ESTADOS.filter(function(x){ return qxEstadoTerminal(x[0]); });
 
 /* Lo que GERESA verá en la última columna de ambos formatos. Espejo de
    mapEstadoActual() del Apps Script: si uno cambia, el otro también. */
@@ -5800,19 +5810,13 @@ async function qxSyncFromSheet(btn){
   }
 }
 
+function qxSetTab(t){ QX_TAB = t; QX_FILTER = 'todos'; qxRender(); }
+
 function qxRender(){
-  var st = document.getElementById('qxStats');
-  if (st){
-    var h = '';
-    for (var i=0;i<QX_ESTADOS.length;i++){
-      var e = QX_ESTADOS[i][0];
-      var n = QX_PACIENTES.filter(function(p){return p.estado===e;}).length;
-      h += '<div class="qx-stat'+(QX_FILTER===e?' on':'')+'"><div class="n">'+n+'</div><div class="l">'+qxEsc(QX_ESTADOS[i][1])+'</div></div>';
-    }
-    st.innerHTML = h;
-  }
   var vtL = document.getElementById('qxVtLista');
   var vtC = document.getElementById('qxVtCal');
+  var tabsEl = document.getElementById('qxTabs');
+  var st = document.getElementById('qxStats');
   var fl = document.getElementById('qxFilters');
   var list = document.getElementById('qxList');
   var cal = document.getElementById('qxCalendario');
@@ -5821,6 +5825,8 @@ function qxRender(){
   if (vtC) vtC.classList.toggle('active', QX_VIEW==='calendario');
 
   if (QX_VIEW === 'calendario'){
+    if (tabsEl) tabsEl.style.display = 'none';
+    if (st) st.style.display = 'none';
     if (fl) fl.style.display = 'none';
     if (captf) captf.style.display = 'none';
     if (list) list.style.display = 'none';
@@ -5829,22 +5835,47 @@ function qxRender(){
     return;
   }
 
+  if (tabsEl) tabsEl.style.display = '';
   if (fl) fl.style.display = '';
   if (captf) captf.style.display = '';
   if (list) list.style.display = '';
   if (cal) cal.style.display = 'none';
 
+  var enActivas = QX_TAB === 'activas';
+  var estadosBase = enActivas ? QX_ESTADOS_ACTIVOS : QX_ESTADOS_HISTORIAL;
+  var baseData = QX_PACIENTES.filter(function(p){ return qxEstadoTerminal(p.estado) !== enActivas; });
+
+  if (tabsEl){
+    var nActivas = QX_PACIENTES.filter(function(p){ return !qxEstadoTerminal(p.estado); }).length;
+    var nHistorial = QX_PACIENTES.length - nActivas;
+    tabsEl.innerHTML = '<button class="'+(enActivas?'active':'')+'" onclick="qxSetTab(\'activas\')">Activas<span>'+nActivas+'</span></button>'
+      + '<button class="'+(!enActivas?'active':'')+'" onclick="qxSetTab(\'historial\')">Historial<span>'+nHistorial+'</span></button>';
+  }
+
+  if (st){
+    st.style.display = enActivas ? '' : 'none';
+    if (enActivas){
+      var h = '';
+      for (var i=0;i<QX_ESTADOS_ACTIVOS.length;i++){
+        var e = QX_ESTADOS_ACTIVOS[i][0];
+        var n = QX_PACIENTES.filter(function(p){return p.estado===e;}).length;
+        h += '<div class="qx-stat'+(QX_FILTER===e?' on':'')+'"><div class="n">'+n+'</div><div class="l">'+qxEsc(QX_ESTADOS_ACTIVOS[i][1])+'</div></div>';
+      }
+      st.innerHTML = h;
+    }
+  }
+
   if (fl){
-    var c = '<button class="qx-chip'+(QX_FILTER==='todos'?' active':'')+'" onclick="qxSetFilter(\'todos\')">Todos ('+QX_PACIENTES.length+')</button>';
-    for (var j=0;j<QX_ESTADOS.length;j++){
-      var e2 = QX_ESTADOS[j][0];
+    var c = '<button class="qx-chip'+(QX_FILTER==='todos'?' active':'')+'" onclick="qxSetFilter(\'todos\')">Todos ('+baseData.length+')</button>';
+    for (var j=0;j<estadosBase.length;j++){
+      var e2 = estadosBase[j][0];
       var n2 = QX_PACIENTES.filter(function(p){return p.estado===e2;}).length;
-      c += '<button class="qx-chip'+(QX_FILTER===e2?' active':'')+'" onclick="qxSetFilter(\''+e2+'\')">'+QX_ESTADOS[j][1]+' ('+n2+')</button>';
+      c += '<button class="qx-chip'+(QX_FILTER===e2?' active':'')+'" onclick="qxSetFilter(\''+e2+'\')">'+estadosBase[j][1]+' ('+n2+')</button>';
     }
     fl.innerHTML = c;
   }
   if (!list) return;
-  var data = QX_FILTER==='todos' ? QX_PACIENTES : QX_PACIENTES.filter(function(p){return p.estado===QX_FILTER;});
+  var data = QX_FILTER==='todos' ? baseData : baseData.filter(function(p){return p.estado===QX_FILTER;});
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     data = data.filter(function(p){
       var f = p.fecha_captacion || (p.created_at ? p.created_at.slice(0,10) : '');
@@ -5854,7 +5885,7 @@ function qxRender(){
     });
   }
   if (data.length===0){
-    list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta fase</p></div>';
+    list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta '+(enActivas?'fase':'vista')+'</p></div>';
     return;
   }
   var html = '';
