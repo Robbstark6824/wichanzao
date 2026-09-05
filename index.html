@@ -2615,6 +2615,7 @@ function renderPrevFiles(container, dateStr, files) {
     html += '<div class="pf-info"><span class="pf-name">' + escapeHtml(displayName) + '</span>';
     if (sizeStr) html += '<div class="pf-size">' + sizeStr + '</div>';
     html += '</div>';
+    html += '<button class="pf-dl" onclick="event.stopPropagation();downloadPrevFile(\'' + dateStr + '\',' + i + ')" title="Descargar" style="background:none;border:none;padding:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--tl)"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zM5 18h14v2H5z"/></svg></button>';
     html += '<button class="pf-del" onclick="event.stopPropagation();deletePrevFile(\'' + dateStr + '\',' + i + ')" title="Eliminar" style="background:none;border:none;padding:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
     html += '</div>';
   }
@@ -2649,6 +2650,15 @@ function openPrevFile(dateStr, index) {
     };
     img.src = f.url;
   }
+}
+
+function downloadPrevFile(dateStr, index) {
+  var files = prevDatesCache[dateStr];
+  if (!files || !files[index]) return;
+  var f = files[index];
+  if (!f.url) return;
+  haptic();
+  forceDl(f.url, (f.name || 'archivo').replace(/^\d+_/, ''));
 }
 
 function deletePrevFile(dateStr, index) {
@@ -3498,7 +3508,8 @@ function updateTodayCount() {
     el.innerHTML = '<div class="tf-icon"><svg viewBox="0 0 24 24">' + iconPath + '</svg></div>' +
       '<span class="tf-name">' + escapeHtml(f.name) + '</span>' +
       '<span class="tf-time">' + f.time + '</span>' +
-      '<button class="tf-del" data-index="' + realIndex + '" onclick="event.stopPropagation();deleteTodayFile(' + realIndex + ')" style="background:none;border:none;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
+      (f.url ? '<button class="tf-dl" data-index="' + realIndex + '" title="Descargar" onclick="event.stopPropagation();downloadTodayFile(' + realIndex + ')" style="background:none;border:none;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--tl)"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zM5 18h14v2H5z"/></svg></button>' : '') +
+      '<button class="tf-del" data-index="' + realIndex + '" title="Eliminar" onclick="event.stopPropagation();deleteTodayFile(' + realIndex + ')" style="background:none;border:none;padding:4px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--danger)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>';
     container.appendChild(el);
   }
 }
@@ -3529,6 +3540,36 @@ function openTodayFile(index) {
 // Delete files from Supabase Storage
 function sbDeleteFiles(paths) {
   return sbRemove(paths);
+}
+
+// Fuerza la descarga real (blob + <a download>) en vez de solo abrir la
+// pestaña: es lo mismo que ya hace pc.html, para que el celular también
+// pueda guardar el archivo y no solo verlo o borrarlo.
+function forceDl(url, filename) {
+  toast('Descargando ' + filename, 'info');
+  fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.blob();
+  }).then(function(blob) {
+    var blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 2000);
+  }).catch(function() {
+    // Sin permiso de descarga directa (CORS, etc.): al menos que lo abra.
+    window.open(url, '_blank');
+  });
+}
+
+function downloadTodayFile(index) {
+  var f = todayFiles[index];
+  if (!f || !f.url) { toast('Archivo pendiente de subir', 'info'); return; }
+  haptic();
+  forceDl(f.url, f.name);
 }
 
 function deleteTodayFile(index) {
@@ -4664,58 +4705,54 @@ function doUploadFoto(filename, dataUrl) {
 
 function doUploadPdf(filename, pages) {
   var totalPages = pages.length;
-  var optimizedPages = [];
-  var currentPage = 0;
 
-  function optimizeNext() {
-    if (currentPage >= totalPages) {
-      generatePdf(optimizedPages).then(function(pdfBlob) {
-        var now = new Date();
-        var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-        var ts = now.getTime();
-        var pdfPath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
+  // Antes esto optimizaba página por página, una a la vez (esperando a que
+  // termine la anterior), y recién subía las imágenes sueltas DESPUÉS de que
+  // el PDF completo ya hubiera terminado de subir. Con 5-6 páginas ese orden
+  // estrictamente secuencial es lo que hacía sentir la subida eterna: ni la
+  // optimización ni la red aprovechaban que las páginas no dependen entre sí.
+  // Ahora se optimizan todas a la vez y el PDF + las imágenes sueltas suben
+  // en paralelo — mismo resultado final, mismos archivos, en una fracción
+  // del tiempo de espera.
+  Promise.all(pages.map(function(p) { return optimizeImage(p); })).then(function(optimizedPages) {
+    var now = new Date();
+    var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    var ts = now.getTime();
+    var pdfPath = workerBasePath(worker) + '/' + dateFolder + '/' + ts + '_' + filename + '.pdf';
 
-        uploadToSupabase(pdfPath, pdfBlob, 'application/pdf').then(function() {
-          return uploadIndividualImages(filename, optimizedPages, ts);
-        }).then(function() {
-          var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + pdfPath;
-          addTodayFile(filename + '.pdf', 'pdf', pubUrl);
-          toast('PDF subido (' + totalPages + ' pag.)', 'success');
-          haptic(30);
-          updateTodayCount();
-          hideQuickName();
-          document.getElementById('quickNameInput').disabled = false;
-        }).catch(function(err) {
-          // PDF upload error — queued for offline retry (network) or auth-expired
-          queueOfflineUpload(filename, 'pdf', pages);
-          if (isAuthUploadError(err)) {
-            toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
-            promptSessionExpired();
-          } else {
-            toast('Sin conexion, se subira despues', 'info');
-          }
-          addTodayFile(filename + '.pdf (pendiente)', 'pdf');
-          updateTodayCount();
-          hideQuickName();
-          document.getElementById('quickNameInput').disabled = false;
-        });
+    return generatePdf(optimizedPages).then(function(pdfBlob) {
+      var pdfUpload = uploadToSupabase(pdfPath, pdfBlob, 'application/pdf');
+      var imagesUpload = uploadIndividualImages(filename, optimizedPages, ts);
+      return Promise.all([pdfUpload, imagesUpload]).then(function() {
+        var pubUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + pdfPath;
+        addTodayFile(filename + '.pdf', 'pdf', pubUrl);
+        toast('PDF subido (' + totalPages + ' pag.)', 'success');
+        haptic(30);
+        updateTodayCount();
+        hideQuickName();
+        document.getElementById('quickNameInput').disabled = false;
       }).catch(function(err) {
-        // PDF generation error handled via toast
-        toast('Error al generar PDF', 'error');
+        // Subida (PDF o alguna imagen suelta) fallida — se reintenta luego
+        // o la sesión expiró.
+        queueOfflineUpload(filename, 'pdf', pages);
+        if (isAuthUploadError(err)) {
+          toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
+          promptSessionExpired();
+        } else {
+          toast('Sin conexion, se subira despues', 'info');
+        }
+        addTodayFile(filename + '.pdf (pendiente)', 'pdf');
+        updateTodayCount();
         hideQuickName();
         document.getElementById('quickNameInput').disabled = false;
       });
-      return;
-    }
-
-    optimizeImage(pages[currentPage]).then(function(optimized) {
-      optimizedPages.push(optimized);
-      currentPage++;
-      optimizeNext();
     });
-  }
-
-  optimizeNext();
+  }).catch(function(err) {
+    // Error al optimizar u generar el PDF (no de red)
+    toast('Error al generar PDF', 'error');
+    hideQuickName();
+    document.getElementById('quickNameInput').disabled = false;
+  });
 }
 
 
