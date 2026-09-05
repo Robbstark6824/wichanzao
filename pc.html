@@ -846,6 +846,16 @@ var countdownTimer = null;
 var countdownValue = REFRESH_INTERVAL;
 var isLoading = false;
 var autoRefreshing = false;
+
+// Si dejan esta pantalla abierta y olvidada en una PC del hospital, que no
+// siga golpeando Supabase cada minuto sin que nadie la mire. Al volver a la
+// pestaña, refresca de una vez en vez de esperar a que la cuenta regresiva
+// llegue a cero desde donde se quedó.
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && countdownTimer && !autoRefreshing) {
+    countdownValue = 0;
+  }
+});
 var lightboxImages = [];
 var lightboxIndex = 0;
 var lbRegistry = {};
@@ -1029,6 +1039,41 @@ async function sbList(prefix, skipCache) {
   return p;
 }
 
+// profile.json (nombre/área del trabajador) casi nunca cambia, pero
+// loadAllData() lo volvía a descargar entero por cada trabajador en CADA
+// refresh de 60s — con 30-40 trabajadores activos son 30-40 descargas de
+// más, cada minuto, indefinidamente mientras el panel quede abierto.
+var _profileCache = {};
+var PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+function fetchProfileCached(basePath) {
+  var cached = _profileCache[basePath];
+  if (cached && cached.ts !== undefined && (Date.now() - cached.ts < PROFILE_CACHE_TTL)) {
+    return Promise.resolve(cached.data);
+  }
+  if (cached && cached.promise) return cached.promise;
+
+  var p = sb.storage.from(BUCKET)
+    .download(basePath + '/profile.json')
+    .then(function(r) {
+      if (r.error) return null;
+      return r.data.text();
+    })
+    .then(function(t) {
+      var parsed = null;
+      if (t) { try { parsed = JSON.parse(t); } catch(e) { parsed = null; } }
+      _profileCache[basePath] = { data: parsed, ts: Date.now() };
+      return parsed;
+    })
+    .catch(function() {
+      delete _profileCache[basePath];
+      return null;
+    });
+
+  _profileCache[basePath] = { promise: p };
+  return p;
+}
+
 async function sbDelete(paths) {
   var r = await sb.storage.from(BUCKET).remove(paths);
   if (r.error) throw new Error(r.error.message);
@@ -1199,13 +1244,7 @@ async function loadAllData() {
 
     // Fetch all profiles AND date folders in parallel (2 requests per worker at once)
     var profilePromises = allEntries.map(function(entry) {
-      return sb.storage.from(BUCKET)
-        .download(entry.basePath + '/profile.json')
-        .then(function(r) {
-          if (r.error) return null;
-          return r.data.text().then(function(t) { try { return JSON.parse(t); } catch(e) { return null; } });
-        })
-        .catch(function() { return null; });
+      return fetchProfileCached(entry.basePath);
     });
     var dateListPromises = allEntries.map(function(entry) {
       return sbList(entry.basePath + '/').catch(function() { return []; });
@@ -2745,6 +2784,9 @@ function updateCountdownDisplay() {
 function startAutoRefresh() {
   if (countdownTimer) clearInterval(countdownTimer);
   countdownTimer = setInterval(function() {
+    // Pestaña no visible: nadie la está mirando, no vale la pena refrescar.
+    if (document.hidden) return;
+
     // Skip auto-refresh if user is busy (downloading ZIP, editing image, using lightbox)
     var busy = document.getElementById('progressOverlay').classList.contains('on')
             || document.getElementById('pcEditor').classList.contains('on')
@@ -3100,6 +3142,7 @@ function forceRefresh() {
   }
   // Reload all data fresh — clear ALL caches
   sbListCacheClear();
+  _profileCache = {};
   // Clear loaded file cache so stale files don't persist
   var wKeys = Object.keys(allWorkerFiles);
   for (var wk = 0; wk < wKeys.length; wk++) {
