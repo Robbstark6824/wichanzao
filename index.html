@@ -7039,13 +7039,16 @@ async function qxRpQuitarFecha(){
 
 /* Saca a la paciente de la programación y recién entonces borra la fecha.
    El orden importa: al revés, la CHECK chk_programada_requiere_fecha_turno
-   rechaza la escritura y el cambio se pierde. */
+   rechaza la escritura y el cambio se pierde.
+   También borra orden_intervencion: es el N° de orden del día programado y,
+   sin fecha, no significa nada — dejarlo habría mostrado un número suelto en
+   las hojas como si algo siguiera programado. */
 async function qxQuitarFechaCirugia(p, motivo, detalle){
   if (p.estado === 'programada'){
     var destino = qxFase4Completa(p) ? 'apta_para_sala' : 'en_tramite';
     if (!(await qxSetEstado(p, destino, 'Se quitó la fecha de cirugía'+(motivo?' - '+motivo:'')))) return false;
   }
-  var patch = {fecha_cirugia:null, turno:null, fecha_fase5:null};
+  var patch = {fecha_cirugia:null, turno:null, fecha_fase5:null, orden_intervencion:null};
   if (motivo !== undefined) patch.motivo_espera = motivo || null;
   if (detalle !== undefined) patch.detalle_motivo_espera = detalle || null;
   var res = await sb.from('pacientes').update(patch).eq('id',p.id).select('id');

@@ -43,7 +43,7 @@ const check = (cond, txt) => { console.log((cond ? '  ✓ ' : '  ✗ ') + txt); 
 console.log('\nProgramada, fase 4 completa → debe volver a "apta para sala":');
 calls = [];
 const p1 = {
-  id: 'p1', estado: 'programada', fecha_cirugia: '2026-09-10', turno: 'manana',
+  id: 'p1', estado: 'programada', fecha_cirugia: '2026-09-10', turno: 'manana', orden_intervencion: '02',
   hcl_hospitalizacion: true, consentimientos: true, solicitud_sala_dejada: true, recetas_entregadas: true
 };
 const ok1 = await api.qxQuitarFechaCirugia(p1, 'Falta de insumos quirúrgicos', 'sin sutura');
@@ -54,11 +54,12 @@ check(upd1.length === 2, 'escribe la fila en dos pasos (fue ' + upd1.length + ')
 check(upd1[0] && upd1[0].patch.estado === 'apta_para_sala', 'PRIMERO cambia el estado a apta_para_sala');
 check(upd1[0] && !('fecha_cirugia' in upd1[0].patch), 'ese primer paso NO toca la fecha (si lo hiciera, la base lo rechaza)');
 check(upd1[1] && upd1[1].patch.fecha_cirugia === null && upd1[1].patch.turno === null, 'DESPUÉS borra fecha y turno');
+check(upd1[1] && upd1[1].patch.orden_intervencion === null, 'y también el N° de orden del día (si no, queda un número suelto en las hojas)');
 check(upd1[1] && upd1[1].patch.motivo_espera === 'Falta de insumos quirúrgicos', 'guarda el motivo de espera que pide GERESA');
 const hist = calls.find(c => c.tabla === 'historial_estados');
 check(!!hist, 'deja constancia en el historial');
 check(hist && hist.row.created_by === 'usuario-de-prueba', 'y firma quién lo hizo');
-check(p1.estado === 'apta_para_sala' && p1.fecha_cirugia === null, 'la pantalla queda coherente con la base');
+check(p1.estado === 'apta_para_sala' && p1.fecha_cirugia === null && p1.orden_intervencion === null, 'la pantalla queda coherente con la base');
 
 // --- Caso 2: programada sin fase 4 completa -------------------------------
 console.log('\nProgramada sin fase 4 completa → debe volver a "en trámite":');
