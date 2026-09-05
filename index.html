@@ -6880,7 +6880,7 @@ function qxRenderDetalle(){
     + '<div class="qx-phase'+(p.estado==='apta_para_sala'||p.estado==='en_tramite'?'':' locked')+'"><div class="ph-head"><div class="ph-num">5</div><div><div class="ph-title">Programación quirúrgica</div><div class="ph-hint">'+(p.estado==='en_tramite'?'Programación anticipada (pendiente de checks)':'Solo si Apta para sala')+'</div></div></div>'
     + ((p.estado==='apta_para_sala'||p.estado==='en_tramite')
         ? '<div class="qx-row"><div class="qx-field"><label>Fecha cirugía</label><input type="date" id="qxFechaQx" value="'+(p.fecha_cirugia||'')+'"></div>'
-        + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
+        + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value=""'+(p.turno?'':' selected')+'>—</option><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
         + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">'+(p.estado==='en_tramite'?'Programar (anticipado)':'Programar cirugía')+'</button>'
         : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
     + ((p.estado==='programada' || (p.estado==='en_tramite' && p.fecha_cirugia)) ? '<button class="qx-btn" style="width:100%;margin-top:8px;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxReprogramar()">📅 Postergar o quitar la fecha</button>' : '')
@@ -6967,6 +6967,7 @@ async function qxProgramar(){
   var fecha = document.getElementById('qxFechaQx').value;
   var turno = document.getElementById('qxTurno').value;
   if (!fecha){ toast('Indica la fecha de cirugía','error'); return; }
+  if (!turno){ toast('Indica el turno','error'); return; }
   // Al poner fecha se acaba la espera: si venía de un "quitar fecha" con un
   // motivo guardado, ese motivo ya no aplica y no debe seguir viajando a las
   // hojas junto a un "Programado" que lo contradice.
@@ -7003,7 +7004,7 @@ function qxReprogramar(){
     + '<div class="qx-sheet-body">'
     + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:12px">'+(p.estado==='programada'?'Programada':'Fecha anticipada')+' para <b>'+qxEsc(qxFmtFecha(p.fecha_cirugia)||'—')+'</b>'+(p.turno?' · turno '+qxEsc(p.turno==='manana'?'mañana':'tarde'):'')+'.</div>'
     + '<div class="qx-row"><div class="qx-field"><label>Nueva fecha de cirugía</label><input type="date" id="qxRpFecha" value="'+(p.fecha_cirugia||'')+'"></div>'
-    + '<div class="qx-field"><label>Turno</label><select id="qxRpTurno"><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
+    + '<div class="qx-field"><label>Turno</label><select id="qxRpTurno"><option value=""'+(p.turno?'':' selected')+'>—</option><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
     + '<button class="qx-btn tl" style="width:100%" onclick="qxRpPostergar()">Guardar la nueva fecha</button>'
     + '<div style="height:1px;background:var(--bd);margin:18px 0"></div>'
     + '<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:10px">O dejarla <b>sin fecha</b>: vuelve a la lista de espera y en los dos formatos figura como <b>“Pendiente de fecha”</b>. Sigue siendo la misma paciente, no se pierde nada de lo avanzado.</div>'
@@ -7019,6 +7020,7 @@ async function qxRpPostergar(){
   var fecha = document.getElementById('qxRpFecha').value.trim();
   if (!fecha){ toast('Indica la nueva fecha, o usa “Quitar la fecha”','error'); return; }
   var turno = document.getElementById('qxRpTurno').value;
+  if (!turno){ toast('Indica el turno','error'); return; }
   // El N° de orden y el motivo de espera son del día y del vacío que dejaba
   // la programación ANTERIOR: con una fecha nueva ninguno de los dos sigue
   // significando algo, así que se sueltan también (si no, viajan a las hojas
