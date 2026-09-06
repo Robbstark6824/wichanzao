@@ -5545,6 +5545,10 @@ function qxFase3Completa(p){ return p.fecha_cita_cardiologia && p.fecha_cita_ane
 function qxFase4Completa(p){ return p.hcl_hospitalizacion && p.consentimientos && p.solicitud_sala_dejada && p.recetas_entregadas; }
 function qxProgramadaPendiente(p){ return !!(p.fecha_cirugia && p.turno) && p.estado === 'en_tramite'; }
 function qxEstadoTerminal(e){ return e==='operada'||e==='suspendida'||e==='referida'; }
+// "Programada" cuenta también a las programadas anticipadamente (con fecha/turno
+// puestos pero que aún siguen en_tramite por exámenes pendientes): así el número
+// de la tarjeta/filtro coincide con lo que ya se ve en el calendario.
+function qxCuentaComo(p,e){ return e==='programada' ? (p.estado===e || qxProgramadaPendiente(p)) : p.estado===e; }
 function qxEsc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===11 && d.slice(0,2)==='51') d=d.slice(2); return d; }
 function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
@@ -5895,7 +5899,7 @@ function qxRender(){
       var h = '';
       for (var i=0;i<QX_ESTADOS_ACTIVOS.length;i++){
         var e = QX_ESTADOS_ACTIVOS[i][0];
-        var n = QX_PACIENTES.filter(function(p){return p.estado===e;}).length;
+        var n = QX_PACIENTES.filter(function(p){return qxCuentaComo(p,e);}).length;
         h += '<div class="qx-stat'+(QX_FILTER===e?' on':'')+'"><div class="n">'+n+'</div><div class="l">'+qxEsc(QX_ESTADOS_ACTIVOS[i][1])+'</div></div>';
       }
       st.innerHTML = h;
@@ -5906,13 +5910,13 @@ function qxRender(){
     var c = '<button class="qx-chip'+(QX_FILTER==='todos'?' active':'')+'" onclick="qxSetFilter(\'todos\')">Todos ('+baseData.length+')</button>';
     for (var j=0;j<estadosBase.length;j++){
       var e2 = estadosBase[j][0];
-      var n2 = QX_PACIENTES.filter(function(p){return p.estado===e2;}).length;
+      var n2 = QX_PACIENTES.filter(function(p){return qxCuentaComo(p,e2);}).length;
       c += '<button class="qx-chip'+(QX_FILTER===e2?' active':'')+'" onclick="qxSetFilter(\''+e2+'\')">'+estadosBase[j][1]+' ('+n2+')</button>';
     }
     fl.innerHTML = c;
   }
   if (!list) return;
-  var data = QX_FILTER==='todos' ? baseData : baseData.filter(function(p){return p.estado===QX_FILTER;});
+  var data = QX_FILTER==='todos' ? baseData : baseData.filter(function(p){return qxCuentaComo(p,QX_FILTER);});
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     data = data.filter(function(p){
       var f = p.fecha_captacion || (p.created_at ? p.created_at.slice(0,10) : '');
