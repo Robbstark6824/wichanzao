@@ -651,6 +651,26 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-viewtoggle{display:flex;gap:8px;margin-bottom:12px}
 .qx-vt{flex:1;padding:9px;border-radius:4px;font-family:var(--mono);letter-spacing:.04em;border:1px solid var(--bd);background:var(--s1);color:var(--t2);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
 .qx-vt.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+
+/* ===== CALCULADORA OBSTÉTRICA ===== */
+.calc-warn{background:rgba(180,101,42,.10);border:1px solid rgba(180,101,42,.30);color:var(--yodo);border-radius:4px;padding:9px 12px;font-size:11px;line-height:1.5;margin-bottom:14px;font-weight:600}
+.calc-grp{background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:14px;margin-bottom:12px}
+.calc-grp > h4{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.12em;margin:0 0 12px}
+.calc-res{background:var(--s1);border:1px solid var(--bd);border-radius:4px;border-left:3px solid var(--tl);padding:14px;margin-bottom:12px}
+.calc-res h4{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px}
+.calc-big{font-size:25px;font-weight:800;color:var(--t1);letter-spacing:-.02em;line-height:1.15}
+.calc-sub{font-size:12px;color:var(--t2);margin-top:5px;line-height:1.5}
+.calc-src{font-size:10px;color:var(--t3);margin-top:9px;line-height:1.45;font-style:italic}
+.calc-kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px;color:var(--t2)}
+.calc-kv:last-child{border-bottom:0}
+.calc-kv b{color:var(--t1);font-weight:700}
+.calc-note{background:rgba(46,125,110,.07);border:1px solid rgba(46,125,110,.20);border-radius:4px;padding:8px 10px;font-size:11px;line-height:1.5;color:var(--t2);margin-top:8px}
+.calc-pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;vertical-align:middle}
+.calc-pill.peg{background:rgba(179,64,58,.14);color:var(--alarma)}
+.calc-pill.aeg{background:rgba(46,125,110,.16);color:var(--tl2)}
+.calc-pill.geg{background:rgba(180,101,42,.14);color:var(--yodo)}
+.calc-chart{width:100%;height:auto;background:var(--s1);border:1px solid var(--bd);border-radius:4px;margin-bottom:12px;display:block}
+.calc-hint{font-size:11px;color:var(--t3);line-height:1.5;margin:-4px 0 12px}
 /* Pestañas activas/historial: lo resuelto deja de mezclarse con lo en curso. */
 .qx-tabs{display:flex;background:var(--s1);border:1px solid var(--bd);border-radius:4px;overflow:hidden;margin-bottom:14px}
 .qx-tabs button{flex:1;padding:11px 8px;background:none;border:none;border-bottom:2.5px solid transparent;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.01em;color:var(--t2);cursor:pointer}
@@ -901,6 +921,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span class="sni-icon">🗓️</span>
           <span class="sni-label">Programación Qx</span>
         </a>
+        <a class="sidebar-nav-item" data-module="calculadora" onclick="showModule('calculadora')">
+          <span class="sni-icon">🧮</span>
+          <span class="sni-label">Calculadora</span>
+        </a>
       </nav>
       <div class="sidebar-user">
         <div class="sidebar-user-avatar" id="sidebarAvatar" style="background:var(--tl)"></div>
@@ -954,6 +978,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <span class="mc-icon">🗓️</span>
               <div class="mc-title">Programación Qx</div>
               <div class="mc-desc">Pipeline quirúrgico · 7 fases · Cirugía</div>
+            </div>
+            <div class="module-card" onclick="showModule('calculadora')">
+              <span class="mc-icon">🧮</span>
+              <div class="mc-title">Calculadora obstétrica</div>
+              <div class="mc-desc">Edad gestacional (FUR/eco) y crecimiento fetal · INTERGROWTH-21st</div>
             </div>
           </div>
           <!-- Credit -->
@@ -1090,6 +1119,27 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="qx-filters" id="qxFilters"></div>
           <div class="qx-list" id="qxList"></div>
           <div id="qxCalendario" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- === MODULE: CALCULADORA OBSTÉTRICA === -->
+      <div class="module-panel" id="moduleCalculadora">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / Calculadora obstétrica
+          </div>
+        </div>
+        <div class="module-body">
+          <div class="calc-warn">🧮 Herramienta de apoyo académico. No reemplaza la evaluación ni el criterio clínico. Verifique siempre los resultados contra las tablas oficiales.</div>
+          <div class="qx-viewtoggle">
+            <button class="qx-vt active" id="calcVtEg" onclick="calcSetView('eg')">📅 Edad gestacional</button>
+            <button class="qx-vt" id="calcVtCrec" onclick="calcSetView('crecimiento')">📈 Crecimiento fetal</button>
+          </div>
+          <div id="calcPanelEg"></div>
+          <div id="calcPanelCrec" style="display:none"></div>
         </div>
       </div>
 
@@ -1397,7 +1447,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v219';
+var APP_VERSION = 'v220';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -8887,6 +8937,487 @@ function qxLimpiarCaptacion(){
   showModule = function(name){
     _orig(name);
     if (name === 'programacion') qxLoad();
+  };
+})();
+
+
+/* ===================================================================
+   CALCULADORA OBSTÉTRICA — módulo académico
+   -------------------------------------------------------------------
+   Dos herramientas: (1) edad gestacional por FUR y por ecografía,
+   (2) crecimiento fetal (PFE + percentiles) con el estándar
+   INTERGROWTH-21st.
+
+   El motor de edad gestacional NO se reescribe: reutiliza las
+   funciones qx* de la sección "Edad gestacional" (qxFurEfectiva,
+   qxUsaEco, qxEG, qxFpp, qxSumarDias, qxDiasEntreFechas, qxFmtFecha…).
+   Aquí sólo se añade lo que faltaba: datación por LCC, criterio de
+   redatado ACOG/ISUOG, y toda la calculadora de crecimiento fetal.
+
+   Cada resultado lleva su cita. Es apoyo académico: no decide nada.
+   =================================================================== */
+
+var CALC = { view: 'eg', ready: false };
+
+function calcVal(id){ var el = document.getElementById(id); return el ? String(el.value).trim() : ''; }
+function calcNum(id){ var v = calcVal(id); if (v === '') return null; var n = parseFloat(v.replace(',', '.')); return isNaN(n) ? null : n; }
+
+function calcSetView(v){
+  CALC.view = v;
+  var a = document.getElementById('calcVtEg'), b = document.getElementById('calcVtCrec');
+  if (a) a.classList.toggle('active', v === 'eg');
+  if (b) b.classList.toggle('active', v === 'crecimiento');
+  var pa = document.getElementById('calcPanelEg'), pb = document.getElementById('calcPanelCrec');
+  if (pa) pa.style.display = v === 'eg' ? '' : 'none';
+  if (pb) pb.style.display = v === 'crecimiento' ? '' : 'none';
+  if (typeof haptic === 'function') haptic(10);
+}
+
+function calcInit(){
+  if (CALC.ready) return;
+  var pe = document.getElementById('calcPanelEg'), pc = document.getElementById('calcPanelCrec');
+  if (!pe || !pc) return;
+  CALC.ready = true;
+  pe.innerHTML = calcPanelEgHtml();
+  pc.innerHTML = calcPanelCrecHtml();
+  var fc = document.getElementById('calcI_fechaCalc');
+  if (fc && !fc.value) fc.value = qxHoyStr();
+  calcRenderEg();
+  calcRenderCrec();
+}
+
+/* ---------- Ciencia: datación ---------- */
+
+/* LCC (mm) → edad gestacional (días). Dos referencias seleccionables.
+   Robinson–Fleming 1975 es el estándar de ISUOG/NICE/RCOG; INTERGROWTH-21st
+   es el estándar internacional prescriptivo. Fuera del rango válido de cada
+   fórmula devuelve null (no se extrapola). */
+function calcEgPorLcc(lcc, fx){
+  if (lcc == null || isNaN(lcc)) return null;
+  var d;
+  if (fx === 'ig'){
+    if (lcc < 15 || lcc > 95) return null;
+    d = 40.9041 + 3.21585 * Math.sqrt(lcc) + 0.348956 * lcc;                 // Papageorghiou 2014, UOG
+  } else {
+    if (lcc < 5 || lcc > 84) return null;
+    d = 8.052 * Math.sqrt(lcc * 1.037) + 23.73;                             // Robinson & Fleming 1975
+  }
+  return { dias: Math.round(d), fx: fx === 'ig' ? 'ig' : 'rf' };
+}
+
+/* ¿Redatar por la eco? Criterio ACOG / AIUM / SMFM (Committee Opinion 700, 2017):
+   se compara la FPP por FUR con la FPP por eco; si la diferencia supera el umbral
+   del rango de EG por eco al momento del estudio, se redata. */
+function calcRedatar(p){
+  if (!p.fur || !qxEcoUsable(p)) return null;
+  var dif = Math.abs(qxDiasEntreFechas(String(p.fur).slice(0,10), qxFurDeEco(p)));
+  var egEco = (parseInt(p.eco_semanas,10)||0) * 7 + (parseInt(p.eco_dias,10)||0);
+  var umbral = egEco <= 62 ? 5 : egEco <= 111 ? 7 : egEco <= 153 ? 10 : egEco <= 195 ? 14 : 21;
+  return { dif: dif, umbral: umbral, redatar: dif > umbral,
+           egEcoTexto: Math.floor(egEco/7) + 'ss ' + (egEco % 7) + '/7' };
+}
+
+/* Arma el objeto que consume el motor qx* a partir de los campos del formulario. */
+function calcEgP(){
+  var p = {};
+  var fur = calcVal('calcI_fur'); if (fur) p.fur = fur;
+  var ecoF = calcVal('calcI_ecoFecha');
+  if (ecoF){
+    p.eco_fecha = ecoF;
+    var lcc = calcNum('calcI_lcc');
+    var egLcc = lcc != null ? calcEgPorLcc(lcc, calcVal('calcI_lccFx') || 'rf') : null;
+    if (egLcc){
+      p.eco_semanas = Math.floor(egLcc.dias / 7);
+      p.eco_dias = egLcc.dias % 7;
+      p._fuenteEco = 'lcc';
+    } else {
+      var s = calcNum('calcI_ecoSem');
+      if (s != null){ p.eco_semanas = s; p.eco_dias = calcNum('calcI_ecoDia') || 0; p._fuenteEco = 'semdia'; }
+    }
+  }
+  return p;
+}
+
+/* ---------- Ciencia: crecimiento fetal (INTERGROWTH-21st) ---------- */
+
+/* Distribución normal acumulada — Abramowitz & Stegun 7.1.26 (error < 7.5e-8). */
+function calcNormCdf(z){
+  if (z == null || isNaN(z)) return NaN;
+  var t = 1 / (1 + 0.2316419 * Math.abs(z));
+  var d = 0.3989422804014327 * Math.exp(-z * z / 2);
+  var p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return z > 0 ? 1 - p : p;
+}
+
+/* Mediana y DE de la biometría fetal por edad gestacional (semanas decimales),
+   Papageorghiou AT et al. Lancet 2014;384:869–879. Distribución simétrica:
+   z = (medida − mediana) / DE. Válido 14–40 sem. Resultado en mm. */
+var CALC_IG = {
+  bpd: { lbl: 'DBP (diámetro biparietal)',
+    m: function(g){ return 5.60878 + 0.158369*g*g - 0.00256379*Math.pow(g,3); },
+    s: function(g){ return Math.exp(0.101242 + 0.00150557*Math.pow(g,3) - 0.000771535*Math.pow(g,3)*Math.log(g) + 0.0000999638*Math.pow(g,3)*Math.pow(Math.log(g),2)); } },
+  hc:  { lbl: 'CC (circunferencia cefálica)',
+    m: function(g){ return -28.2849 + 1.69267*g*g - 0.397485*g*g*Math.log(g); },
+    s: function(g){ return 1.98735 + 0.0136772*Math.pow(g,3) - 0.00726264*Math.pow(g,3)*Math.log(g) + 0.000976253*Math.pow(g,3)*Math.pow(Math.log(g),2); } },
+  ac:  { lbl: 'CA (circunferencia abdominal)',
+    m: function(g){ return -81.3243 + 11.6772*g - 0.000561865*Math.pow(g,3); },
+    s: function(g){ return -4.36302 + 0.121445*g*g - 0.0130256*Math.pow(g,3) + 0.00282143*Math.pow(g,3)*Math.log(g); } },
+  fl:  { lbl: 'LF (longitud femoral)',
+    m: function(g){ return -39.9616 + 4.32298*g - 0.0380156*g*g; },
+    s: function(g){ return Math.exp(0.605843 - 42.0014*Math.pow(g,-2) + 0.00000917972*Math.pow(g,3)); } }
+};
+
+function calcBiometriaPct(key, ga, valMm){
+  var C = CALC_IG[key];
+  if (!C || valMm == null || ga == null || ga < 14 || ga > 40) return null;
+  var m = C.m(ga), s = C.s(ga), z = (valMm - m) / s;
+  return { median: m, sd: s, z: z, pct: calcNormCdf(z) * 100 };
+}
+
+/* Peso fetal estimado — Hadlock FP et al. Am J Obstet Gynecol 1985;151:333–337.
+   Entradas en mm; la fórmula trabaja en cm. Elige la variante según qué medidas
+   haya (4 parámetros → 3 → CA+LF). Resultado en gramos. */
+function calcHadlockEFW(bpdMm, hcMm, acMm, flMm){
+  var bpd = bpdMm != null ? bpdMm/10 : null, hc = hcMm != null ? hcMm/10 : null,
+      ac = acMm != null ? acMm/10 : null, fl = flMm != null ? flMm/10 : null;
+  var log10, formula;
+  if (bpd != null && hc != null && ac != null && fl != null){
+    log10 = 1.3596 + 0.0064*hc + 0.0424*ac + 0.174*fl + 0.00061*bpd*ac - 0.00386*ac*fl;
+    formula = 'DBP+CC+CA+LF';
+  } else if (hc != null && ac != null && fl != null){
+    log10 = 1.326 - 0.00326*ac*fl + 0.0107*hc + 0.0438*ac + 0.158*fl;
+    formula = 'CC+CA+LF';
+  } else if (bpd != null && ac != null && fl != null){
+    log10 = 1.335 - 0.0034*ac*fl + 0.0316*bpd + 0.0457*ac + 0.1623*fl;
+    formula = 'DBP+CA+LF';
+  } else if (ac != null && fl != null){
+    log10 = 1.304 + 0.05281*ac + 0.1938*fl - 0.004*ac*fl;
+    formula = 'CA+LF';
+  } else return null;
+  return { g: Math.pow(10, log10), formula: formula };
+}
+
+/* PFE del estándar INTERGROWTH-21st — Stirnemann J et al. UOG 2017;49:478–486.
+   Función de CA y CC (sin LF). Entradas en mm; la fórmula trabaja en cm. */
+function calcIntergrowthEFW(acMm, hcMm){
+  if (acMm == null || hcMm == null) return null;
+  var ac = acMm/10, hc = hcMm/10;
+  var lnEFW = 5.084820 - 54.06633*Math.pow(ac/100,3) - 95.80076*Math.pow(ac/100,3)*Math.log(ac/100) + 3.136370*(hc/100);
+  return Math.exp(lnEFW);
+}
+
+/* Percentiles y z-score del PFE por edad gestacional — Stirnemann 2017, método
+   LMS (Box–Cox) sobre Y = ln(PFE). Válido 22–40 sem. */
+function calcEFWpct(ga, efwG){
+  if (ga == null || ga < 22 || ga > 40) return null;
+  var lg = Math.log(ga), g3 = Math.pow(ga, 3);
+  var mu  = 4.956737 + 0.0005019687*g3 - 0.0001227065*g3*lg;
+  var sig = 1e-4 * (-6.997171 + 0.057559*g3 - 0.01493946*g3*lg);
+  var lam = -4.257629 - 2162.234*Math.pow(ga,-2) + 0.0002301829*g3;
+  function cval(za){
+    var q = Math.abs(lam) < 1e-7 ? mu * Math.exp(sig * za) : mu * Math.pow(za*sig*lam + 1, 1/lam);
+    return Math.exp(q);
+  }
+  var out = { mu: mu, sigma: sig, lambda: lam,
+    p3: cval(-1.880794), p5: cval(-1.644854), p10: cval(-1.281552),
+    p50: cval(0), p90: cval(1.281552), p95: cval(1.644854), p97: cval(1.880794) };
+  if (efwG != null && efwG > 0){
+    var Y = Math.log(efwG);
+    var z = Math.abs(lam) < 1e-7 ? Math.log(Y/mu)/sig : (Math.pow(Y/mu, lam) - 1) / (sig * lam);
+    out.z = z; out.pct = calcNormCdf(z) * 100;
+  }
+  return out;
+}
+
+function calcClasif(pct){
+  if (pct == null || isNaN(pct)) return null;
+  if (pct < 3)  return { t: 'PEG severo (< p3)', c: 'peg' };
+  if (pct < 10) return { t: 'PEG (< p10)', c: 'peg' };
+  if (pct > 97) return { t: 'GEG severo (> p97)', c: 'geg' };
+  if (pct > 90) return { t: 'GEG (> p90)', c: 'geg' };
+  return { t: 'AEG (p10–p90)', c: 'aeg' };
+}
+
+function calcFmtPct(pct){
+  if (pct == null || isNaN(pct)) return '—';
+  if (pct < 0.1) return '< p0.1';
+  if (pct > 99.9) return '> p99.9';
+  if (pct < 1 || pct > 99) return 'p' + pct.toFixed(1);
+  return 'p' + Math.round(pct);
+}
+
+/* ---------- UI: pestaña 1 (edad gestacional) ---------- */
+
+function calcPanelEgHtml(){
+  return ''
+  + '<div class="calc-grp"><h4>Datos</h4>'
+  +   '<div class="qx-field"><label>FUR — fecha de última regla</label><input type="date" id="calcI_fur" oninput="calcRenderEg()"></div>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>Fecha de la ecografía</label><input type="date" id="calcI_ecoFecha" oninput="calcRenderEg()"></div>'
+  +     '<div class="qx-field"><label>Fecha de cálculo</label><input type="date" id="calcI_fechaCalc" oninput="calcRenderEg()"></div>'
+  +   '</div>'
+  +   '<div class="calc-hint">Para datar por la eco, llene <b>la LCC</b> (más preciso, 1.er trimestre) <b>o</b> las semanas y días que informó la eco.</div>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>LCC / CRL (mm)</label><input type="number" step="0.1" id="calcI_lcc" placeholder="ej. 62" oninput="calcRenderEg()"></div>'
+  +     '<div class="qx-field"><label>Fórmula LCC</label><select id="calcI_lccFx" onchange="calcRenderEg()"><option value="rf">Robinson–Fleming 1975</option><option value="ig">INTERGROWTH-21st</option></select></div>'
+  +   '</div>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>Semanas en la eco</label><input type="number" min="0" max="42" id="calcI_ecoSem" placeholder="ej. 12" oninput="calcRenderEg()"></div>'
+  +     '<div class="qx-field"><label>Días (0–6)</label><input type="number" min="0" max="6" id="calcI_ecoDia" placeholder="ej. 3" oninput="calcRenderEg()"></div>'
+  +   '</div>'
+  + '</div>'
+  + '<div id="calcOutEg"></div>'
+  + '<div class="calc-grp"><h4>Calculadora inversa</h4>'
+  +   '<div class="calc-hint">¿En qué fecha el embarazo cumple una edad gestacional dada?</div>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>Semanas</label><input type="number" min="0" max="45" id="calcI_invSem" placeholder="ej. 38" oninput="calcRenderEg()"></div>'
+  +     '<div class="qx-field"><label>Días (0–6)</label><input type="number" min="0" max="6" id="calcI_invDia" placeholder="ej. 0" oninput="calcRenderEg()"></div>'
+  +   '</div>'
+  +   '<div id="calcOutInv" class="calc-sub"></div>'
+  + '</div>';
+}
+
+function calcRenderEg(){
+  var out = document.getElementById('calcOutEg');
+  if (!out) return;
+  var p = calcEgP();
+  var fechaCalc = calcVal('calcI_fechaCalc') || qxHoyStr();
+  var furEf = qxFurEfectiva(p);
+
+  if (!furEf){
+    out.innerHTML = '<div class="calc-hint">Ingrese la FUR, o la fecha de la eco con la LCC o las semanas/días.</div>';
+    calcRenderInv(null);
+    return;
+  }
+
+  var html = '';
+
+  var eg = qxEG(p, fechaCalc);
+  html += '<div class="calc-res"><h4>Edad gestacional · ' + qxFmtFecha(fechaCalc) + '</h4>';
+  if (eg){
+    var tri = eg.dias < 98 ? '1.er' : (eg.dias < 196 ? '2.º' : '3.er');
+    html += '<div class="calc-big">' + eg.texto + '</div>';
+    html += '<div class="calc-sub">' + eg.dias + ' días · ' + tri + ' trimestre</div>';
+  } else {
+    html += '<div class="calc-sub">La fecha de cálculo cae fuera de un embarazo posible desde este punto de partida.</div>';
+  }
+  html += '</div>';
+
+  var usaEco = qxUsaEco(p), metodo, motivo;
+  if (qxEcoUsable(p) && p.fur){
+    var t = qxTrimestreEco(p);
+    metodo = usaEco ? 'la ecografía (' + (t === 1 ? '1.er' : t === 2 ? '2.º' : '3.er') + ' trimestre)' : 'la FUR';
+    motivo = usaEco
+      ? 'la eco del 1.er trimestre es el método más preciso para datar.'
+      : 'una eco del ' + (t === 2 ? '2.º' : '3.er') + ' trimestre tiene más margen que la FUR, así que no la desplaza.';
+  } else if (qxEcoUsable(p)){
+    metodo = 'la ecografía'; motivo = 'es el único dato disponible (no se ingresó FUR).';
+  } else {
+    metodo = 'la FUR'; motivo = 'es el único dato disponible.';
+  }
+  html += '<div class="calc-res"><h4>Punto de partida</h4>';
+  html += '<div class="calc-sub">Se cuenta desde <b>' + metodo + '</b> — ' + motivo + '</div>';
+  if (p._fuenteEco === 'lcc'){
+    var egLccD = p.eco_semanas * 7 + p.eco_dias;
+    var lccFx = calcVal('calcI_lccFx') || 'rf';
+    html += '<div class="calc-sub">EG por LCC: <b>' + Math.floor(egLccD/7) + 'ss ' + (egLccD % 7) + '/7</b> (' + (lccFx === 'ig' ? 'INTERGROWTH-21st' : 'Robinson–Fleming') + ').</div>';
+  }
+  html += '<div class="calc-src">'
+    + (p._fuenteEco === 'lcc'
+        ? (calcVal('calcI_lccFx') === 'ig'
+            ? 'Papageorghiou AT, et&nbsp;al. Ultrasound Obstet Gynecol 2014;44:641–648. · '
+            : 'Robinson HP, Fleming JEE. Br J Obstet Gynaecol 1975;82:702–710. · ')
+        : '')
+    + 'Regla de Naegele: FPP = FUR + 280 días.</div>';
+  html += '</div>';
+
+  var fppFur = p.fur ? qxSumarDias(String(p.fur).slice(0,10), 280) : null;
+  var fppEco = qxEcoUsable(p) ? qxSumarDias(qxFurDeEco(p), 280) : null;
+  var fppEf = qxSumarDias(furEf, 280);
+  html += '<div class="calc-res"><h4>Fecha probable de parto</h4>';
+  html += '<div class="calc-big">' + qxFmtFecha(fppEf) + '</div>';
+  if (fppFur) html += '<div class="calc-kv"><span>por FUR</span><b>' + qxFmtFecha(fppFur) + '</b></div>';
+  if (fppEco) html += '<div class="calc-kv"><span>por ecografía</span><b>' + qxFmtFecha(fppEco) + '</b></div>';
+  html += '</div>';
+
+  var rd = calcRedatar(p);
+  if (rd){
+    html += '<div class="calc-res"><h4>¿Redatar? · criterio ACOG / ISUOG</h4>';
+    html += '<div class="calc-sub">Diferencia entre ambas fechas: <b>' + rd.dif + ' días</b>. EG por eco al momento del estudio: ' + rd.egEcoTexto + '. Umbral para ese rango: <b>' + rd.umbral + ' días</b>.</div>';
+    html += '<div class="calc-sub" style="margin-top:6px">→ ' + (rd.redatar
+      ? '<b style="color:var(--yodo)">La diferencia supera el umbral: se recomienda redatar por la ecografía.</b>'
+      : '<b style="color:var(--tl2)">Dentro del umbral: se mantiene la FUR.</b>') + '</div>';
+    html += '<div class="calc-src">ACOG Committee Opinion 700 (2017). Reaffirmed 2021.</div>';
+    html += '</div>';
+  }
+
+  var hitos = [[24,'Viabilidad'],[28,'Inicio del 3.er trimestre'],[34,'Fin de prematuridad tardía'],[37,'Término precoz'],[39,'Término completo'],[41,'Postérmino']];
+  html += '<div class="calc-res"><h4>Hitos del embarazo</h4>';
+  for (var i = 0; i < hitos.length; i++){
+    var f = qxSumarDias(furEf, hitos[i][0] * 7);
+    var falta = qxDiasEntreFechas(fechaCalc, f);
+    var rel = falta === 0 ? 'hoy' : (falta > 0 ? 'en ' + falta + ' d' : 'hace ' + (-falta) + ' d');
+    html += '<div class="calc-kv"><span>' + hitos[i][0] + 'ss · ' + hitos[i][1] + '</span><b>' + qxFmtFecha(f) + ' <span style="color:var(--t3);font-weight:600">(' + rel + ')</span></b></div>';
+  }
+  html += '</div>';
+
+  out.innerHTML = html;
+  calcRenderInv(furEf);
+}
+
+function calcRenderInv(furEf){
+  var el = document.getElementById('calcOutInv');
+  if (!el) return;
+  if (!furEf){ el.textContent = 'Ingrese los datos de arriba primero.'; return; }
+  var s = calcNum('calcI_invSem');
+  if (s == null){ el.textContent = 'Ingrese las semanas objetivo.'; return; }
+  var d = calcNum('calcI_invDia') || 0;
+  el.innerHTML = 'El embarazo cumple <b>' + s + 'ss ' + d + '/7</b> el <b>' + qxFmtFecha(qxSumarDias(furEf, s * 7 + d)) + '</b>.';
+}
+
+/* ---------- UI: pestaña 2 (crecimiento fetal) ---------- */
+
+function calcPanelCrecHtml(){
+  return ''
+  + '<div class="calc-grp"><h4>Edad gestacional</h4>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>Semanas</label><input type="number" min="14" max="40" id="calcC_sem" placeholder="ej. 32" oninput="calcRenderCrec()"></div>'
+  +     '<div class="qx-field"><label>Días (0–6)</label><input type="number" min="0" max="6" id="calcC_dia" placeholder="ej. 4" oninput="calcRenderCrec()"></div>'
+  +   '</div>'
+  +   '<button class="qx-btn" style="width:100%;padding:8px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="calcUsarEg()">↧ Usar la edad gestacional calculada</button>'
+  + '</div>'
+  + '<div class="calc-grp"><h4>Biometría fetal (mm)</h4>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>DBP / BPD</label><input type="number" step="0.1" id="calcC_bpd" oninput="calcRenderCrec()"></div>'
+  +     '<div class="qx-field"><label>CC / HC</label><input type="number" step="0.1" id="calcC_hc" oninput="calcRenderCrec()"></div>'
+  +   '</div>'
+  +   '<div class="qx-row">'
+  +     '<div class="qx-field"><label>CA / AC</label><input type="number" step="0.1" id="calcC_ac" oninput="calcRenderCrec()"></div>'
+  +     '<div class="qx-field"><label>LF / FL</label><input type="number" step="0.1" id="calcC_fl" oninput="calcRenderCrec()"></div>'
+  +   '</div>'
+  +   '<div class="calc-hint">El PFE y el percentil INTERGROWTH-21st necesitan al menos <b>CA y CC</b>. Hadlock usa además DBP y LF.</div>'
+  + '</div>'
+  + '<div id="calcOutCrec"></div>';
+}
+
+function calcUsarEg(){
+  var eg = qxEG(calcEgP(), calcVal('calcI_fechaCalc') || qxHoyStr());
+  if (!eg){ toast('Primero calcule una edad gestacional válida en la otra pestaña', 'error'); return; }
+  var s = document.getElementById('calcC_sem'), d = document.getElementById('calcC_dia');
+  if (s) s.value = eg.semanas;
+  if (d) d.value = eg.resto;
+  calcRenderCrec();
+  toast('EG cargada: ' + eg.texto, 'success');
+}
+
+function calcRenderCrec(){
+  var out = document.getElementById('calcOutCrec');
+  if (!out) return;
+  var sem = calcNum('calcC_sem');
+  if (sem == null){ out.innerHTML = '<div class="calc-hint">Ingrese la edad gestacional y la biometría fetal.</div>'; return; }
+  var dia = calcNum('calcC_dia') || 0;
+  var ga = sem + dia / 7;
+  var bpd = calcNum('calcC_bpd'), hc = calcNum('calcC_hc'), ac = calcNum('calcC_ac'), fl = calcNum('calcC_fl');
+  var html = '';
+
+  if (ga < 14 || ga > 40){
+    html += '<div class="calc-warn">La EG (' + sem + 'ss ' + dia + '/7) está fuera del rango del estándar INTERGROWTH-21st (14–40 sem para biometría, 22–40 para PFE). No se calculan percentiles.</div>';
+  }
+
+  var had = calcHadlockEFW(bpd, hc, ac, fl);
+  var igEfw = calcIntergrowthEFW(ac, hc);
+  if (had || igEfw){
+    html += '<div class="calc-res"><h4>Peso fetal estimado</h4>';
+    if (igEfw != null) html += '<div class="calc-big">' + Math.round(igEfw) + ' g <span style="font-size:13px;font-weight:600;color:var(--t3)">· INTERGROWTH-21st</span></div>';
+    if (had) html += '<div class="calc-sub"><b>' + Math.round(had.g) + ' g</b> · Hadlock 1985 (' + had.formula + ')</div>';
+    if (igEfw == null) html += '<div class="calc-note">Para el PFE INTERGROWTH-21st se necesitan <b>CA y CC</b>.</div>';
+    html += '<div class="calc-src">INTERGROWTH: Stirnemann J, et&nbsp;al. Ultrasound Obstet Gynecol 2017;49:478–486. · Hadlock FP, et&nbsp;al. Am J Obstet Gynecol 1985;151:333–337.</div>';
+    html += '</div>';
+  }
+
+  var efwPct = igEfw != null ? calcEFWpct(ga, igEfw) : null;
+  if (efwPct && efwPct.pct != null){
+    var cl = calcClasif(efwPct.pct);
+    html += '<div class="calc-res"><h4>Percentil del peso fetal · INTERGROWTH-21st</h4>';
+    html += '<div class="calc-big">' + calcFmtPct(efwPct.pct) + ' <span class="calc-pill ' + cl.c + '">' + cl.t + '</span></div>';
+    html += '<div class="calc-sub">Z-score ' + efwPct.z.toFixed(2) + ' · para ' + sem + 'ss ' + dia + '/7</div>';
+    html += '<div style="margin-top:10px">'
+      + '<div class="calc-kv"><span>p3</span><b>' + Math.round(efwPct.p3) + ' g</b></div>'
+      + '<div class="calc-kv"><span>p10</span><b>' + Math.round(efwPct.p10) + ' g</b></div>'
+      + '<div class="calc-kv"><span>p50 · mediana</span><b>' + Math.round(efwPct.p50) + ' g</b></div>'
+      + '<div class="calc-kv"><span>p90</span><b>' + Math.round(efwPct.p90) + ' g</b></div>'
+      + '<div class="calc-kv"><span>p97</span><b>' + Math.round(efwPct.p97) + ' g</b></div>'
+      + '</div>';
+    if (had){
+      var hp = calcEFWpct(ga, had.g);
+      if (hp && hp.pct != null) html += '<div class="calc-note">El percentil usa el PFE INTERGROWTH (CA+CC), que es el que corresponde a este estándar. El PFE de Hadlock caería en <b>' + calcFmtPct(hp.pct) + '</b>.</div>';
+    }
+    html += '<div class="calc-src">Stirnemann J, et&nbsp;al. UOG 2017;49:478–486. Método LMS (Box–Cox), válido 22–40 sem.</div>';
+    html += calcEfwChartSvg(ga, igEfw);
+    html += '</div>';
+  } else if (igEfw != null && ga >= 14 && ga <= 22){
+    html += '<div class="calc-note">El percentil de PFE INTERGROWTH-21st sólo está definido de <b>22 a 40 semanas</b>.</div>';
+  }
+
+  var rows = [['bpd', bpd], ['hc', hc], ['ac', ac], ['fl', fl]];
+  if (rows.some(function(r){ return r[1] != null; }) && ga >= 14 && ga <= 40){
+    html += '<div class="calc-res"><h4>Percentiles de biometría · INTERGROWTH-21st</h4>';
+    for (var i = 0; i < rows.length; i++){
+      var r = calcBiometriaPct(rows[i][0], ga, rows[i][1]);
+      if (!r) continue;
+      html += '<div class="calc-kv"><span>' + CALC_IG[rows[i][0]].lbl + ' · ' + rows[i][1] + ' mm</span><b>' + calcFmtPct(r.pct) + ' <span style="color:var(--t3);font-weight:600">(z ' + r.z.toFixed(2) + ')</span></b></div>';
+    }
+    html += '<div class="calc-src">Papageorghiou AT, et&nbsp;al. Lancet 2014;384:869–879. Válido 14–40 sem.</div>';
+    html += '</div>';
+  }
+
+  out.innerHTML = html || '<div class="calc-hint">Ingrese la biometría fetal.</div>';
+}
+
+/* Curva de peso fetal INTERGROWTH-21st (p3–p97) + punto del paciente. SVG a mano. */
+function calcEfwChartSvg(gaPt, efwPt){
+  if (gaPt == null || gaPt < 22 || gaPt > 40) return '';
+  var W = 340, H = 210, mL = 44, mR = 12, mT = 10, mB = 22, gx0 = 22, gx1 = 40;
+  var ws = [], S = { p3: [], p10: [], p50: [], p90: [], p97: [] }, maxY = 0;
+  for (var g = gx0; g <= gx1 + 0.001; g++){
+    var c = calcEFWpct(g, null);
+    ws.push(g);
+    S.p3.push(c.p3); S.p10.push(c.p10); S.p50.push(c.p50); S.p90.push(c.p90); S.p97.push(c.p97);
+    if (c.p97 > maxY) maxY = c.p97;
+  }
+  if (efwPt != null && efwPt > maxY) maxY = efwPt;
+  maxY = Math.ceil(maxY / 500) * 500;
+  function sx(x){ return mL + (x - gx0) / (gx1 - gx0) * (W - mL - mR); }
+  function sy(v){ return mT + (1 - v / maxY) * (H - mT - mB); }
+  function ln(a){ var d = ''; for (var i = 0; i < ws.length; i++) d += (i ? 'L' : 'M') + sx(ws[i]).toFixed(1) + ' ' + sy(a[i]).toFixed(1) + ' '; return d; }
+  var grid = '';
+  for (var y = 0; y <= maxY; y += 500){
+    var yy = sy(y).toFixed(1);
+    grid += '<line x1="' + mL + '" y1="' + yy + '" x2="' + (W - mR) + '" y2="' + yy + '" stroke="var(--bd)" stroke-width="0.5"/>'
+         +  '<text x="' + (mL - 4) + '" y="' + (parseFloat(yy) + 3) + '" text-anchor="end" font-size="8" fill="var(--t3)">' + y + '</text>';
+  }
+  for (var gg = gx0; gg <= gx1; gg += 2)
+    grid += '<text x="' + sx(gg).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="8" fill="var(--t3)">' + gg + '</text>';
+  var paths = '<path d="' + ln(S.p3)  + '" fill="none" stroke="var(--alarma)" stroke-width="1" stroke-dasharray="3 2"/>'
+            + '<path d="' + ln(S.p10) + '" fill="none" stroke="var(--yodo)" stroke-width="1"/>'
+            + '<path d="' + ln(S.p50) + '" fill="none" stroke="var(--tl)" stroke-width="1.6"/>'
+            + '<path d="' + ln(S.p90) + '" fill="none" stroke="var(--yodo)" stroke-width="1"/>'
+            + '<path d="' + ln(S.p97) + '" fill="none" stroke="var(--alarma)" stroke-width="1" stroke-dasharray="3 2"/>';
+  var dot = efwPt != null
+    ? '<circle cx="' + sx(gaPt).toFixed(1) + '" cy="' + sy(efwPt).toFixed(1) + '" r="3.6" fill="var(--n1)" stroke="#fff" stroke-width="1.5"/>'
+    : '';
+  return '<svg class="calc-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Curva de peso fetal INTERGROWTH-21st">'
+    + grid + paths + dot
+    + '<text x="' + (W - mR) + '" y="' + (mT + 7) + '" text-anchor="end" font-size="8" fill="var(--t3)">g · semanas — p3·p10·p50·p90·p97</text>'
+    + '</svg>';
+}
+
+// Hook: montar la calculadora al entrar al módulo
+(function(){
+  var _prev = showModule;
+  showModule = function(name){
+    _prev(name);
+    if (name === 'calculadora') calcInit();
   };
 })();
 </script>

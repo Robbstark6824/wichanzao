@@ -22,7 +22,9 @@ const G = new Function(
   bloque('function qxFurEfectiva(p){') + '\n' +
   bloque('function qxEG(p, fecha){') + '\n' +
   uno(/function qxFpp\(p\)\{[^\n]*\}/) + '\n' +
-  'return { qxEG, qxFpp, qxFurEfectiva, qxSumarDias, qxDiasEntreFechas };'
+  bloque('function calcEgPorLcc(lcc, fx){') + '\n' +
+  bloque('function calcRedatar(p){') + '\n' +
+  'return { qxEG, qxFpp, qxFurEfectiva, qxSumarDias, qxDiasEntreFechas, calcEgPorLcc, calcRedatar };'
 )();
 
 let fallos = 0;
@@ -66,6 +68,29 @@ eq(G.qxEG({}, '2026-09-08'), null, 'sin FUR ni eco no inventa nada');
 eq(G.qxEG(fur, '2026-01-04'), null, 'una fecha anterior a la FUR no da negativo');
 eq(G.qxEG(fur, '2027-06-01'), null, 'más allá de un embarazo posible, calla');
 eq(G.qxEG({ eco_fecha: '2026-03-10' }, '2026-03-17'), null, 'eco sin semanas no sirve para contar');
+
+console.log('\nDATACIÓN POR LCC (Calculadora)\n');
+// LCC 62 mm → primer trimestre; las dos fórmulas dan ~12-13 semanas
+eq(G.calcEgPorLcc(62, 'rf').dias, Math.round(8.052 * Math.sqrt(62 * 1.037) + 23.73), 'Robinson-Fleming: fórmula publicada 1975');
+eq(G.calcEgPorLcc(62, 'ig').dias, Math.round(40.9041 + 3.21585 * Math.sqrt(62) + 0.348956 * 62), 'INTERGROWTH: fórmula publicada Papageorghiou 2014');
+eq(G.calcEgPorLcc(3, 'rf'), null, 'LCC 3 mm queda fuera de rango (< 5)');
+eq(G.calcEgPorLcc(96, 'ig'), null, 'LCC 96 mm queda fuera de rango INTERGROWTH (> 95)');
+
+console.log('\nREDATADO FUR vs ECO — criterio ACOG / ISUOG\n');
+var ecoF = '2026-02-26';
+var furEco8 = G.qxSumarDias(ecoF, -56);    // FUR implícita en una eco de 8+0
+var r1 = G.calcRedatar({ fur: G.qxSumarDias(furEco8, 3), eco_fecha: ecoF, eco_semanas: 8, eco_dias: 0 });
+eq(r1.umbral, 5, 'a las 8 sem el umbral es 5 días');
+eq(r1.dif, 3, 'diferencia de 3 días');
+eq(r1.redatar, false, '3 días a las 8 sem: se mantiene la FUR');
+var r2 = G.calcRedatar({ fur: G.qxSumarDias(furEco8, -8), eco_fecha: ecoF, eco_semanas: 8, eco_dias: 0 });
+eq(r2.dif, 8, 'diferencia de 8 días');
+eq(r2.redatar, true, '8 días a las 8 sem: se redata por la eco');
+var furEco20 = G.qxSumarDias(ecoF, -140);  // FUR implícita en una eco de 20+0
+var r3 = G.calcRedatar({ fur: G.qxSumarDias(furEco20, 8), eco_fecha: ecoF, eco_semanas: 20, eco_dias: 0 });
+eq(r3.umbral, 10, 'a las 20 sem el umbral es 10 días');
+eq(r3.redatar, false, '8 días a las 20 sem: se mantiene la FUR');
+eq(G.calcRedatar({ eco_fecha: ecoF, eco_semanas: 8, eco_dias: 0 }), null, 'sin FUR no hay nada que redatar');
 
 console.log('\n' + (fallos ? 'FALLA: ' + fallos + ' comprobación(es)' : 'OK: las cuentas son correctas.'));
 process.exit(fallos ? 1 : 0);
