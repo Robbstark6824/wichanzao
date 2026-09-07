@@ -6827,8 +6827,8 @@ async function qxExportarDia(){
       var salaLines = salaStr ? wrapAll([salaStr]) : [];
       var estLines  = listo ? [] : doc.splitTextToSize(T('PENDIENTE:   ' + falta.join('   ·   ')), VAL_W).map(function(s){ return s.replace(/^\s+/, ''); });
 
-      var blockH = 7.4
-        + idLines.length * IDLH + 2
+      var blockH = 9.6
+        + idLines.length * IDLH + 2.5
         + dxLines.length * LH + FGAP
         + procLines.length * LH + FGAP
         + (salaLines.length ? salaLines.length * LH + FGAP : 0)
@@ -6849,12 +6849,12 @@ async function qxExportarDia(){
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
         doc.text(meta.join('   ·   '), RB, y + 3.8, { align:'right' });
       }
-      y += 7.4;
+      y += 9.6;
 
       // Identificación.
       doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(SOFT);
       for (var li=0;li<idLines.length;li++) doc.text(idLines[li], M + 8, y + li*IDLH);
-      y += idLines.length * IDLH + 2;
+      y += idLines.length * IDLH + 2.5;
 
       campo('Dx', dxLines);
       campo('Proc', procLines);
