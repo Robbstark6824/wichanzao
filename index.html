@@ -7484,7 +7484,34 @@ function qxRecetaCompFichaBloque(p){
     +   '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;padding:8px 4px;font-size:11px;background:var(--tl)" href="' + abrir + '" target="_blank" rel="noopener">🖨️ Abrir</a>'
     +   (tel ? '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;padding:8px 4px;font-size:11px;background:#25D366" href="' + qxRecetaWaPacienteLink(p, '-2') + '" target="_blank" rel="noopener">📲 Enviar</a>' : '')
     +   '<button class="qx-btn" style="flex:1;padding:8px 4px;font-size:11px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaFaltantesAbrir()">🔄 Rehacer</button>'
-    + '</div></div>';
+    + '</div>'
+    + '<button class="qx-btn" style="width:100%;margin-top:6px;padding:5px;font-size:10px;background:transparent;color:#dc2626;border:1px solid rgba(220,38,38,.3)" onclick="qxRecetaFaltantesBorrar()">🗑 Borrar la receta complementaria</button>'
+    + '</div>';
+}
+
+/* Borra la receta complementaria: saca el PDF y limpia los campos, para
+   volver a hacerla desde cero. */
+function qxRecetaFaltantesBorrar(){
+  var p = QX_ACTUAL; if (!p || !p.receta_faltantes_at) return;
+  qxRecetaSheet(
+    '<div class="qx-sheet-head"><h3>Borrar receta complementaria</h3><button class="qx-sheet-close" onclick="qxRecetaCerrar()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<p style="font-size:13px;color:var(--t1);line-height:1.5;margin:0 0 16px">Se borra el PDF y la selección de faltantes. Vas a poder volver a hacerla desde cero. La receta completa no se toca.</p>'
+    + '<div class="qx-row"><button class="qx-btn" style="flex:1;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaCerrar()">Cancelar</button>'
+    + '<button class="qx-btn" style="flex:1;background:#dc2626" onclick="qxRecetaFaltantesBorrarOK()">Borrar</button></div>'
+    + '</div>'
+  );
+}
+async function qxRecetaFaltantesBorrarOK(){
+  var p = QX_ACTUAL; if (!p) return;
+  try { await sb.storage.from(SB_BUCKET).remove([qxRecetaObjeto(p, '-2')]); } catch (e){}
+  try {
+    await sb.from('pacientes').update({ receta_faltantes: null, receta_faltantes_at: null }).eq('id', p.id);
+    p.receta_faltantes = null; p.receta_faltantes_at = null;
+    if (QX_ACTUAL && QX_ACTUAL.id === p.id){ QX_ACTUAL.receta_faltantes = null; QX_ACTUAL.receta_faltantes_at = null; }
+  } catch (e){ toast('No se pudo borrar: ' + (e && e.message ? e.message : e), 'error'); return; }
+  toast('Receta complementaria borrada', 'success');
+  qxRecetaCerrar();
 }
 
 /* Overlay dedicado del flujo de receta — SIEMPRE se opera sobre este, no sobre
@@ -7641,7 +7668,7 @@ async function qxRecetaGenerarDesde(edit){
 
   var blob = doc.output('blob');
   var fname = qxRecetaNombreArchivo(p);
-  var path = QX_RECETA_PATH + p.id + '.pdf';
+  var path = qxRecetaObjeto(p);
   var subido = false;
   try { await uploadToSupabase(path, blob, 'application/pdf'); subido = true; }
   catch (e){ console.log('[receta] no se pudo subir:', e && e.message); }
