@@ -7438,6 +7438,50 @@ function qxRecetaWaPacienteLink(p, variante){
   return 'https://wa.me/' + (tel ? '51' + tel : '') + '?text=' + encodeURIComponent(msg);
 }
 
+/* ---- Lista de útiles que la paciente trae para su hospitalización ----
+   Fuente: /RECETAS/WhatsApp Image ... (lista impresa del servicio).
+   Por ahora solo la ginecológica; cuando llegue la de cesárea se agrega
+   QX_UTILES.cesarea y se mapea por tipo_receta. */
+var QX_UTILES = {
+  ginecologica: [
+    'Papel toalla', 'Shampoo', 'Jabón', 'Cepillo de dientes', 'Pasta dental',
+    'Peine', 'Sábanas adicionales', 'Cambio de bata', 'Toalla para baño',
+    'Pantuflas o sandalias', 'Pañales (03)', 'Protector de cama (03)',
+    'Paquete de toallitas húmedas', 'Termómetro de mercurio', 'Una botella de agua'
+  ]
+};
+function qxUtilesLista(p){
+  var t = p && p.tipo_receta;
+  if ((t === 'cst' || t === 'cst_aqv') && QX_UTILES.cesarea) return QX_UTILES.cesarea;
+  return QX_UTILES.ginecologica;
+}
+function qxUtilesMensaje(p){
+  var items = qxUtilesLista(p).map(function(x){ return '• ' + x; }).join('\n');
+  return 'Hola, para tu hospitalización en el Hospital Distrital de Laredo necesitás traer estos útiles de aseo:\n\n' + items + '\n\nServicio de Ginecología y Obstetricia';
+}
+function qxUtilesAbrir(){
+  var p = QX_ACTUAL; if (!p) return;
+  var msg = qxUtilesMensaje(p);
+  var tel = qxTelefono(p);
+  var wa = 'https://wa.me/' + (tel ? '51' + tel : '') + '?text=' + encodeURIComponent(msg);
+  qxRecetaSheet(
+    '<div class="qx-sheet-head"><h3>Útiles para hospitalización</h3><button class="qx-sheet-close" onclick="qxRecetaCerrar()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div style="font-size:11px;color:var(--t3);margin-bottom:10px">Para <b>' + qxEsc(p.nombre) + '</b>' + (tel ? ' · ' + qxEsc(tel) : ' · <span style="color:#dc2626">sin teléfono cargado</span>') + '</div>'
+    + '<pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--t1);background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;line-height:1.55;margin:0 0 14px">' + qxEsc(msg) + '</pre>'
+    + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:#25D366;padding:13px" href="' + wa + '" target="_blank" rel="noopener">📲 Enviar por WhatsApp</a>'
+    + '<button class="qx-btn" style="width:100%;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxUtilesCopiar()">🔗 Copiar mensaje</button>'
+    + '</div>'
+  );
+}
+function qxUtilesCopiar(){
+  if (!QX_ACTUAL) return;
+  var m = qxUtilesMensaje(QX_ACTUAL);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(m).then(function(){ toast('Mensaje copiado', 'success'); }, function(){ toast('No se pudo copiar', 'error'); });
+  } else { toast('No se pudo copiar', 'error'); }
+}
+
 /* Bloque de receta dentro de la ficha (Fase 1). Antes de generar: un botón.
    Después: tarjeta clara "receta generada" + acciones (Abrir · Enviar · Rehacer). */
 function qxRecetaFichaBloque(p){
@@ -8007,6 +8051,7 @@ function qxRenderDetalle(){
     + '<button class="qx-btn" style="margin-top:8px;width:100%;padding:7px 12px;font-size:12px" onclick="qxFormulario(QX_ACTUAL)">✎ Editar datos de la paciente</button>'
     + (p.tipo_receta ? qxRecetaFichaBloque(p)
         : '<div style="font-size:10px;color:var(--t3);margin-top:6px;text-align:center;line-height:1.5">Asigná un «tipo de receta» en Editar → paso 3 para exportar la receta lista para imprimir</div>')
+    + '<button class="qx-btn" style="margin-top:6px;width:100%;padding:8px 12px;font-size:12px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxUtilesAbrir()">📋 Lista de útiles para hospitalización</button>'
     + '</div>'
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
     + qxCheckReadonly('Laboratorio completo',p.laboratorio_completo)
