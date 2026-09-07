@@ -133,6 +133,26 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .view-directory.hidden { display:none; }
 .view-detail.visible { display:block; }
 
+/* ===== VIEW TABS (Carpetas / Recetas) ===== */
+.view-tabs { display:flex; border:2px solid var(--bd); border-radius:14px; overflow:hidden; background:var(--s1); box-shadow:0 2px 8px rgba(0,0,0,.03); flex-shrink:0; }
+.vt-btn { padding:12px 18px; border:none; background:transparent; color:var(--t2); font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap; transition:background .15s,color .15s; }
+.vt-btn:hover:not(.active) { background:rgba(160,61,99,.06); }
+.vt-btn.active { background:linear-gradient(135deg,var(--n1),var(--n2)); color:#fff; }
+
+/* ===== RECETAS VIEW ===== */
+.rx-group { margin-bottom:26px; }
+.rx-group > h3 { font-size:13px; font-weight:800; color:var(--t2); margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--bd); }
+.rx-card { background:var(--s1); border:1.5px solid var(--bd); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; box-shadow:0 2px 8px rgba(0,0,0,.03); }
+.rx-info { min-width:0; flex:1 1 260px; }
+.rx-name { font-size:15px; font-weight:800; color:var(--t1); }
+.rx-meta { font-size:12px; color:var(--t2); margin-top:2px; }
+.rx-status { font-size:11px; margin-top:5px; font-weight:700; line-height:1.4; }
+.rx-status.ok { color:var(--success); }
+.rx-status.pend { color:var(--warn); }
+.rx-status.stale { color:var(--danger); }
+.rx-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.rx-tag { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.04em; background:var(--s2); color:var(--t2); padding:3px 8px; border-radius:6px; text-transform:uppercase; vertical-align:middle; margin-left:4px; }
+
 /* ===== WORKER GRID ===== */
 .workers-grid {
   display:grid;
@@ -671,6 +691,10 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 
   <!-- Toolbar -->
   <div class="toolbar">
+    <div class="view-tabs">
+      <button class="vt-btn active" id="vtCarpetas" onclick="pcSetView('carpetas')">&#128193; Carpetas</button>
+      <button class="vt-btn" id="vtRecetas" onclick="pcSetView('recetas')">&#128138; Recetas</button>
+    </div>
     <div class="search-wrap">
       <span class="search-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -704,6 +728,9 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 
   <!-- DETAIL VIEW -->
   <div class="view-detail" id="viewDetail"></div>
+
+  <!-- RECETAS VIEW -->
+  <div class="view-recetas" id="viewRecetas" style="display:none"></div>
 
 </div>
 
@@ -2810,6 +2837,147 @@ function showToast(msg, type) {
 }
 
 /* =========================================================
+   RECETAS — pacientes con tipo_receta, PDF listo para imprimir
+   El PDF lo genera y sube la app de programación (celular) a
+   documentos/recetas/<id_paciente>.pdf. Acá solo se abre / descarga.
+   ========================================================= */
+var pcView = 'carpetas';
+var PC_RECETA_TITULOS = {
+  aqv: 'AQV', cst: 'CST', cst_aqv: 'CST + AQV', cono_frio: 'Cono frio',
+  legrado: 'Legrado', histerectomia: 'Histerectomia', prolapso: 'Prolapso',
+  tumorectomia: 'Tumorectomia'
+};
+
+function pcRecetaUrl(id) { return _pubBase + 'recetas/' + id + '.pdf'; }
+
+function pcRecetaNombre(p) {
+  var ap = String(p.nombre || 'paciente').trim().split(/\s+/).slice(0, 2).join('_');
+  var s = 'Receta_' + p.tipo_receta + '_' + ap;
+  s = s.normalize ? s.normalize('NFD') : s;
+  return s.replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9_]/g, '') + '.pdf';
+}
+
+function pcRecetaCuando(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  var min = Math.round((Date.now() - d.getTime()) / 60000);
+  if (min < 60) return 'hace ' + Math.max(1, min) + ' min';
+  if (min < 1440) return 'hace ' + Math.round(min / 60) + ' h';
+  var dias = Math.round(min / 1440);
+  if (dias < 30) return 'hace ' + dias + (dias > 1 ? ' dias' : ' dia');
+  return 'el ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+}
+
+function pcSetView(v) {
+  pcView = v;
+  document.getElementById('vtCarpetas').classList.toggle('active', v === 'carpetas');
+  document.getElementById('vtRecetas').classList.toggle('active', v === 'recetas');
+  // salir del detalle si estaba abierto
+  document.getElementById('viewDetail').classList.remove('visible');
+  currentWorkerId = null;
+  document.getElementById('viewDirectory').classList.toggle('hidden', v !== 'carpetas');
+  document.getElementById('viewRecetas').style.display = (v === 'recetas') ? 'block' : 'none';
+  document.querySelector('.search-wrap').style.display = (v === 'carpetas') ? '' : 'none';
+  if (v === 'recetas') pcLoadRecetas();
+  window.scrollTo(0, 0);
+}
+
+async function pcLoadRecetas() {
+  var vr = document.getElementById('viewRecetas');
+  if (!vr.dataset.loaded) {
+    vr.innerHTML = '<div class="empty-state"><div class="icon">&#9203;</div><h3>Cargando recetas&hellip;</h3></div>';
+  }
+  var r;
+  try {
+    r = await sb.from('pacientes')
+      .select('id,nombre,dni,hcl,tipo_receta,fecha_cirugia,turno,estado,updated_at,receta_generada_at')
+      .not('tipo_receta', 'is', null)
+      .order('fecha_cirugia', { ascending: true, nullsFirst: false })
+      .limit(1000);
+  } catch (e) {
+    vr.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error</h3><p>' + escHtml(e.message || String(e)) + '</p></div>';
+    return;
+  }
+  if (r.error) {
+    vr.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>No se pudieron cargar</h3><p>' + escHtml(r.error.message) + '</p></div>';
+    return;
+  }
+  pcRenderRecetas(r.data || []);
+  vr.dataset.loaded = '1';
+}
+
+function pcRenderRecetas(rows) {
+  var vr = document.getElementById('viewRecetas');
+  if (!rows.length) {
+    vr.innerHTML = '<div class="empty-state"><div class="icon">&#128138;</div><h3>Sin recetas todavia</h3><p>Cuando en la app de programacion se le asigne un &laquo;tipo de receta&raquo; a una paciente, aparece aca para abrir o imprimir.</p></div>';
+    return;
+  }
+  var grupos = {};
+  rows.forEach(function(p) {
+    var k = p.fecha_cirugia || 'zzz-sin-fecha';
+    (grupos[k] = grupos[k] || []).push(p);
+  });
+  var keys = Object.keys(grupos).sort();
+  var pend = 0;
+  rows.forEach(function(p) { if (!p.receta_generada_at) pend++; });
+  var html = '<div style="font-size:12px;color:var(--t3);margin-bottom:18px;line-height:1.6">'
+    + rows.length + ' paciente(s) con receta asignada'
+    + (pend ? ' &middot; <b style="color:var(--warn)">' + pend + ' sin generar</b> (se genera desde la app de programacion, en el celular)' : '')
+    + '</div>';
+  keys.forEach(function(k) {
+    var arr = grupos[k];
+    var label = (k === 'zzz-sin-fecha') ? 'Sin fecha de cirugia' : formatDate(k);
+    html += '<div class="rx-group"><h3>' + escHtml(label) + ' &middot; ' + arr.length + '</h3>';
+    arr.forEach(function(p) { html += pcRecetaCard(p); });
+    html += '</div>';
+  });
+  vr.innerHTML = html;
+}
+
+function pcRecetaCard(p) {
+  var tit = PC_RECETA_TITULOS[p.tipo_receta] || p.tipo_receta;
+  var url = pcRecetaUrl(p.id);
+  var generada = !!p.receta_generada_at;
+  var stale = generada && p.updated_at && (new Date(p.updated_at).getTime() > new Date(p.receta_generada_at).getTime() + 60000);
+  var turno = p.turno === 'manana' ? 'Manana' : (p.turno === 'tarde' ? 'Tarde' : '');
+  var status, actions;
+  if (!generada) {
+    status = '<div class="rx-status pend">&#9203; Aun no generada &mdash; hacelo desde la app de programacion (celular)</div>';
+    actions = '';
+  } else {
+    var cuando = pcRecetaCuando(p.receta_generada_at);
+    status = stale
+      ? '<div class="rx-status stale">&#9888; Los datos de la paciente cambiaron despues de generar la receta (' + cuando + '). Conviene regenerarla desde la app.</div>'
+      : '<div class="rx-status ok">&#10003; Generada ' + cuando + '</div>';
+    var fname = pcRecetaNombre(p);
+    // ?t= rompe la cache del CDN al abrir/descargar (tras regenerar el PDF, la URL
+    // es la misma). "Copiar enlace" da la URL limpia y estable para compartir.
+    var fresh = url + '?t=' + new Date(p.receta_generada_at).getTime();
+    actions = '<div class="rx-actions">'
+      + '<button class="dl-btn primary" onclick="window.open(\'' + escJs(fresh) + '\',\'_blank\')">&#128424;&#65039; Abrir / Imprimir</button>'
+      + '<button class="dl-btn secondary" onclick="forceDl(\'' + escJs(fresh) + '\',\'' + escJs(fname) + '\')">&#11015;&#65039; Descargar</button>'
+      + '<button class="dl-btn secondary" onclick="pcCopiarReceta(\'' + escJs(url) + '\')">&#128279; Copiar enlace</button>'
+      + '</div>';
+  }
+  return '<div class="rx-card"><div class="rx-info">'
+    + '<div class="rx-name">' + escHtml(p.nombre) + '<span class="rx-tag">' + escHtml(tit) + '</span></div>'
+    + '<div class="rx-meta">DNI ' + escHtml(p.dni || '—') + ' &middot; HCL ' + escHtml(p.hcl || '—') + (turno ? ' &middot; ' + turno : '') + '</div>'
+    + status
+    + '</div>' + actions + '</div>';
+}
+
+function pcCopiarReceta(url) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(
+      function() { showToast('Enlace copiado', 'success'); },
+      function() { showToast('No se pudo copiar', 'error'); }
+    );
+  } else {
+    window.prompt('Copia el enlace:', url);
+  }
+}
+
+/* =========================================================
    AUTO-REFRESH
    ========================================================= */
 function resetCountdown() {
@@ -2841,6 +3009,7 @@ function startAutoRefresh() {
       autoRefreshing = true;
       sbListCacheClear(); // Clear sbList cache before refresh
       loadAllData().then(function() { autoRefreshing = false; }).catch(function() { autoRefreshing = false; });
+      if (pcView === 'recetas') pcLoadRecetas();
     }
   }, 1000);
 }
@@ -3193,6 +3362,7 @@ function forceRefresh() {
   editedImages = {};
   imgCacheBuster = Date.now();
   loadAllData();
+  if (pcView === 'recetas') { delete document.getElementById('viewRecetas').dataset.loaded; pcLoadRecetas(); }
 }
 
 /* =========================================================

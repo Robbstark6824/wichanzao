@@ -7549,8 +7549,9 @@ async function qxRecetaGenerarDesde(edit){
     if (QX_ACTUAL && QX_ACTUAL.id === p.id) QX_ACTUAL.receta_generada_at = ahora;
   } catch (e){}
 
-  var url = qxRecetaUrlPublica(p);
-  var dlUrl = sb.storage.from(SB_BUCKET).getPublicUrl(path, { download: fname }).data.publicUrl;
+  var url = qxRecetaUrlPublica(p);                     // limpia y estable (para compartir)
+  var fresh = url + '?t=' + Date.parse(ahora);         // rompe cache del CDN al abrir/descargar ya
+  var dlUrl = sb.storage.from(SB_BUCKET).getPublicUrl(path, { download: fname }).data.publicUrl + '&t=' + Date.parse(ahora);
   var wa = 'https://wa.me/?text=' + encodeURIComponent('Receta ' + qxRecetaTituloTipo(p.tipo_receta) + ' — ' + p.nombre + '\n' + url);
 
   var ov = document.querySelector('.qx-overlay');
@@ -7559,7 +7560,7 @@ async function qxRecetaGenerarDesde(edit){
     + '<div class="qx-sheet-head"><h3>Receta lista</h3><button class="qx-sheet-close" onclick="this.closest(\'.qx-overlay\').remove();qxRenderDetalle()">×</button></div>'
     + '<div class="qx-sheet-body">'
     + '<div style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:16px">✅ Receta de <b>' + qxEsc(qxRecetaTituloTipo(p.tipo_receta)) + '</b> para <b>' + qxEsc(p.nombre) + '</b> subida. Ya aparece en la página de PC del servicio, lista para imprimir.</div>'
-    + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:var(--tl)" href="' + url + '" target="_blank" rel="noopener">🖨️ Abrir / Imprimir</a>'
+    + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:var(--tl)" href="' + fresh + '" target="_blank" rel="noopener">🖨️ Abrir / Imprimir</a>'
     + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:#25D366" href="' + wa + '" target="_blank" rel="noopener">📲 Compartir por WhatsApp</a>'
     + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" href="' + dlUrl + '">⬇️ Descargar</a>'
     + '<button class="qx-btn" style="width:100%;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaCopiar(\'' + url + '\')">🔗 Copiar enlace</button>'
@@ -7673,7 +7674,7 @@ function qxRenderDetalle(){
     + '<button class="qx-btn" style="margin-top:8px;width:100%;padding:7px 12px;font-size:12px" onclick="qxFormulario(QX_ACTUAL)">✎ Editar datos de la paciente</button>'
     + (p.tipo_receta
         ? '<button class="qx-btn" style="margin-top:6px;width:100%;padding:8px 12px;font-size:12px;background:var(--tl)" onclick="qxRecetaAbrir()">📄 Receta ' + qxEsc(qxRecetaTituloTipo(p.tipo_receta)) + (p.receta_generada_at ? ' · actualizar' : '') + '</button>'
-          + (p.receta_generada_at ? '<div style="font-size:10px;color:var(--t3);margin-top:3px;text-align:center">Generada ' + qxFmtTs(p.receta_generada_at) + ' · <a href="' + qxRecetaUrlPublica(p) + '" target="_blank" rel="noopener" style="color:var(--tl)">abrir la última</a></div>' : '')
+          + (p.receta_generada_at ? '<div style="font-size:10px;color:var(--t3);margin-top:3px;text-align:center">Generada ' + qxFmtTs(p.receta_generada_at) + ' · <a href="' + qxRecetaUrlPublica(p) + '?t=' + Date.parse(p.receta_generada_at) + '" target="_blank" rel="noopener" style="color:var(--tl)">abrir la última</a></div>' : '')
         : '<div style="font-size:10px;color:var(--t3);margin-top:6px;text-align:center;line-height:1.5">Asigná un «tipo de receta» en Editar → paso 3 para exportar la receta lista para imprimir</div>')
     + '</div>'
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
