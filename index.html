@@ -6688,7 +6688,8 @@ async function qxExportarDia(){
     var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     var W = 210, H = 297, M = 15, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
     var GRN = [21,128,61], RED = [176,32,32];
-    var RB = W - M, LBL_X = M + 5, VAL_X = M + 18, VAL_W = RB - VAL_X;
+    var RB = W - M, LBL_X = M + 5, VAL_X = M + 19, VAL_W = RB - VAL_X;
+    var LH = 4.5, IDLH = 4.2, FGAP = 2.8;   // interlineados / respiración entre campos
 
     // Orden: turno (mañana, tarde, sin turno) y luego por nombre.
     var ordT = { manana:0, tarde:1 };
@@ -6738,15 +6739,15 @@ async function qxExportarDia(){
       if (pz.length) sub += '  (' + pz.join(' · ') + ')';
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(SOFT);
       doc.text(T(fechaLarga + '   ·   ' + sub), W/2, yy, { align:'center' });
-      return yy + 8;
+      return yy + 11;
     };
     var contHeader = function(){
-      var yy = 14;
+      var yy = 15;
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
       doc.text(T('PROGRAMACIÓN QUIRÚRGICA · ' + fechaCorta + ' — continúa'), M, yy);
-      yy += 3;
+      yy += 3.5;
       doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
-      return yy + 6;
+      return yy + 8;
     };
 
     var y = membrete();
@@ -6754,26 +6755,27 @@ async function qxExportarDia(){
 
     var bandaTurno = function(t){
       var lbl = t==='manana' ? 'TURNO MAÑANA' : t==='tarde' ? 'TURNO TARDE' : 'SIN TURNO ASIGNADO';
-      y += 2;
+      y += 3.5;
       doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(INK);
       doc.text(lbl, M, y);
       var tw = doc.getTextWidth(lbl);
       doc.setDrawColor(RULE); doc.setLineWidth(0.3); doc.line(M + tw + 4, y - 1, RB, y - 1);
-      y += 6;
+      y += 7.5;
     };
     var campo = function(lbl, lines, colorRGB){
       doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
-      doc.text(lbl, LBL_X, y + 0.3);
+      doc.text(lbl, LBL_X, y + 0.4);
       doc.setFont('helvetica','normal'); doc.setFontSize(8);
       if (colorRGB) doc.setTextColor(colorRGB[0],colorRGB[1],colorRGB[2]); else doc.setTextColor(INK);
-      for (var q=0;q<lines.length;q++) doc.text(lines[q], VAL_X, y + 0.3 + q*3.9);
-      y += lines.length * 3.9 + 1.2;
+      for (var q=0;q<lines.length;q++) doc.text(lines[q], VAL_X, y + 0.4 + q*LH);
+      y += lines.length * LH + FGAP;
     };
-    // Envuelve una lista de renglones lógicos a un array plano de líneas.
+    // Envuelve una lista de renglones lógicos a un array plano de líneas
+    // (sin el espacio que splitTextToSize deja al inicio del salto).
     var wrapAll = function(items){
       var out = []; doc.setFontSize(8);
       for (var a=0;a<items.length;a++) out = out.concat(doc.splitTextToSize(T(items[a]), VAL_W));
-      return out;
+      return out.map(function(s){ return s.replace(/^\s+/, ''); });
     };
 
     for (var k=0;k<lista.length;k++){
@@ -6819,40 +6821,40 @@ async function qxExportarDia(){
       if (p.doctor) idp.push('Cirujano: ' + T(p.doctor));
 
       doc.setFontSize(8);
-      var idLines   = doc.splitTextToSize(T(idp.join('    ·    ')), RB - (M + 7));
+      var idLines   = doc.splitTextToSize(T(idp.join('    ·    ')), RB - (M + 8)).map(function(s){ return s.replace(/^\s+/, ''); });
       var dxLines   = wrapAll(dxItems);
       var procLines = wrapAll(procItems);
       var salaLines = salaStr ? wrapAll([salaStr]) : [];
-      var estLines  = listo ? [] : doc.splitTextToSize(T('PENDIENTE:   ' + falta.join('   ·   ')), VAL_W);
+      var estLines  = listo ? [] : doc.splitTextToSize(T('PENDIENTE:   ' + falta.join('   ·   ')), VAL_W).map(function(s){ return s.replace(/^\s+/, ''); });
 
-      var blockH = 6.2
-        + idLines.length * 3.4 + 1
-        + dxLines.length * 3.9 + 1.2
-        + procLines.length * 3.9 + 1.2
-        + (salaLines.length ? salaLines.length * 3.9 + 1.2 : 0)
-        + (listo ? 8.6 : estLines.length * 3.9 + 1.2)
-        + 5;
+      var blockH = 7.4
+        + idLines.length * IDLH + 2
+        + dxLines.length * LH + FGAP
+        + procLines.length * LH + FGAP
+        + (salaLines.length ? salaLines.length * LH + FGAP : 0)
+        + (listo ? LH + 4.4 + FGAP : estLines.length * LH + FGAP)
+        + 8;
 
-      if (y + blockH > H - 15){ doc.addPage(); y = contHeader(); turnoActual = '__none__'; }
+      if (y + blockH > H - 16){ doc.addPage(); y = contHeader(); turnoActual = '__none__'; }
       if (p.turno !== turnoActual){ turnoActual = p.turno; bandaTurno(p.turno); }
 
       // Nombre + (edad · cama) a la derecha.
-      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK);
-      doc.text(T((k+1) + '.'), M, y + 3.6);
-      doc.text(doc.splitTextToSize(T(p.nombre || '—'), RB - (M + 7) - 42)[0], M + 7, y + 3.6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(INK);
+      doc.text(T((k+1) + '.'), M, y + 3.8);
+      doc.text(doc.splitTextToSize(T(p.nombre || '—'), RB - (M + 8) - 42)[0], M + 8, y + 3.8);
       var meta = [];
       if (p.edad != null && p.edad !== '') meta.push(p.edad + ' años');
       if (p.cama_hospitalizacion) meta.push(T(p.cama_hospitalizacion));
       if (meta.length){
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-        doc.text(meta.join('   ·   '), RB, y + 3.6, { align:'right' });
+        doc.text(meta.join('   ·   '), RB, y + 3.8, { align:'right' });
       }
-      y += 6.2;
+      y += 7.4;
 
       // Identificación.
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.6); doc.setTextColor(SOFT);
-      for (var li=0;li<idLines.length;li++) doc.text(idLines[li], M + 7, y + li*3.4);
-      y += idLines.length * 3.4 + 1;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(SOFT);
+      for (var li=0;li<idLines.length;li++) doc.text(idLines[li], M + 8, y + li*IDLH);
+      y += idLines.length * IDLH + 2;
 
       campo('Dx', dxLines);
       campo('Proc', procLines);
@@ -6860,19 +6862,19 @@ async function qxExportarDia(){
 
       if (listo){
         doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
-        doc.text('Estado', LBL_X, y + 0.3);
+        doc.text('Estado', LBL_X, y + 0.4);
         doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(GRN[0],GRN[1],GRN[2]);
-        doc.text('TODO LISTO', VAL_X, y + 0.3);
-        doc.setFont('helvetica','normal'); doc.setFontSize(7.2); doc.setTextColor(SOFT);
-        doc.text('Exámenes, citas y riesgos evaluados · consentimientos y recetas listos', VAL_X, y + 4);
-        y += 8.6;
+        doc.text('TODO LISTO', VAL_X, y + 0.4);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.3); doc.setTextColor(SOFT);
+        doc.text('Exámenes, citas y riesgos evaluados · consentimientos y recetas listos', VAL_X, y + 4.8);
+        y += LH + 4.4 + FGAP;
       } else {
         campo('Estado', estLines, RED);
       }
 
-      y += 1;
+      y += 2.5;
       doc.setDrawColor(RULE); doc.setLineWidth(0.15); doc.line(M, y, RB, y);
-      y += 4;
+      y += 6;
     }
 
     // Pie en todas las páginas.
