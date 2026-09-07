@@ -7615,7 +7615,10 @@ function qxRecetaWaPacienteLink(p, variante){
    - QX_UTILES.parto: adicional SOLO para cesárea/parto (tipo_receta cst / cst_aqv);
      documentos + cosas del recién nacido y de la mamá. Los ítems de aseo de esa
      hoja (higiene personal, papel higiénico) NO se repiten acá: ya van en la
-     sección de hospitalización. */
+     sección de hospitalización.
+   - QX_UTILES.partoReemplaza: ítems de la lista de aseo que la sección de parto
+     ya cubre (pañales, termómetro) — se omiten del bloque de aseo si es parto,
+     para no pedir lo mismo dos veces. */
 var QX_UTILES = {
   hospitalizacion: [
     'Papel toalla', 'Shampoo', 'Jabón', 'Cepillo de dientes', 'Pasta dental',
@@ -7623,6 +7626,7 @@ var QX_UTILES = {
     'Pantuflas o sandalias', 'Pañales (03)', 'Protector de cama (03)',
     'Paquete de toallitas húmedas', 'Termómetro de mercurio', 'Una botella de agua'
   ],
+  partoReemplaza: ['Pañales (03)', 'Termómetro de mercurio'],
   parto: {
     documentos: [
       'Carnet de embarazo',
@@ -7631,9 +7635,9 @@ var QX_UTILES = {
     ],
     utiles: [
       '1 paquete de pañales descartables de recién nacido',
-      '3 pañales tipo calzón (talla la más grande)',
+      '3 pañales tipo calzón para la mamá (talla la más grande)',
       '3 pañales de franela',
-      '2 termómetros',
+      '2 termómetros de mercurio (mamá y bebé)',
       '1 frasco de alcohol de 70°',
       '2 ajuares para recién nacido',
       '1 colchita de bebé',
@@ -7656,9 +7660,11 @@ function qxUtilesMensaje(p){
     secciones.push(qxUtilesSeccion('📄 DOCUMENTOS', QX_UTILES.parto.documentos));
     secciones.push(qxUtilesSeccion('👶 PARA EL PARTO Y EL RECIÉN NACIDO', QX_UTILES.parto.utiles));
   }
+  var aseo = QX_UTILES.hospitalizacion;
+  if (esParto) aseo = aseo.filter(function(x){ return QX_UTILES.partoReemplaza.indexOf(x) < 0; });
   secciones.push(qxUtilesSeccion(
     esParto ? '🧼 PARA TU ASEO EN LA HOSPITALIZACIÓN' : '🧼 ÚTILES DE ASEO',
-    QX_UTILES.hospitalizacion
+    aseo
   ));
   var intro = esParto
     ? 'Hola, para tu parto y hospitalización en el Hospital Distrital de Laredo necesitás traer lo siguiente:'
