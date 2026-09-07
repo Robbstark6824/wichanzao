@@ -6655,6 +6655,13 @@ function qxProgFaltaCorto(label){
   return m[label] || label;
 }
 
+/* Tipo de anestesia con mayúscula/minúscula legible (se guarda en mayúsculas). */
+function qxAnestesiaTexto(v){
+  var m = { REGIONAL:'Regional', GENERAL:'General', LOCAL:'Local', COMBINADA:'Combinada', RAQUIDEA:'Raquídea' };
+  var s = String(v || '').toUpperCase();
+  return m[s] || (v || '');
+}
+
 /* Nombre legible del procedimiento a partir del "tipo de receta" (fallback
    cuando no se llenó el campo "procedimiento"). "CST — Cesárea..." → "Cesárea...". */
 function qxTipoRecetaTexto(k){
@@ -6688,8 +6695,7 @@ async function qxExportarDia(){
     var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     var W = 210, H = 297, M = 15, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
     var GRN = [21,128,61], RED = [176,32,32];
-    var RB = W - M, LBL_X = M + 5, VAL_X = M + 19, VAL_W = RB - VAL_X;
-    var LH = 4.5, IDLH = 4.2, FGAP = 2.8;   // interlineados / respiración entre campos
+    var RB = W - M, LH = 4.5;   // borde derecho · interlineado de los renglones
 
     // Orden: turno (mañana, tarde, sin turno) y luego por nombre.
     var ordT = { manana:0, tarde:1 };
@@ -6762,19 +6768,16 @@ async function qxExportarDia(){
       doc.setDrawColor(RULE); doc.setLineWidth(0.3); doc.line(M + tw + 4, y - 1, RB, y - 1);
       y += 7.5;
     };
-    var campo = function(lbl, lines, colorRGB){
-      doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
-      doc.text(lbl, LBL_X, y + 0.4);
-      doc.setFont('helvetica','normal'); doc.setFontSize(8);
-      if (colorRGB) doc.setTextColor(colorRGB[0],colorRGB[1],colorRGB[2]); else doc.setTextColor(INK);
-      for (var q=0;q<lines.length;q++) doc.text(lines[q], VAL_X, y + 0.4 + q*LH);
-      y += lines.length * LH + FGAP;
-    };
-    // Envuelve una lista de renglones lógicos a un array plano de líneas
-    // (sin el espacio que splitTextToSize deja al inicio del salto).
-    var wrapAll = function(items){
+    // --- Geometría de la tarjeta de paciente ---
+    var BX = M, BW = RB - M, PADX = 4.5, LBLW = 17;
+    var CVX = BX + PADX + LBLW, CVW = BW - 2 * PADX - LBLW;   // columna de valores
+    var HBANDH = 8.2, RGAP = 1.8;
+
+    // Envuelve renglones lógicos al ancho de la columna de valores (sin el
+    // espacio que splitTextToSize deja al inicio de cada salto).
+    var wrapC = function(items){
       var out = []; doc.setFontSize(8);
-      for (var a=0;a<items.length;a++) out = out.concat(doc.splitTextToSize(T(items[a]), VAL_W));
+      for (var a=0;a<items.length;a++) out = out.concat(doc.splitTextToSize(T(items[a]), CVW));
       return out.map(function(s){ return s.replace(/^\s+/, ''); });
     };
 
@@ -6804,77 +6807,70 @@ async function qxExportarDia(){
       } else if (p.tipo_receta){
         procItems = [qxTipoRecetaTexto(p.tipo_receta) + '   (s/ tipo de receta)'];
       } else {
-        procItems = ['— falta registrar el procedimiento —'];
+        procItems = ['(falta registrar el procedimiento)'];
       }
 
       var sala = [];
-      if (p.tipo_anestesia) sala.push('Anestesia ' + T(p.tipo_anestesia));
-      if (p.nivel_cirugia)  sala.push('Cirugía ' + String(p.nivel_cirugia).toLowerCase());
-      if (p.riesgo_qx && p.riesgo_anestesiologico) sala.push('Riesgos QX y anestésico evaluados');
-      else if (p.riesgo_qx) sala.push('Riesgo QX evaluado');
-      else if (p.riesgo_anestesiologico) sala.push('Riesgo anestésico evaluado');
+      if (p.tipo_anestesia) sala.push(qxAnestesiaTexto(p.tipo_anestesia));
+      if (p.nivel_cirugia)  sala.push('cirugía ' + String(p.nivel_cirugia).toLowerCase());
+      if (p.riesgo_qx && p.riesgo_anestesiologico) sala.push('riesgos QX y anestésico evaluados');
+      else if (p.riesgo_qx) sala.push('riesgo QX evaluado');
+      else if (p.riesgo_anestesiologico) sala.push('riesgo anestésico evaluado');
       var salaStr = sala.join('   ·   ');
 
       var idp = ['DNI ' + (p.dni || '—'), 'HCL ' + (p.hcl || '—')];
       var tel = qxTelefono(p);
       if (tel) idp.push('Cel ' + tel);
-      if (p.doctor) idp.push('Cirujano: ' + T(p.doctor));
 
-      doc.setFontSize(8);
-      var idLines   = doc.splitTextToSize(T(idp.join('    ·    ')), RB - (M + 8)).map(function(s){ return s.replace(/^\s+/, ''); });
-      var dxLines   = wrapAll(dxItems);
-      var procLines = wrapAll(procItems);
-      var salaLines = salaStr ? wrapAll([salaStr]) : [];
-      var estLines  = listo ? [] : doc.splitTextToSize(T('PENDIENTE:   ' + falta.join('   ·   ')), VAL_W).map(function(s){ return s.replace(/^\s+/, ''); });
+      // Filas del cuerpo: { label, lines, color?, bold? }
+      var rows = [ { label:'Ident.', lines: wrapC([idp.join('    ·    ')]) } ];
+      if (p.doctor) rows.push({ label:'Cirujano', lines: wrapC([p.doctor]) });
+      rows.push({ label:'Dx',    lines: wrapC(dxItems) });
+      rows.push({ label:'Proc',  lines: wrapC(procItems) });
+      if (salaStr) rows.push({ label:'Anest.', lines: wrapC([salaStr]) });
+      rows.push(listo
+        ? { label:'Estado', lines:['TODO LISTO'], color: GRN, bold:true }
+        : { label:'Estado', lines: wrapC(['PENDIENTE:   ' + falta.join(' · ')]), color: RED });
 
-      var blockH = 9.6
-        + idLines.length * IDLH + 2.5
-        + dxLines.length * LH + FGAP
-        + procLines.length * LH + FGAP
-        + (salaLines.length ? salaLines.length * LH + FGAP : 0)
-        + (listo ? LH + 4.4 + FGAP : estLines.length * LH + FGAP)
-        + 8;
+      var bodyH = 0;
+      for (var r=0;r<rows.length;r++) bodyH += rows[r].lines.length * LH + RGAP;
+      var cardH = HBANDH + 4.6 + bodyH + 2;
 
-      if (y + blockH > H - 16){ doc.addPage(); y = contHeader(); turnoActual = '__none__'; }
+      if (y + cardH > H - 13){ doc.addPage(); y = contHeader(); turnoActual = '__none__'; }
       if (p.turno !== turnoActual){ turnoActual = p.turno; bandaTurno(p.turno); }
 
-      // Nombre + (edad · cama) a la derecha.
-      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(INK);
-      doc.text(T((k+1) + '.'), M, y + 3.8);
-      doc.text(doc.splitTextToSize(T(p.nombre || '—'), RB - (M + 8) - 42)[0], M + 8, y + 3.8);
+      // Marco + banda del nombre.
+      doc.setFillColor(237, 239, 242);
+      doc.rect(BX, y, BW, HBANDH, 'F');
+      doc.setDrawColor(RULE); doc.setLineWidth(0.2);
+      doc.roundedRect(BX, y, BW, cardH, 1.4, 1.4);
+      doc.line(BX, y + HBANDH, BX + BW, y + HBANDH);
+
+      var hb = y + HBANDH - 2.8;
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK);
+      doc.text(String(k+1), BX + 4, hb);
+      doc.text(doc.splitTextToSize(T((p.nombre || '—').toUpperCase()), BW - 15 - 34)[0], BX + 11, hb);
       var meta = [];
       if (p.edad != null && p.edad !== '') meta.push(p.edad + ' años');
       if (p.cama_hospitalizacion) meta.push(T(p.cama_hospitalizacion));
       if (meta.length){
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-        doc.text(meta.join('   ·   '), RB, y + 3.8, { align:'right' });
-      }
-      y += 9.6;
-
-      // Identificación.
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(SOFT);
-      for (var li=0;li<idLines.length;li++) doc.text(idLines[li], M + 8, y + li*IDLH);
-      y += idLines.length * IDLH + 2.5;
-
-      campo('Dx', dxLines);
-      campo('Proc', procLines);
-      if (salaLines.length) campo('Sala', salaLines);
-
-      if (listo){
-        doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
-        doc.text('Estado', LBL_X, y + 0.4);
-        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(GRN[0],GRN[1],GRN[2]);
-        doc.text('TODO LISTO', VAL_X, y + 0.4);
-        doc.setFont('helvetica','normal'); doc.setFontSize(7.3); doc.setTextColor(SOFT);
-        doc.text('Exámenes, citas y riesgos evaluados · consentimientos y recetas listos', VAL_X, y + 4.8);
-        y += LH + 4.4 + FGAP;
-      } else {
-        campo('Estado', estLines, RED);
+        doc.text(meta.join('   ·   '), BX + BW - 4, hb, { align:'right' });
       }
 
-      y += 2.5;
-      doc.setDrawColor(RULE); doc.setLineWidth(0.15); doc.line(M, y, RB, y);
-      y += 6;
+      // Cuerpo: rejilla etiqueta / valor.
+      var by = y + HBANDH + 4.6;
+      for (var ri=0; ri<rows.length; ri++){
+        var row = rows[ri];
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(125);
+        doc.text(row.label, BX + PADX, by);
+        doc.setFont('helvetica', row.bold ? 'bold' : 'normal'); doc.setFontSize(8);
+        if (row.color) doc.setTextColor(row.color[0], row.color[1], row.color[2]); else doc.setTextColor(INK);
+        for (var i=0;i<row.lines.length;i++) doc.text(row.lines[i], CVX, by + i*LH);
+        by += row.lines.length * LH + RGAP;
+      }
+
+      y += cardH + 3.5;
     }
 
     // Pie en todas las páginas.
