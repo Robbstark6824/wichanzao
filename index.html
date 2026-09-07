@@ -7657,8 +7657,6 @@ function qxRecetaPDF(p, ins, ane){
   var INK = 30, SOFT = 105, RULE = 175;
   var dx = qxDxPrincipal(p) || '';
   var edad = (p.edad != null && p.edad !== '') ? String(p.edad) : '';
-  var ref = String(p.id_registro || (p.id ? String(p.id).slice(0, 8) : '')).toUpperCase();
-  var hoy = qxFmtFecha(qxHoyStr());
 
   function T(s){
     return String(s == null ? '' : s)
@@ -7685,74 +7683,98 @@ function qxRecetaPDF(p, ins, ane){
   // ---- Título ----
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(INK);
   doc.text('RECETA QUIRÚRGICA  —  ' + T(qxRecetaTituloTipo(p.tipo_receta)), W / 2, y, { align: 'center' });
-  if (ref){
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-    doc.text('N° ' + T(ref), W - M, y, { align: 'right' });
-  }
-  y += 6;
+  y += 5;
 
-  // ---- Datos de la paciente (una sola vez, texto plano) ----
-  function fila(label, val, sameY){
-    if (!sameY) y += 5.4;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
-    doc.text(label, M, y);
-    var lw = doc.getTextWidth(label);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(INK);
-    doc.text(T(val || '—'), M + lw + 2, y);
-  }
-  fila('Apellidos y nombres:', p.nombre, true);
-  fila('Edad / DNI / N° HCL:', (edad || '____') + '     ·     ' + (p.dni || '____') + '     ·     ' + (p.hcl || '____'));
-  y += 5.4;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
-  doc.text('Diagnóstico:', M, y);
-  var dlw = doc.getTextWidth('Diagnóstico:');
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(INK);
-  var dl = doc.splitTextToSize(T(dx || '—'), W - M - (M + dlw + 2));
-  doc.text(dl, M + dlw + 2, y);
-  y += 3.6 * Math.max(1, dl.length) + 2;
-  rule(y);
-  y += 6;
-
-  // ---- Dos columnas ----
+  // ---- Dos columnas: cada una es una receta completa con sus datos y su firma ----
   var GUT = 10, colW = (W - 2 * M - GUT) / 2;
   var colX = [M, M + colW + GUT];
   var listas = [
     { titulo: 'INSUMOS Y MATERIAL DE SALA', items: ins },
     { titulo: 'MEDICACIÓN Y ANESTESIA', items: ane }
   ];
-  var yBody = y, yFirma = H - 20;
+  var yTop = y, yFirma = H - 18;
+
+  // Bloque de datos de la paciente dentro de una columna. Devuelve la y final.
+  function datosPaciente(x, yy){
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+    doc.text('APELLIDOS Y NOMBRES', x, yy);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3); doc.setTextColor(INK);
+    var nom = doc.splitTextToSize(T(p.nombre || '—'), colW);
+    doc.text(nom, x, yy + 3.6); yy += 3.6 + 3.6 * nom.length + 1.6;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+    doc.text('EDAD', x, yy);
+    doc.text('DNI', x + colW * 0.30, yy);
+    doc.text('N° HCL', x + colW * 0.62, yy);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3); doc.setTextColor(INK);
+    doc.text(T(edad ? edad + ' años' : '—'), x, yy + 3.6);
+    doc.text(T(p.dni || '—'), x + colW * 0.30, yy + 3.6);
+    doc.text(T(p.hcl || '—'), x + colW * 0.62, yy + 3.6);
+    yy += 3.6 + 3.6;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+    doc.text('DIAGNÓSTICO', x, yy);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3); doc.setTextColor(INK);
+    var dxl = doc.splitTextToSize(T(dx || '—'), colW);
+    doc.text(dxl, x, yy + 3.6); yy += 3.6 + 3.4 * dxl.length + 1;
+    return yy;
+  }
+
+  // Altura del bloque de datos: igual en las dos columnas (la más alta).
+  var yD1 = datosPaciente(colX[0], yTop + 5);
+  var yD2 = datosPaciente(colX[1], yTop + 5);
+  var yList = Math.max(yD1, yD2) + 3;
 
   // divisoria vertical tenue
   doc.setDrawColor(RULE); doc.setLineWidth(0.2);
-  doc.line(M + colW + GUT / 2, yBody - 1, M + colW + GUT / 2, yFirma - 3);
+  doc.line(M + colW + GUT / 2, yTop, M + colW + GUT / 2, yFirma - 3);
 
-  // interlineado común a las dos columnas, ajustado a la lista más larga
+  // Cada ítem en UNA sola línea: se achica la letra hasta que ninguno se parta.
+  doc.setFont('helvetica', 'normal');
+  var numW = 6, qtyW = 13, txtW = colW - numW - qtyW - 2;
+  function todosEnUnaLinea(size){
+    doc.setFontSize(size);
+    for (var q = 0; q < 2; q++){
+      var arr = listas[q].items;
+      for (var w = 0; w < arr.length; w++){
+        if (doc.splitTextToSize(T(arr[w].txt), txtW).length > 1) return false;
+      }
+    }
+    return true;
+  }
+  var fs = 8;
+  while (fs > 5.6 && !todosEnUnaLinea(fs)) fs -= 0.2;
+  fs = Math.round(fs * 10) / 10;
+
+  // interlineado: reparte el alto disponible, sin quedar más apretado que la letra
   var maxN = Math.max(ins.length, ane.length, 1);
-  var avail = (yFirma - 8) - (yBody + 6.5);
-  var lh = Math.max(3.8, Math.min(4.9, avail / maxN));
-  var fs = lh > 4.4 ? 7.9 : (lh > 4.0 ? 7.5 : 7.1);
+  var avail = (yFirma - 6) - (yList + 5);
+  var lh = Math.max(fs * 0.52, Math.min(5.0, avail / maxN));
 
   for (var c = 0; c < 2; c++){
     var x = colX[c], col = listas[c], n = col.items.length;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(INK);
-    doc.text(col.titulo, x, yBody);
-    doc.setDrawColor(INK); doc.setLineWidth(0.3);
-    doc.line(x, yBody + 1.6, x + colW, yBody + 1.6);
 
-    var iy = yBody + 6.5;
+    // encabezado de columna
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(INK);
+    doc.text(col.titulo, x, yTop);
+    doc.setDrawColor(INK); doc.setLineWidth(0.3);
+    doc.line(x, yTop + 1.6, x + colW, yTop + 1.6);
+
+    // regla fina entre datos y lista
+    doc.setDrawColor(RULE); doc.setLineWidth(0.2);
+    doc.line(x, yList - 1, x + colW, yList - 1);
+
+    var iy = yList + 5;
     doc.setFont('helvetica', 'normal'); doc.setFontSize(fs); doc.setTextColor(INK);
-    var numW = 6, qtyW = 15, txtW = colW - numW - qtyW - 1;
     for (var i = 0; i < n; i++){
       var it = col.items[i];
       doc.text((i + 1) + '.', x, iy);
       var lines = doc.splitTextToSize(T(it.txt), txtW);
-      for (var k = 0; k < lines.length; k++) doc.text(lines[k], x + numW, iy + k * (fs * 0.42));
+      for (var k = 0; k < lines.length; k++) doc.text(lines[k], x + numW, iy + k * (fs * 0.40));
       if (it.cant){
         doc.setTextColor(SOFT);
         doc.text(T(it.cant), x + colW, iy, { align: 'right' });
         doc.setTextColor(INK);
       }
-      iy += (fs * 0.42) * lines.length + (lh - fs * 0.42);
+      iy += (fs * 0.40) * (lines.length - 1) + lh;
     }
 
     // firma de esa receta
@@ -7764,9 +7786,6 @@ function qxRecetaPDF(p, ins, ane){
     doc.text('Fecha', x + colW * 0.64, yFirma + 3.4);
   }
 
-  // ---- Pie ----
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(SOFT);
-  doc.text('Generada por el sistema de programación quirúrgica del servicio  ·  ' + hoy + (ref ? '  ·  Ref. ' + T(ref) : ''), W / 2, H - 8, { align: 'center' });
   return doc;
 }
 
