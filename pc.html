@@ -142,16 +142,15 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* ===== RECETAS VIEW ===== */
 .rx-group { margin-bottom:26px; }
 .rx-group > h3 { font-size:13px; font-weight:800; color:var(--t2); margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--bd); }
-.rx-card { background:var(--s1); border:1.5px solid var(--bd); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; box-shadow:0 2px 8px rgba(0,0,0,.03); }
-.rx-info { min-width:0; flex:1 1 260px; }
+.rx-card { background:var(--s1); border:1.5px solid var(--bd); border-radius:12px; padding:13px 16px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.03); }
 .rx-name { font-size:15px; font-weight:800; color:var(--t1); }
-.rx-meta { font-size:12px; color:var(--t2); margin-top:2px; }
-.rx-status { font-size:11px; margin-top:5px; font-weight:700; line-height:1.4; }
-.rx-status.ok { color:var(--success); }
-.rx-status.pend { color:var(--warn); }
-.rx-status.stale { color:var(--danger); }
-.rx-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.rx-meta { font-size:12px; color:var(--t2); margin-top:2px; margin-bottom:8px; }
 .rx-tag { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.04em; background:var(--s2); color:var(--t2); padding:3px 8px; border-radius:6px; text-transform:uppercase; vertical-align:middle; margin-left:4px; }
+.rx-sub { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:7px 0; border-top:1px solid var(--bd); }
+.rx-sub-l { font-size:12px; font-weight:700; color:var(--t1); }
+.rx-sub-when { font-size:11px; color:var(--success); font-weight:700; }
+.rx-sub-pend { font-size:11px; color:var(--warn); font-weight:700; }
+.rx-sub-act { display:flex; gap:6px; margin-left:auto; }
 
 /* ===== WORKER GRID ===== */
 .workers-grid {
@@ -2848,11 +2847,11 @@ var PC_RECETA_TITULOS = {
   tumorectomia: 'Tumorectomia'
 };
 
-function pcRecetaUrl(id) { return _pubBase + 'recetas/' + id + '.pdf'; }
+function pcRecetaUrl(id, variante) { return _pubBase + 'recetas/' + id + (variante || '') + '.pdf'; }
 
-function pcRecetaNombre(p) {
+function pcRecetaNombre(p, variante) {
   var ap = String(p.nombre || 'paciente').trim().split(/\s+/).slice(0, 2).join('_');
-  var s = 'Receta_' + p.tipo_receta + '_' + ap;
+  var s = 'Receta' + (variante === '-2' ? '_complementaria' : '') + '_' + p.tipo_receta + '_' + ap;
   s = s.normalize ? s.normalize('NFD') : s;
   return s.replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9_]/g, '') + '.pdf';
 }
@@ -2890,7 +2889,7 @@ async function pcLoadRecetas() {
   var r;
   try {
     r = await sb.from('pacientes')
-      .select('id,nombre,dni,hcl,tipo_receta,fecha_cirugia,turno,estado,updated_at,receta_generada_at')
+      .select('id,nombre,dni,hcl,tipo_receta,fecha_cirugia,turno,estado,receta_generada_at,receta_faltantes,receta_faltantes_at')
       .not('tipo_receta', 'is', null)
       .order('fecha_cirugia', { ascending: true, nullsFirst: false })
       .limit(1000);
@@ -2934,36 +2933,36 @@ function pcRenderRecetas(rows) {
   vr.innerHTML = html;
 }
 
+// Una fila de receta (completa o complementaria) dentro de la tarjeta.
+function pcRecetaFila(p, variante, label, at) {
+  if (!at) {
+    if (variante === '-2') return '';   // complementaria: no se muestra hasta que exista
+    return '<div class="rx-sub"><span class="rx-sub-l">' + label + '</span>'
+      + '<span class="rx-sub-pend">&#9203; aun no generada &mdash; desde el celular</span></div>';
+  }
+  var url = pcRecetaUrl(p.id, variante);
+  var fresh = url + '?t=' + new Date(at).getTime();
+  var fname = pcRecetaNombre(p, variante);
+  var extra = (variante === '-2' && p.receta_faltantes) ? ' &middot; ' + p.receta_faltantes.length + ' item' + (p.receta_faltantes.length === 1 ? '' : 's') : '';
+  return '<div class="rx-sub">'
+    + '<span class="rx-sub-l">' + label + extra + '</span>'
+    + '<span class="rx-sub-when">&#10003; ' + pcRecetaCuando(at) + '</span>'
+    + '<span class="rx-sub-act">'
+    +   '<button class="dl-btn primary" onclick="window.open(\'' + escJs(fresh) + '\',\'_blank\')">&#128424;&#65039; Abrir</button>'
+    +   '<button class="dl-btn secondary" onclick="forceDl(\'' + escJs(fresh) + '\',\'' + escJs(fname) + '\')">&#11015;&#65039;</button>'
+    +   '<button class="dl-btn secondary" onclick="pcCopiarReceta(\'' + escJs(url) + '\')">&#128279;</button>'
+    + '</span></div>';
+}
+
 function pcRecetaCard(p) {
   var tit = PC_RECETA_TITULOS[p.tipo_receta] || p.tipo_receta;
-  var url = pcRecetaUrl(p.id);
-  var generada = !!p.receta_generada_at;
-  var stale = generada && p.updated_at && (new Date(p.updated_at).getTime() > new Date(p.receta_generada_at).getTime() + 60000);
   var turno = p.turno === 'manana' ? 'Manana' : (p.turno === 'tarde' ? 'Tarde' : '');
-  var status, actions;
-  if (!generada) {
-    status = '<div class="rx-status pend">&#9203; Aun no generada &mdash; hacelo desde la app de programacion (celular)</div>';
-    actions = '';
-  } else {
-    var cuando = pcRecetaCuando(p.receta_generada_at);
-    status = stale
-      ? '<div class="rx-status stale">&#9888; Los datos de la paciente cambiaron despues de generar la receta (' + cuando + '). Conviene regenerarla desde la app.</div>'
-      : '<div class="rx-status ok">&#10003; Generada ' + cuando + '</div>';
-    var fname = pcRecetaNombre(p);
-    // ?t= rompe la cache del CDN al abrir/descargar (tras regenerar el PDF, la URL
-    // es la misma). "Copiar enlace" da la URL limpia y estable para compartir.
-    var fresh = url + '?t=' + new Date(p.receta_generada_at).getTime();
-    actions = '<div class="rx-actions">'
-      + '<button class="dl-btn primary" onclick="window.open(\'' + escJs(fresh) + '\',\'_blank\')">&#128424;&#65039; Abrir / Imprimir</button>'
-      + '<button class="dl-btn secondary" onclick="forceDl(\'' + escJs(fresh) + '\',\'' + escJs(fname) + '\')">&#11015;&#65039; Descargar</button>'
-      + '<button class="dl-btn secondary" onclick="pcCopiarReceta(\'' + escJs(url) + '\')">&#128279; Copiar enlace</button>'
-      + '</div>';
-  }
-  return '<div class="rx-card"><div class="rx-info">'
+  return '<div class="rx-card">'
     + '<div class="rx-name">' + escHtml(p.nombre) + '<span class="rx-tag">' + escHtml(tit) + '</span></div>'
     + '<div class="rx-meta">DNI ' + escHtml(p.dni || '—') + ' &middot; HCL ' + escHtml(p.hcl || '—') + (turno ? ' &middot; ' + turno : '') + '</div>'
-    + status
-    + '</div>' + actions + '</div>';
+    + pcRecetaFila(p, '', 'Receta completa', p.receta_generada_at)
+    + pcRecetaFila(p, '-2', 'Complementaria', p.receta_faltantes_at)
+    + '</div>';
 }
 
 function pcCopiarReceta(url) {
