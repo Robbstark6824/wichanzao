@@ -6637,88 +6637,228 @@ function qxChecklistItems(p){
   return it;
 }
 
+/* Etiqueta corta para la línea "PENDIENTE:" del parte quirúrgico. */
+function qxProgFaltaCorto(label){
+  var m = {
+    'Laboratorio completo':'laboratorio',
+    'EKG':'EKG',
+    'Cita cardiología':'cita cardiología',
+    'Cita anestesiología':'cita anestesiología',
+    'Riesgo quirúrgico':'riesgo quirúrgico',
+    'Riesgo anestesiológico':'riesgo anestesiológico',
+    'HCL de hospitalización':'HCL de hospitalización',
+    'Consentimientos':'consentimientos',
+    'Solicitud de sala':'solicitud de sala',
+    'Recetas entregadas':'recetas',
+    'Turno':'turno'
+  };
+  return m[label] || label;
+}
+
+/* ============================================================
+   PARTE QUIRÚRGICO DEL DÍA — PDF A4
+   Una ficha compacta por paciente (identificación, Dx, procedimiento,
+   anestesia/nivel/riesgo y estado de preparación), agrupadas por turno.
+   Membrete institucional reutilizado de la receta (logos MINSA + GORE).
+   ============================================================ */
 async function qxExportarDia(){
   if (!QX_CAL_DIA){ toast('Selecciona un día','error'); return; }
   var porDia = {};
   for (var i=0;i<QX_PACIENTES.length;i++){
-    var p = QX_PACIENTES[i];
-    if (p.fecha_cirugia && !qxEstadoTerminal(p.estado)){ (porDia[p.fecha_cirugia] = porDia[p.fecha_cirugia] || []).push(p); }
+    var pp = QX_PACIENTES[i];
+    if (pp.fecha_cirugia && !qxEstadoTerminal(pp.estado)){ (porDia[pp.fecha_cirugia] = porDia[pp.fecha_cirugia] || []).push(pp); }
   }
-  var lista = porDia[QX_CAL_DIA] || [];
+  var lista = (porDia[QX_CAL_DIA] || []).slice();
   if (lista.length === 0){ toast('No hay cirugías este día','error'); return; }
 
   try {
     var jsPDF = window.jspdf.jsPDF;
     var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-    var W = 210, M = 15, y = 20;
+    var W = 210, H = 297, M = 15, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
+    var GRN = [21,128,61], RED = [176,32,32];
+    var RB = W - M, LBL_X = M + 5, VAL_X = M + 18, VAL_W = RB - VAL_X;
 
-    doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor('#A03D63');
-    doc.text('Programación Quirúrgica', M, y); y += 7;
-    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor('#0C1F3D');
-    doc.text('Servicio de Ginecología - Hospital de Laredo', M, y); y += 5;
-    doc.setFontSize(10); doc.setTextColor('#4A5568');
-    doc.text('Fecha: ' + qxFmtFecha(QX_CAL_DIA) + '  ·  ' + lista.length + ' cirugía(s)', M, y); y += 4;
-    doc.setDrawColor('#A03D63'); doc.setLineWidth(0.4); doc.line(M, y, W-M, y); y += 8;
+    // Orden: turno (mañana, tarde, sin turno) y luego por nombre.
+    var ordT = { manana:0, tarde:1 };
+    lista.sort(function(a,b){
+      var ta = ordT[a.turno]!=null?ordT[a.turno]:2, tb = ordT[b.turno]!=null?ordT[b.turno]:2;
+      if (ta!==tb) return ta-tb;
+      return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
+    });
 
-    // Resumen del día
-    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor('#A03D63');
-    doc.text('RESUMEN DEL DÍA', M, y); y += 6;
-    for (var s=0;s<lista.length;s++){
-      var ps = lista[s];
-      var pendS = qxProgramadaPendiente(ps);
-      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor('#0D1B2A');
-      doc.text((s+1)+'. '+ps.nombre+' - DNI '+(ps.dni||'-'), M, y); y += 4.5;
-      doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.setTextColor(pendS ? '#dc2626' : '#16a34a');
-      doc.text('   '+(pendS ? 'PROGRAMADA CON PENDIENTES' : 'PROGRAMADA - TODO LISTO'), M, y); y += 4.5;
-      doc.setTextColor('#4A5568');
-      doc.text('   Falta: '+qxResumenPendientes(ps), M, y); y += 4.5;
+    // Conteos y faltantes de cada paciente.
+    var nMan=0,nTar=0,nSin=0,nListas=0,nPend=0, faltasDe={};
+    for (var c=0;c<lista.length;c++){
+      var pc = lista[c];
+      if (pc.turno==='manana') nMan++; else if (pc.turno==='tarde') nTar++; else nSin++;
+      var f = qxChecklistItems(pc).filter(function(it){ return !it.h && !it.ok; })
+                .map(function(it){ return qxProgFaltaCorto(it.label); });
+      faltasDe[pc.id] = f;
+      if (f.length) nPend++; else nListas++;
     }
-    y += 3;
-    doc.setDrawColor('#A03D63'); doc.setLineWidth(0.4); doc.line(M, y, W-M, y); y += 6;
-    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor('#A03D63');
-    doc.text('DETALLE POR PACIENTE', M, y); y += 7;
+
+    var dd = new Date(QX_CAL_DIA + 'T00:00:00');
+    var DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var fechaLarga = DIAS[dd.getDay()] + ' ' + dd.getDate() + ' de ' + MESES[dd.getMonth()] + ' de ' + dd.getFullYear();
+    var fechaCorta = qxFmtFecha(QX_CAL_DIA);
+
+    var membrete = function(){
+      var yy = 13;
+      try { if (QX_RECETA_LOGO.minsa) doc.addImage(QX_RECETA_LOGO.minsa, 'JPEG', M, yy+1, 34, 9.1); } catch(e){}
+      try { if (QX_RECETA_LOGO.gore)  doc.addImage(QX_RECETA_LOGO.gore, 'JPEG', RB-13, yy-1, 13, 13); } catch(e){}
+      doc.setTextColor(INK); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      doc.text(T(QX_RECETA_CAB.l1), W/2, yy+4, { align:'center' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
+      doc.text('Servicio de Ginecología y Obstetricia', W/2, yy+8.6, { align:'center' });
+      doc.setFontSize(7);
+      doc.text(T(QX_RECETA_CAB.l2 + '  ·  ' + QX_RECETA_CAB.l3), W/2, yy+12.4, { align:'center' });
+      yy += 17;
+      doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
+      yy += 6.5;
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(INK);
+      doc.text('PROGRAMACIÓN QUIRÚRGICA', W/2, yy, { align:'center' });
+      yy += 5;
+      var sub = lista.length + (lista.length===1?' cirugía':' cirugías'), pz = [];
+      if (nMan) pz.push(nMan+' mañana');
+      if (nTar) pz.push(nTar+' tarde');
+      if (nSin) pz.push(nSin+' sin turno');
+      if (pz.length) sub += '  (' + pz.join(' · ') + ')';
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(SOFT);
+      doc.text(T(fechaLarga + '   ·   ' + sub), W/2, yy, { align:'center' });
+      return yy + 8;
+    };
+    var contHeader = function(){
+      var yy = 14;
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
+      doc.text(T('PROGRAMACIÓN QUIRÚRGICA · ' + fechaCorta + ' — continúa'), M, yy);
+      yy += 3;
+      doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
+      return yy + 6;
+    };
+
+    var y = membrete();
+    var turnoActual = '__none__';
+
+    var bandaTurno = function(t){
+      var lbl = t==='manana' ? 'TURNO MAÑANA' : t==='tarde' ? 'TURNO TARDE' : 'SIN TURNO ASIGNADO';
+      y += 2;
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(INK);
+      doc.text(lbl, M, y);
+      var tw = doc.getTextWidth(lbl);
+      doc.setDrawColor(RULE); doc.setLineWidth(0.3); doc.line(M + tw + 4, y - 1, RB, y - 1);
+      y += 6;
+    };
+    var campo = function(lbl, lines, colorRGB){
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+      doc.text(lbl, LBL_X, y + 0.3);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      if (colorRGB) doc.setTextColor(colorRGB[0],colorRGB[1],colorRGB[2]); else doc.setTextColor(INK);
+      for (var q=0;q<lines.length;q++) doc.text(lines[q], VAL_X, y + 0.3 + q*3.9);
+      y += lines.length * 3.9 + 1.2;
+    };
 
     for (var k=0;k<lista.length;k++){
       var p = lista[k];
-      var pend = qxProgramadaPendiente(p);
+      var falta = faltasDe[p.id] || [];
+      var listo = falta.length === 0;
 
-      if (y > 265){ doc.addPage(); y = 20; }
+      // Diagnóstico: edad gestacional (si aplica) + Dx de texto + CIE-10.
+      var dxg = qxDxGestacion(p), dxParts = [];
+      if (dxg) dxParts.push(dxg);
+      if (p.diagnostico) dxParts.push(p.diagnostico);
+      var dxStr = (dxParts.join(' · ') || '—') + (p.cie10 ? '   ·   ' + p.cie10 : '');
 
-      doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor('#0D1B2A');
-      doc.text(p.nombre, M, y); y += 5.5;
+      var procStr = p.procedimiento || '—';
+      if (p.codigo_procedimiento) procStr += '   ·   cód. ' + p.codigo_procedimiento;
 
-      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor('#4A5568');
-      var info = 'DNI ' + (p.dni||'—') + '  |  HCL ' + (p.hcl||'—');
-      if (p.edad) info += '  |  ' + p.edad + ' años';
-      if (p.sexo) info += '  |  ' + p.sexo;
-      if (p.telefono) info += '  |  Tel ' + p.telefono;
-      doc.text(info, M, y); y += 4.5;
-      if (p.diagnostico){ doc.text('Dx: ' + p.diagnostico, M, y); y += 4.5; }
+      var sala = [];
+      if (p.tipo_anestesia) sala.push('Anestesia ' + T(p.tipo_anestesia));
+      if (p.nivel_cirugia)  sala.push('Cirugía ' + String(p.nivel_cirugia).toLowerCase());
+      if (p.riesgo_qx && p.riesgo_anestesiologico) sala.push('Riesgos QX y anestésico evaluados');
+      else if (p.riesgo_qx) sala.push('Riesgo QX evaluado');
+      else if (p.riesgo_anestesiologico) sala.push('Riesgo anestésico evaluado');
+      var salaStr = sala.join('   ·   ');
 
-      doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
-      doc.setTextColor(pend ? '#dc2626' : '#16a34a');
-      doc.text(pend ? 'PROGRAMADA CON PENDIENTES' : 'PROGRAMADA - TODO LISTO', M, y); y += 4.5;
+      var idp = ['DNI ' + (p.dni || '—'), 'HCL ' + (p.hcl || '—')];
+      var tel = qxTelefono(p);
+      if (tel) idp.push('Cel ' + tel);
+      if (p.doctor) idp.push('Dr. ' + T(p.doctor));
 
-      var items = qxChecklistItems(p);
-      for (var j=0;j<items.length;j++){
-        var it = items[j];
-        if (it.h){
-          y += 1.5;
-          doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor('#A03D63');
-          doc.text(it.label, M, y); y += 4.5;
-        } else {
-          doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
-          doc.setTextColor(it.ok ? '#16a34a' : '#dc2626');
-          doc.text((it.ok ? '[x] ' : '[ ] ') + it.label + (it.extra ? ': ' + it.extra : ''), M+3, y); y += 4.5;
-        }
+      doc.setFontSize(8);
+      var idLines   = doc.splitTextToSize(T(idp.join('    ·    ')), RB - (M + 7));
+      var dxLines   = doc.splitTextToSize(T(dxStr), VAL_W);
+      var procLines = doc.splitTextToSize(T(procStr), VAL_W);
+      var salaLines = salaStr ? doc.splitTextToSize(T(salaStr), VAL_W) : [];
+      var estLines  = listo ? [] : doc.splitTextToSize(T('PENDIENTE:   ' + falta.join('   ·   ')), VAL_W);
+
+      var blockH = 6.2
+        + idLines.length * 3.4 + 1
+        + dxLines.length * 3.9 + 1.2
+        + procLines.length * 3.9 + 1.2
+        + (salaLines.length ? salaLines.length * 3.9 + 1.2 : 0)
+        + (listo ? 8.6 : estLines.length * 3.9 + 1.2)
+        + 5;
+
+      if (y + blockH > H - 15){ doc.addPage(); y = contHeader(); turnoActual = '__none__'; }
+      if (p.turno !== turnoActual){ turnoActual = p.turno; bandaTurno(p.turno); }
+
+      // Nombre + (edad · cama) a la derecha.
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK);
+      doc.text(T((k+1) + '.'), M, y + 3.6);
+      doc.text(doc.splitTextToSize(T(p.nombre || '—'), RB - (M + 7) - 42)[0], M + 7, y + 3.6);
+      var meta = [];
+      if (p.edad != null && p.edad !== '') meta.push(p.edad + ' años');
+      if (p.cama_hospitalizacion) meta.push(T(p.cama_hospitalizacion));
+      if (meta.length){
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
+        doc.text(meta.join('   ·   '), RB, y + 3.6, { align:'right' });
+      }
+      y += 6.2;
+
+      // Identificación.
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.6); doc.setTextColor(SOFT);
+      for (var li=0;li<idLines.length;li++) doc.text(idLines[li], M + 7, y + li*3.4);
+      y += idLines.length * 3.4 + 1;
+
+      campo('Dx', dxLines);
+      campo('Proc', procLines);
+      if (salaLines.length) campo('Sala', salaLines);
+
+      if (listo){
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+        doc.text('Estado', LBL_X, y + 0.3);
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(GRN[0],GRN[1],GRN[2]);
+        doc.text('TODO LISTO', VAL_X, y + 0.3);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.2); doc.setTextColor(SOFT);
+        doc.text('Exámenes, citas y riesgos evaluados · consentimientos y recetas listos', VAL_X, y + 4);
+        y += 8.6;
+      } else {
+        campo('Estado', estLines, RED);
       }
 
-      y += 3;
-      doc.setDrawColor('#D8DFE9'); doc.setLineWidth(0.2); doc.line(M, y, W-M, y); y += 6;
+      y += 1;
+      doc.setDrawColor(RULE); doc.setLineWidth(0.15); doc.line(M, y, RB, y);
+      y += 4;
     }
 
-    doc.save('Programacion_' + QX_CAL_DIA + '.pdf');
+    // Pie en todas las páginas.
+    var now = new Date(), pad = function(n){ return n<10?'0'+n:''+n; };
+    var gen = pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+    var footL = 'Generado ' + gen + '   ·   ' + QX_RECETA_CAB.l1 + '   ·   '
+      + lista.length + (lista.length===1?' paciente (':' pacientes (')
+      + nListas + ' ' + (nListas===1?'lista':'listas')
+      + (nPend ? ', ' + nPend + ' con pendientes' : '') + ')';
+    var tot = doc.getNumberOfPages();
+    for (var pg=1; pg<=tot; pg++){
+      doc.setPage(pg);
+      doc.setDrawColor(RULE); doc.setLineWidth(0.15); doc.line(M, H-11, RB, H-11);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+      doc.text(T(footL), M, H-7.5);
+      doc.text(pg + '/' + tot, RB, H-7.5, { align:'right' });
+    }
+
+    doc.save('Programacion_Quirurgica_' + QX_CAL_DIA + '.pdf');
     toast('PDF exportado ✓','success');
   } catch(e) {
     toast('Error al exportar: ' + e.message, 'error');
