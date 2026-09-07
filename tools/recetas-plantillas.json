@@ -1,0 +1,2108 @@
+{
+ "aqv": {
+  "titulo": "AQV",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 2/0 HR 35",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 1 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA ACIDO POLIGLICOLICO",
+    "d": "N° 1 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SONDA NELATON",
+    "d": "N° 14",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DISS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 PAQ"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "DRESSING",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SEDA NEGRA MULTIEMPAQUE",
+    "d": "2/0",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ESPARADRAPO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ELECTROBISTURI",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "02 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "cst": {
+  "titulo": "CST",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "OXITOCINA",
+    "d": "10 UI",
+    "c": "05 AMP"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "EQUIPO VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "02 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "02 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "02 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "CATGUT CROMICO",
+    "d": "N° 2/0 HR 35",
+    "c": "02 UNI"
+   },
+   {
+    "n": "CATGUT CROMICO",
+    "d": "N° 1 HR 40",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ACIDO POLIETILENGLICOLITICO",
+    "d": "N° 1 HR 35-40",
+    "c": "01 UNI"
+   },
+   {
+    "n": "NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SONDA NELATON",
+    "d": "N° 14",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "COMPRESA DE GASA DE 15X50",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "DRESSING",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ESPARADRAPO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ERGOMETRINA 0.2%",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MISOPROSTOL",
+    "d": "200 MG",
+    "c": "04 UNI"
+   },
+   {
+    "n": "GLUCONATO DE CALCIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ELECTROBISTURI",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES NO ESTERILES",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "MANDIL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MASCARILLA QX",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASAS COMPRESAS 48X48",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "ACIDO TRANEXAMICO",
+    "d": "1 G",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ELECTRODOS ADULTO",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "02 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "cst_aqv": {
+  "titulo": "CST + AQV",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "OXITOCINA",
+    "d": "10 UI",
+    "c": "04 AMP"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 2/0 HR 35",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 1 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA ACIDO POLIGLICOLICO",
+    "d": "N° 1 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SONDA NELATON",
+    "d": "N° 14",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DISS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 PAQ"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "DRESSING",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SEDA NEGRA MULTIEMPAQUE",
+    "d": "2/0",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ESPARADRAPO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ELECTROBISTURI",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "ERGOMETRINA 0.2%",
+    "d": "",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GLUCONATO DE CALCIO",
+    "d": "",
+    "c": "01 AMP"
+   },
+   {
+    "n": "MISOPROSTOL",
+    "d": "200 MG",
+    "c": "04 TAB"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "02 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "cono_frio": {
+  "titulo": "CONO FRÍO",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "VENDA 5X5",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "04 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "SUTURA ACIDO POLIETILENGLICOLITICO",
+    "d": "N° 1 MR 40",
+    "c": "04 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "FRASCO COLECTOR DE ORINA",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "03 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "OMEPRAZOL",
+    "d": "40 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "MIDAZOLAM",
+    "d": "5 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "legrado": {
+  "titulo": "LEGRADO",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "VENDA 5X5",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ELECTROBISTURI",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "04 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 2/0 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 1 MR 40",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SUTURA ACIDO POLIETILENGLICOLITICO",
+    "d": "N° 1 MR 40",
+    "c": "06 UNI"
+   },
+   {
+    "n": "SUTURA NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SONDA FOLEY CON BOLSA COLECTORA DE ORINA",
+    "d": "N° 14",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "DRESSING",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "FRASCO COLECTOR DE ORINA",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "ESPARADRAPO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "03 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "OMEPRAZOL",
+    "d": "40 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "MIDAZOLAM",
+    "d": "5 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "histerectomia": {
+  "titulo": "HISTERECTOMÍA",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "VENDA 5X5",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ELECTROBISTURI",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "04 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 2/0 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 1 MR 40",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SUTURA ACIDO POLIETILENGLICOLITICO",
+    "d": "N° 1 MR 40",
+    "c": "06 UNI"
+   },
+   {
+    "n": "SUTURA NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SONDA FOLEY CON BOLSA COLECTORA DE ORINA",
+    "d": "N° 14",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "DRESSING",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "FRASCO COLECTOR DE ORINA",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "ESPARADRAPO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "03 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "OMEPRAZOL",
+    "d": "40 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "MIDAZOLAM",
+    "d": "5 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "prolapso": {
+  "titulo": "PROLAPSO",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "VENDA 5X5",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ELECTROBISTURI",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "04 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 2/0 MR 40",
+    "c": "02 UNI"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 1 MR 40",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SUTURA ACIDO POLIETILENGLICOLITICO",
+    "d": "N° 1 MR 40",
+    "c": "06 UNI"
+   },
+   {
+    "n": "SUTURA NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "SONDA FOLEY CON BOLSA COLECTORA DE ORINA",
+    "d": "N° 14",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "TEGADERM 10X12",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "DRESSING",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "FRASCO COLECTOR DE ORINA",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "ESPARADRAPO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "03 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "OMEPRAZOL",
+    "d": "40 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "MIDAZOLAM",
+    "d": "5 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ },
+ "tumorectomia": {
+  "titulo": "TUMORECTOMÍA (EXÉRESIS DE FIBROADENOMA)",
+  "insumos": [
+   {
+    "n": "CLORURO DE SODIO 0.9%",
+    "d": "",
+    "c": "03 FCO"
+   },
+   {
+    "n": "VENDA 5X5",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "CEFAZOLINA",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "EQUIPO DE VENOCLISIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "CATETER ENDOVENOSO PERIFERICO",
+    "d": "N° 18",
+    "c": "01 UNI"
+   },
+   {
+    "n": "EQUIPO DE VOLUTROL",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "HOJA DE BISTURI",
+    "d": "N° 21",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLE",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7½",
+    "c": "04 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "7",
+    "c": "02 PAR"
+   },
+   {
+    "n": "GUANTES QUIRURGICOS",
+    "d": "6½",
+    "c": "03 PAR"
+   },
+   {
+    "n": "SUTURA CATGUT CROMICO",
+    "d": "N° 2/0 MR 40",
+    "c": "03 UNI"
+   },
+   {
+    "n": "SUTURA ACIDO POLIETILENGLICOLITICO",
+    "d": "N° 1 MR 40",
+    "c": "04 UNI"
+   },
+   {
+    "n": "SUTURA NYLON",
+    "d": "N° 3/0 TC 30",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA SOLUCION X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "YODOPOVIDONA ESPUMA X 120 ML",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA N° 25",
+    "d": "",
+    "c": "02 UNI"
+   },
+   {
+    "n": "LLAVE TRIPLE VIA CON EXTENSION DIS",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GASA DE 15X50",
+    "d": "",
+    "c": "03 UNI"
+   },
+   {
+    "n": "GASA COMPRESA 48X48",
+    "d": "",
+    "c": "02 PAQ"
+   },
+   {
+    "n": "BRAZALETE ADULTO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "TUBO DE SUCCION",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "FRASCO COLECTOR DE ORINA",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "10 PAR"
+   },
+   {
+    "n": "GORRO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "MANDIL LIMPIO",
+    "d": "",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BOTAS",
+    "d": "",
+    "c": "01 PAR"
+   },
+   {
+    "n": "MASCARILLA",
+    "d": "",
+    "c": "01 UNI"
+   }
+  ],
+  "anestesia": [
+   {
+    "n": "AGUJA DE PUNCION RAQUIDEA (BRAUN)",
+    "d": "N° 27",
+    "c": "01 UNI"
+   },
+   {
+    "n": "BUPIVACAINA HIPERBARICA",
+    "d": "4 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "GUANTES LIMPIOS",
+    "d": "",
+    "c": "03 PAR"
+   },
+   {
+    "n": "FENTANILO 0.5%",
+    "d": "10 ML",
+    "c": "01 AMP"
+   },
+   {
+    "n": "DEXAMETASONA",
+    "d": "4 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "DIMENHIDRINATO",
+    "d": "50 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "METOCLOPRAMIDA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "OMEPRAZOL",
+    "d": "40 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "TRAMADOL",
+    "d": "50 MG",
+    "c": "02 AMP"
+   },
+   {
+    "n": "METAMIZOL",
+    "d": "1 G",
+    "c": "02 AMP"
+   },
+   {
+    "n": "ETILEFRINA",
+    "d": "10 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "ATROPINA",
+    "d": "1 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "MIDAZOLAM",
+    "d": "5 MG",
+    "c": "01 AMP"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "20 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "10 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "JERINGA DESCARTABLES",
+    "d": "5 ML",
+    "c": "01 UNI"
+   },
+   {
+    "n": "AGUJA",
+    "d": "N° 18",
+    "c": "02 UNI"
+   },
+   {
+    "n": "GUANTES QX",
+    "d": "7",
+    "c": "01 PAR"
+   }
+  ]
+ }
+}
