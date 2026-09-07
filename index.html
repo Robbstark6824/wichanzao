@@ -7455,7 +7455,13 @@ function qxRecetaFichaBloque(p){
     +   '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;padding:8px 4px;font-size:11px;background:var(--tl)" href="' + abrir + '" target="_blank" rel="noopener">🖨️ Abrir</a>'
     +   (tieneTel ? '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;padding:8px 4px;font-size:11px;background:#25D366" href="' + qxRecetaWaPacienteLink(p) + '" target="_blank" rel="noopener">📲 Enviar</a>' : '')
     +   '<button class="qx-btn" style="flex:1;padding:8px 4px;font-size:11px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaAbrir()">🔄 Rehacer</button>'
-    + '</div></div>';
+    + '</div>'
+    + (p.recetas_entregadas
+        ? '<div style="font-size:10px;color:var(--tl);font-weight:700;margin-top:7px">✓ Entregada a la paciente</div>'
+        : (qxFase3Completa(p)
+            ? '<button class="qx-btn" style="width:100%;margin-top:7px;padding:6px;font-size:10.5px;background:transparent;color:var(--t2);border:1px solid var(--bd)" onclick="qxToggle(\'recetas_entregadas\')">Marcar entregada a la paciente</button>'
+            : ''))
+    + '</div>';
 }
 
 /* Overlay dedicado del flujo de receta — SIEMPRE se opera sobre este, no sobre
@@ -7628,9 +7634,28 @@ function qxRecetaResultado(p){
     +   '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" href="' + dlUrl + '">⬇️ Descargar</a>'
     +   '<button class="qx-btn" style="flex:1;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaCopiar(\'' + url + '\')">🔗 Copiar</button>'
     + '</div>'
-    + '<button class="qx-btn" style="width:100%;margin-top:14px;background:transparent;color:var(--t2);border:1px solid var(--bd)" onclick="qxRecetaCerrar()">Cerrar</button>'
+    + qxRecetaEntregaHtml(p)
+    + '<button class="qx-btn" style="width:100%;margin-top:12px;background:transparent;color:var(--t2);border:1px solid var(--bd)" onclick="qxRecetaCerrar()">Cerrar</button>'
     + '</div>'
   );
+}
+
+/* Generar la receta es para IMPRIMIR, no implica habérsela dado a la paciente.
+   Por eso no se marca solo: acá hay un atajo opcional para el check
+   "Recetas entregadas" de la Fase 4, para tocarlo recién cuando se entrega. */
+function qxRecetaEntregaHtml(p){
+  if (p.recetas_entregadas){
+    return '<div style="margin-top:12px;font-size:11px;color:var(--tl);font-weight:700;text-align:center">✓ Ya figura como entregada a la paciente</div>';
+  }
+  if (!qxFase3Completa(p)){
+    return '<div style="margin-top:12px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center">Cuando se la entregues a la paciente, marcá «Recetas entregadas» en la Fase 4 (se habilita al estar apta para sala).</div>';
+  }
+  return '<button class="qx-btn" style="width:100%;margin-top:12px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd);padding:11px;font-size:12px" onclick="qxRecetaEntregarDesdePanel()">📋 Ya se la entregué a la paciente — marcar «Recetas entregadas»</button>';
+}
+async function qxRecetaEntregarDesdePanel(){
+  var p = QX_ACTUAL; if (!p || p.recetas_entregadas) return;
+  await qxToggle('recetas_entregadas');   // valida Fase 3, guarda, re-renderiza la ficha de fondo
+  if (QX_ACTUAL && QX_ACTUAL.recetas_entregadas) qxRecetaResultado(QX_ACTUAL);
 }
 
 function qxRecetaCopiar(url){
