@@ -6655,6 +6655,18 @@ function qxProgFaltaCorto(label){
   return m[label] || label;
 }
 
+/* Nombre legible del procedimiento a partir del "tipo de receta" (fallback
+   cuando no se llenó el campo "procedimiento"). "CST — Cesárea..." → "Cesárea...". */
+function qxTipoRecetaTexto(k){
+  for (var i=0;i<QX_RECETA_TIPOS.length;i++){
+    if (QX_RECETA_TIPOS[i][0] === k){
+      var s = QX_RECETA_TIPOS[i][1], d = s.indexOf('—');
+      return d >= 0 ? s.slice(d + 1).trim() : s;
+    }
+  }
+  return k || '';
+}
+
 /* ============================================================
    PARTE QUIRÚRGICO DEL DÍA — PDF A4
    Una ficha compacta por paciente (identificación, Dx, procedimiento,
@@ -6757,20 +6769,41 @@ async function qxExportarDia(){
       for (var q=0;q<lines.length;q++) doc.text(lines[q], VAL_X, y + 0.3 + q*3.9);
       y += lines.length * 3.9 + 1.2;
     };
+    // Envuelve una lista de renglones lógicos a un array plano de líneas.
+    var wrapAll = function(items){
+      var out = []; doc.setFontSize(8);
+      for (var a=0;a<items.length;a++) out = out.concat(doc.splitTextToSize(T(items[a]), VAL_W));
+      return out;
+    };
 
     for (var k=0;k<lista.length;k++){
       var p = lista[k];
       var falta = faltasDe[p.id] || [];
       var listo = falta.length === 0;
 
-      // Diagnóstico: edad gestacional (si aplica) + Dx de texto + CIE-10.
-      var dxg = qxDxGestacion(p), dxParts = [];
-      if (dxg) dxParts.push(dxg);
-      if (p.diagnostico) dxParts.push(p.diagnostico);
-      var dxStr = (dxParts.join(' · ') || '—') + (p.cie10 ? '   ·   ' + p.cie10 : '');
+      // Diagnósticos: en gestante el dx1 es la edad gestacional (calculada); el
+      // motivo de la cirugía (p. ej. de la cesárea) vive en dx2/dx3. Se listan todos.
+      var dxg = qxDxGestacion(p), dxItems = [];
+      if (dxg){
+        dxItems.push(dxg + (p.cie10 ? '   ·   ' + p.cie10 : ''));
+        if (p.diagnostico) dxItems.push(p.diagnostico);
+      } else if (p.diagnostico){
+        dxItems.push(p.diagnostico + (p.cie10 ? '   ·   ' + p.cie10 : ''));
+      } else if (p.cie10){
+        dxItems.push(p.cie10);
+      }
+      if (p.diagnostico_secundario) dxItems.push(p.diagnostico_secundario + (p.cie10_secundario ? '   ·   ' + p.cie10_secundario : ''));
+      if (p.diagnostico_tercero) dxItems.push(p.diagnostico_tercero + (p.cie10_tercero ? '   ·   ' + p.cie10_tercero : ''));
+      if (!dxItems.length) dxItems.push('—');
 
-      var procStr = p.procedimiento || '—';
-      if (p.codigo_procedimiento) procStr += '   ·   cód. ' + p.codigo_procedimiento;
+      var procItems;
+      if (p.procedimiento){
+        procItems = [p.procedimiento + (p.codigo_procedimiento ? '   ·   cód. ' + p.codigo_procedimiento : '')];
+      } else if (p.tipo_receta){
+        procItems = [qxTipoRecetaTexto(p.tipo_receta) + '   (s/ tipo de receta)'];
+      } else {
+        procItems = ['— falta registrar el procedimiento —'];
+      }
 
       var sala = [];
       if (p.tipo_anestesia) sala.push('Anestesia ' + T(p.tipo_anestesia));
@@ -6783,13 +6816,13 @@ async function qxExportarDia(){
       var idp = ['DNI ' + (p.dni || '—'), 'HCL ' + (p.hcl || '—')];
       var tel = qxTelefono(p);
       if (tel) idp.push('Cel ' + tel);
-      if (p.doctor) idp.push('Dr. ' + T(p.doctor));
+      if (p.doctor) idp.push('Cirujano: ' + T(p.doctor));
 
       doc.setFontSize(8);
       var idLines   = doc.splitTextToSize(T(idp.join('    ·    ')), RB - (M + 7));
-      var dxLines   = doc.splitTextToSize(T(dxStr), VAL_W);
-      var procLines = doc.splitTextToSize(T(procStr), VAL_W);
-      var salaLines = salaStr ? doc.splitTextToSize(T(salaStr), VAL_W) : [];
+      var dxLines   = wrapAll(dxItems);
+      var procLines = wrapAll(procItems);
+      var salaLines = salaStr ? wrapAll([salaStr]) : [];
       var estLines  = listo ? [] : doc.splitTextToSize(T('PENDIENTE:   ' + falta.join('   ·   ')), VAL_W);
 
       var blockH = 6.2
