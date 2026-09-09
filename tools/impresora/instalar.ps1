@@ -67,23 +67,53 @@ if (Test-Path $SumatraExe) {
 # ---------------------------------------------------------------
 # 2. Datos
 # ---------------------------------------------------------------
-Titulo '2 de 4 - Datos de acceso'
+Titulo '2 de 4 - Usuario de la app'
+
+function Set-Campo { param($o, $n, $v) $o | Add-Member -NotePropertyName $n -NotePropertyValue $v -Force }
 
 $cfg = Get-Content $Ejemplo -Raw -Encoding UTF8 | ConvertFrom-Json
 if (Test-Path $ConfigFile) {
   $previo = Get-Content $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
-  Write-Host "  Ya hay una configuracion para: $($previo.email)" -ForegroundColor Gray
+  Write-Host "  Ya hay una configuracion para el usuario: $($previo.usuario)" -ForegroundColor Gray
   $r = Read-Host '  Volver a configurar? (s/N)'
   if ($r -notmatch '^[sS]') { $cfg = $previo }
 }
 
+# La app no usa correos: se entra con "usuario (carpeta)" + contrasena. El
+# correo real de Supabase lo arma la app como <carpeta>.<servicio>@wichanzao.local,
+# y el servicio sale de la tabla workers. Acá hacemos lo mismo para no pedirle
+# a nadie un dato que no conoce.
+function Resolver-Correo {
+  param([string]$Usuario)
+  $folder = ($Usuario.Trim().ToLower() -replace '[^a-z0-9\-]', '-') -replace '-+', '-'
+  $folder = $folder.Trim('-')
+  if (-not $folder) { return $null }
+  $w = Invoke-RestMethod -Method Get -Headers @{ apikey = $cfg.anonKey } `
+        -Uri "$($cfg.url)/rest/v1/workers?folder_id=eq.$folder&select=servicio"
+  if (@($w).Count -eq 0) { return $null }
+  return "$folder.$(@($w)[0].servicio)@wichanzao.local"
+}
+
 if (-not $cfg.email -or $cfg.email -eq '') {
-  Write-Host '  Cuenta de la app con la que el agente va a entrar.' -ForegroundColor Gray
-  Write-Host '  (Conviene una cuenta dedicada, no la personal.)' -ForegroundColor DarkGray
-  $cfg.email = (Read-Host '  Email').Trim()
-  $sec = Read-Host '  Contrasena' -AsSecureString
+  Write-Host '  El MISMO usuario y contrasena con los que entras a la app.' -ForegroundColor Gray
+  Write-Host '  (El usuario es el nombre de tu carpeta, no un correo.)' -ForegroundColor DarkGray
+  while ($true) {
+    $usuario = (Read-Host '  Usuario').Trim()
+    $correo = $null
+    try { $correo = Resolver-Correo $usuario } catch { Mal "No se pudo consultar: $($_.Exception.Message)" }
+    if ($correo) {
+      Set-Campo $cfg 'usuario' $usuario
+      Set-Campo $cfg 'email' $correo
+      Bien "Usuario encontrado."
+      break
+    }
+    Mal "No hay ningun usuario '$usuario' en la app."
+    Write-Host '       Escribilo igual que cuando entras en el celular.' -ForegroundColor Yellow
+    if ((Read-Host '  Reintentar? (S/n)') -match '^[nN]') { break }
+  }
+  $sec = Read-Host '  Contrasena (no se ve nada al escribir, es normal)' -AsSecureString
   $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-  $cfg.password = [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+  Set-Campo $cfg 'password' ([Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr))
   [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
 }
 
@@ -97,7 +127,7 @@ try { $impresoras = @(Get-Printer | Select-Object -ExpandProperty Name) } catch 
 }
 if ($impresoras.Count -eq 0) {
   Mal 'No pude listar las impresoras: se usa la predeterminada de Windows.'
-  $cfg.impresora = ''
+  Set-Campo $cfg 'impresora' ''
 } else {
   Write-Host '   0) Usar la impresora predeterminada de Windows' -ForegroundColor Gray
   for ($i = 0; $i -lt $impresoras.Count; $i++) {
@@ -105,9 +135,9 @@ if ($impresoras.Count -eq 0) {
   }
   $n = Read-Host '  Numero de la impresora donde salen las recetas'
   if ($n -match '^\d+$' -and [int]$n -ge 1 -and [int]$n -le $impresoras.Count) {
-    $cfg.impresora = $impresoras[[int]$n - 1]
+    Set-Campo $cfg 'impresora' $impresoras[[int]$n - 1]
   } else {
-    $cfg.impresora = ''
+    Set-Campo $cfg 'impresora' ''
   }
 }
 Bien ("Impresora: " + $(if ($cfg.impresora) { $cfg.impresora } else { 'la predeterminada de Windows' }))
@@ -127,7 +157,7 @@ try {
   $tok = Invoke-RestMethod -Method Post -Uri "$($cfg.url)/auth/v1/token?grant_type=password" `
            -Headers @{ apikey = $cfg.anonKey } -ContentType 'application/json' `
            -Body ([Text.Encoding]::UTF8.GetBytes($body))
-  Bien "Entra bien a la app como $($cfg.email)"
+  Bien "Entra bien a la app como $($cfg.usuario)"
 
   Invoke-RestMethod -Method Get -Uri "$($cfg.url)/rest/v1/impresiones?select=id&limit=1" `
     -Headers @{ apikey = $cfg.anonKey; Authorization = "Bearer $($tok.access_token)" } | Out-Null

@@ -58,8 +58,27 @@ $Impresora = $cfg.impresora                       # vacío = impresora predeterm
 $Intervalo = if ($cfg.intervaloSegundos) { [int]$cfg.intervaloSegundos } else { 2 }
 $Sumatra   = $cfg.sumatra
 
+# La app no usa correos: se entra con "usuario (carpeta)" + contraseña, y el
+# correo real se arma como <carpeta>.<servicio>@wichanzao.local. Normalmente lo
+# resuelve el instalador; si alguien editó el config a mano y solo puso el
+# usuario, lo deducimos acá igual que lo hace la app.
+if ((-not $cfg.email -or $cfg.email -eq '') -and $cfg.usuario) {
+  try {
+    $folder = ($cfg.usuario.Trim().ToLower() -replace '[^a-z0-9\-]', '-') -replace '-+', '-'
+    $folder = $folder.Trim('-')
+    $w = Invoke-RestMethod -Method Get -Headers @{ apikey = $AnonKey } `
+          -Uri "$Url/rest/v1/workers?folder_id=eq.$folder&select=servicio"
+    if (@($w).Count -gt 0) {
+      $cfg | Add-Member -NotePropertyName 'email' -NotePropertyValue "$folder.$(@($w)[0].servicio)@wichanzao.local" -Force
+    } else {
+      Log "El usuario '$($cfg.usuario)' no existe en la app." 'Red'
+    }
+  } catch { Log "No se pudo resolver el usuario: $($_.Exception.Message)" 'Yellow' }
+}
+
 if (-not $cfg.email -or -not $cfg.password) {
-  Log 'Falta email/password en config.json (una cuenta de trabajador de la app).' 'Red'
+  Log 'Falta usuario/contraseña en config.json (los mismos de la app).' 'Red'
+  Log 'Corré INSTALAR.bat para configurarlo.' 'Red'
   Read-Host 'Enter para cerrar'; exit 1
 }
 
@@ -85,7 +104,7 @@ function Iniciar-Sesion {
         -Headers @{ apikey = $AnonKey } -ContentType 'application/json' `
         -Body ([Text.Encoding]::UTF8.GetBytes($body))
   $script:Token = $r.access_token
-  Log ("Sesión iniciada como {0}" -f $cfg.email) 'Green'
+  Log ("Sesión iniciada como {0}" -f $(if ($cfg.usuario) { $cfg.usuario } else { $cfg.email })) 'Green'
 }
 
 # Llama a la API REST. Si el token venció (401) vuelve a entrar y reintenta.

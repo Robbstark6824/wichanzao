@@ -28,8 +28,10 @@ porque después se borra).
 **Doble clic en `INSTALAR.bat`.** Eso hace todo:
 
 1. Deja listo SumatraPDF (viene incluido; es lo que imprime sin abrir ventanas).
-2. Pide el **email y la contraseña** de una cuenta de la app. Conviene una cuenta
-   dedicada para esto, no la personal.
+2. Pide el **usuario y la contraseña de la app** — los mismos que se escriben para
+   entrar en el celular. El usuario es el **nombre de la carpeta**, no un correo;
+   el agente entra igual que una persona. Al tipear la contraseña no se ve nada:
+   es a propósito.
 3. Muestra la **lista de impresoras** de la PC para elegir con un número por cuál
    salen las recetas.
 4. Prueba que entre bien y que la cola responda.
@@ -76,7 +78,11 @@ error exacto (casi siempre es la contraseña).
 **Un trabajo quedó trabado en «Imprimiendo…»** — a los 10 minutos el agente lo
 devuelve solo a la cola.
 
-**Cambiar la contraseña de la cuenta** — volver a correr `INSTALAR.bat`.
+**«No hay ningun usuario …»** — el usuario se escribe igual que en la pantalla de
+ingreso de la app (el nombre de la carpeta). No es un correo.
+
+**Cambiar el usuario o la contraseña** — volver a correr `INSTALAR.bat` y responder
+`s` a «¿Volver a configurar?».
 
 ---
 

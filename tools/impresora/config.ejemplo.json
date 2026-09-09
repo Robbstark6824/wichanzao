@@ -5,9 +5,12 @@
   "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo",
   "bucket": "documentos",
 
-  "_cuenta": "Cuenta de trabajador de la app con la que entra el agente. Ideal: una cuenta propia, tipo impresora@..., no la personal.",
-  "email": "",
+  "_cuenta": "Usuario y contrasena de la app, los mismos que se escriben para entrar en el celular. El usuario es el nombre de la carpeta, NO un correo.",
+  "usuario": "",
   "password": "",
+
+  "_email": "Lo completa solo el instalador (<carpeta>.<servicio>@wichanzao.local). Si se deja vacio, el agente lo deduce del usuario.",
+  "email": "",
 
   "_impresora": "Nombre exacto como figura en Windows (Configuración > Impresoras). Vacío = la predeterminada.",
   "impresora": "",
