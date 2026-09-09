@@ -1447,7 +1447,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v223';
+var APP_VERSION = 'v224';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -8123,6 +8123,7 @@ function qxRecetaCopiar(url){
 var QX_IMPR = {};            // 'pacienteId|variante' -> último trabajo conocido
 var QX_IMPR_TIMER = null;    // seguimiento corto tras enviar (para ver "Impresa ✓")
 var QX_IMPR_ULT = {};        // hora del último envío por variante (anti doble toque)
+var QX_IMPR_MOSTRAR = 12000; // cuánto queda el cartel "✓ Impresa" antes de volver al botón
 var QX_RECETA_VISTA = null;  // variante del panel de resultado abierto, o null
 
 function qxImprKey(id, variante){ return id + '|' + (variante || ''); }
@@ -8184,7 +8185,14 @@ function qxImprSeguir(pacienteId){
       var j = QX_IMPR[qxImprKey(pacienteId, v)];
       return j && (j.estado === 'pendiente' || j.estado === 'imprimiendo');
     });
-    if (!vivo){ clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null; }
+    if (!vivo){
+      clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null;
+      // Ya terminó: el "✓ Impresa" queda unos segundos y después la tarjeta
+      // vuelve sola al botón normal, lista para la próxima.
+      setTimeout(function(){
+        if (QX_ACTUAL && QX_ACTUAL.id === pacienteId) qxImprRefrescarUI();
+      }, QX_IMPR_MOSTRAR + 700);
+    }
   }, 5000);
 }
 
@@ -8276,6 +8284,9 @@ function qxImprBloqueHtml(p, variante, grande){
   var mt  = grande ? '8px' : '6px';
   var pad = grande ? '13px' : '8px 4px';
   var fs  = grande ? '13px' : '11px';
+  var spin = '<span style="display:inline-block;width:11px;height:11px;border:2px solid currentColor;'
+           + 'border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;'
+           + 'vertical-align:-1px;margin-right:7px;opacity:.75"></span>';
   var chip = function(bg, bd, col, txt, sub, tocar){
     return '<div' + (tocar ? ' onclick="qxImprRefrescarAhora()"' : '')
       + ' style="margin-top:' + mt + ';background:' + bg + ';border:1px solid ' + bd + ';color:' + col
@@ -8295,20 +8306,29 @@ function qxImprBloqueHtml(p, variante, grande){
 
   if (j.estado === 'pendiente'){
     return chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
-                '⏳ En cola para imprimir', 'Sale apenas la PC del servicio la tome · tocá para actualizar', true)
+                spin + 'En cola para imprimir', 'Sale apenas la PC del servicio la tome · tocá para actualizar', true)
       + boton('🖨️ Mandar otra copia', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)')
       + boton('Cancelar impresión', 'qxImprCancelar(' + a + ')', 'transparent', 'var(--t2)', 'var(--bd)');
   }
   if (j.estado === 'imprimiendo'){
     return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
-                '🖨️ Imprimiendo…', 'La PC del servicio la está sacando · tocá para actualizar', true)
+                spin + 'Imprimiendo…', 'La PC del servicio la está sacando · tocá para actualizar', true)
       + boton('🖨️ Mandar otra copia', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)');
   }
   if (j.estado === 'impresa'){
-    return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
-                '✓ Impresa en el servicio',
-                qxFmtTs(j.impresa_at || j.solicitado_at) + (j.impresora ? ' · ' + qxEsc(j.impresora) : ''))
-      + boton('🖨️ Volver a imprimir', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)');
+    var cuando = qxFmtTs(j.impresa_at || j.solicitado_at);
+    var t = Date.parse(j.impresa_at || j.solicitado_at || '');
+    // Recién salida: cartel grande de confirmación.
+    if (t && (Date.now() - t) < QX_IMPR_MOSTRAR){
+      return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
+                  '✓ Impresa en el servicio',
+                  cuando + (j.impresora ? ' · ' + qxEsc(j.impresora) : ''))
+        + boton('🖨️ Volver a imprimir', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)');
+    }
+    // Ya pasó el momento: vuelve al botón de siempre, con la constancia arriba.
+    return '<div style="margin-top:' + mt + ';font-size:' + (grande ? '11px' : '10px')
+      + ';color:var(--tl);font-weight:700;text-align:center">✓ Impresa ' + cuando + '</div>'
+      + boton('🖨️&nbsp; Enviar a imprimir', 'qxImprEnviar(' + a + ')', 'var(--tl)');
   }
   return chip('rgba(179,64,58,.10)', 'rgba(179,64,58,.30)', '#b3403a',
               '⚠️ No se pudo imprimir', qxEsc(j.detalle_error || 'Revisá la PC del servicio'))
