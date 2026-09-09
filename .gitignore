@@ -30,3 +30,8 @@ tools/sync-geresa-full.js
 # Exports del sheet GERESA (contienen DNIs y nombres de pacientes) — NUNCA subir
 gs.csv
 /*.csv
+
+# Config del agente de impresion (tiene la contrasena de la cuenta) — NUNCA subir
+tools/impresora/config.json
+tools/impresora/impresion.log
+tools/impresora/SumatraPDF.exe

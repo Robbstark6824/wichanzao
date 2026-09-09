@@ -1,0 +1,19 @@
+{
+  "_comentario": "Copiar este archivo como config.json y completar email y password. config.json NO se sube a git (tiene la contraseña).",
+
+  "url": "https://xqphjvppfgwabfruyjae.supabase.co",
+  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo",
+  "bucket": "documentos",
+
+  "_cuenta": "Cuenta de trabajador de la app con la que entra el agente. Ideal: una cuenta propia, tipo impresora@..., no la personal.",
+  "email": "",
+  "password": "",
+
+  "_impresora": "Nombre exacto como figura en Windows (Configuración > Impresoras). Vacío = la predeterminada.",
+  "impresora": "",
+
+  "_sumatra": "Ruta de SumatraPDF.exe. Si está en esta misma carpeta, alcanza con el nombre.",
+  "sumatra": "SumatraPDF.exe",
+
+  "intervaloSegundos": 15
+}

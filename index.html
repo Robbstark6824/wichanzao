@@ -1447,7 +1447,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v220';
+var APP_VERSION = 'v221';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -7623,6 +7623,12 @@ async function qxAbrir(id){
   if (!p) return;
   QX_ACTUAL = p;
   qxRenderDetalle();
+  // Estado de la cola de impresión (en segundo plano: no demora abrir la ficha).
+  if (p.receta_generada_at || p.receta_faltantes_at){
+    qxImprCargar(p.id).then(function(cambio){
+      if (cambio && QX_ACTUAL && QX_ACTUAL.id === p.id) qxImprRefrescarUI();
+    });
+  }
 }
 
 /* ============================================================
@@ -7764,6 +7770,7 @@ function qxRecetaFichaBloque(p){
     +   (tieneTel ? '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;padding:8px 4px;font-size:11px;background:#25D366" href="' + qxRecetaWaPacienteLink(p) + '" target="_blank" rel="noopener">📲 Enviar</a>' : '')
     +   '<button class="qx-btn" style="flex:1;padding:8px 4px;font-size:11px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaAbrir()">🔄 Rehacer</button>'
     + '</div>'
+    + qxImprBloqueHtml(p, '', false)
     + (p.recetas_entregadas
         ? '<div style="font-size:10px;color:var(--tl);font-weight:700;margin-top:7px">✓ Entregada a la paciente</div>'
         : (qxFase3Completa(p)
@@ -7791,6 +7798,7 @@ function qxRecetaCompFichaBloque(p){
     +   (tel ? '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;padding:8px 4px;font-size:11px;background:#25D366" href="' + qxRecetaWaPacienteLink(p, '-2') + '" target="_blank" rel="noopener">📲 Enviar</a>' : '')
     +   '<button class="qx-btn" style="flex:1;padding:8px 4px;font-size:11px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxRecetaFaltantesAbrir()">🔄 Rehacer</button>'
     + '</div>'
+    + qxImprBloqueHtml(p, '-2', false)
     + '<button class="qx-btn" style="width:100%;margin-top:6px;padding:5px;font-size:10px;background:transparent;color:#dc2626;border:1px solid rgba(220,38,38,.3)" onclick="qxRecetaFaltantesBorrar()">🗑 Borrar la receta complementaria</button>'
     + '</div>';
 }
@@ -7835,6 +7843,7 @@ function qxRecetaSheet(inner){
 function qxRecetaCerrar(){
   if (QX_RECETA_OV){ QX_RECETA_OV.remove(); QX_RECETA_OV = null; }
   QX_RECETA_EDIT = null;
+  QX_RECETA_VISTA = null;
   qxRenderDetalle();   // refresca la ficha: ya muestra "receta generada"
 }
 var QX_RECETA_SPIN = '<div style="width:34px;height:34px;border:3px solid var(--bd);border-top-color:var(--tl);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto"></div>';
@@ -8046,6 +8055,7 @@ async function qxRecetaGenerarFaltantes(){
    variante: '' = completa · '-2' = complementaria */
 function qxRecetaResultado(p, variante){
   variante = variante || '';
+  QX_RECETA_VISTA = variante;
   var comp = variante === '-2';
   var stamp = Date.parse((comp ? p.receta_faltantes_at : p.receta_generada_at) || new Date().toISOString());
   var url = qxRecetaUrlPublica(p, variante);           // limpia y estable (para compartir)
@@ -8060,7 +8070,9 @@ function qxRecetaResultado(p, variante){
         ? 'Receta complementaria de <b>' + qxEsc(p.nombre) + '</b> lista y guardada. Aparece en el panel de PC junto a la receta completa.'
         : 'Receta de <b>' + qxEsc(qxRecetaTituloTipo(p.tipo_receta)) + '</b> para <b>' + qxEsc(p.nombre) + '</b> lista y guardada. Ya aparece en el panel de PC del servicio para imprimir.')
     + '</div>'
-    + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:var(--tl);padding:13px" href="' + fresh + '" target="_blank" rel="noopener">🖨️&nbsp; Abrir / Imprimir</a>'
+    + qxImprBloqueHtml(p, variante, true)
+    + '<div style="height:8px"></div>'
+    + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd);padding:13px" href="' + fresh + '" target="_blank" rel="noopener">👁️&nbsp; Abrir / imprimir desde este equipo</a>'
     + '<a class="qx-btn" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:8px;background:#25D366;padding:13px" href="' + waGen + '" target="_blank" rel="noopener">📲&nbsp; Compartir por WhatsApp</a>'
     + '<div class="qx-row" style="gap:8px">'
     +   '<a class="qx-btn" style="flex:1;text-align:center;text-decoration:none;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" href="' + dlUrl + '">⬇️ Descargar</a>'
@@ -8097,6 +8109,187 @@ function qxRecetaCopiar(url){
       function(){ toast('No se pudo copiar — usá el enlace de abajo', 'error'); }
     );
   } else { toast('Copiá el enlace de abajo', 'info'); }
+}
+
+/* ============================================================
+ * COLA DE IMPRESIÓN REMOTA (receta completa y complementaria)
+ * Generar la receta NO la imprime. Acá el usuario decide, con un botón,
+ * mandarla a la impresora del servicio: se encola una fila en 'impresiones'
+ * y el agente que corre en la PC del servicio la baja y la manda a la
+ * impresora (tools/impresora/). La app solo muestra en qué estado va, así
+ * se puede pedir la impresión estando lejos del hospital.
+ * Tabla: sql/028-cola-impresion.sql
+ * ============================================================ */
+var QX_IMPR = {};            // 'pacienteId|variante' -> último trabajo conocido
+var QX_IMPR_TIMER = null;    // seguimiento corto tras enviar (para ver "Impresa ✓")
+var QX_RECETA_VISTA = null;  // variante del panel de resultado abierto, o null
+
+function qxImprKey(id, variante){ return id + '|' + (variante || ''); }
+function qxImprJob(p, variante){ return p ? (QX_IMPR[qxImprKey(p.id, variante)] || null) : null; }
+
+/* Trae el último trabajo de cada variante de esta paciente.
+   Devuelve true si algo cambió respecto de lo que ya teníamos. */
+async function qxImprCargar(pacienteId){
+  var kA = qxImprKey(pacienteId, ''), kB = qxImprKey(pacienteId, '-2');
+  var antes = JSON.stringify([QX_IMPR[kA] || null, QX_IMPR[kB] || null]);
+  try {
+    var r = await sb.from('impresiones')
+      .select('id,variante,estado,detalle_error,impresora,solicitado_at,impresa_at')
+      .eq('paciente_id', pacienteId)
+      .order('solicitado_at', { ascending: false })
+      .limit(10);
+    if (r.error) return false;   // tabla sin crear todavía / sin sesión: la UI queda igual
+    delete QX_IMPR[kA]; delete QX_IMPR[kB];
+    (r.data || []).forEach(function(j){
+      var k = qxImprKey(pacienteId, j.variante || '');
+      if (!QX_IMPR[k]) QX_IMPR[k] = j;   // el primero de cada variante es el más reciente
+    });
+  } catch(e){ return false; }
+  return antes !== JSON.stringify([QX_IMPR[kA] || null, QX_IMPR[kB] || null]);
+}
+
+/* Vuelve a dibujar donde esté el usuario: el panel de la receta si está
+   abierto, si no la ficha de la paciente. */
+function qxImprRefrescarUI(){
+  if (!QX_ACTUAL) return;
+  if (QX_RECETA_OV && QX_RECETA_OV.isConnected && QX_RECETA_VISTA !== null){
+    qxRecetaResultado(QX_ACTUAL, QX_RECETA_VISTA);
+    return;
+  }
+  var ov = document.querySelector('.qx-overlay');
+  if (!ov) return;
+  // El seguimiento redibuja la ficha sola: conservar dónde estaba leyendo.
+  var body = ov.querySelector('.qx-sheet-body');
+  var y = body ? body.scrollTop : 0;
+  qxRenderDetalle();
+  if (y){
+    var nb = document.querySelector('.qx-overlay .qx-sheet-body');
+    if (nb) nb.scrollTop = y;
+  }
+}
+
+/* Mientras haya algo en la cola, refrescar cada 5s hasta 2 minutos: alcanza
+   para ver "Imprimiendo…" y después "Impresa ✓" sin tocar nada. */
+function qxImprSeguir(pacienteId){
+  if (QX_IMPR_TIMER){ clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null; }
+  var n = 0;
+  QX_IMPR_TIMER = setInterval(async function(){
+    n++;
+    if (n > 24 || !QX_ACTUAL || QX_ACTUAL.id !== pacienteId || !document.querySelector('.qx-overlay')){
+      clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null; return;
+    }
+    if (await qxImprCargar(pacienteId)) qxImprRefrescarUI();
+    var vivo = ['', '-2'].some(function(v){
+      var j = QX_IMPR[qxImprKey(pacienteId, v)];
+      return j && (j.estado === 'pendiente' || j.estado === 'imprimiendo');
+    });
+    if (!vivo){ clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null; }
+  }, 5000);
+}
+
+/* Encola la receta ya generada. No regenera el PDF: manda a imprimir el que
+   está subido en documentos/recetas/. */
+async function qxImprEnviar(variante){
+  variante = variante || '';
+  var p = QX_ACTUAL; if (!p) return;
+  if (!(variante === '-2' ? p.receta_faltantes_at : p.receta_generada_at)){
+    toast('Primero generá la receta', 'error'); return;
+  }
+  var k = qxImprKey(p.id, variante);
+  var j = QX_IMPR[k];
+  if (j && (j.estado === 'pendiente' || j.estado === 'imprimiendo')){
+    toast('Ya está en la cola de impresión', 'info'); return;
+  }
+  // Optimista: el botón cambia ya, sin esperar a la red.
+  QX_IMPR[k] = { estado: 'pendiente', solicitado_at: new Date().toISOString() };
+  qxImprRefrescarUI();
+
+  var uid = null;
+  try { var u = await sb.auth.getUser(); uid = (u && u.data && u.data.user) ? u.data.user.id : null; } catch(e){}
+
+  var r = await sb.from('impresiones').insert({
+    paciente_id:    p.id,
+    variante:       variante,
+    objeto:         qxRecetaObjeto(p, variante),
+    nombre_archivo: qxRecetaNombreArchivo(p, variante),
+    etiqueta:       (variante === '-2' ? 'Receta complementaria ' : 'Receta ')
+                    + qxRecetaTituloTipo(p.tipo_receta) + ' — ' + (p.nombre || ''),
+    solicitado_por: uid
+  }).select().single();
+
+  if (r.error){
+    delete QX_IMPR[k];
+    qxImprRefrescarUI();
+    var m = String((r.error && r.error.message) || '');
+    if (/impresiones/.test(m) && /does not exist|no existe/i.test(m))
+      toast('Falta crear la cola en la base: correr sql/028-cola-impresion.sql', 'error');
+    else
+      toast('No se pudo enviar a imprimir: ' + m, 'error');
+    return;
+  }
+  QX_IMPR[k] = r.data;
+  toast('Enviada a la impresora del servicio ✓', 'success');
+  qxImprRefrescarUI();
+  qxImprSeguir(p.id);
+}
+
+/* Cancelar solo mientras siga 'pendiente' (si el agente ya la tomó, no). */
+async function qxImprCancelar(variante){
+  variante = variante || '';
+  var p = QX_ACTUAL; if (!p) return;
+  var j = QX_IMPR[qxImprKey(p.id, variante)];
+  if (!j || !j.id || j.estado !== 'pendiente'){ toast('Ya no se puede cancelar', 'info'); return; }
+  var r = await sb.from('impresiones').delete().eq('id', j.id).eq('estado', 'pendiente').select();
+  if (r.error || !r.data || !r.data.length){
+    toast('La impresora ya la tomó', 'info');
+    await qxImprCargar(p.id); qxImprRefrescarUI(); return;
+  }
+  delete QX_IMPR[qxImprKey(p.id, variante)];
+  toast('Impresión cancelada', 'success');
+  qxImprRefrescarUI();
+}
+
+/* Botón / estado de impresión. grande = panel de resultado, chico = ficha. */
+function qxImprBloqueHtml(p, variante, grande){
+  variante = variante || '';
+  var a = "'" + variante + "'";
+  var j = qxImprJob(p, variante);
+  var mt  = grande ? '8px' : '6px';
+  var pad = grande ? '13px' : '8px 4px';
+  var fs  = grande ? '13px' : '11px';
+  var chip = function(bg, bd, col, txt, sub){
+    return '<div style="margin-top:' + mt + ';background:' + bg + ';border:1px solid ' + bd + ';color:' + col
+      + ';border-radius:10px;padding:' + (grande ? '11px 13px' : '8px 10px')
+      + ';font-size:' + (grande ? '12.5px' : '11px') + ';font-weight:700;line-height:1.45">' + txt
+      + (sub ? '<div style="font-weight:600;font-size:' + (grande ? '11px' : '10px') + ';opacity:.85;margin-top:2px">' + sub + '</div>' : '')
+      + '</div>';
+  };
+  var boton = function(label, fn, bg, color, borde){
+    return '<button class="qx-btn" style="width:100%;margin-top:' + mt + ';padding:' + pad + ';font-size:' + fs
+      + ';background:' + bg + (color ? ';color:' + color : '') + (borde ? ';border:1.5px solid ' + borde : '')
+      + '" onclick="' + fn + '">' + label + '</button>';
+  };
+
+  if (!j) return boton('🖨️&nbsp; Enviar a imprimir', 'qxImprEnviar(' + a + ')', 'var(--tl)');
+
+  if (j.estado === 'pendiente'){
+    return chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
+                '⏳ En cola para imprimir', 'Sale apenas la PC del servicio la tome')
+      + boton('Cancelar impresión', 'qxImprCancelar(' + a + ')', 'transparent', 'var(--t2)', 'var(--bd)');
+  }
+  if (j.estado === 'imprimiendo'){
+    return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
+                '🖨️ Imprimiendo…', 'La PC del servicio la está sacando');
+  }
+  if (j.estado === 'impresa'){
+    return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
+                '✓ Impresa en el servicio',
+                qxFmtTs(j.impresa_at || j.solicitado_at) + (j.impresora ? ' · ' + qxEsc(j.impresora) : ''))
+      + boton('🖨️ Volver a imprimir', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)');
+  }
+  return chip('rgba(179,64,58,.10)', 'rgba(179,64,58,.30)', '#b3403a',
+              '⚠️ No se pudo imprimir', qxEsc(j.detalle_error || 'Revisá la PC del servicio'))
+    + boton('🖨️ Reintentar', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)');
 }
 
 /* Logos institucionales para la receta (dataURL). Se cargan más abajo, desde
