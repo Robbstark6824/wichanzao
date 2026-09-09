@@ -826,7 +826,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* =========================================================
    CONFIG
    ========================================================= */
-var APP_VERSION = 'v204';
+var APP_VERSION = 'v205';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
@@ -2909,7 +2909,7 @@ async function pcLoadRecetas() {
    documentos; se baja desde esta misma PC, que es donde hay que instalarlo.
    Ver tools/impresora/ en el repo. */
 function pcAgenteImpresionHtml() {
-  var url = _pubBase + 'herramientas/agente-impresion-recetas-v4.zip?download=agente-impresion-recetas-v4.zip';
+  var url = _pubBase + 'herramientas/agente-impresion-recetas-v5.zip?download=agente-impresion-recetas-v5.zip';
   return '<div style="background:var(--s1);border:1.5px solid var(--bd);border-left:4px solid var(--tl);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">'
     + '<div style="flex:1;min-width:260px">'
     +   '<div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:3px">&#128424; Impresion remota en esta PC</div>'

@@ -19,5 +19,8 @@
   "sumatra": "SumatraPDF.exe",
 
   "_intervalo": "Cada cuánto mira la cola. 2 segundos = la receta sale casi al instante.",
-  "intervaloSegundos": 2
+  "intervaloSegundos": 2,
+
+  "_espera": "Segundos que se espera a SumatraPDF antes de dar el trabajo por entregado a la impresora. Con impresoras de red no se cierra hasta que la cola de Windows termina, y eso puede tardar minutos aunque el papel ya salio.",
+  "esperaImpresionSegundos": 10
 }

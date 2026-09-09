@@ -64,6 +64,9 @@ $AnonKey   = $cfg.anonKey
 $Bucket    = if ($cfg.bucket) { $cfg.bucket } else { 'documentos' }
 $Impresora = $cfg.impresora                       # vacío = impresora predeterminada
 $Intervalo = if ($cfg.intervaloSegundos) { [int]$cfg.intervaloSegundos } else { 2 }
+# Cuánto esperamos a que SumatraPDF se cierre antes de dar el trabajo por
+# entregado a la impresora (ver el comentario en Imprimir-Pdf).
+$EsperaMs  = 1000 * $(if ($cfg.esperaImpresionSegundos) { [int]$cfg.esperaImpresionSegundos } else { 10 })
 $Sumatra   = $cfg.sumatra
 
 # La app no usa correos: se entra con "usuario (carpeta)" + contraseña, y el
@@ -165,7 +168,18 @@ function Imprimir-Pdf {
     if ($Copias -gt 1) { $ar += ' -print-settings "{0}x"' -f $Copias }
     $ar += ' -silent -exit-when-done "{0}"' -f $Archivo
 
-    $p = Start-Process -FilePath $Sumatra -ArgumentList $ar -PassThru -Wait -WindowStyle Hidden
+    # SumatraPDF con -exit-when-done no se cierra hasta que la cola de Windows
+    # da por terminado el trabajo, y con una impresora de red eso tarda un par
+    # de minutos aunque el papel ya haya salido. Esperarlo hacía que en el
+    # celular quedara «Imprimiendo…» un rato largo de más.
+    # Lo que falla de verdad (impresora inexistente, PDF ilegible) falla en un
+    # segundo; si sigue vivo pasada la espera, es que el trabajo ya está en la
+    # impresora y solo queda el spooler. Ahí seguimos y avisamos «impresa».
+    $p = Start-Process -FilePath $Sumatra -ArgumentList $ar -PassThru -WindowStyle Hidden
+    if (-not $p.WaitForExit($EsperaMs)) {
+      Log '  (ya está en la impresora; SumatraPDF sigue esperando al spooler)' 'DarkGray'
+      return
+    }
     if ($p.ExitCode -ne 0) {
       # Mensajes en criollo, que es lo que se ve en el celular.
       $pista = switch ($p.ExitCode) {
@@ -220,7 +234,14 @@ function Procesar {
     try { Marcar $t.id @{ estado = 'error'; detalle_error = $msg } } catch { }
     Log "  [X] error: $msg" 'Red'
   } finally {
+    # Si SumatraPDF todavía tiene el PDF abierto, Windows no deja borrarlo:
+    # queda para la limpieza de abajo, que barre los de impresiones anteriores.
     try { if (Test-Path $tmp) { Remove-Item $tmp -Force } } catch { }
+    try {
+      Get-ChildItem $env:TEMP -Filter 'receta_*.pdf' |
+        Where-Object { $_.LastWriteTime -lt (Get-Date).AddMinutes(-15) } |
+        ForEach-Object { try { Remove-Item $_.FullName -Force } catch { } }
+    } catch { }
   }
 }
 
