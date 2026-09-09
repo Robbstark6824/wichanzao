@@ -15,5 +15,6 @@
   "_sumatra": "Ruta de SumatraPDF.exe. Si está en esta misma carpeta, alcanza con el nombre.",
   "sumatra": "SumatraPDF.exe",
 
-  "intervaloSegundos": 15
+  "_intervalo": "Cada cuánto mira la cola. 2 segundos = la receta sale casi al instante.",
+  "intervaloSegundos": 2
 }

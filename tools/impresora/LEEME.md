@@ -1,7 +1,7 @@
 # Agente de impresión de recetas
 
-Permite mandar a imprimir una receta **desde la app del celular, estando lejos del
-hospital**. El PDF sale por la impresora de la PC del servicio.
+Sirve para mandar a imprimir una receta **desde la app del celular, estando lejos
+del hospital**. El PDF sale por la impresora de la PC del servicio.
 
 ```
   App (celular)                  Supabase                 PC del servicio
@@ -9,7 +9,7 @@ hospital**. El PDF sale por la impresora de la PC del servicio.
   Generar receta  ──► PDF en documentos/recetas/
   «Enviar a imprimir» ─► fila en la tabla `impresiones` (pendiente)
                                      │
-                                     └──► el agente la toma cada 15 s,
+                                     └──► el agente la ve en ~2 segundos,
                                           baja el PDF y lo imprime
                                      ┌──── marca «impresa» (o «error»)
   La app muestra: En cola → Imprimiendo… → ✓ Impresa
@@ -19,63 +19,43 @@ Ningún dato sale hacia terceros: todo pasa por el mismo Supabase del proyecto.
 
 ---
 
-## Instalación en la PC del servicio (una sola vez)
+## Instalación (una sola vez, en la PC del servicio)
 
-**1. Crear la tabla** (si todavía no se hizo)
+**Descomprimir esta carpeta** en algún lado fijo de la PC (por ejemplo
+`C:\AgenteImpresion`; sirve el Escritorio, pero no la carpeta de Descargas,
+porque después se borra).
 
-En Supabase → SQL Editor, ejecutar `sql/028-cola-impresion.sql`.
+**Doble clic en `INSTALAR.bat`.** Eso hace todo:
 
-**2. Copiar esta carpeta a la PC**
+1. Deja listo SumatraPDF (viene incluido; es lo que imprime sin abrir ventanas).
+2. Pide el **email y la contraseña** de una cuenta de la app. Conviene una cuenta
+   dedicada para esto, no la personal.
+3. Muestra la **lista de impresoras** de la PC para elegir con un número por cuál
+   salen las recetas.
+4. Prueba que entre bien y que la cola responda.
+5. Pregunta si querés que arranque solo cada vez que se prende la PC (decí que sí).
 
-Por ejemplo a `C:\AgenteImpresion`. Alcanza con estos archivos:
-`agente-impresion.ps1`, `config.ejemplo.json`, `iniciar.bat`, `instalar-al-inicio.bat`.
+Al terminar se abre la ventana del agente. **Esa ventana tiene que quedar abierta**
+(se puede minimizar, no cerrar).
 
-**3. Instalar SumatraPDF** (recomendado, gratuito)
-
-Bajar la versión **portable** de <https://www.sumatrapdfreader.org/download-free-pdf-viewer>,
-descomprimir y dejar `SumatraPDF.exe` **en esta misma carpeta**. Es lo que permite
-imprimir sin que se abra ninguna ventana ni haya que apretar nada.
-
-Sin SumatraPDF el agente igual funciona, pero usa el visor de PDF de Windows y por
-cada receta se abre y se cierra una ventana.
-
-**4. Configurar**
-
-Copiar `config.ejemplo.json` como **`config.json`** y completar:
-
-- `email` / `password`: una cuenta de trabajador de la app. Conviene crear una
-  cuenta propia para esto (por ejemplo `impresora.gineco@…`) y no usar la personal.
-- `impresora`: el nombre exacto que figura en *Configuración → Bluetooth y
-  dispositivos → Impresoras y escáneres*. Si se deja vacío usa la predeterminada.
-
-**5. Probar**
-
-Doble clic en `iniciar.bat`. Tiene que decir `Sesión iniciada como …`.
-Desde el celular, en una paciente con receta generada, tocar **«Enviar a imprimir»**:
-en menos de 15 segundos sale el papel y en la app aparece **✓ Impresa**.
-
-**6. Que arranque solo**
-
-Doble clic en `instalar-al-inicio.bat`. Desde ahí, cada vez que se prenda la PC el
-agente queda escuchando en una ventana negra. Esa ventana tiene que quedar abierta
-(se puede minimizar).
+Si Windows muestra un cartel azul de *SmartScreen*: **Más información → Ejecutar de
+todas formas**. Pasa porque los `.bat` bajados de internet no están firmados.
 
 ---
 
 ## Uso diario
 
-En la app, dentro de la ficha de la paciente o del panel que aparece al generar la
-receta, hay un botón **🖨️ Enviar a imprimir** para la **receta completa** y otro
-para la **complementaria**. Generar la receta ya no imprime nada por sí solo: la
-impresión siempre la decide el botón.
+En la app, en la ficha de la paciente o en el panel que aparece al generar la
+receta, hay un botón **🖨️ Enviar a imprimir**: uno para la **receta completa** y
+otro para la **complementaria**. Generar la receta no imprime nada por sí solo.
 
-Estados que muestra la app:
+Desde que tocás el botón hasta que sale el papel pasan unos **3 a 5 segundos**.
 
-| Estado | Qué significa |
+| Estado en la app | Qué significa |
 |---|---|
 | ⏳ En cola para imprimir | Encolada. Se puede **cancelar** mientras siga así. |
 | 🖨️ Imprimiendo… | El agente la tomó y la mandó a la impresora. |
-| ✓ Impresa en el servicio | Salió el papel. Queda el botón «Volver a imprimir». |
+| ✓ Impresa en el servicio | Salió el papel. Queda «Volver a imprimir». |
 | ⚠️ No se pudo imprimir | Falló algo; el detalle se ve en la app y en `impresion.log`. |
 
 Si la PC está apagada, el trabajo **queda esperando** y sale apenas se prenda.
@@ -84,19 +64,29 @@ Si la PC está apagada, el trabajo **queda esperando** y sale apenas se prenda.
 
 ## Problemas frecuentes
 
-**«No encuentro config.json»** — falta el paso 4.
+**Todo queda «En cola» y nunca avanza** — la PC está apagada, sin internet, o se
+cerró la ventana negra del agente. Volver a abrir `iniciar.bat`.
 
-**«Sesión iniciada» pero no imprime nada** — la tabla no está creada (paso 1) o el
-agente entró con una cuenta que no tiene permiso. Revisar `impresion.log`.
+**Sale en la impresora equivocada** — volver a correr `INSTALAR.bat` y elegir otra,
+o editar `impresora` en `config.json`.
 
-**Sale en la impresora equivocada** — poner el nombre exacto en `impresora` dentro
-de `config.json`, o cambiar la impresora predeterminada de Windows.
-
-**Todo queda «En cola» y nunca avanza** — la PC está apagada, sin internet, o la
-ventana negra del agente se cerró.
+**Se cierra apenas abre** — abrir `impresion.log` con el Bloc de notas: ahí queda el
+error exacto (casi siempre es la contraseña).
 
 **Un trabajo quedó trabado en «Imprimiendo…»** — a los 10 minutos el agente lo
 devuelve solo a la cola.
 
-**Se cierra apenas abre** — abrir `impresion.log` en el Bloc de notas: ahí queda el
-error exacto.
+**Cambiar la contraseña de la cuenta** — volver a correr `INSTALAR.bat`.
+
+---
+
+## Archivos
+
+| Archivo | Para qué |
+|---|---|
+| `INSTALAR.bat` | Lo único que hay que tocar la primera vez. |
+| `iniciar.bat` | Abre el agente a mano (si se cerró la ventana). |
+| `agente-impresion.ps1` | El agente en sí. |
+| `instalar-al-inicio.bat` | Solo el paso de «arrancar con Windows». |
+| `config.json` | Se crea al instalar. Tiene la contraseña: no compartirlo. |
+| `impresion.log` | Historial de lo que imprimió y de los errores. |

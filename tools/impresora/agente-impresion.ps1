@@ -55,7 +55,7 @@ $Url       = $cfg.url.TrimEnd('/')
 $AnonKey   = $cfg.anonKey
 $Bucket    = if ($cfg.bucket) { $cfg.bucket } else { 'documentos' }
 $Impresora = $cfg.impresora                       # vacío = impresora predeterminada
-$Intervalo = if ($cfg.intervaloSegundos) { [int]$cfg.intervaloSegundos } else { 15 }
+$Intervalo = if ($cfg.intervaloSegundos) { [int]$cfg.intervaloSegundos } else { 2 }
 $Sumatra   = $cfg.sumatra
 
 if (-not $cfg.email -or -not $cfg.password) {
@@ -209,10 +209,11 @@ Rescatar-Colgados
 
 $fallos = 0
 while ($true) {
+  $hubo = $false
   try {
     $pendientes = Api 'Get' '/rest/v1/impresiones?estado=eq.pendiente&order=solicitado_at.asc&limit=5'
     $fallos = 0
-    foreach ($t in $pendientes) { Procesar $t }
+    foreach ($t in $pendientes) { $hubo = $true; Procesar $t }
   } catch {
     $fallos++
     # No spamear el log si se cayó internet: avisar la primera vez y cada 20 vueltas.
@@ -222,5 +223,7 @@ while ($true) {
     $script:Token = $null
   }
   if ($UnaVez) { Log 'Pasada única terminada.' 'White'; break }
-  Start-Sleep -Seconds $Intervalo
+  # Si acabamos de imprimir algo, mirar de nuevo enseguida: varias recetas
+  # mandadas una atrás de otra salen sin espera entre medio.
+  if (-not $hubo) { Start-Sleep -Seconds $Intervalo }
 }

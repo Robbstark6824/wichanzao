@@ -35,3 +35,4 @@ gs.csv
 tools/impresora/config.json
 tools/impresora/impresion.log
 tools/impresora/SumatraPDF.exe
+tools/impresora/agente-impresion-recetas.zip
