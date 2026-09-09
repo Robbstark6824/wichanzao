@@ -157,12 +157,25 @@ function Imprimir-Pdf {
   param([string]$Archivo, [int]$Copias = 1)
 
   if ($HaySumatra) {
-    $ar = @()
-    if ($Impresora) { $ar += @('-print-to', $Impresora) } else { $ar += '-print-to-default' }
-    if ($Copias -gt 1) { $ar += @('-print-settings', ("{0}x" -f $Copias)) }
-    $ar += @('-silent', '-exit-when-done', $Archivo)
+    # OJO: -ArgumentList con un array NO entrecomilla los elementos que tienen
+    # espacios, y TODOS los nombres de impresora los tienen ("EPSON L3250
+    # Series"). SumatraPDF recibía el nombre partido y salía con código 3.
+    # Por eso se arma una sola línea con las comillas puestas a mano.
+    $ar = if ($Impresora) { '-print-to "{0}"' -f $Impresora } else { '-print-to-default' }
+    if ($Copias -gt 1) { $ar += ' -print-settings "{0}x"' -f $Copias }
+    $ar += ' -silent -exit-when-done "{0}"' -f $Archivo
+
     $p = Start-Process -FilePath $Sumatra -ArgumentList $ar -PassThru -Wait -WindowStyle Hidden
-    if ($p.ExitCode -ne 0) { throw "SumatraPDF terminó con código $($p.ExitCode)" }
+    if ($p.ExitCode -ne 0) {
+      # Mensajes en criollo, que es lo que se ve en el celular.
+      $pista = switch ($p.ExitCode) {
+        1 { if ($Impresora) { "no encontró la impresora «$Impresora»" } else { 'no encontró la impresora predeterminada' } }
+        2 { 'no pudo leer el PDF de la receta' }
+        3 { 'el nombre de la impresora llegó mal' }
+        default { "código $($p.ExitCode)" }
+      }
+      throw "No se pudo imprimir: $pista"
+    }
     return
   }
 
