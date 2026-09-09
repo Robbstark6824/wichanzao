@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agente de impresion de recetas</title>
+<!--
+  Pagina suelta para bajar el instalador del agente de impresion desde la PC
+  del servicio sin depender del panel (que puede quedar cacheado). URL corta,
+  facil de tipear: robbstark6824.github.io/wichanzao/agente.html
+  El ZIP vive en el bucket 'documentos' (ver tools/impresora/).
+-->
+<style>
+  :root{
+    --tl:#A03D63; --tl2:#7A2E4A; --bg:#F5F7FA; --s1:#FFF;
+    --t1:#0D1B2A; --t2:#4A5568; --t3:#A0AEC0; --bd:#D8DFE9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--t1);
+       font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.6}
+  .wrap{max-width:640px;margin:0 auto;padding:40px 22px 70px}
+  h1{font-size:22px;margin:0 0 6px;font-weight:800}
+  .sub{color:var(--t2);font-size:14px;margin:0 0 26px}
+  .card{background:var(--s1);border:1.5px solid var(--bd);border-left:4px solid var(--tl);
+        border-radius:12px;padding:22px;margin-bottom:26px;text-align:center}
+  .dl{display:inline-block;text-decoration:none;background:var(--tl);color:#fff;
+      font-size:15px;font-weight:800;padding:15px 30px;border-radius:10px}
+  .dl:hover{background:var(--tl2)}
+  .peso{font-size:12px;color:var(--t3);margin-top:10px}
+  ol{padding-left:22px;margin:0}
+  li{margin-bottom:14px;font-size:14px}
+  code{background:#EEF1F6;border:1px solid var(--bd);border-radius:5px;
+       padding:1px 6px;font-size:13px;font-family:Consolas,monospace}
+  .nota{background:#FFF8E6;border:1px solid #F0D9A0;border-radius:9px;
+        padding:12px 15px;font-size:13px;color:#7A5C13;margin-top:22px}
+  h2{font-size:15px;margin:32px 0 12px;font-weight:800}
+  footer{margin-top:40px;font-size:11px;color:var(--t3);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>&#128424; Agente de impresi&oacute;n de recetas</h1>
+  <p class="sub">Se instala <b>una sola vez</b> en la PC que tiene la impresora del servicio.
+     Despu&eacute;s, cuando desde el celular se toca &laquo;Enviar a imprimir&raquo;, la receta sale
+     ac&aacute; en unos segundos, est&eacute; quien la manda donde est&eacute;.</p>
+
+  <div class="card">
+    <a class="dl" href="https://xqphjvppfgwabfruyjae.supabase.co/storage/v1/object/public/documentos/herramientas/agente-impresion-recetas.zip?download=agente-impresion-recetas.zip">&#11015;&nbsp; Descargar el instalador</a>
+    <div class="peso">ZIP de 10 MB &middot; incluye todo lo necesario</div>
+  </div>
+
+  <h2>Pasos</h2>
+  <ol>
+    <li>Descomprimir el ZIP: bot&oacute;n derecho &rarr; <b>Extraer todo</b>.</li>
+    <li>Mover la carpeta a un lugar fijo, por ejemplo <code>C:\AgenteImpresion</code>.
+        <b>No dejarla en Descargas.</b></li>
+    <li>Doble clic en <code>INSTALAR.bat</code>. Es el &uacute;nico archivo que hay que tocar.</li>
+    <li>Si aparece el cartel azul de Windows: <b>M&aacute;s informaci&oacute;n</b> &rarr;
+        <b>Ejecutar de todas formas</b>.</li>
+    <li>Escribir el <b>usuario</b> de la app (el nombre de la carpeta, el mismo del celular)
+        y la <b>contrase&ntilde;a</b>. Al tipear la contrase&ntilde;a no se ve nada: es normal.</li>
+    <li>Elegir la impresora de la lista escribiendo su n&uacute;mero.</li>
+    <li>Aceptar que arranque solo con Windows.</li>
+    <li>Queda abierta una ventana negra: <b>minimizarla, no cerrarla</b>.</li>
+  </ol>
+
+  <div class="nota">
+    <b>Si ya lo hab&iacute;as instalado antes:</b> borr&aacute; el archivo <code>config.json</code>
+    de la carpeta antes de correr <code>INSTALAR.bat</code> de nuevo, as&iacute; vuelve a
+    preguntarte todo desde cero.
+  </div>
+
+  <h2>Si algo falla</h2>
+  <p class="sub" style="margin:0">En la carpeta queda un archivo <code>impresion.log</code> con el
+     detalle exacto de cada impresi&oacute;n y de cualquier error.</p>
+
+  <footer>Servicio de Ginecolog&iacute;a &middot; Hospital de Laredo</footer>
+</div>
+</body>
+</html>
