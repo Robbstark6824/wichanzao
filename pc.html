@@ -826,7 +826,7 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* =========================================================
    CONFIG
    ========================================================= */
-var APP_VERSION = 'v200';
+var APP_VERSION = 'v201';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
@@ -2905,10 +2905,26 @@ async function pcLoadRecetas() {
   vr.dataset.loaded = '1';
 }
 
+/* Instalador del agente de impresion remota. Vive en el bucket junto a los
+   documentos; se baja desde esta misma PC, que es donde hay que instalarlo.
+   Ver tools/impresora/ en el repo. */
+function pcAgenteImpresionHtml() {
+  var url = _pubBase + 'herramientas/agente-impresion-recetas.zip?download=agente-impresion-recetas.zip';
+  return '<div style="background:var(--s1);border:1.5px solid var(--bd);border-left:4px solid var(--tl);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">'
+    + '<div style="flex:1;min-width:260px">'
+    +   '<div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:3px">&#128424; Impresion remota en esta PC</div>'
+    +   '<div style="font-size:11.5px;color:var(--t2);line-height:1.55">Instalado esto, cuando en la app del celular se toca <b>&laquo;Enviar a imprimir&raquo;</b> la receta sale por la impresora de esta computadora en unos segundos, este quien la manda donde este.</div>'
+    +   '<div style="font-size:10.5px;color:var(--t3);line-height:1.5;margin-top:5px">Se hace una sola vez: descomprimir en una carpeta fija (no en Descargas) y doble clic en <b>INSTALAR.bat</b>.</div>'
+    + '</div>'
+    + '<a href="' + url + '" style="text-decoration:none;background:var(--tl);color:#fff;font-size:12px;font-weight:800;padding:11px 18px;border-radius:9px;white-space:nowrap">&#11015; Descargar instalador</a>'
+    + '</div>';
+}
+
 function pcRenderRecetas(rows) {
   var vr = document.getElementById('viewRecetas');
   if (!rows.length) {
-    vr.innerHTML = '<div class="empty-state"><div class="icon">&#128138;</div><h3>Sin recetas todavia</h3><p>Cuando en la app de programacion se le asigne un &laquo;tipo de receta&raquo; a una paciente, aparece aca para abrir o imprimir.</p></div>';
+    vr.innerHTML = pcAgenteImpresionHtml()
+      + '<div class="empty-state"><div class="icon">&#128138;</div><h3>Sin recetas todavia</h3><p>Cuando en la app de programacion se le asigne un &laquo;tipo de receta&raquo; a una paciente, aparece aca para abrir o imprimir.</p></div>';
     return;
   }
   var grupos = {};
@@ -2919,7 +2935,8 @@ function pcRenderRecetas(rows) {
   var keys = Object.keys(grupos).sort();
   var pend = 0;
   rows.forEach(function(p) { if (!p.receta_generada_at) pend++; });
-  var html = '<div style="font-size:12px;color:var(--t3);margin-bottom:18px;line-height:1.6">'
+  var html = pcAgenteImpresionHtml()
+    + '<div style="font-size:12px;color:var(--t3);margin-bottom:18px;line-height:1.6">'
     + rows.length + ' paciente(s) con receta asignada'
     + (pend ? ' &middot; <b style="color:var(--warn)">' + pend + ' sin generar</b> (se genera desde la app de programacion, en el celular)' : '')
     + '</div>';
