@@ -1447,7 +1447,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v221';
+var APP_VERSION = 'v222';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -8175,7 +8175,7 @@ function qxImprSeguir(pacienteId){
   var n = 0;
   QX_IMPR_TIMER = setInterval(async function(){
     n++;
-    if (n > 24 || !QX_ACTUAL || QX_ACTUAL.id !== pacienteId || !document.querySelector('.qx-overlay')){
+    if (n > 60 || !QX_ACTUAL || QX_ACTUAL.id !== pacienteId || !document.querySelector('.qx-overlay')){
       clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null; return;
     }
     if (await qxImprCargar(pacienteId)) qxImprRefrescarUI();
@@ -8249,6 +8249,22 @@ async function qxImprCancelar(variante){
   qxImprRefrescarUI();
 }
 
+/* Tocar el cartel de "En cola"/"Imprimiendo" pide el estado de nuevo: sirve
+   cuando uno vuelve al rato y no quiere esperar al refresco solo. */
+async function qxImprRefrescarAhora(){
+  var p = QX_ACTUAL; if (!p) return;
+  await qxImprCargar(p.id);
+  qxImprRefrescarUI();
+}
+
+/* Volver a la app (desbloquear el celular, cambiar de pestaña) también
+   actualiza: la receta se termina de imprimir mientras uno mira otra cosa. */
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden || !QX_ACTUAL) return;
+  if (!document.querySelector('.qx-overlay')) return;
+  qxImprCargar(QX_ACTUAL.id).then(function(cambio){ if (cambio) qxImprRefrescarUI(); });
+});
+
 /* Botón / estado de impresión. grande = panel de resultado, chico = ficha. */
 function qxImprBloqueHtml(p, variante, grande){
   variante = variante || '';
@@ -8257,10 +8273,12 @@ function qxImprBloqueHtml(p, variante, grande){
   var mt  = grande ? '8px' : '6px';
   var pad = grande ? '13px' : '8px 4px';
   var fs  = grande ? '13px' : '11px';
-  var chip = function(bg, bd, col, txt, sub){
-    return '<div style="margin-top:' + mt + ';background:' + bg + ';border:1px solid ' + bd + ';color:' + col
+  var chip = function(bg, bd, col, txt, sub, tocar){
+    return '<div' + (tocar ? ' onclick="qxImprRefrescarAhora()"' : '')
+      + ' style="margin-top:' + mt + ';background:' + bg + ';border:1px solid ' + bd + ';color:' + col
       + ';border-radius:10px;padding:' + (grande ? '11px 13px' : '8px 10px')
-      + ';font-size:' + (grande ? '12.5px' : '11px') + ';font-weight:700;line-height:1.45">' + txt
+      + ';font-size:' + (grande ? '12.5px' : '11px') + ';font-weight:700;line-height:1.45'
+      + (tocar ? ';cursor:pointer' : '') + '">' + txt
       + (sub ? '<div style="font-weight:600;font-size:' + (grande ? '11px' : '10px') + ';opacity:.85;margin-top:2px">' + sub + '</div>' : '')
       + '</div>';
   };
@@ -8274,12 +8292,12 @@ function qxImprBloqueHtml(p, variante, grande){
 
   if (j.estado === 'pendiente'){
     return chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
-                '⏳ En cola para imprimir', 'Sale apenas la PC del servicio la tome')
+                '⏳ En cola para imprimir', 'Sale apenas la PC del servicio la tome · tocá para actualizar', true)
       + boton('Cancelar impresión', 'qxImprCancelar(' + a + ')', 'transparent', 'var(--t2)', 'var(--bd)');
   }
   if (j.estado === 'imprimiendo'){
     return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
-                '🖨️ Imprimiendo…', 'La PC del servicio la está sacando');
+                '🖨️ Imprimiendo…', 'La PC del servicio la está sacando · tocá para actualizar', true);
   }
   if (j.estado === 'impresa'){
     return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
