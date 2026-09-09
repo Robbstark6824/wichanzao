@@ -1447,7 +1447,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v222';
+var APP_VERSION = 'v223';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -8122,6 +8122,7 @@ function qxRecetaCopiar(url){
  * ============================================================ */
 var QX_IMPR = {};            // 'pacienteId|variante' -> último trabajo conocido
 var QX_IMPR_TIMER = null;    // seguimiento corto tras enviar (para ver "Impresa ✓")
+var QX_IMPR_ULT = {};        // hora del último envío por variante (anti doble toque)
 var QX_RECETA_VISTA = null;  // variante del panel de resultado abierto, o null
 
 function qxImprKey(id, variante){ return id + '|' + (variante || ''); }
@@ -8196,10 +8197,12 @@ async function qxImprEnviar(variante){
     toast('Primero generá la receta', 'error'); return;
   }
   var k = qxImprKey(p.id, variante);
-  var j = QX_IMPR[k];
-  if (j && (j.estado === 'pendiente' || j.estado === 'imprimiendo')){
-    toast('Ya está en la cola de impresión', 'info'); return;
-  }
+  // La misma receta se puede mandar las veces que haga falta: otra copia, se
+  // trabó el papel, se perdió la hoja. Lo único que se frena es el doble toque
+  // sin querer sobre el mismo botón.
+  var ahora = Date.now();
+  if (QX_IMPR_ULT[k] && ahora - QX_IMPR_ULT[k] < 3000) return;
+  QX_IMPR_ULT[k] = ahora;
   // Optimista: el botón cambia ya, sin esperar a la red.
   QX_IMPR[k] = { estado: 'pendiente', solicitado_at: new Date().toISOString() };
   qxImprRefrescarUI();
@@ -8293,11 +8296,13 @@ function qxImprBloqueHtml(p, variante, grande){
   if (j.estado === 'pendiente'){
     return chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
                 '⏳ En cola para imprimir', 'Sale apenas la PC del servicio la tome · tocá para actualizar', true)
+      + boton('🖨️ Mandar otra copia', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)')
       + boton('Cancelar impresión', 'qxImprCancelar(' + a + ')', 'transparent', 'var(--t2)', 'var(--bd)');
   }
   if (j.estado === 'imprimiendo'){
     return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
-                '🖨️ Imprimiendo…', 'La PC del servicio la está sacando · tocá para actualizar', true);
+                '🖨️ Imprimiendo…', 'La PC del servicio la está sacando · tocá para actualizar', true)
+      + boton('🖨️ Mandar otra copia', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)');
   }
   if (j.estado === 'impresa'){
     return chip('rgba(46,125,110,.10)', 'rgba(46,125,110,.28)', 'var(--tl)',
