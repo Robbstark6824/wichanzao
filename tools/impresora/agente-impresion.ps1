@@ -21,7 +21,10 @@
 param(
   [string]$Config = "$PSScriptRoot\config.json",
   # Una sola pasada y salir (para probar que todo funciona).
-  [switch]$UnaVez
+  [switch]$UnaVez,
+  # Corriendo sin ventana (lo usa iniciar-oculto.vbs): no hay nadie para
+  # apretar Enter, así que ante un error se sale directo y queda en el log.
+  [switch]$Silencioso
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,6 +33,11 @@ try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $LogFile = Join-Path $PSScriptRoot 'impresion.log'
+
+function Salir($code) {
+  if (-not $Silencioso) { Read-Host 'Enter para cerrar' }
+  exit $code
+}
 
 function Log {
   param([string]$Msg, [string]$Color = 'Gray')
@@ -47,7 +55,7 @@ function Log {
 # ---------------------------------------------------------------
 if (-not (Test-Path $Config)) {
   Log "No encuentro $Config. Copiá config.ejemplo.json a config.json y completá usuario y contraseña." 'Red'
-  Read-Host 'Enter para cerrar'; exit 1
+  Salir 1
 }
 $cfg = Get-Content $Config -Raw -Encoding UTF8 | ConvertFrom-Json
 
@@ -79,7 +87,7 @@ if ((-not $cfg.email -or $cfg.email -eq '') -and $cfg.usuario) {
 if (-not $cfg.email -or -not $cfg.password) {
   Log 'Falta usuario/contraseña en config.json (los mismos de la app).' 'Red'
   Log 'Corré INSTALAR.bat para configurarlo.' 'Red'
-  Read-Host 'Enter para cerrar'; exit 1
+  Salir 1
 }
 
 # SumatraPDF: si el config trae una ruta relativa, se busca al lado del script.

@@ -173,20 +173,25 @@ if ($r -notmatch '^[nN]') {
   try {
     $lnk = [Environment]::GetFolderPath('Startup') + '\Agente impresion recetas.lnk'
     $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
-    $s.TargetPath = (Join-Path $Aqui 'iniciar.bat')
+    # Apunta al lanzador invisible: en la PC del servicio nadie quiere ver una
+    # ventana negra abierta todo el dia.
+    $s.TargetPath = (Join-Path $Aqui 'iniciar-oculto.vbs')
     $s.WorkingDirectory = $Aqui
-    $s.Description = 'Imprime las recetas enviadas desde la app'
+    $s.Description = 'Imprime las recetas enviadas desde la app (en segundo plano)'
     $s.Save()
-    Bien 'Va a arrancar solo con Windows.'
+    Bien 'Va a arrancar solo con Windows, y sin mostrarse en pantalla.'
   } catch { Mal "No se pudo: $($_.Exception.Message)" }
 }
 
 Write-Host ''
 Write-Host '  =========================================================' -ForegroundColor Green
-Write-Host '   LISTO. Ahora se abre el agente.' -ForegroundColor Green
-Write-Host '   Dejar esa ventana abierta (se puede minimizar).' -ForegroundColor Green
-Write-Host '   Probalo: desde el celular, en una paciente con receta' -ForegroundColor Green
-Write-Host '   generada, toca "Enviar a imprimir".' -ForegroundColor Green
+Write-Host '   LISTO. Ahora se abre el agente para probarlo.' -ForegroundColor Green
+Write-Host '   Desde el celular, en una paciente con receta generada,' -ForegroundColor Green
+Write-Host '   toca "Enviar a imprimir" y fijate que salga el papel.' -ForegroundColor Green
+Write-Host '' -ForegroundColor Green
+Write-Host '   CUANDO COMPRUEBES QUE IMPRIME: corre ocultar.bat y la' -ForegroundColor Green
+Write-Host '   ventana negra desaparece para siempre (sigue imprimiendo' -ForegroundColor Green
+Write-Host '   igual, en segundo plano, sin que nadie la vea).' -ForegroundColor Green
 Write-Host '  =========================================================' -ForegroundColor Green
 Write-Host ''
 Read-Host '  Enter para abrir el agente'

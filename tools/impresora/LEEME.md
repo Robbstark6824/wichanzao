@@ -37,8 +37,14 @@ porque después se borra).
 4. Prueba que entre bien y que la cola responda.
 5. Pregunta si querés que arranque solo cada vez que se prende la PC (decí que sí).
 
-Al terminar se abre la ventana del agente. **Esa ventana tiene que quedar abierta**
-(se puede minimizar, no cerrar).
+Al terminar se abre la ventana del agente para que puedas comprobar que imprime.
+
+**Cuando confirmes que sale el papel, corré `ocultar.bat`.** La ventana negra
+desaparece y el agente sigue funcionando en segundo plano: no se ve en la pantalla
+ni en la barra de tareas, y arranca así cada vez que se prende la PC. Es lo
+recomendado en una computadora que usa todo el servicio.
+
+Para apagarlo del todo (por ejemplo, para cambiar la impresora): `detener.bat`.
 
 Si Windows muestra un cartel azul de *SmartScreen*: **Más información → Ejecutar de
 todas formas**. Pasa porque los `.bat` bajados de internet no están firmados.
@@ -66,8 +72,11 @@ Si la PC está apagada, el trabajo **queda esperando** y sale apenas se prenda.
 
 ## Problemas frecuentes
 
-**Todo queda «En cola» y nunca avanza** — la PC está apagada, sin internet, o se
-cerró la ventana negra del agente. Volver a abrir `iniciar.bat`.
+**Todo queda «En cola» y nunca avanza** — la PC está apagada, sin internet, o el
+agente no está corriendo. Correr `ocultar.bat`, que lo arranca de nuevo.
+
+**¿Está funcionando, si no se ve nada?** Abrí `impresion.log`: anota cada receta que
+imprime, con fecha y hora.
 
 **Sale en la impresora equivocada** — volver a correr `INSTALAR.bat` y elegir otra,
 o editar `impresora` en `config.json`.
@@ -91,7 +100,9 @@ ingreso de la app (el nombre de la carpeta). No es un correo.
 | Archivo | Para qué |
 |---|---|
 | `INSTALAR.bat` | Lo único que hay que tocar la primera vez. |
-| `iniciar.bat` | Abre el agente a mano (si se cerró la ventana). |
+| `ocultar.bat` | Deja el agente corriendo invisible (y así arranca siempre). |
+| `detener.bat` | Lo apaga del todo. |
+| `iniciar.bat` | Lo abre con ventana visible, para ver qué está pasando. |
 | `agente-impresion.ps1` | El agente en sí. |
 | `instalar-al-inicio.bat` | Solo el paso de «arrancar con Windows». |
 | `config.json` | Se crea al instalar. Tiene la contraseña: no compartirlo. |
