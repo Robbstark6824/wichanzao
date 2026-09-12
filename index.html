@@ -8180,11 +8180,14 @@ function qxImprSeguir(pacienteId){
     if (n > 60 || !QX_ACTUAL || QX_ACTUAL.id !== pacienteId || !document.querySelector('.qx-overlay')){
       clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null; return;
     }
-    if (await qxImprCargar(pacienteId)) qxImprRefrescarUI();
+    var cambio = await qxImprCargar(pacienteId);
     var vivo = ['', '-2'].some(function(v){
       var j = QX_IMPR[qxImprKey(pacienteId, v)];
       return j && (j.estado === 'pendiente' || j.estado === 'imprimiendo');
     });
+    // Cada 30 s se redibuja aunque nada haya cambiado: así, si sigue en cola,
+    // aparece el aviso de que la PC del servicio no responde y el tiempo avanza.
+    if (cambio || (vivo && n % 6 === 0)) qxImprRefrescarUI();
     if (!vivo){
       clearInterval(QX_IMPR_TIMER); QX_IMPR_TIMER = null;
       // Ya terminó: el "✓ Impresa" queda unos segundos y después la tarjeta
@@ -8276,6 +8279,15 @@ document.addEventListener('visibilitychange', function(){
   qxImprCargar(QX_ACTUAL.id).then(function(cambio){ if (cambio) qxImprRefrescarUI(); });
 });
 
+/* "3 min", "2 h 10 min", "3 días": cuánto lleva esperando un trabajo. */
+function qxImprEspera(ms){
+  var m = Math.round(ms / 60000);
+  if (m < 60) return m + ' min';
+  var h = Math.floor(m / 60);
+  if (h < 48) return h + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+  return Math.floor(h / 24) + ' días';
+}
+
 /* Botón / estado de impresión. grande = panel de resultado, chico = ficha. */
 function qxImprBloqueHtml(p, variante, grande){
   variante = variante || '';
@@ -8305,8 +8317,19 @@ function qxImprBloqueHtml(p, variante, grande){
   if (!j) return boton('🖨️&nbsp; Enviar a imprimir', 'qxImprEnviar(' + a + ')', 'var(--tl)');
 
   if (j.estado === 'pendiente'){
-    return chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
-                spin + 'En cola para imprimir', 'Sale apenas la PC del servicio la tome · tocá para actualizar', true)
+    // El agente la toma en 2 s. Más de un minuto sin que nadie la tome no es
+    // "está tardando": es que la PC del servicio está apagada, sin internet o
+    // sin el agente. Decirlo, en vez de dejar la ruedita girando como si
+    // fuera a salir en cualquier momento.
+    var esp = Date.now() - (Date.parse(j.solicitado_at || '') || Date.now());
+    var cartel = esp > 60000
+      ? chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
+             '⏳ En cola · la PC del servicio no responde',
+             'Lleva ' + qxImprEspera(esp) + ' esperando: la PC está apagada, sin internet o el agente no está corriendo. '
+             + 'Queda guardada y sale sola cuando vuelva · tocá para actualizar', true)
+      : chip('rgba(180,101,42,.10)', 'rgba(180,101,42,.30)', '#8a4d20',
+             spin + 'En cola para imprimir', 'Sale apenas la PC del servicio la tome · tocá para actualizar', true);
+    return cartel
       + boton('🖨️ Mandar otra copia', 'qxImprEnviar(' + a + ')', 'var(--s1)', 'var(--t1)', 'var(--bd)')
       + boton('Cancelar impresión', 'qxImprCancelar(' + a + ')', 'transparent', 'var(--t2)', 'var(--bd)');
   }

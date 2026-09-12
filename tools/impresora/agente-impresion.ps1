@@ -72,23 +72,25 @@ $Sumatra   = $cfg.sumatra
 # La app no usa correos: se entra con "usuario (carpeta)" + contraseña, y el
 # correo real se arma como <carpeta>.<servicio>@wichanzao.local. Normalmente lo
 # resuelve el instalador; si alguien editó el config a mano y solo puso el
-# usuario, lo deducimos acá igual que lo hace la app.
-if ((-not $cfg.email -or $cfg.email -eq '') -and $cfg.usuario) {
-  try {
-    $folder = ($cfg.usuario.Trim().ToLower() -replace '[^a-z0-9\-]', '-') -replace '-+', '-'
-    $folder = $folder.Trim('-')
-    $w = Invoke-RestMethod -Method Get -Headers @{ apikey = $AnonKey } `
-          -Uri "$Url/rest/v1/workers?folder_id=eq.$folder&select=servicio"
-    if (@($w).Count -gt 0) {
-      $cfg | Add-Member -NotePropertyName 'email' -NotePropertyValue "$folder.$(@($w)[0].servicio)@wichanzao.local" -Force
-    } else {
-      Log "El usuario '$($cfg.usuario)' no existe en la app." 'Red'
-    }
-  } catch { Log "No se pudo resolver el usuario: $($_.Exception.Message)" 'Yellow' }
+# usuario, lo deducimos acá igual que lo hace la app. Necesita red: si no hay,
+# se vuelve a intentar junto con el inicio de sesión (ver más abajo).
+function Resolver-Email {
+  if ($cfg.email -and $cfg.email -ne '') { return }
+  $folder = ($cfg.usuario.Trim().ToLower() -replace '[^a-z0-9\-]', '-') -replace '-+', '-'
+  $folder = $folder.Trim('-')
+  $w = Invoke-RestMethod -Method Get -Headers @{ apikey = $AnonKey } `
+        -Uri "$Url/rest/v1/workers?folder_id=eq.$folder&select=servicio"
+  if (@($w).Count -eq 0) { throw "El usuario '$($cfg.usuario)' no existe en la app." }
+  $cfg | Add-Member -NotePropertyName 'email' -NotePropertyValue "$folder.$(@($w)[0].servicio)@wichanzao.local" -Force
 }
 
-if (-not $cfg.email -or -not $cfg.password) {
+if ((-not $cfg.email -or $cfg.email -eq '') -and -not $cfg.usuario) {
   Log 'Falta usuario/contraseña en config.json (los mismos de la app).' 'Red'
+  Log 'Corré INSTALAR.bat para configurarlo.' 'Red'
+  Salir 1
+}
+if (-not $cfg.password) {
+  Log 'Falta la contraseña en config.json (la misma de la app).' 'Red'
   Log 'Corré INSTALAR.bat para configurarlo.' 'Red'
   Salir 1
 }
@@ -110,10 +112,19 @@ if (-not $HaySumatra) {
 $script:Token = $null
 
 function Iniciar-Sesion {
+  Resolver-Email
   $body = @{ email = $cfg.email; password = $cfg.password } | ConvertTo-Json -Compress
-  $r = Invoke-RestMethod -Method Post -Uri "$Url/auth/v1/token?grant_type=password" `
-        -Headers @{ apikey = $AnonKey } -ContentType 'application/json' `
-        -Body ([Text.Encoding]::UTF8.GetBytes($body))
+  try {
+    $r = Invoke-RestMethod -Method Post -Uri "$Url/auth/v1/token?grant_type=password" `
+          -Headers @{ apikey = $AnonKey } -ContentType 'application/json' `
+          -Body ([Text.Encoding]::UTF8.GetBytes($body))
+  } catch {
+    # Supabase contestó pero rechazó la cuenta (400/401/403): no es la red.
+    $code = $null
+    try { if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode } } catch { }
+    if ($code -eq 400 -or $code -eq 401 -or $code -eq 403) { throw 'CUENTA:' }
+    throw
+  }
   $script:Token = $r.access_token
   Log ("Sesión iniciada como {0}" -f $(if ($cfg.usuario) { $cfg.usuario } else { $cfg.email })) 'Green'
 }
@@ -147,6 +158,15 @@ function Api {
 }
 
 function Ahora { (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') }
+
+# Distingue "no hay red" de "la cuenta está mal": lo primero se arregla solo
+# esperando; lo segundo no, y hay que decirlo claro en el log.
+function Explicar-Fallo($err) {
+  if ($err.Exception.Message -like 'CUENTA:*') {
+    return @{ cuenta = $true; texto = 'Usuario o contraseña incorrectos (¿se cambió la clave en la app?). Corré INSTALAR.bat.' }
+  }
+  return @{ cuenta = $false; texto = "Sin conexión con Supabase ($($err.Exception.Message))" }
+}
 
 function Marcar {
   param([string]$Id, [hashtable]$Campos)
@@ -265,7 +285,26 @@ Log ("Impresora: {0} - revisa cada {1}s" -f $(if ($Impresora) { $Impresora } els
 Log 'Dejá esta ventana abierta. Ctrl+C para cerrar.' 'White'
 Log '=========================================================' 'White'
 
-Iniciar-Sesion
+# Cuando la PC recién se prende, el agente arranca junto con Windows y muchas
+# veces la red todavía no está (el Wi-Fi tarda unos segundos; en el hospital,
+# a veces bastante más). Antes, si ese primer inicio de sesión fallaba, el
+# agente se cerraba solo y —como corre oculto— nadie se enteraba: las recetas
+# quedaban «En cola» hasta que alguien lo volvía a abrir a mano.
+# Ahora insiste hasta que entra, esperando cada vez un poco más (tope 1 min);
+# si el problema es la cuenta, avisa y reintenta cada 5 min por si la cambian.
+$fallosLogin = 0
+while (-not $script:Token) {
+  try { Iniciar-Sesion } catch {
+    $fallosLogin++
+    $f = Explicar-Fallo $_
+    $espera = if ($f.cuenta) { 300 } else { [Math]::Min(60, 5 * $fallosLogin) }
+    if ($fallosLogin -eq 1 -or $fallosLogin % 10 -eq 0) {
+      Log ("{0} Sigo intentando (cada {1}s)." -f $f.texto, $espera) $(if ($f.cuenta) { 'Red' } else { 'Yellow' })
+    }
+    if ($UnaVez) { Salir 1 }
+    Start-Sleep -Seconds $espera
+  }
+}
 Rescatar-Colgados
 
 $fallos = 0
@@ -279,12 +318,17 @@ while ($true) {
     $fallos++
     # No spamear el log si se cayó internet: avisar la primera vez y cada 20 vueltas.
     if ($fallos -eq 1 -or $fallos % 20 -eq 0) {
-      Log "Sin conexión con Supabase ($($_.Exception.Message))" 'Yellow'
+      $f = Explicar-Fallo $_
+      Log $f.texto $(if ($f.cuenta) { 'Red' } else { 'Yellow' })
     }
     $script:Token = $null
   }
   if ($UnaVez) { Log 'Pasada única terminada.' 'White'; break }
   # Si acabamos de imprimir algo, mirar de nuevo enseguida: varias recetas
   # mandadas una atrás de otra salen sin espera entre medio.
-  if (-not $hubo) { Start-Sleep -Seconds $Intervalo }
+  # Si viene fallando, esperar cada vez más (tope 1 min): sin red da igual, y
+  # con la clave mal evita que Supabase bloquee la cuenta por tantos intentos.
+  if (-not $hubo) {
+    Start-Sleep -Seconds $(if ($fallos -gt 1) { [Math]::Min(60, $Intervalo * $fallos) } else { $Intervalo })
+  }
 }

@@ -73,7 +73,16 @@ Si la PC está apagada, el trabajo **queda esperando** y sale apenas se prenda.
 ## Problemas frecuentes
 
 **Todo queda «En cola» y nunca avanza** — la PC está apagada, sin internet, o el
-agente no está corriendo. Correr `ocultar.bat`, que lo arranca de nuevo.
+agente no está corriendo. Pasado un minuto la app lo avisa en el mismo cartel
+(«la PC del servicio no responde»). En la PC: correr `ocultar.bat`, que lo
+arranca de nuevo, y mirar `impresion.log`: si la última línea es
+«Sesión iniciada», está vivo; si dice «Sin conexión», no tiene internet; si dice
+«Usuario o contraseña incorrectos», hay que correr `INSTALAR.bat` de nuevo.
+
+**Se prendió la PC y no arrancó solo** — el agente arranca junto con Windows y
+espera a que haya internet (aunque el Wi-Fi tarde en conectarse). Si aun así
+no aparece nada nuevo en `impresion.log` al prender la PC, el acceso directo de
+inicio se borró: correr `ocultar.bat` una vez lo vuelve a dejar.
 
 **¿Está funcionando, si no se ve nada?** Abrí `impresion.log`: anota cada receta que
 imprime, con fecha y hora.
