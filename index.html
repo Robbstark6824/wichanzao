@@ -601,31 +601,51 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-espera.media{color:var(--yodo)}
 .qx-espera.larga{color:var(--alarma);font-weight:700}
 
-/* FIRMA · riel de fases. Cuatro compuertas reales, ya presentes en la
-   lógica: captación, exámenes, riesgo/anestesia, sala. El segmento
-   donde se traba queda rayado; los cumplidos, macizos. */
-.qx-riel{display:flex;gap:3px;margin-top:10px;align-items:center}
-.qx-riel i{flex:1;height:5px;border-radius:1px;background:var(--s2);position:relative}
-.qx-riel i.ok{background:var(--tl)}
-.qx-riel i.aqui{background:repeating-linear-gradient(135deg,var(--yodo),var(--yodo) 2px,transparent 2px,transparent 5px);
-  box-shadow:inset 0 0 0 1px var(--yodo)}
-.qx-riel i.fin{background:var(--t3)}
-/* Dentro del tramo trabado, lo ya cumplido se pinta macizo: se ve cuánto
-   falta para que el tramo entero pase a verde. */
-.qx-riel i.aqui u{position:absolute;left:0;top:0;bottom:0;background:var(--tl);border-radius:1px 0 0 1px}
-.qx-riel b{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.1em;
-  color:var(--t3);margin-left:6px;text-transform:uppercase;white-space:nowrap}
-.qx-riel b.aqui{color:var(--yodo);font-weight:600}
-/* Debajo del riel, lo concreto: qué le falta en la compuerta donde está
-   trabada. Quien mira el parte dice «solo le falta esto». */
-.qx-falta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 5px;margin-top:7px}
-.qx-falta b{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--yodo);margin-right:3px}
-.qx-falta span{font-family:var(--mono);font-size:10.5px;line-height:1.3;color:var(--t1);
-  padding:2px 7px 2px 6px;border:1px solid var(--bd);border-radius:3px;background:var(--bg);
-  letter-spacing:-.01em;white-space:nowrap}
-.qx-falta span::before{content:'';display:inline-block;width:6px;height:6px;border:1.5px solid var(--yodo);
-  border-radius:50%;margin-right:5px;vertical-align:0}
+/* FIRMA · el recorrido completo, de la captación a la cirugía. Siete
+   casillas en fila, una por fase, con cada paso marcado: hecho (✓ verde),
+   en curso (naranja) o por venir (gris). Quien mira el parte sabe en qué
+   fase está la paciente y qué le falta sin abrir la ficha. */
+.qx-proceso{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:10px}
+.qx-fase{background:var(--bg);border:1px solid var(--bd);border-radius:3px;padding:6px 8px 7px;min-width:0}
+.qx-fase .fh{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qx-fase .fh i{flex-shrink:0;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--bd);
+  font-style:normal;font-size:8.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--t3);background:var(--s1);letter-spacing:0}
+.qx-fase .fi{font-family:var(--mono);font-size:10.5px;line-height:1.35;color:var(--t3);
+  display:flex;align-items:baseline;gap:5px;min-width:0;letter-spacing:-.01em}
+.qx-fase .fi b{flex-shrink:0;width:7px;height:7px;border-radius:50%;border:1.5px solid var(--bd);
+  align-self:center;font-size:0}
+.qx-fase .fi em{font-style:normal;color:var(--t3);font-size:9.5px;margin-left:auto;padding-left:4px;white-space:nowrap}
+/* Paso informativo: se registra pero no bloquea la fase */
+.qx-fase .fi.info b{border-style:dashed}
+/* Paso cumplido */
+.qx-fase .fi.ok{color:var(--t1)}
+.qx-fase .fi.ok b{border:none;width:auto;height:auto;font-size:10px;line-height:1;color:var(--tl);font-weight:800}
+/* Fase cumplida */
+.qx-fase.ok{border-color:rgba(46,125,110,.32)}
+.qx-fase.ok .fh{color:var(--tl)}
+.qx-fase.ok .fh i{background:var(--tl);border-color:var(--tl);color:#fff}
+/* Fase en curso: la que hay que mirar */
+.qx-fase.aqui{background:var(--s1);border-color:var(--yodo);box-shadow:0 0 0 1px var(--yodo)}
+.qx-fase.aqui .fh{color:var(--yodo)}
+.qx-fase.aqui .fh i{border-color:var(--yodo);color:var(--yodo)}
+.qx-fase.aqui .fi{color:var(--t2)}
+.qx-fase.aqui .fi b{border-color:var(--yodo)}
+/* Cerrada sin operar (suspendida / cerrado sin cirugía) */
+.qx-fase.fin{border-color:var(--t3);background:var(--s2)}
+.qx-fase.fin .fh{color:var(--t2)}
+.qx-fase.fin .fh i{background:var(--t3);border-color:var(--t3);color:#fff}
+.qx-fase.fin .fi{color:var(--t2)}
+.qx-proceso.cerrado .qx-fase:not(.fin){opacity:.6}
+/* En pantalla angosta la fila se desliza; qxProcesoEnfocar deja a la
+   vista la fase en curso. */
+@media (max-width:768px){
+  .qx-proceso{display:flex;overflow-x:auto;padding-bottom:3px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .qx-proceso::-webkit-scrollbar{display:none}
+  .qx-fase{flex:0 0 150px}
+}
 .qx-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .qx-act{width:38px;height:38px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;flex-shrink:0;transition:transform .1s;line-height:1}
 .qx-act:active{transform:scale(.92)}
@@ -6539,6 +6559,7 @@ function qxRender(){
     html += qxTarjetaHtml(data[k]);
   }
   list.innerHTML = html;
+  qxProcesoEnfocar(list);
 }
 
 
@@ -6587,80 +6608,108 @@ function qxDiasEspera(p){
   return dias < 0 ? 0 : dias;
 }
 
-/* Las cuatro compuertas del riel, con la misma lógica que ya gobierna
-   el detalle. Devuelve en qué compuerta está trabada la paciente. */
-var QX_FASES = ['Captación','Exámenes','Riesgo','Sala'];
-function qxFaseActual(p){
-  if (qxEstadoTerminal(p.estado)) return 4;          // fuera de lista
-  if (p.estado === 'programada' || p.estado === 'hospitalizada') return 4;
-  if (p.estado === 'apta_para_sala') return 3;
-  if (!qxFase2Completa(p)) return 1;
-  if (!qxFase3Completa(p)) return 2;
-  if (!qxFase4Completa(p)) return 3;
-  return 3;
-}
+/* dd/mm para las casillas del recorrido, donde no cabe el año. */
+function qxFechaCorta(d){ if(!d) return ''; var p=String(d).slice(0,10).split('-'); return p.length===3 ? p[2]+'/'+p[1] : ''; }
 
-/* Los ítems de la compuerta donde está trabada la paciente, con su estado.
-   Es la misma regla de qxFaseActual y de las fases del detalle, expresada
-   como lista: lo que alguien mira en el parte y dice «solo le falta esto».
-   Solo la compuerta actual: lo de las siguientes todavía no se puede
-   marcar (el detalle lo bloquea), así que listarlo sería ruido. */
-function qxFaltaItems(p){
+/* Todo el recorrido de la paciente, de la captación a la cirugía, con cada
+   paso marcado. Son los mismos campos que gobiernan las fases del detalle
+   (qxFaseNCompleta y los estados), puestos en fila. Cada fase se considera
+   cumplida cuando todos sus pasos lo están; la fase en curso es la primera
+   que no lo está. */
+function qxProcesoFases(p){
   var e = p.estado;
-  if (qxEstadoTerminal(e) || e === 'hospitalizada') return [];
-  if (e === 'programada') return [{label:'Asignar cama', ok:!!p.cama_hospitalizacion}];
-  if (e === 'apta_para_sala') return [
-    {label:'Fecha de cirugía', ok:!!p.fecha_cirugia},
-    {label:'Turno', ok:!!p.turno}
+  var apta = e==='apta_para_sala' || e==='programada' || e==='hospitalizada' || e==='operada';
+  var hosp = e==='hospitalizada' || e==='operada';
+  var captada = p.fecha_captacion || (p.created_at ? String(p.created_at).slice(0,10) : '');
+  // Los pasos con info:true se muestran pero no deciden si la fase está
+  // cumplida: la ficha no los exige para avanzar y el recorrido no debe
+  // contradecirla.
+  var fases = [
+    { nombre:'Captación', items:[
+      {label:'Captada', ok:true, extra:qxFechaCorta(captada)} ] },
+    { nombre:'Exámenes', items:[
+      {label:'Laboratorio', ok:!!p.laboratorio_completo},
+      {label:'EKG', ok:!!p.ekg} ] },
+    { nombre:'Riesgo', items:[
+      {label:'Cita cardiología', ok:!!p.fecha_cita_cardiologia, extra:qxFechaCorta(p.fecha_cita_cardiologia)},
+      {label:'Cita anestesiología', ok:!!p.fecha_cita_anestesiologia, extra:qxFechaCorta(p.fecha_cita_anestesiologia)},
+      {label:'Riesgo quirúrgico', ok:!!p.riesgo_qx},
+      {label:'Riesgo anestesiológico', ok:!!p.riesgo_anestesiologico} ] },
+    { nombre:'Pre-hospitalización', items:[
+      {label:'HCL de hospitalización', ok:!!p.hcl_hospitalizacion},
+      {label:'Consentimientos firmados', ok:!!p.consentimientos},
+      {label:'Solicitud de sala dejada', ok:!!p.solicitud_sala_dejada},
+      {label:'Receta asignada', ok:!!p.tipo_receta, info:true},
+      {label:'Recetas entregadas', ok:!!p.recetas_entregadas},
+      {label:'Apta para sala', ok:apta} ] },
+    { nombre:'Programación', items:[
+      {label:'Fecha de cirugía', ok:!!p.fecha_cirugia, extra:qxFechaCorta(p.fecha_cirugia)},
+      {label:'Turno', ok:!!p.turno, extra:(p.turno==='manana'?'Mañana':(p.turno==='tarde'?'Tarde':''))} ] },
+    { nombre:'Hospitalización', items:[
+      {label:'Cama', ok:!!p.cama_hospitalizacion || hosp, extra:p.cama_hospitalizacion||''} ] },
+    { nombre:'Cirugía', items:[
+      {label:'Operada', ok:e==='operada'} ] }
   ];
-  if (!qxFase2Completa(p)) return [
-    {label:'Laboratorio', ok:!!p.laboratorio_completo},
-    {label:'EKG', ok:!!p.ekg}
-  ];
-  if (!qxFase3Completa(p)) return [
-    {label:'Cita cardiología', ok:!!p.fecha_cita_cardiologia},
-    {label:'Cita anestesiología', ok:!!p.fecha_cita_anestesiologia},
-    {label:'Riesgo quirúrgico', ok:!!p.riesgo_qx},
-    {label:'Riesgo anestesiológico', ok:!!p.riesgo_anestesiologico}
-  ];
-  if (!qxFase4Completa(p)) return [
-    {label:'HCL hospitalización', ok:!!p.hcl_hospitalizacion},
-    {label:'Consentimientos', ok:!!p.consentimientos},
-    {label:'Solicitud de sala', ok:!!p.solicitud_sala_dejada},
-    {label:'Recetas entregadas', ok:!!p.recetas_entregadas}
-  ];
-  return [{label:'Marcar apta para sala', ok:false}];
+  // Imágenes solo cuenta si la ficha dice que aplica (dato GERESA).
+  if (qxNorm(p.aplica_imagenes) === 'si'){
+    fases[1].items.push({label:'Imágenes', ok:!!p.fecha_imagenes, extra:qxFechaCorta(p.fecha_imagenes), info:true});
+  }
+  // La fase en curso la dicta el estado cuando ya pasó "en trámite"
+  // (apta → Programación, programada → Hospitalización, hospitalizada →
+  // Cirugía). En trámite, es la primera de exámenes / riesgo / pre-hosp
+  // que no está completa. Así una ficha antigua con datos incompletos no
+  // devuelve a la paciente a una fase que ya pasó.
+  var terminal = qxEstadoTerminal(e);
+  var aqui = -1;
+  if (e === 'apta_para_sala') aqui = 4;
+  else if (e === 'programada') aqui = 5;
+  else if (e === 'hospitalizada') aqui = 6;
+  for (var i=0;i<fases.length;i++){
+    var f = fases[i], ok = true;
+    for (var j=0;j<f.items.length;j++) if (!f.items[j].ok && !f.items[j].info) ok = false;
+    f.estado = ok ? 'ok' : '';
+    if (!ok && aqui < 0 && !terminal) aqui = i;
+  }
+  if (aqui >= 0 && !terminal) fases[aqui].estado = 'aqui';
+  // Suspendida / cerrada sin cirugía: la última casilla dice cómo terminó.
+  if (terminal && e !== 'operada'){
+    var ult = fases[fases.length-1];
+    ult.estado = 'fin';
+    ult.items = [{label:qxEstadoLabel(e), ok:false, extra:qxFechaCorta(p.fecha_suspension || p.fecha_referencia || '')}];
+  }
+  return fases;
 }
 
-function qxFaltaHtml(p){
-  var items = qxFaltaItems(p);
-  var h = '';
-  for (var i=0;i<items.length;i++){
-    if (!items[i].ok) h += '<span>'+qxEsc(items[i].label)+'</span>';
+function qxProcesoHtml(p){
+  var fases = qxProcesoFases(p);
+  var cerrado = qxEstadoTerminal(p.estado) && p.estado !== 'operada';
+  var h = '<div class="qx-proceso'+(cerrado?' cerrado':'')+'">';
+  for (var i=0;i<fases.length;i++){
+    var f = fases[i];
+    var badge = f.estado==='ok' ? '✓' : (f.estado==='fin' ? '×' : String(i+1));
+    h += '<div class="qx-fase '+f.estado+'"><div class="fh"><i>'+badge+'</i>'+qxEsc(f.nombre)+'</div>';
+    for (var j=0;j<f.items.length;j++){
+      var it = f.items[j];
+      h += '<div class="fi'+(it.ok?' ok':'')+(it.info?' info':'')+'"><b>'+(it.ok?'✓':'')+'</b><span>'+qxEsc(it.label)+'</span>'
+        + (it.extra ? '<em>'+qxEsc(it.extra)+'</em>' : '')
+        + '</div>';
+    }
+    h += '</div>';
   }
-  return h ? '<div class="qx-falta"><b>Falta</b>'+h+'</div>' : '';
-}
-
-function qxRielHtml(p){
-  var fase = qxFaseActual(p);
-  var terminal = qxEstadoTerminal(p.estado);
-  var items = qxFaltaItems(p);
-  var hechos = 0;
-  for (var j=0;j<items.length;j++) if (items[j].ok) hechos++;
-  var h = '<div class="qx-riel">';
-  for (var i=0;i<4;i++){
-    var cls = terminal ? 'fin' : (i < fase ? 'ok' : (i === fase ? 'aqui' : ''));
-    // En el tramo trabado, la parte ya cumplida va maciza.
-    var parcial = (cls === 'aqui' && hechos && items.length)
-      ? '<u style="width:'+Math.round(hechos / items.length * 100)+'%"></u>' : '';
-    h += '<i class="'+cls+'">'+parcial+'</i>';
-  }
-  // En la compuerta 4 ya no hay "siguiente fase": lo que corresponde
-  // decir es el estado (Programada / Hospitalizada / cerrada).
-  var rotulo = (terminal || fase >= QX_FASES.length) ? qxEstadoLabel(p.estado) : QX_FASES[fase];
-  var marca = (terminal || fase >= QX_FASES.length) ? '' : 'aqui';
-  h += '<b class="'+marca+'">'+qxEsc(rotulo)+'</b>';
   return h + '</div>';
+}
+
+/* En pantallas angostas la fila de fases se desliza; se deja a la vista la
+   fase en curso (con la anterior asomando) para no tener que buscarla. */
+function qxProcesoEnfocar(root){
+  if (!root) return;
+  var tiras = root.querySelectorAll('.qx-proceso');
+  for (var i=0;i<tiras.length;i++){
+    var t = tiras[i];
+    if (t.scrollWidth <= t.clientWidth + 2) continue;
+    var aqui = t.querySelector('.qx-fase.aqui');
+    if (aqui) t.scrollLeft = Math.max(0, aqui.offsetLeft - t.offsetLeft - 40);
+  }
 }
 
 function qxTarjetaHtml(p){
@@ -6680,8 +6729,7 @@ function qxTarjetaHtml(p){
     + '</div>'
     + '<div class="dni">'+qxEsc(p.dni||'—')+(p.hcl?' · HC '+qxEsc(p.hcl):'')+(p.edad?' · '+p.edad+'a':'')+qxEGChip(p)+'</div>'
     + (qxDxPrincipal(p) ? '<div class="dx">'+qxEsc(qxDxPrincipal(p))+'</div>' : '')
-    + qxRielHtml(p)
-    + qxFaltaHtml(p)
+    + qxProcesoHtml(p)
     + '</div>';
 }
 
@@ -6774,6 +6822,7 @@ function qxRenderCalendario(){
   }
 
   cal.innerHTML = html;
+  qxProcesoEnfocar(cal);
 }
 
 function qxChecklistItems(p){
