@@ -633,6 +633,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-fase.aqui .fh i{border-color:var(--yodo);color:var(--yodo)}
 .qx-fase.aqui .fi{color:var(--t2)}
 .qx-fase.aqui .fi b{border-color:var(--yodo)}
+/* Programada anticipadamente: fecha y turno puestos con pasos previos
+   pendientes. Mismo rojo que la regla de la tarjeta. */
+.qx-fase.antes{border-color:rgba(179,64,58,.55)}
+.qx-fase.antes .fh{color:var(--alarma)}
+.qx-fase.antes .fh i{background:var(--alarma);border-color:var(--alarma);color:#fff}
+.qx-fase.antes .fi{color:var(--t1)}
 /* Cerrada sin operar (suspendida / cerrado sin cirugía) */
 .qx-fase.fin{border-color:var(--t3);background:var(--s2)}
 .qx-fase.fin .fh{color:var(--t2)}
@@ -6618,7 +6624,6 @@ function qxFechaCorta(d){ if(!d) return ''; var p=String(d).slice(0,10).split('-
    que no lo está. */
 function qxProcesoFases(p){
   var e = p.estado;
-  var apta = e==='apta_para_sala' || e==='programada' || e==='hospitalizada' || e==='operada';
   var hosp = e==='hospitalizada' || e==='operada';
   var captada = p.fecha_captacion || (p.created_at ? String(p.created_at).slice(0,10) : '');
   // Los pasos con info:true se muestran pero no deciden si la fase está
@@ -6630,18 +6635,16 @@ function qxProcesoFases(p){
     { nombre:'Exámenes', items:[
       {label:'Laboratorio', ok:!!p.laboratorio_completo},
       {label:'EKG', ok:!!p.ekg} ] },
+    // Riesgo: solo las dos evaluaciones. Las citas quedan en la ficha; con
+    // el riesgo evaluado ya se sabe que la cita ocurrió.
     { nombre:'Riesgo', items:[
-      {label:'Cita cardiología', ok:!!p.fecha_cita_cardiologia, extra:qxFechaCorta(p.fecha_cita_cardiologia)},
-      {label:'Cita anestesiología', ok:!!p.fecha_cita_anestesiologia, extra:qxFechaCorta(p.fecha_cita_anestesiologia)},
       {label:'Riesgo quirúrgico', ok:!!p.riesgo_qx},
       {label:'Riesgo anestesiológico', ok:!!p.riesgo_anestesiologico} ] },
     { nombre:'Pre-hospitalización', items:[
       {label:'HCL de hospitalización', ok:!!p.hcl_hospitalizacion},
       {label:'Consentimientos firmados', ok:!!p.consentimientos},
       {label:'Solicitud de sala dejada', ok:!!p.solicitud_sala_dejada},
-      {label:'Receta asignada', ok:!!p.tipo_receta, info:true},
-      {label:'Recetas entregadas', ok:!!p.recetas_entregadas},
-      {label:'Apta para sala', ok:apta} ] },
+      {label:'Recetas entregadas', ok:!!p.recetas_entregadas} ] },
     { nombre:'Programación', items:[
       {label:'Fecha de cirugía', ok:!!p.fecha_cirugia, extra:qxFechaCorta(p.fecha_cirugia)},
       {label:'Turno', ok:!!p.turno, extra:(p.turno==='manana'?'Mañana':(p.turno==='tarde'?'Tarde':''))} ] },
@@ -6656,9 +6659,9 @@ function qxProcesoFases(p){
   }
   // La fase en curso la dicta el estado cuando ya pasó "en trámite"
   // (apta → Programación, programada → Hospitalización, hospitalizada →
-  // Cirugía). En trámite, es la primera de exámenes / riesgo / pre-hosp
-  // que no está completa. Así una ficha antigua con datos incompletos no
-  // devuelve a la paciente a una fase que ya pasó.
+  // Cirugía). En trámite, es la primera de exámenes / riesgo / pre-hosp /
+  // programación que no está completa. Así una ficha antigua con datos
+  // incompletos no devuelve a la paciente a una fase que ya pasó.
   var terminal = qxEstadoTerminal(e);
   var aqui = -1;
   if (e === 'apta_para_sala') aqui = 4;
@@ -6668,9 +6671,16 @@ function qxProcesoFases(p){
     var f = fases[i], ok = true;
     for (var j=0;j<f.items.length;j++) if (!f.items[j].ok && !f.items[j].info) ok = false;
     f.estado = ok ? 'ok' : '';
-    if (!ok && aqui < 0 && !terminal) aqui = i;
+    if (!ok && aqui < 0 && !terminal && i <= 4) aqui = i;
   }
   if (aqui >= 0 && !terminal) fases[aqui].estado = 'aqui';
+  // Fecha y turno puestos sin haber completado lo anterior (programación
+  // anticipada, la misma regla que pinta en rojo la regla de la tarjeta):
+  // la casilla lo dice en rojo y la fase en curso sigue siendo la que falta.
+  if (qxProgramadaPendiente(p) && fases[4].estado === 'ok'){
+    fases[4].estado = 'antes';
+    fases[4].nota = 'anticipada';
+  }
   // Suspendida / cerrada sin cirugía: la última casilla dice cómo terminó.
   if (terminal && e !== 'operada'){
     var ult = fases[fases.length-1];
@@ -6686,8 +6696,8 @@ function qxProcesoHtml(p){
   var h = '<div class="qx-proceso'+(cerrado?' cerrado':'')+'">';
   for (var i=0;i<fases.length;i++){
     var f = fases[i];
-    var badge = f.estado==='ok' ? '✓' : (f.estado==='fin' ? '×' : String(i+1));
-    h += '<div class="qx-fase '+f.estado+'"><div class="fh"><i>'+badge+'</i>'+qxEsc(f.nombre)+'</div>';
+    var badge = f.estado==='ok' ? '✓' : (f.estado==='fin' ? '×' : (f.estado==='antes' ? '!' : String(i+1)));
+    h += '<div class="qx-fase '+f.estado+'"><div class="fh"><i>'+badge+'</i>'+qxEsc(f.nombre)+(f.nota ? ' · '+qxEsc(f.nota) : '')+'</div>';
     for (var j=0;j<f.items.length;j++){
       var it = f.items[j];
       h += '<div class="fi'+(it.ok?' ok':'')+(it.info?' info':'')+'"><b>'+(it.ok?'✓':'')+'</b><span>'+qxEsc(it.label)+'</span>'
