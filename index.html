@@ -610,9 +610,22 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-riel i.aqui{background:repeating-linear-gradient(135deg,var(--yodo),var(--yodo) 2px,transparent 2px,transparent 5px);
   box-shadow:inset 0 0 0 1px var(--yodo)}
 .qx-riel i.fin{background:var(--t3)}
+/* Dentro del tramo trabado, lo ya cumplido se pinta macizo: se ve cuánto
+   falta para que el tramo entero pase a verde. */
+.qx-riel i.aqui u{position:absolute;left:0;top:0;bottom:0;background:var(--tl);border-radius:1px 0 0 1px}
 .qx-riel b{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.1em;
   color:var(--t3);margin-left:6px;text-transform:uppercase;white-space:nowrap}
 .qx-riel b.aqui{color:var(--yodo);font-weight:600}
+/* Debajo del riel, lo concreto: qué le falta en la compuerta donde está
+   trabada. Quien mira el parte dice «solo le falta esto». */
+.qx-falta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 5px;margin-top:7px}
+.qx-falta b{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--yodo);margin-right:3px}
+.qx-falta span{font-family:var(--mono);font-size:10.5px;line-height:1.3;color:var(--t1);
+  padding:2px 7px 2px 6px;border:1px solid var(--bd);border-radius:3px;background:var(--bg);
+  letter-spacing:-.01em;white-space:nowrap}
+.qx-falta span::before{content:'';display:inline-block;width:6px;height:6px;border:1.5px solid var(--yodo);
+  border-radius:50%;margin-right:5px;vertical-align:0}
 .qx-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .qx-act{width:38px;height:38px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;flex-shrink:0;transition:transform .1s;line-height:1}
 .qx-act:active{transform:scale(.92)}
@@ -6587,13 +6600,60 @@ function qxFaseActual(p){
   return 3;
 }
 
+/* Los ítems de la compuerta donde está trabada la paciente, con su estado.
+   Es la misma regla de qxFaseActual y de las fases del detalle, expresada
+   como lista: lo que alguien mira en el parte y dice «solo le falta esto».
+   Solo la compuerta actual: lo de las siguientes todavía no se puede
+   marcar (el detalle lo bloquea), así que listarlo sería ruido. */
+function qxFaltaItems(p){
+  var e = p.estado;
+  if (qxEstadoTerminal(e) || e === 'hospitalizada') return [];
+  if (e === 'programada') return [{label:'Asignar cama', ok:!!p.cama_hospitalizacion}];
+  if (e === 'apta_para_sala') return [
+    {label:'Fecha de cirugía', ok:!!p.fecha_cirugia},
+    {label:'Turno', ok:!!p.turno}
+  ];
+  if (!qxFase2Completa(p)) return [
+    {label:'Laboratorio', ok:!!p.laboratorio_completo},
+    {label:'EKG', ok:!!p.ekg}
+  ];
+  if (!qxFase3Completa(p)) return [
+    {label:'Cita cardiología', ok:!!p.fecha_cita_cardiologia},
+    {label:'Cita anestesiología', ok:!!p.fecha_cita_anestesiologia},
+    {label:'Riesgo quirúrgico', ok:!!p.riesgo_qx},
+    {label:'Riesgo anestesiológico', ok:!!p.riesgo_anestesiologico}
+  ];
+  if (!qxFase4Completa(p)) return [
+    {label:'HCL hospitalización', ok:!!p.hcl_hospitalizacion},
+    {label:'Consentimientos', ok:!!p.consentimientos},
+    {label:'Solicitud de sala', ok:!!p.solicitud_sala_dejada},
+    {label:'Recetas entregadas', ok:!!p.recetas_entregadas}
+  ];
+  return [{label:'Marcar apta para sala', ok:false}];
+}
+
+function qxFaltaHtml(p){
+  var items = qxFaltaItems(p);
+  var h = '';
+  for (var i=0;i<items.length;i++){
+    if (!items[i].ok) h += '<span>'+qxEsc(items[i].label)+'</span>';
+  }
+  return h ? '<div class="qx-falta"><b>Falta</b>'+h+'</div>' : '';
+}
+
 function qxRielHtml(p){
   var fase = qxFaseActual(p);
   var terminal = qxEstadoTerminal(p.estado);
+  var items = qxFaltaItems(p);
+  var hechos = 0;
+  for (var j=0;j<items.length;j++) if (items[j].ok) hechos++;
   var h = '<div class="qx-riel">';
   for (var i=0;i<4;i++){
     var cls = terminal ? 'fin' : (i < fase ? 'ok' : (i === fase ? 'aqui' : ''));
-    h += '<i class="'+cls+'"></i>';
+    // En el tramo trabado, la parte ya cumplida va maciza.
+    var parcial = (cls === 'aqui' && hechos && items.length)
+      ? '<u style="width:'+Math.round(hechos / items.length * 100)+'%"></u>' : '';
+    h += '<i class="'+cls+'">'+parcial+'</i>';
   }
   // En la compuerta 4 ya no hay "siguiente fase": lo que corresponde
   // decir es el estado (Programada / Hospitalizada / cerrada).
@@ -6621,6 +6681,7 @@ function qxTarjetaHtml(p){
     + '<div class="dni">'+qxEsc(p.dni||'—')+(p.hcl?' · HC '+qxEsc(p.hcl):'')+(p.edad?' · '+p.edad+'a':'')+qxEGChip(p)+'</div>'
     + (qxDxPrincipal(p) ? '<div class="dx">'+qxEsc(qxDxPrincipal(p))+'</div>' : '')
     + qxRielHtml(p)
+    + qxFaltaHtml(p)
     + '</div>';
 }
 
