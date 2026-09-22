@@ -1154,6 +1154,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <span style="font-size:11px;color:var(--t3)">al</span>
             <input type="date" id="qxCaptHasta" onchange="qxFiltrarCaptacion()">
             <button class="qx-btn" style="padding:6px 10px;font-size:11px" onclick="qxLimpiarCaptacion()">Limpiar</button>
+            <button class="qx-btn tl" style="padding:6px 10px;font-size:11px;margin-left:auto" onclick="qxExportarInforme()" title="PDF de las pacientes en proceso (en trámite, aptas, programadas, hospitalizadas) para informar a los médicos">📄 Informe</button>
           </div>
           <div class="qx-filters" id="qxFilters"></div>
           <div class="qx-list" id="qxList"></div>
@@ -7111,6 +7112,327 @@ async function qxExportarDia(){
 
     doc.save('Programacion_Quirurgica_' + QX_CAL_DIA + '.pdf');
     toast('PDF exportado ✓','success');
+  } catch(e) {
+    toast('Error al exportar: ' + e.message, 'error');
+  }
+}
+
+/* ============================================================
+   INFORME DE PACIENTES EN PROCESO — PDF A4
+   Para informar a los médicos: las pacientes activas (en trámite, aptas
+   para sala, programadas, hospitalizadas) agrupadas por estado, cada una
+   con su recorrido: qué fases tiene cumplidas y qué le falta en la que
+   está. Respeta el filtro de la lista (estado y fechas de captación).
+   Mismo membrete y estilo que el parte quirúrgico del día.
+   ============================================================ */
+function qxPacientesInforme(){
+  var lista = QX_PACIENTES.filter(function(p){ return !qxEstadoTerminal(p.estado); });
+  if (QX_FILTER !== 'todos') lista = lista.filter(function(p){ return qxCuentaComo(p, QX_FILTER); });
+  if (QX_CAPT_DESDE || QX_CAPT_HASTA){
+    lista = lista.filter(function(p){
+      var f = p.fecha_captacion || (p.created_at ? String(p.created_at).slice(0,10) : '');
+      if (QX_CAPT_DESDE && (!f || f < QX_CAPT_DESDE)) return false;
+      if (QX_CAPT_HASTA && (!f || f > QX_CAPT_HASTA)) return false;
+      return true;
+    });
+  }
+  return lista;
+}
+
+function qxExportarInforme(){
+  var lista = qxPacientesInforme();
+  if (!lista.length){ toast('No hay pacientes para el informe','error'); return; }
+
+  try {
+    var jsPDF = window.jspdf.jsPDF;
+    // Apaisado: las siete casillas del recorrido caben en una fila legible.
+    var doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
+    var W = 297, H = 210, M = 12, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
+    var RB = W - M;
+    // Paleta del recorrido, la misma de la tarjeta.
+    var TL = [46,125,110], YODO = [180,101,42], ALARMA = [179,64,58];
+    var T2 = [75,97,91], T3 = [140,158,152], BD = [203,213,208];
+
+    // Grupos en el orden del recorrido. Las programadas anticipadamente van
+    // con las programadas (tienen fecha) y se marcan como tales.
+    var GRUPOS = [
+      ['en_tramite','EN TRÁMITE'],
+      ['apta_para_sala','APTA PARA SALA'],
+      ['programada','PROGRAMADA'],
+      ['hospitalizada','HOSPITALIZADA']
+    ];
+    var grupoDe = function(p){ return qxProgramadaPendiente(p) ? 'programada' : p.estado; };
+    var ordG = {}; for (var g=0; g<GRUPOS.length; g++) ordG[GRUPOS[g][0]] = g;
+    var ordT = { manana:0, tarde:1 };
+    lista = lista.slice().sort(function(a,b){
+      var ga = grupoDe(a), gb = grupoDe(b);
+      if (ordG[ga] !== ordG[gb]) return (ordG[ga]==null?9:ordG[ga]) - (ordG[gb]==null?9:ordG[gb]);
+      if (ga === 'programada' || ga === 'hospitalizada'){
+        // Con fecha: por fecha de cirugía y turno.
+        var fa = a.fecha_cirugia || '9999', fb = b.fecha_cirugia || '9999';
+        if (fa !== fb) return fa < fb ? -1 : 1;
+        var ta = ordT[a.turno]!=null?ordT[a.turno]:2, tb = ordT[b.turno]!=null?ordT[b.turno]:2;
+        if (ta !== tb) return ta - tb;
+      } else {
+        // En espera: la que más lleva esperando, primero.
+        var da = qxDiasEspera(a) || 0, db = qxDiasEspera(b) || 0;
+        if (da !== db) return db - da;
+      }
+      return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
+    });
+
+    var conteo = {};
+    for (var c=0; c<lista.length; c++){ var gc = grupoDe(lista[c]); conteo[gc] = (conteo[gc]||0) + 1; }
+
+    var hoy = new Date();
+    var DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var fechaLarga = DIAS[hoy.getDay()] + ' ' + hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+    var fechaCorta = qxFmtFecha(qxHoyStr());
+
+    // Nota de filtro, si la lista no es la completa.
+    var filtro = [];
+    if (QX_FILTER !== 'todos') filtro.push('solo ' + qxEstadoLabel(QX_FILTER).toLowerCase());
+    if (QX_CAPT_DESDE || QX_CAPT_HASTA) filtro.push('captadas ' + (QX_CAPT_DESDE ? 'del ' + qxFmtFecha(QX_CAPT_DESDE) : '') + (QX_CAPT_HASTA ? ' al ' + qxFmtFecha(QX_CAPT_HASTA) : ''));
+
+    // Palomita blanca dentro de un círculo relleno (leyenda y casillas).
+    var check = function(cx, cy){
+      doc.setDrawColor(255); doc.setLineWidth(0.35);
+      doc.line(cx-0.6, cy+0.05, cx-0.18, cy+0.5);
+      doc.line(cx-0.18, cy+0.5, cx+0.62, cy-0.45);
+    };
+
+    var membrete = function(){
+      var yy = 11;
+      try { if (QX_RECETA_LOGO.minsa) doc.addImage(QX_RECETA_LOGO.minsa, 'JPEG', M, yy+1, 34, 9.1); } catch(e){}
+      try { if (QX_RECETA_LOGO.gore)  doc.addImage(QX_RECETA_LOGO.gore, 'JPEG', RB-13, yy-1, 13, 13); } catch(e){}
+      doc.setTextColor(INK); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      doc.text(T(QX_RECETA_CAB.l1), W/2, yy+4, { align:'center' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
+      doc.text('Servicio de Ginecología y Obstetricia', W/2, yy+8.6, { align:'center' });
+      doc.setFontSize(7);
+      doc.text(T(QX_RECETA_CAB.l2 + '  ·  ' + QX_RECETA_CAB.l3), W/2, yy+12.4, { align:'center' });
+      yy += 16;
+      doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
+      yy += 6;
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(INK);
+      doc.text('PACIENTES EN PROCESO QUIRÚRGICO', W/2, yy, { align:'center' });
+      yy += 4.8;
+      var pz = [];
+      for (var g=0; g<GRUPOS.length; g++) if (conteo[GRUPOS[g][0]]) pz.push(conteo[GRUPOS[g][0]] + ' ' + GRUPOS[g][1].toLowerCase());
+      var sub = lista.length + (lista.length===1?' paciente':' pacientes') + (pz.length ? '  (' + pz.join(' · ') + ')' : '');
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(SOFT);
+      doc.text(T(fechaLarga + '   ·   ' + sub), W/2, yy, { align:'center' });
+      if (filtro.length){
+        yy += 4;
+        doc.setFontSize(7.5);
+        doc.text(T('Filtro: ' + filtro.join(' · ')), W/2, yy, { align:'center' });
+      }
+      // Leyenda de símbolos, centrada.
+      yy += 5.2;
+      var items = [
+        { tipo:'ok',   txt:'paso cumplido' },
+        { tipo:'aqui', txt:'fase en curso' },
+        { tipo:'pend', txt:'pendiente' },
+        { tipo:'antes',txt:'programación anticipada' }
+      ];
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.8);
+      var total = 0;
+      for (var li=0; li<items.length; li++){ items[li].w = 5 + doc.getTextWidth(T(items[li].txt)); total += items[li].w + 7; }
+      var lx = W/2 - (total - 7)/2;
+      for (var lj=0; lj<items.length; lj++){
+        var it = items[lj], sx = lx + 1.4, sy = yy - 0.9;
+        if (it.tipo === 'ok'){ doc.setFillColor(TL[0],TL[1],TL[2]); doc.circle(sx, sy, 1.05, 'F'); check(sx, sy); }
+        else if (it.tipo === 'pend'){ doc.setDrawColor(T3[0],T3[1],T3[2]); doc.setLineWidth(0.3); doc.circle(sx, sy, 0.95, 'S'); }
+        else if (it.tipo === 'aqui'){ doc.setDrawColor(YODO[0],YODO[1],YODO[2]); doc.setLineWidth(0.45); doc.setFillColor(255,255,255); doc.roundedRect(sx-1.4, sy-1.2, 2.8, 2.4, 0.4, 0.4, 'FD'); }
+        else { doc.setFillColor(ALARMA[0],ALARMA[1],ALARMA[2]); doc.circle(sx, sy, 1.05, 'F'); doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(255); doc.text('!', sx, sy+0.6, { align:'center' }); doc.setFont('helvetica','normal'); doc.setFontSize(6.8); }
+        doc.setTextColor(SOFT);
+        doc.text(T(it.txt), lx + 4.2, yy);
+        lx += it.w + 7;
+      }
+      return yy + 7;
+    };
+    var contHeader = function(){
+      var yy = 12;
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
+      doc.text(T('PACIENTES EN PROCESO QUIRÚRGICO · ' + fechaCorta + ' — continúa'), M, yy);
+      yy += 3.5;
+      doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
+      return yy + 6;
+    };
+
+    var y = membrete();
+    var grupoActual = '__none__';
+
+    var bandaGrupo = function(g){
+      var lbl = '';
+      for (var i=0;i<GRUPOS.length;i++) if (GRUPOS[i][0]===g) lbl = GRUPOS[i][1];
+      if (!lbl) lbl = qxEstadoLabel(g).toUpperCase();
+      lbl += '   (' + (conteo[g]||0) + ')';
+      y += 2.5;
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(INK);
+      doc.text(T(lbl), M, y);
+      var tw = doc.getTextWidth(T(lbl));
+      doc.setDrawColor(RULE); doc.setLineWidth(0.3); doc.line(M + tw + 4, y - 1, RB, y - 1);
+      y += 6;
+    };
+
+    // --- Geometría ---
+    var BX = M, BW = RB - M, PADX = 3.5, HBANDH = 7;
+    var NBOX = 7, GAPB = 1.6;
+    var BOXW = (BW - 2*PADX - GAPB*(NBOX-1)) / NBOX;
+    var BOXHEAD = 5.2, ITEMH = 3.45;
+
+    for (var k=0;k<lista.length;k++){
+      var p = lista[k];
+      var fases = qxProcesoFases(p);
+      var anticipada = qxProgramadaPendiente(p);
+
+      // Diagnóstico (en gestante, la edad gestacional va primero) y procedimiento.
+      var dxg = qxDxGestacion(p), dxs = [];
+      if (dxg) dxs.push(dxg);
+      if (p.diagnostico) dxs.push(p.diagnostico + (p.cie10 ? ' (' + p.cie10 + ')' : ''));
+      else if (p.cie10) dxs.push(p.cie10);
+      if (p.diagnostico_secundario) dxs.push(p.diagnostico_secundario);
+      var proc = p.procedimiento || (p.tipo_receta ? qxTipoRecetaTexto(p.tipo_receta) : '');
+      var info = 'Dx: ' + (dxs.length ? dxs.join('  ·  ') : '—') + (proc ? '     Proc: ' + proc : '');
+      doc.setFontSize(8);
+      var infoLines = doc.splitTextToSize(T(info), BW - 2*PADX);
+      if (infoLines.length > 2) infoLines = infoLines.slice(0,2);
+
+      var cir = '';
+      if (p.fecha_cirugia){
+        cir = 'Cirugía: ' + qxFmtFecha(p.fecha_cirugia) + (p.turno==='manana' ? '  ·  Mañana' : p.turno==='tarde' ? '  ·  Tarde' : '');
+        if (p.cama_hospitalizacion) cir += '  ·  ' + p.cama_hospitalizacion;
+        if (anticipada) cir += '  ·  ANTICIPADA: fecha puesta sin completar el proceso';
+      }
+
+      var maxItems = 1;
+      for (var f=0; f<fases.length; f++) if (fases[f].items.length > maxItems) maxItems = fases[f].items.length;
+      var boxH = BOXHEAD + maxItems * ITEMH + 1.3;
+      var cardH = HBANDH + 2 + infoLines.length * 3.8 + (cir ? 3.8 : 0) + 1.4 + boxH + 2.4;
+
+      var grupo = grupoDe(p);
+      if (y + cardH + (grupo !== grupoActual ? 9 : 0) > H - 12){ doc.addPage(); y = contHeader(); grupoActual = '__none__'; }
+      if (grupo !== grupoActual){ grupoActual = grupo; bandaGrupo(grupo); }
+
+      // Marco + banda del nombre.
+      doc.setFillColor(237, 239, 242);
+      doc.rect(BX, y, BW, HBANDH, 'F');
+      doc.setDrawColor(RULE); doc.setLineWidth(0.2);
+      doc.roundedRect(BX, y, BW, cardH, 1.4, 1.4);
+      doc.line(BX, y + HBANDH, BX + BW, y + HBANDH);
+
+      var hb = y + HBANDH - 2.5;
+      var meta = [];
+      if (p.dni) meta.push('DNI ' + p.dni);
+      if (p.hcl) meta.push('HCL ' + p.hcl);
+      var tel = qxTelefono(p);
+      if (tel) meta.push('Cel ' + tel);
+      if (p.edad != null && p.edad !== '') meta.push(p.edad + ' años');
+      var dias = qxDiasEspera(p);
+      if (dias !== null) meta.push(dias + (dias===1 ? ' día de espera' : ' días de espera'));
+      var metaStr = T(meta.join('   ·   '));
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+      var metaW = doc.getTextWidth(metaStr);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK);
+      doc.text(String(k+1), BX + 3.5, hb);
+      doc.text(doc.splitTextToSize(T((p.nombre || '—').toUpperCase()), BW - 14 - metaW - 6)[0], BX + 10.5, hb);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(SOFT);
+      doc.text(metaStr, BX + BW - 3.5, hb, { align:'right' });
+
+      // Dx / procedimiento / cirugía.
+      var iy = y + HBANDH + 2 + 3;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(INK);
+      for (var il=0; il<infoLines.length; il++){ doc.text(infoLines[il], BX + PADX, iy); iy += 3.8; }
+      if (cir){
+        doc.setFont('helvetica','bold');
+        if (anticipada) doc.setTextColor(ALARMA[0], ALARMA[1], ALARMA[2]); else doc.setTextColor(TL[0], TL[1], TL[2]);
+        doc.text(T(cir), BX + PADX, iy); iy += 3.8;
+      }
+
+      // Las siete casillas del recorrido, como en la tarjeta.
+      var by = iy - 3 + 1.4;
+      for (var b=0; b<fases.length; b++){
+        var fase = fases[b];
+        var bx = BX + PADX + b * (BOXW + GAPB);
+        var est = fase.estado;
+        var borde = BD, fill = [240,243,241], head = T3, lw = 0.2;
+        if (est === 'ok'){ borde = [166,201,193]; fill = [236,244,241]; head = TL; }
+        else if (est === 'aqui'){ borde = YODO; fill = [255,255,255]; head = YODO; lw = 0.5; }
+        else if (est === 'antes'){ borde = ALARMA; fill = [250,238,237]; head = ALARMA; lw = 0.4; }
+        else if (est === 'fin'){ borde = T3; fill = [221,229,225]; head = T2; }
+        doc.setFillColor(fill[0], fill[1], fill[2]);
+        doc.setDrawColor(borde[0], borde[1], borde[2]); doc.setLineWidth(lw);
+        doc.roundedRect(bx, by, BOXW, boxH, 1, 1, 'FD');
+
+        // Encabezado: distintivo + nombre de la fase.
+        var cx = bx + 3.4, cy = by + 3.1;
+        if (est === 'ok' || est === 'antes' || est === 'fin'){
+          doc.setFillColor(head[0], head[1], head[2]); doc.circle(cx, cy, 1.6, 'F');
+          if (est === 'ok') check(cx, cy);
+          else {
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(255);
+            doc.text(est === 'antes' ? '!' : 'x', cx, cy + 0.85, { align:'center' });
+          }
+        } else {
+          doc.setDrawColor(head[0], head[1], head[2]); doc.setLineWidth(0.35); doc.circle(cx, cy, 1.6, 'S');
+          doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(head[0], head[1], head[2]);
+          doc.text(String(b+1), cx, cy + 0.8, { align:'center' });
+        }
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(head[0], head[1], head[2]);
+        doc.text(doc.splitTextToSize(T(fase.nombre.toUpperCase()), BOXW - 7.5)[0], bx + 6, cy + 0.8);
+
+        // Pasos.
+        var py = by + BOXHEAD + 2.4;
+        for (var j=0; j<fase.items.length; j++){
+          var it = fase.items[j];
+          var mx = bx + 3.4, my = py - 0.95;
+          if (it.ok){
+            doc.setFillColor(TL[0], TL[1], TL[2]); doc.circle(mx, my, 1.05, 'F'); check(mx, my);
+            doc.setTextColor(INK);
+          } else {
+            var mc = (est === 'aqui') ? YODO : (est === 'fin' ? T2 : T3);
+            doc.setDrawColor(mc[0], mc[1], mc[2]); doc.setLineWidth(it.info ? 0.2 : 0.3); doc.circle(mx, my, 0.95, 'S');
+            var tc = (est === 'aqui' || est === 'fin') ? T2 : T3;
+            doc.setTextColor(tc[0], tc[1], tc[2]);
+          }
+          doc.setFont('helvetica', it.ok ? 'normal' : 'normal'); doc.setFontSize(6.8);
+          var extraW = 0;
+          if (it.extra){
+            doc.setFontSize(6); var ex = T(String(it.extra)); extraW = doc.getTextWidth(ex) + 1.5;
+            doc.setTextColor(SOFT); doc.text(ex, bx + BOXW - 1.8, py, { align:'right' });
+            doc.setFontSize(6.8);
+            if (it.ok) doc.setTextColor(INK); else { var tc2 = (est === 'aqui' || est === 'fin') ? T2 : T3; doc.setTextColor(tc2[0], tc2[1], tc2[2]); }
+          }
+          doc.text(doc.splitTextToSize(T(it.label), BOXW - 7.2 - extraW)[0], bx + 5.9, py);
+          py += ITEMH;
+        }
+        // Programación anticipada: la nota va como renglón propio, en rojo.
+        if (fase.nota){
+          doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(ALARMA[0], ALARMA[1], ALARMA[2]);
+          doc.text(T(fase.nota.charAt(0).toUpperCase() + fase.nota.slice(1)), bx + 5.9, py);
+        }
+      }
+
+      y += cardH + 2.6;
+    }
+
+    // Pie en todas las páginas.
+    var pad = function(n){ return n<10?'0'+n:''+n; };
+    var gen = pad(hoy.getDate())+'/'+pad(hoy.getMonth()+1)+'/'+hoy.getFullYear()+' '+pad(hoy.getHours())+':'+pad(hoy.getMinutes());
+    var footL = 'Generado ' + gen + '   ·   ' + QX_RECETA_CAB.l1 + '   ·   ' + lista.length + (lista.length===1?' paciente en proceso':' pacientes en proceso');
+    var tot = doc.getNumberOfPages();
+    for (var pg=1; pg<=tot; pg++){
+      doc.setPage(pg);
+      doc.setDrawColor(RULE); doc.setLineWidth(0.15); doc.line(M, H-10, RB, H-10);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
+      doc.text(T(footL), M, H-6.5);
+      doc.text(pg + '/' + tot, RB, H-6.5, { align:'right' });
+    }
+
+    doc.save('Pacientes_en_proceso_' + qxHoyStr() + '.pdf');
+    toast('Informe exportado ✓','success');
   } catch(e) {
     toast('Error al exportar: ' + e.message, 'error');
   }
