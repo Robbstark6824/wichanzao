@@ -3756,11 +3756,15 @@ function openCamera(mode) {
 
 function startCamera() {
   _cameraStarting = true;
+  // Se pide la resolución más alta que tenga el celular (ideal nunca falla:
+  // si no llega a 4K el navegador entrega lo mejor que pueda). A 1280x720,
+  // tras recortar al aspecto de la pantalla, la hoja quedaba en ~590 px de
+  // ancho (≈ 60 DPI en A4): por eso los PDF salían borrosos.
   var constraints = {
     video: {
       facingMode: facingMode,
-      width: { ideal: 1280 },
-      height: { ideal: 720 }
+      width: { ideal: 3840 },
+      height: { ideal: 2160 }
     },
     audio: false
   };
@@ -3878,20 +3882,29 @@ function capturePhoto() {
     sy = Math.round((vh - sh) / 2);
   }
 
-  canvas.width = sw;
-  canvas.height = sh;
+  // El lado largo se limita a SCAN_MAX_CAPTURE (≈ 220 DPI en A4): más que
+  // eso no se nota y sí pesa en memoria mientras la foto pasa por el editor.
+  var capScale = Math.min(1, SCAN_MAX_CAPTURE / Math.max(sw, sh));
+  var dw = Math.round(sw * capScale);
+  var dh = Math.round(sh * capScale);
+  canvas.width = dw;
+  canvas.height = dh;
   var ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   // Mirror if front camera
   if (facingMode === 'user') {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, dw, dh);
   if (facingMode === 'user') {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
+  // Calidad alta aquí a propósito: es la "copia maestra" que pasa por el
+  // editor; la compresión final la decide optimizeImage según el presupuesto.
   var dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
   // Flash animation
@@ -4722,7 +4735,9 @@ function confirmQuickName() {
 
 function doUploadFoto(filename, dataUrl) {
   var filePath = '';
-  optimizeImage(dataUrl).then(function(optimized) {
+  var optimizedFoto = dataUrl;
+  optimizeImage(dataUrl, SCAN_MAX_BYTES).then(function(optimized) {
+    optimizedFoto = optimized;
     var blob = dataUrlToBlob(optimized);
     var now = new Date();
     var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
@@ -4738,8 +4753,10 @@ function doUploadFoto(filename, dataUrl) {
     hideQuickName();
     document.getElementById('quickNameInput').disabled = false;
   }).catch(function(err) {
-    // Upload error — queued for offline retry (network) or auth-expired
-    queueOfflineUpload(filename, 'foto', [dataUrl]);
+    // Upload error — queued for offline retry (network) or auth-expired.
+    // Se encola la versión ya optimizada: la captura cruda ahora es grande
+    // y no cabría en localStorage.
+    queueOfflineUpload(filename, 'foto', [optimizedFoto]);
     if (isAuthUploadError(err)) {
       toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
       promptSessionExpired();
@@ -4764,7 +4781,11 @@ function doUploadPdf(filename, pages) {
   // Ahora se optimizan todas a la vez y el PDF + las imágenes sueltas suben
   // en paralelo — mismo resultado final, mismos archivos, en una fracción
   // del tiempo de espera.
-  Promise.all(pages.map(function(p) { return optimizeImage(p); })).then(function(optimizedPages) {
+  // El presupuesto de 2 MB es del PDF completo, no de cada página: se
+  // reparte entre las páginas y así el archivo final no lo excede (jsPDF
+  // incrusta los JPEG tal cual, su overhead son unos pocos KB).
+  var perPage = scanPageBudget(totalPages);
+  Promise.all(pages.map(function(p) { return optimizeImage(p, perPage); })).then(function(optimizedPages) {
     var now = new Date();
     var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     var ts = now.getTime();
@@ -4783,8 +4804,9 @@ function doUploadPdf(filename, pages) {
         document.getElementById('quickNameInput').disabled = false;
       }).catch(function(err) {
         // Subida (PDF o alguna imagen suelta) fallida — se reintenta luego
-        // o la sesión expiró.
-        queueOfflineUpload(filename, 'pdf', pages);
+        // o la sesión expiró. Se encolan las páginas ya optimizadas (las
+        // crudas ahora son grandes y no cabrían en localStorage).
+        queueOfflineUpload(filename, 'pdf', optimizedPages);
         if (isAuthUploadError(err)) {
           toast('Sesion expirada. Vuelve a iniciar sesion para subir', 'error');
           promptSessionExpired();
@@ -4808,57 +4830,84 @@ function doUploadPdf(filename, pages) {
 
 
 /* ===== IMAGE OPTIMIZATION ===== */
+// Lado largo máximo de una captura de cámara (≈ 220 DPI en A4).
+var SCAN_MAX_CAPTURE = 2600;
+// Lado largo máximo de una imagen ya optimizada (≈ 200 DPI en A4).
+var SCAN_MAX_DIM = 2400;
+// Tope de peso de un archivo generado (foto suelta o PDF completo).
+var SCAN_MAX_BYTES = 2 * 1024 * 1024;
+
+// Presupuesto en bytes para cada página de un PDF de n páginas. Se deja un
+// 5 % de margen para el envoltorio del PDF.
+function scanPageBudget(nPages) {
+  return Math.floor(SCAN_MAX_BYTES * 0.95 / Math.max(1, nPages || 1));
+}
+
+// Bytes reales del JPEG dentro de un data URL (sin el encabezado base64).
+function dataUrlBytes(dataUrl) {
+  var comma = dataUrl.indexOf(',');
+  return Math.floor((dataUrl.length - comma - 1) * 3 / 4);
+}
+
 function optimizeImage(dataUrl, maxSizeBytes) {
   return new Promise(function(resolve) {
-    maxSizeBytes = maxSizeBytes || 2 * 1024 * 1024; // 2MB default
+    maxSizeBytes = maxSizeBytes || SCAN_MAX_BYTES;
     var img = new Image();
     img.onload = function() {
       var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
       var w = img.width;
       var h = img.height;
 
-      // Scale down if extremely large
-      var maxDim = 2400;
-      if (w > maxDim || h > maxDim) {
-        var ratio = Math.min(maxDim / w, maxDim / h);
+      if (w > SCAN_MAX_DIM || h > SCAN_MAX_DIM) {
+        var ratio = Math.min(SCAN_MAX_DIM / w, SCAN_MAX_DIM / h);
         w = Math.round(w * ratio);
         h = Math.round(h * ratio);
       }
 
-      canvas.width = w;
-      canvas.height = h;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
+      function render() {
+        canvas.width = w;
+        canvas.height = h;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+      }
+      render();
 
-      // Progressive quality reduction
-      var quality = 0.92;
-      var result = canvas.toDataURL('image/jpeg', quality);
+      // En un documento la nitidez la da la resolución, no la calidad JPEG:
+      // primero se baja la calidad (0.85 → 0.60, que en texto no se nota),
+      // y recién si sigue pesado se reducen píxeles y se vuelve a intentar.
+      var quality = 0.85;
+      var result = null;
 
-      function checkSize() {
-        // Approximate size: base64 length * 0.75
-        var approxSize = result.length * 0.75;
-        if (approxSize <= maxSizeBytes || quality <= 0.3) {
-          resolve(result);
-          return;
-        }
-        quality -= 0.1;
-        if (quality < 0.3) quality = 0.3;
-
-        // Also scale down dimensions if still too large
-        if (approxSize > maxSizeBytes * 2) {
-          w = Math.round(w * 0.8);
-          h = Math.round(h * 0.8);
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-        }
-
-        result = canvas.toDataURL('image/jpeg', quality);
-        // Check again on next tick to prevent blocking
-        setTimeout(checkSize, 0);
+      function finish() {
+        canvas.width = 0; canvas.height = 0;
+        resolve(result);
       }
 
-      checkSize();
+      function attempt() {
+        result = canvas.toDataURL('image/jpeg', quality);
+        if (dataUrlBytes(result) <= maxSizeBytes) { finish(); return; }
+
+        if (quality > 0.6) {
+          quality = Math.round((quality - 0.05) * 100) / 100;
+        } else if (w > 1200 || h > 1200) {
+          w = Math.round(w * 0.85);
+          h = Math.round(h * 0.85);
+          render();
+          quality = 0.75;
+        } else if (quality > 0.4) {
+          quality = Math.round((quality - 0.05) * 100) / 100;
+        } else {
+          // Ya no hay más que bajar; se entrega lo que hay.
+          finish();
+          return;
+        }
+        // Siguiente intento en otro tick para no congelar la interfaz.
+        setTimeout(attempt, 0);
+      }
+
+      attempt();
     };
     img.onerror = function() { resolve(dataUrl); };
     img.src = dataUrl;
@@ -5024,7 +5073,7 @@ function processOfflineQueue() {
 
   function doUpload() {
     if (item.mode === 'foto') {
-      return optimizeImage(item.dataUrls[0]).then(function(optimized) {
+      return optimizeImage(item.dataUrls[0], SCAN_MAX_BYTES).then(function(optimized) {
         var blob = dataUrlToBlob(optimized);
         var now = new Date(item.timestamp);
         var dateFolder = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
@@ -5034,11 +5083,12 @@ function processOfflineQueue() {
     } else {
       // PDF mode
       var optimized = [];
+      var perPage = scanPageBudget(item.dataUrls.length);
       var chain = Promise.resolve();
       for (var i = 0; i < item.dataUrls.length; i++) {
         (function(idx) {
           chain = chain.then(function() {
-            return optimizeImage(item.dataUrls[idx]);
+            return optimizeImage(item.dataUrls[idx], perPage);
           }).then(function(opt) {
             optimized.push(opt);
           });
