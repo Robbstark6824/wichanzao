@@ -40,7 +40,8 @@ let fallos = 0;
 const check = (cond, txt) => { console.log((cond ? '  ✓ ' : '  ✗ ') + txt); if (!cond) fallos++; };
 
 // --- Caso 1: paciente programada con fase 4 completa ----------------------
-console.log('\nProgramada, fase 4 completa → debe volver a "apta para sala":');
+// "Apta para sala" se retiró como estado: sin fecha la paciente vuelve a "en trámite".
+console.log('\nProgramada, fase 4 completa → debe volver a "en trámite":');
 calls = [];
 const p1 = {
   id: 'p1', estado: 'programada', fecha_cirugia: '2026-09-10', turno: 'manana', orden_intervencion: '02',
@@ -51,7 +52,7 @@ const upd1 = calls.filter(c => c.tabla === 'pacientes');
 
 check(ok1 === true, 'la operación se completa');
 check(upd1.length === 2, 'escribe la fila en dos pasos (fue ' + upd1.length + ')');
-check(upd1[0] && upd1[0].patch.estado === 'apta_para_sala', 'PRIMERO cambia el estado a apta_para_sala');
+check(upd1[0] && upd1[0].patch.estado === 'en_tramite', 'PRIMERO cambia el estado a en_tramite');
 check(upd1[0] && !('fecha_cirugia' in upd1[0].patch), 'ese primer paso NO toca la fecha (si lo hiciera, la base lo rechaza)');
 check(upd1[1] && upd1[1].patch.fecha_cirugia === null && upd1[1].patch.turno === null, 'DESPUÉS borra fecha y turno');
 check(upd1[1] && upd1[1].patch.orden_intervencion === null, 'y también el N° de orden del día (si no, queda un número suelto en las hojas)');
@@ -59,7 +60,7 @@ check(upd1[1] && upd1[1].patch.motivo_espera === 'Falta de insumos quirúrgicos'
 const hist = calls.find(c => c.tabla === 'historial_estados');
 check(!!hist, 'deja constancia en el historial');
 check(hist && hist.row.created_by === 'usuario-de-prueba', 'y firma quién lo hizo');
-check(p1.estado === 'apta_para_sala' && p1.fecha_cirugia === null && p1.orden_intervencion === null, 'la pantalla queda coherente con la base');
+check(p1.estado === 'en_tramite' && p1.fecha_cirugia === null && p1.orden_intervencion === null, 'la pantalla queda coherente con la base');
 
 // --- Caso 2: programada sin fase 4 completa -------------------------------
 console.log('\nProgramada sin fase 4 completa → debe volver a "en trámite":');
@@ -71,7 +72,7 @@ check(calls[0] && calls[0].patch.estado === 'en_tramite', 'vuelve a en_tramite')
 // --- Caso 3: no estaba programada ----------------------------------------
 console.log('\nNo estaba programada → no debe inventar un cambio de estado:');
 calls = [];
-const p3 = { id: 'p3', estado: 'apta_para_sala', fecha_cirugia: '2026-09-10', turno: 'manana' };
+const p3 = { id: 'p3', estado: 'en_tramite', fecha_cirugia: '2026-09-10', turno: 'manana' };
 await api.qxQuitarFechaCirugia(p3, '', '');
 check(!calls.some(c => c.tabla === 'historial_estados'), 'no escribe historial de más');
 check(calls.length === 1 && calls[0].patch.fecha_cirugia === null, 'solo borra la fecha');

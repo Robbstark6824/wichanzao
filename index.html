@@ -713,6 +713,12 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .calc-chart{width:100%;height:auto;background:var(--s1);border:1px solid var(--bd);border-radius:4px;margin-bottom:12px;display:block}
 .calc-hint{font-size:11px;color:var(--t3);line-height:1.5;margin:-4px 0 12px}
 /* Pestañas activas/historial: lo resuelto deja de mezclarse con lo en curso. */
+.qx-buscar{position:relative;margin-bottom:10px}
+.qx-buscar .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.55;pointer-events:none}
+.qx-buscar input{width:100%;box-sizing:border-box;padding:10px 38px 10px 36px;border:1.5px solid var(--bd);border-radius:10px;font-size:16px;font-family:inherit;background:var(--s1);color:var(--t1);-webkit-appearance:none;appearance:none}
+.qx-buscar input:focus{outline:none;border-color:var(--tl)}
+.qx-buscar input::-webkit-search-cancel-button{display:none}
+.qx-buscar button{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:none;border-radius:50%;background:var(--s2);color:var(--t2);font-size:17px;line-height:1;cursor:pointer}
 .qx-tabs{display:flex;background:var(--s1);border:1px solid var(--bd);border-radius:4px;overflow:hidden;margin-bottom:14px}
 .qx-tabs button{flex:1;padding:11px 8px;background:none;border:none;border-bottom:2.5px solid transparent;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.01em;color:var(--t2);cursor:pointer}
 .qx-tabs button.active{color:var(--t1);border-bottom-color:var(--tl)}
@@ -1152,6 +1158,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <button class="qx-vt active" id="qxVtLista" onclick="qxSetView('lista')">📋 Lista</button>
             <button class="qx-vt" id="qxVtCal" onclick="qxSetView('calendario')">📅 Calendario</button>
           </div>
+          <div class="qx-buscar" id="qxBuscarWrap">
+            <span class="ic" aria-hidden="true">🔍</span>
+            <input type="search" id="qxBuscar" placeholder="Buscar por DNI, nombres o apellidos" autocomplete="off" oninput="qxBuscar(this.value)" aria-label="Buscar paciente por DNI, nombres o apellidos">
+            <button type="button" id="qxBuscarLimpiar" style="display:none" onclick="qxBuscarLimpiar()" aria-label="Borrar búsqueda">×</button>
+          </div>
           <div class="qx-tabs" id="qxTabs"></div>
           <div class="qx-stats" id="qxStats"></div>
           <div class="qx-captfilter" id="qxCaptFilter">
@@ -1160,7 +1171,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <span style="font-size:11px;color:var(--t3)">al</span>
             <input type="date" id="qxCaptHasta" onchange="qxFiltrarCaptacion()">
             <button class="qx-btn" style="padding:6px 10px;font-size:11px" onclick="qxLimpiarCaptacion()">Limpiar</button>
-            <button class="qx-btn tl" style="padding:6px 10px;font-size:11px;margin-left:auto" onclick="qxExportarInforme()" title="PDF de las pacientes en proceso (en trámite, aptas, programadas, hospitalizadas) para informar a los médicos">📄 Informe</button>
+            <button class="qx-btn tl" style="padding:6px 10px;font-size:11px;margin-left:auto" onclick="qxExportarInforme()" title="PDF de las pacientes en proceso (en trámite, programadas, hospitalizadas) para informar a los médicos">📄 Informe</button>
           </div>
           <div class="qx-filters" id="qxFilters"></div>
           <div class="qx-list" id="qxList"></div>
@@ -6444,9 +6455,14 @@ var QX_RECETAS = {
    base de datos, pero de cara al usuario es "Cerrado sin cirugía", que es lo
    que dicen las hojas — y el motivo puede ser referencia, fallecimiento,
    renuncia y el resto del catálogo de cierre. */
+/* "Apta para sala" ya no es un estado de la app: duraba horas y casi no se
+   usaba. La paciente sigue "en trámite" hasta tener fecha; al completar la
+   pre-hospitalización con fecha puesta pasa directo a "programada". Las fichas
+   viejas que la base aún guarda como apta_para_sala se leen como en trámite
+   (qxNormalizarEstado). En las hojas no cambia nada: los dos estados escribían
+   lo mismo ("En lista de espera" · "Pendiente de fecha"). */
 var QX_ESTADOS = [
   ['en_tramite','En trámite'],
-  ['apta_para_sala','Apta para sala'],
   ['programada','Programada'],
   ['hospitalizada','Hospitalizada'],
   ['operada','Operada'],
@@ -6462,13 +6478,18 @@ var QX_ESTADOS_HISTORIAL = QX_ESTADOS.filter(function(x){ return qxEstadoTermina
    mapEstadoActual() del Apps Script: si uno cambia, el otro también. */
 var QX_ESTADO_GERESA = {
   en_tramite:     'En lista de espera',
-  apta_para_sala: 'En lista de espera',
+  apta_para_sala: 'En lista de espera',   // estado retirado; fichas antiguas
   programada:     'En lista de espera',
   hospitalizada:  'En lista de espera',
   operada:        'Operado',
   suspendida:     'Suspendido',
   referida:       'Cerrado sin cirugía'
 };
+
+function qxNormalizarEstado(p){
+  if (p && p.estado === 'apta_para_sala') p.estado = 'en_tramite';
+  return p;
+}
 
 function qxEstadoLabel(e){
   for (var i=0;i<QX_ESTADOS.length;i++) if (QX_ESTADOS[i][0]===e) return QX_ESTADOS[i][1];
@@ -6695,6 +6716,7 @@ async function qxLoad(opciones){
     return;
   }
   QX_PACIENTES = res.data || [];
+  QX_PACIENTES.forEach(qxNormalizarEstado);
   // La ficha abierta apuntaba al objeto viejo, que ya no estaba en la lista:
   // la lista y el detalle mostraban cosas distintas de la misma paciente.
   // Ahora quedan siempre en el MISMO objeto.
@@ -6876,6 +6898,8 @@ function qxRender(){
   var list = document.getElementById('qxList');
   var cal = document.getElementById('qxCalendario');
   var captf = document.getElementById('qxCaptFilter');
+  var busq = document.getElementById('qxBuscarWrap');
+  if (busq) busq.style.display = QX_VIEW==='calendario' ? 'none' : '';
   if (vtL) vtL.classList.toggle('active', QX_VIEW==='lista');
   if (vtC) vtC.classList.toggle('active', QX_VIEW==='calendario');
 
@@ -6898,11 +6922,15 @@ function qxRender(){
 
   var enActivas = QX_TAB === 'activas';
   var estadosBase = enActivas ? QX_ESTADOS_ACTIVOS : QX_ESTADOS_HISTORIAL;
-  var baseData = QX_PACIENTES.filter(function(p){ return qxEstadoTerminal(p.estado) !== enActivas; });
+  // Con algo escrito en el buscador, todo lo de abajo (pestañas, chips,
+  // lista) cuenta solo a las que coinciden: así se ve de un vistazo si la
+  // paciente buscada está en Activas o en Historial.
+  var pool = QX_BUSQ ? QX_PACIENTES.filter(qxCoincideBusqueda) : QX_PACIENTES;
+  var baseData = pool.filter(function(p){ return qxEstadoTerminal(p.estado) !== enActivas; });
 
   if (tabsEl){
-    var nActivas = QX_PACIENTES.filter(function(p){ return !qxEstadoTerminal(p.estado); }).length;
-    var nHistorial = QX_PACIENTES.length - nActivas;
+    var nActivas = pool.filter(function(p){ return !qxEstadoTerminal(p.estado); }).length;
+    var nHistorial = pool.length - nActivas;
     tabsEl.innerHTML = '<button class="'+(enActivas?'active':'')+'" onclick="qxSetTab(\'activas\')">Activas<span>'+nActivas+'</span></button>'
       + '<button class="'+(!enActivas?'active':'')+'" onclick="qxSetTab(\'historial\')">Historial<span>'+nHistorial+'</span></button>';
   }
@@ -6913,7 +6941,7 @@ function qxRender(){
       var h = '';
       for (var i=0;i<QX_ESTADOS_ACTIVOS.length;i++){
         var e = QX_ESTADOS_ACTIVOS[i][0];
-        var n = QX_PACIENTES.filter(function(p){return qxCuentaComo(p,e);}).length;
+        var n = pool.filter(function(p){return qxCuentaComo(p,e);}).length;
         h += '<div class="qx-stat'+(QX_FILTER===e?' on':'')+'"><div class="n">'+n+'</div><div class="l">'+qxEsc(QX_ESTADOS_ACTIVOS[i][1])+'</div></div>';
       }
       st.innerHTML = h;
@@ -6924,7 +6952,7 @@ function qxRender(){
     var c = '<button class="qx-chip'+(QX_FILTER==='todos'?' active':'')+'" onclick="qxSetFilter(\'todos\')">Todos ('+baseData.length+')</button>';
     for (var j=0;j<estadosBase.length;j++){
       var e2 = estadosBase[j][0];
-      var n2 = QX_PACIENTES.filter(function(p){return qxCuentaComo(p,e2);}).length;
+      var n2 = pool.filter(function(p){return qxCuentaComo(p,e2);}).length;
       c += '<button class="qx-chip'+(QX_FILTER===e2?' active':'')+'" onclick="qxSetFilter(\''+e2+'\')">'+estadosBase[j][1]+' ('+n2+')</button>';
     }
     fl.innerHTML = c;
@@ -6940,9 +6968,17 @@ function qxRender(){
     });
   }
   if (data.length===0){
-    list.innerHTML = '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta '+(enActivas?'fase':'vista')+'</p></div>';
+    var otra = QX_BUSQ ? pool.length - baseData.length : 0;
+    list.innerHTML = QX_BUSQ
+      ? '<div class="qx-empty"><div class="ic">🔍</div><p>Ninguna paciente '+(enActivas?'activa':'en el historial')+' coincide con la búsqueda</p>'
+        + (otra ? '<button class="qx-btn" style="margin-top:8px;padding:7px 14px;font-size:12px" onclick="qxSetTab(\''+(enActivas?'historial':'activas')+'\')">Ver '+otra+' en '+(enActivas?'Historial':'Activas')+'</button>' : '')
+        + '</div>'
+      : '<div class="qx-empty"><div class="ic">📭</div><p>Sin pacientes en esta '+(enActivas?'fase':'vista')+'</p></div>';
     return;
   }
+  // Activas: de la más avanzada en el trámite a la menos avanzada, para ver
+  // de un vistazo a quién le falta qué. El historial sigue por fecha de alta.
+  if (enActivas) data = qxOrdenarPorAvance(data);
   var html = '';
   for (var k=0;k<data.length;k++){
     html += qxTarjetaHtml(data[k]);
@@ -6958,9 +6994,8 @@ function qxProximaAccion(p){
     if (!qxFase2Completa(p)) return 'Completar exámenes (Fase 2)';
     if (!qxFase3Completa(p)) return 'Agendar citas / riesgos (Fase 3)';
     if (!qxFase4Completa(p)) return 'Checks pre-hospitalización (Fase 4)';
-    return 'Marcar apta para sala';
+    return 'Programar cirugía (Fase 5)';
   }
-  if (p.estado==='apta_para_sala') return 'Programar cirugía (Fase 5)';
   if (p.estado==='programada') return 'Asignar cama (Fase 6)';
   if (p.estado==='hospitalizada') return 'Resolver (Operada / Suspendida / Cerrada sin cirugía)';
   return '';
@@ -7041,14 +7076,13 @@ function qxProcesoFases(p){
     fases[1].items.push({label:'Imágenes', ok:!!p.fecha_imagenes, extra:qxFechaCorta(p.fecha_imagenes), info:true});
   }
   // La fase en curso la dicta el estado cuando ya pasó "en trámite"
-  // (apta → Programación, programada → Hospitalización, hospitalizada →
-  // Cirugía). En trámite, es la primera de exámenes / riesgo / pre-hosp /
-  // programación que no está completa. Así una ficha antigua con datos
-  // incompletos no devuelve a la paciente a una fase que ya pasó.
+  // (programada → Hospitalización, hospitalizada → Cirugía). En trámite, es
+  // la primera de exámenes / riesgo / pre-hosp / programación que no está
+  // completa. Así una ficha antigua con datos incompletos no devuelve a la
+  // paciente a una fase que ya pasó.
   var terminal = qxEstadoTerminal(e);
   var aqui = -1;
-  if (e === 'apta_para_sala') aqui = 4;
-  else if (e === 'programada') aqui = 5;
+  if (e === 'programada') aqui = 5;
   else if (e === 'hospitalizada') aqui = 6;
   for (var i=0;i<fases.length;i++){
     var f = fases[i], ok = true;
@@ -7090,6 +7124,67 @@ function qxProcesoHtml(p){
     h += '</div>';
   }
   return h + '</div>';
+}
+
+/* Cuánto avanzó la paciente en el trámite: la fase en curso y, dentro de
+   ella, cuántos pasos exigidos tiene cumplidos. La hospitalizada va antes que
+   la programada, y entre dos en trámite, la que está en una fase más avanzada.
+   Una programada "anticipada" a la que aún le faltan exámenes cuenta en la
+   fase que realmente le falta, no en la de la fecha. */
+function qxAvance(p){
+  var fases = qxProcesoFases(p), fase = -1, pasos = 0;
+  for (var i=0;i<fases.length;i++){
+    if (fases[i].estado === 'aqui') fase = i;
+    for (var j=0;j<fases[i].items.length;j++){
+      var it = fases[i].items[j];
+      if (it.ok && !it.info) pasos++;
+    }
+  }
+  if (fase < 0) fase = fases.length;
+  return { fase: fase, pasos: pasos };
+}
+
+/* Más avanzada primero. Empate: la cirugía más cercana, luego la que más
+   lleva esperando. */
+function qxOrdenarPorAvance(lista){
+  var av = {};
+  lista.forEach(function(p){ av[p.id] = qxAvance(p); });
+  var ordT = { manana:0, tarde:1 };
+  return lista.slice().sort(function(a,b){
+    var A = av[a.id], B = av[b.id];
+    if (A.fase !== B.fase) return B.fase - A.fase;
+    if (A.pasos !== B.pasos) return B.pasos - A.pasos;
+    var fa = a.fecha_cirugia || '9999', fb = b.fecha_cirugia || '9999';
+    if (fa !== fb) return fa < fb ? -1 : 1;
+    var ta = ordT[a.turno]!=null?ordT[a.turno]:2, tb = ordT[b.turno]!=null?ordT[b.turno]:2;
+    if (ta !== tb) return ta - tb;
+    var da = qxDiasEspera(a) || 0, db = qxDiasEspera(b) || 0;
+    if (da !== db) return db - da;
+    return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
+  });
+}
+
+/* Buscador de la lista: DNI, nombres, apellidos o HC. Cada palabra escrita
+   tiene que aparecer (en cualquier orden), sin tildes ni mayúsculas:
+   "quispe maria" encuentra a "MARÍA ... QUISPE". */
+var QX_BUSQ = '';
+function qxCoincideBusqueda(p){
+  if (!QX_BUSQ) return true;
+  var hay = qxNorm([p.nombre, p.dni, p.hcl].join(' '));
+  var partes = QX_BUSQ.split(/\s+/);
+  for (var i=0;i<partes.length;i++) if (partes[i] && hay.indexOf(partes[i]) < 0) return false;
+  return true;
+}
+function qxBuscar(txt){
+  QX_BUSQ = qxNorm(String(txt||'').trim());
+  var x = document.getElementById('qxBuscarLimpiar');
+  if (x) x.style.display = QX_BUSQ ? '' : 'none';
+  qxRender();
+}
+function qxBuscarLimpiar(){
+  var el = document.getElementById('qxBuscar');
+  if (el){ el.value = ''; el.focus(); }
+  qxBuscar('');
 }
 
 /* En pantallas angostas la fila de fases se desliza; se deja a la vista la
@@ -7207,8 +7302,13 @@ function qxRenderCalendario(){
       + '<div style="font-size:12px;font-weight:800;color:var(--t2)">Cirugías del '+qxFmtFecha(QX_CAL_DIA)+' ('+porDia[QX_CAL_DIA].length+')</div>'
       + '<button class="qx-btn" style="padding:6px 12px;font-size:11px" onclick="qxExportarDia()">📄 Exportar</button>'
       + '</div>';
-    for (var k=0;k<porDia[QX_CAL_DIA].length;k++){
-      html += qxTarjetaHtml(porDia[QX_CAL_DIA][k]);
+    // Mismo orden que el PDF del día: por turno y, dentro, la más avanzada primero.
+    var ordTc = { manana:0, tarde:1 };
+    var delDia = qxOrdenarPorAvance(porDia[QX_CAL_DIA]).sort(function(a,b){
+      return (ordTc[a.turno]!=null?ordTc[a.turno]:2) - (ordTc[b.turno]!=null?ordTc[b.turno]:2);
+    });
+    for (var k=0;k<delDia.length;k++){
+      html += qxTarjetaHtml(delDia[k]);
     }
   } else {
     html += '<div class="qx-empty" style="padding:16px"><p style="font-size:12px">Tocá un día para ver sus cirugías</p></div>';
@@ -7240,24 +7340,6 @@ function qxChecklistItems(p){
   return it;
 }
 
-/* Etiqueta corta para la línea "PENDIENTE:" del parte quirúrgico. */
-function qxProgFaltaCorto(label){
-  var m = {
-    'Laboratorio completo':'laboratorio',
-    'EKG':'EKG',
-    'Cita cardiología':'cita cardiología',
-    'Cita anestesiología':'cita anestesiología',
-    'Riesgo quirúrgico':'riesgo quirúrgico',
-    'Riesgo anestesiológico':'riesgo anestesiológico',
-    'HCL de hospitalización':'HCL de hospitalización',
-    'Consentimientos':'consentimientos',
-    'Solicitud de sala':'solicitud de sala',
-    'Recetas entregadas':'recetas',
-    'Turno':'turno'
-  };
-  return m[label] || label;
-}
-
 /* Tipo de anestesia con mayúscula/minúscula legible (se guarda en mayúsculas). */
 function qxAnestesiaTexto(v){
   var m = { REGIONAL:'Regional', GENERAL:'General', LOCAL:'Local', COMBINADA:'Combinada', RAQUIDEA:'Raquídea' };
@@ -7278,238 +7360,48 @@ function qxTipoRecetaTexto(k){
 }
 
 /* ============================================================
-   PARTE QUIRÚRGICO DEL DÍA — PDF A4
-   Una ficha compacta por paciente (identificación, Dx, procedimiento,
-   anestesia/nivel/riesgo y estado de preparación), agrupadas por turno.
-   Membrete institucional reutilizado de la receta (logos MINSA + GORE).
+   INFORMES QX — PDF A4 apaisado, UN solo formato
+   Lo usan el botón «📄 Informe» de la lista (pacientes en proceso) y el
+   «📄 Exportar» del calendario (cirugías de un día). Antes eran dos PDF
+   distintos; ahora es la misma tarjeta para toda paciente, esté en trámite,
+   programada u hospitalizada: identificación, Dx, procedimiento, cirugía,
+   cirujano, anestesia, qué le falta y las siete casillas del recorrido.
+   Dentro de cada grupo, de la más avanzada a la menos avanzada.
+   Membrete institucional de la receta (logos MINSA + GORE).
    ============================================================ */
-async function qxExportarDia(){
-  if (!QX_CAL_DIA){ toast('Selecciona un día','error'); return; }
-  var porDia = {};
-  for (var i=0;i<QX_PACIENTES.length;i++){
-    var pp = QX_PACIENTES[i];
-    if (pp.fecha_cirugia && !qxEstadoTerminal(pp.estado)){ (porDia[pp.fecha_cirugia] = porDia[pp.fecha_cirugia] || []).push(pp); }
+
+/* Pasos exigidos que aún faltan (de exámenes a programación), con el mismo
+   criterio que las casillas del recorrido. */
+function qxFaltantes(p, fases){
+  fases = fases || qxProcesoFases(p);
+  var out = [];
+  for (var i=1;i<=4 && i<fases.length;i++){
+    for (var j=0;j<fases[i].items.length;j++){
+      var it = fases[i].items[j];
+      if (!it.ok && !it.info) out.push(it.label);
+    }
   }
-  var lista = (porDia[QX_CAL_DIA] || []).slice();
-  if (lista.length === 0){ toast('No hay cirugías este día','error'); return; }
-  if (!(await asegurarJsPdf())){ toast('No se pudo cargar el generador de PDF. Revisá tu conexión.', 'error'); return; }
-
-  try {
-    var jsPDF = obtenerJsPDF();
-    var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-    var W = 210, H = 297, M = 15, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
-    var GRN = [21,128,61], RED = [176,32,32];
-    var RB = W - M, LH = 4.5;   // borde derecho · interlineado de los renglones
-
-    // Orden: turno (mañana, tarde, sin turno) y luego por nombre.
-    var ordT = { manana:0, tarde:1 };
-    lista.sort(function(a,b){
-      var ta = ordT[a.turno]!=null?ordT[a.turno]:2, tb = ordT[b.turno]!=null?ordT[b.turno]:2;
-      if (ta!==tb) return ta-tb;
-      return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
-    });
-
-    // Conteos y faltantes de cada paciente.
-    var nMan=0,nTar=0,nSin=0,nListas=0,nPend=0, faltasDe={};
-    for (var c=0;c<lista.length;c++){
-      var pc = lista[c];
-      if (pc.turno==='manana') nMan++; else if (pc.turno==='tarde') nTar++; else nSin++;
-      var f = qxChecklistItems(pc).filter(function(it){ return !it.h && !it.ok; })
-                .map(function(it){ return qxProgFaltaCorto(it.label); });
-      faltasDe[pc.id] = f;
-      if (f.length) nPend++; else nListas++;
-    }
-
-    var dd = new Date(QX_CAL_DIA + 'T00:00:00');
-    var DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    var fechaLarga = DIAS[dd.getDay()] + ' ' + dd.getDate() + ' de ' + MESES[dd.getMonth()] + ' de ' + dd.getFullYear();
-    var fechaCorta = qxFmtFecha(QX_CAL_DIA);
-
-    var membrete = function(){
-      var yy = 13;
-      try { if (QX_RECETA_LOGO.minsa) doc.addImage(QX_RECETA_LOGO.minsa, 'JPEG', M, yy+1, 34, 9.1); } catch(e){}
-      try { if (QX_RECETA_LOGO.gore)  doc.addImage(QX_RECETA_LOGO.gore, 'JPEG', RB-13, yy-1, 13, 13); } catch(e){}
-      doc.setTextColor(INK); doc.setFont('helvetica','bold'); doc.setFontSize(12);
-      doc.text(T(QX_RECETA_CAB.l1), W/2, yy+4, { align:'center' });
-      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-      doc.text('Servicio de Ginecología y Obstetricia', W/2, yy+8.6, { align:'center' });
-      doc.setFontSize(7);
-      doc.text(T(QX_RECETA_CAB.l2 + '  ·  ' + QX_RECETA_CAB.l3), W/2, yy+12.4, { align:'center' });
-      yy += 17;
-      doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
-      yy += 6.5;
-      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(INK);
-      doc.text('PROGRAMACIÓN QUIRÚRGICA', W/2, yy, { align:'center' });
-      yy += 5;
-      var sub = lista.length + (lista.length===1?' cirugía':' cirugías'), pz = [];
-      if (nMan) pz.push(nMan+' mañana');
-      if (nTar) pz.push(nTar+' tarde');
-      if (nSin) pz.push(nSin+' sin turno');
-      if (pz.length) sub += '  (' + pz.join(' · ') + ')';
-      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(SOFT);
-      doc.text(T(fechaLarga + '   ·   ' + sub), W/2, yy, { align:'center' });
-      return yy + 11;
-    };
-    var contHeader = function(){
-      var yy = 15;
-      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
-      doc.text(T('PROGRAMACIÓN QUIRÚRGICA · ' + fechaCorta + ' — continúa'), M, yy);
-      yy += 3.5;
-      doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
-      return yy + 8;
-    };
-
-    var y = membrete();
-    var turnoActual = '__none__';
-
-    var bandaTurno = function(t){
-      var lbl = t==='manana' ? 'TURNO MAÑANA' : t==='tarde' ? 'TURNO TARDE' : 'SIN TURNO ASIGNADO';
-      y += 3.5;
-      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(INK);
-      doc.text(lbl, M, y);
-      var tw = doc.getTextWidth(lbl);
-      doc.setDrawColor(RULE); doc.setLineWidth(0.3); doc.line(M + tw + 4, y - 1, RB, y - 1);
-      y += 7.5;
-    };
-    // --- Geometría de la tarjeta de paciente ---
-    var BX = M, BW = RB - M, PADX = 4.5, LBLW = 17;
-    var CVX = BX + PADX + LBLW, CVW = BW - 2 * PADX - LBLW;   // columna de valores
-    var HBANDH = 8.2, RGAP = 1.8;
-
-    // Envuelve renglones lógicos al ancho de la columna de valores (sin el
-    // espacio que splitTextToSize deja al inicio de cada salto).
-    var wrapC = function(items){
-      var out = []; doc.setFontSize(8);
-      for (var a=0;a<items.length;a++) out = out.concat(doc.splitTextToSize(T(items[a]), CVW));
-      return out.map(function(s){ return s.replace(/^\s+/, ''); });
-    };
-
-    for (var k=0;k<lista.length;k++){
-      var p = lista[k];
-      var falta = faltasDe[p.id] || [];
-      var listo = falta.length === 0;
-
-      // Diagnósticos: en gestante el dx1 es la edad gestacional (calculada); el
-      // motivo de la cirugía (p. ej. de la cesárea) vive en dx2/dx3. Se listan todos.
-      var dxg = qxDxGestacion(p), dxItems = [];
-      if (dxg){
-        dxItems.push(dxg + (p.cie10 ? '   ·   ' + p.cie10 : ''));
-        if (p.diagnostico) dxItems.push(p.diagnostico);
-      } else if (p.diagnostico){
-        dxItems.push(p.diagnostico + (p.cie10 ? '   ·   ' + p.cie10 : ''));
-      } else if (p.cie10){
-        dxItems.push(p.cie10);
-      }
-      if (p.diagnostico_secundario) dxItems.push(p.diagnostico_secundario + (p.cie10_secundario ? '   ·   ' + p.cie10_secundario : ''));
-      if (p.diagnostico_tercero) dxItems.push(p.diagnostico_tercero + (p.cie10_tercero ? '   ·   ' + p.cie10_tercero : ''));
-      if (!dxItems.length) dxItems.push('—');
-
-      var procItems;
-      if (p.procedimiento){
-        procItems = [p.procedimiento + (p.codigo_procedimiento ? '   ·   cód. ' + p.codigo_procedimiento : '')];
-      } else if (p.tipo_receta){
-        procItems = [qxTipoRecetaTexto(p.tipo_receta) + '   (s/ tipo de receta)'];
-      } else {
-        procItems = ['(falta registrar el procedimiento)'];
-      }
-
-      var sala = [];
-      if (p.tipo_anestesia) sala.push(qxAnestesiaTexto(p.tipo_anestesia));
-      if (p.nivel_cirugia)  sala.push('cirugía ' + String(p.nivel_cirugia).toLowerCase());
-      if (p.riesgo_qx && p.riesgo_anestesiologico) sala.push('riesgos QX y anestésico evaluados');
-      else if (p.riesgo_qx) sala.push('riesgo QX evaluado');
-      else if (p.riesgo_anestesiologico) sala.push('riesgo anestésico evaluado');
-      var salaStr = sala.join('   ·   ');
-
-      var idp = ['DNI ' + (p.dni || '—'), 'HCL ' + (p.hcl || '—')];
-      var tel = qxTelefono(p);
-      if (tel) idp.push('Cel ' + tel);
-
-      // Filas del cuerpo: { label, lines, color?, bold? }
-      var rows = [ { label:'Ident.', lines: wrapC([idp.join('    ·    ')]) } ];
-      if (p.doctor) rows.push({ label:'Cirujano', lines: wrapC([p.doctor]) });
-      rows.push({ label:'Dx',    lines: wrapC(dxItems) });
-      rows.push({ label:'Proc',  lines: wrapC(procItems) });
-      if (salaStr) rows.push({ label:'Anest.', lines: wrapC([salaStr]) });
-      rows.push(listo
-        ? { label:'Estado', lines:['TODO LISTO'], color: GRN, bold:true }
-        : { label:'Estado', lines: wrapC(['PENDIENTE:   ' + falta.join(' · ')]), color: RED });
-
-      var bodyH = 0;
-      for (var r=0;r<rows.length;r++) bodyH += rows[r].lines.length * LH + RGAP;
-      var cardH = HBANDH + 4.6 + bodyH + 2;
-
-      if (y + cardH > H - 13){ doc.addPage(); y = contHeader(); turnoActual = '__none__'; }
-      if (p.turno !== turnoActual){ turnoActual = p.turno; bandaTurno(p.turno); }
-
-      // Marco + banda del nombre.
-      doc.setFillColor(237, 239, 242);
-      doc.rect(BX, y, BW, HBANDH, 'F');
-      doc.setDrawColor(RULE); doc.setLineWidth(0.2);
-      doc.roundedRect(BX, y, BW, cardH, 1.4, 1.4);
-      doc.line(BX, y + HBANDH, BX + BW, y + HBANDH);
-
-      var hb = y + HBANDH - 2.8;
-      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(INK);
-      doc.text(String(k+1), BX + 4, hb);
-      doc.text(doc.splitTextToSize(T((p.nombre || '—').toUpperCase()), BW - 15 - 34)[0], BX + 11, hb);
-      var meta = [];
-      if (p.edad != null && p.edad !== '') meta.push(p.edad + ' años');
-      if (p.cama_hospitalizacion) meta.push(T(p.cama_hospitalizacion));
-      if (meta.length){
-        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-        doc.text(meta.join('   ·   '), BX + BW - 4, hb, { align:'right' });
-      }
-
-      // Cuerpo: rejilla etiqueta / valor.
-      var by = y + HBANDH + 4.6;
-      for (var ri=0; ri<rows.length; ri++){
-        var row = rows[ri];
-        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(125);
-        doc.text(row.label, BX + PADX, by);
-        doc.setFont('helvetica', row.bold ? 'bold' : 'normal'); doc.setFontSize(8);
-        if (row.color) doc.setTextColor(row.color[0], row.color[1], row.color[2]); else doc.setTextColor(INK);
-        for (var i=0;i<row.lines.length;i++) doc.text(row.lines[i], CVX, by + i*LH);
-        by += row.lines.length * LH + RGAP;
-      }
-
-      y += cardH + 3.5;
-    }
-
-    // Pie en todas las páginas.
-    var now = new Date(), pad = function(n){ return n<10?'0'+n:''+n; };
-    var gen = pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+' '+pad(now.getHours())+':'+pad(now.getMinutes());
-    var footL = 'Generado ' + gen + '   ·   ' + QX_RECETA_CAB.l1 + '   ·   '
-      + lista.length + (lista.length===1?' paciente (':' pacientes (')
-      + nListas + ' ' + (nListas===1?'lista':'listas')
-      + (nPend ? ', ' + nPend + ' con pendientes' : '') + ')';
-    var tot = doc.getNumberOfPages();
-    for (var pg=1; pg<=tot; pg++){
-      doc.setPage(pg);
-      doc.setDrawColor(RULE); doc.setLineWidth(0.15); doc.line(M, H-11, RB, H-11);
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.8); doc.setTextColor(SOFT);
-      doc.text(T(footL), M, H-7.5);
-      doc.text(pg + '/' + tot, RB, H-7.5, { align:'right' });
-    }
-
-    doc.save('Programacion_Quirurgica_' + QX_CAL_DIA + '.pdf');
-    toast('PDF exportado ✓','success');
-  } catch(e) {
-    toast('No se pudo exportar: ' + mensajeDeError(e), 'error');
-  }
+  return out;
 }
 
-/* ============================================================
-   INFORME DE PACIENTES EN PROCESO — PDF A4
-   Para informar a los médicos: las pacientes activas (en trámite, aptas
-   para sala, programadas, hospitalizadas) agrupadas por estado, cada una
-   con su recorrido: qué fases tiene cumplidas y qué le falta en la que
-   está. Respeta el filtro de la lista (estado y fechas de captación).
-   Mismo membrete y estilo que el parte quirúrgico del día.
-   ============================================================ */
+async function qxExportarDia(){
+  if (!QX_CAL_DIA){ toast('Selecciona un día','error'); return; }
+  var lista = QX_PACIENTES.filter(function(p){ return p.fecha_cirugia === QX_CAL_DIA && !qxEstadoTerminal(p.estado); });
+  if (!lista.length){ toast('No hay cirugías este día','error'); return; }
+  var dd = new Date(QX_CAL_DIA + 'T00:00:00');
+  await qxInformePDF(lista, {
+    titulo: 'PROGRAMACIÓN QUIRÚRGICA',
+    fecha: dd,
+    // [clave, banda, singular, plural] — los dos últimos, para el subtítulo.
+    grupos: [['manana','TURNO MAÑANA','de mañana','de mañana'],['tarde','TURNO TARDE','de tarde','de tarde'],['sin','SIN TURNO ASIGNADO','sin turno','sin turno']],
+    grupoDe: function(p){ return p.turno === 'manana' || p.turno === 'tarde' ? p.turno : 'sin'; },
+    unidad: ['cirugía','cirugías'],
+    archivo: 'Programacion_Quirurgica_' + QX_CAL_DIA + '.pdf'
+  });
+}
+
 function qxPacientesInforme(){
-  var lista = QX_PACIENTES.filter(function(p){ return !qxEstadoTerminal(p.estado); });
+  var lista = QX_PACIENTES.filter(function(p){ return !qxEstadoTerminal(p.estado) && qxCoincideBusqueda(p); });
   if (QX_FILTER !== 'todos') lista = lista.filter(function(p){ return qxCuentaComo(p, QX_FILTER); });
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     lista = lista.filter(function(p){
@@ -7525,6 +7417,25 @@ function qxPacientesInforme(){
 async function qxExportarInforme(){
   var lista = qxPacientesInforme();
   if (!lista.length){ toast('No hay pacientes para el informe','error'); return; }
+  var filtro = [];
+  if (QX_FILTER !== 'todos') filtro.push('solo ' + qxEstadoLabel(QX_FILTER).toLowerCase());
+  if (QX_CAPT_DESDE || QX_CAPT_HASTA) filtro.push('captadas ' + (QX_CAPT_DESDE ? 'del ' + qxFmtFecha(QX_CAPT_DESDE) : '') + (QX_CAPT_HASTA ? ' al ' + qxFmtFecha(QX_CAPT_HASTA) : ''));
+  if (QX_BUSQ) filtro.push('búsqueda «' + valorDe('qxBuscar').trim() + '»');
+  // Grupos en orden de avance: la hospitalizada ya está a un paso de operarse.
+  // Una programada "anticipada" sigue en trámite (es su estado real) y su
+  // tarjeta dice en rojo que la fecha se puso antes de completar lo previo.
+  await qxInformePDF(lista, {
+    titulo: 'PACIENTES EN PROCESO QUIRÚRGICO',
+    fecha: new Date(),
+    grupos: [['hospitalizada','HOSPITALIZADAS','hospitalizada','hospitalizadas'],['programada','PROGRAMADAS','programada','programadas'],['en_tramite','EN TRÁMITE','en trámite','en trámite']],
+    grupoDe: function(p){ return p.estado; },
+    unidad: ['paciente','pacientes'],
+    filtro: filtro,
+    archivo: 'Pacientes_en_proceso_' + qxHoyStr() + '.pdf'
+  });
+}
+
+async function qxInformePDF(lista, cfg){
   if (!(await asegurarJsPdf())){ toast('No se pudo cargar el generador de PDF. Revisá tu conexión.', 'error'); return; }
 
   try {
@@ -7536,48 +7447,35 @@ async function qxExportarInforme(){
     // Paleta del recorrido, la misma de la tarjeta.
     var TL = [46,125,110], YODO = [180,101,42], ALARMA = [179,64,58];
     var T2 = [75,97,91], T3 = [140,158,152], BD = [203,213,208];
+    var GRN = [21,128,61];
 
-    // Grupos en el orden del recorrido. Las programadas anticipadamente van
-    // con las programadas (tienen fecha) y se marcan como tales.
-    var GRUPOS = [
-      ['en_tramite','EN TRÁMITE'],
-      ['apta_para_sala','APTA PARA SALA'],
-      ['programada','PROGRAMADA'],
-      ['hospitalizada','HOSPITALIZADA']
-    ];
-    var grupoDe = function(p){ return qxProgramadaPendiente(p) ? 'programada' : p.estado; };
+    var GRUPOS = cfg.grupos, grupoDe = cfg.grupoDe;
     var ordG = {}; for (var g=0; g<GRUPOS.length; g++) ordG[GRUPOS[g][0]] = g;
-    var ordT = { manana:0, tarde:1 };
-    lista = lista.slice().sort(function(a,b){
-      var ga = grupoDe(a), gb = grupoDe(b);
-      if (ordG[ga] !== ordG[gb]) return (ordG[ga]==null?9:ordG[ga]) - (ordG[gb]==null?9:ordG[gb]);
-      if (ga === 'programada' || ga === 'hospitalizada'){
-        // Con fecha: por fecha de cirugía y turno.
-        var fa = a.fecha_cirugia || '9999', fb = b.fecha_cirugia || '9999';
-        if (fa !== fb) return fa < fb ? -1 : 1;
-        var ta = ordT[a.turno]!=null?ordT[a.turno]:2, tb = ordT[b.turno]!=null?ordT[b.turno]:2;
-        if (ta !== tb) return ta - tb;
-      } else {
-        // En espera: la que más lleva esperando, primero.
-        var da = qxDiasEspera(a) || 0, db = qxDiasEspera(b) || 0;
-        if (da !== db) return db - da;
-      }
-      return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
+    // Por grupo y, dentro de cada uno, de la más avanzada a la menos avanzada
+    // (sort estable: conserva el orden de avance dentro del grupo).
+    lista = qxOrdenarPorAvance(lista).sort(function(a,b){
+      var ga = ordG[grupoDe(a)], gb = ordG[grupoDe(b)];
+      return (ga==null?9:ga) - (gb==null?9:gb);
     });
 
-    var conteo = {};
-    for (var c=0; c<lista.length; c++){ var gc = grupoDe(lista[c]); conteo[gc] = (conteo[gc]||0) + 1; }
+    var conteo = {}, nListas = 0;
+    var fasesDe = {}, faltaDe = {};
+    for (var c=0; c<lista.length; c++){
+      var pc = lista[c], gc = grupoDe(pc);
+      conteo[gc] = (conteo[gc]||0) + 1;
+      fasesDe[pc.id] = qxProcesoFases(pc);
+      faltaDe[pc.id] = qxFaltantes(pc, fasesDe[pc.id]);
+      if (!faltaDe[pc.id].length) nListas++;
+    }
+    var nPend = lista.length - nListas;
 
-    var hoy = new Date();
     var DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    var fechaLarga = DIAS[hoy.getDay()] + ' ' + hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear();
-    var fechaCorta = qxFmtFecha(qxHoyStr());
-
-    // Nota de filtro, si la lista no es la completa.
-    var filtro = [];
-    if (QX_FILTER !== 'todos') filtro.push('solo ' + qxEstadoLabel(QX_FILTER).toLowerCase());
-    if (QX_CAPT_DESDE || QX_CAPT_HASTA) filtro.push('captadas ' + (QX_CAPT_DESDE ? 'del ' + qxFmtFecha(QX_CAPT_DESDE) : '') + (QX_CAPT_HASTA ? ' al ' + qxFmtFecha(QX_CAPT_HASTA) : ''));
+    var fd = cfg.fecha;
+    var fechaLarga = DIAS[fd.getDay()] + ' ' + fd.getDate() + ' de ' + MESES[fd.getMonth()] + ' de ' + fd.getFullYear();
+    var fechaCorta = qxFmtFecha(qxFechaStr(fd.getFullYear(), fd.getMonth(), fd.getDate()));
+    var unidad = function(n){ return n + ' ' + (n===1 ? cfg.unidad[0] : cfg.unidad[1]); };
+    var filtro = cfg.filtro || [];
 
     // Palomita blanca dentro de un círculo relleno (leyenda y casillas).
     var check = function(cx, cy){
@@ -7600,11 +7498,14 @@ async function qxExportarInforme(){
       doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
       yy += 6;
       doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(INK);
-      doc.text('PACIENTES EN PROCESO QUIRÚRGICO', W/2, yy, { align:'center' });
+      doc.text(T(cfg.titulo), W/2, yy, { align:'center' });
       yy += 4.8;
       var pz = [];
-      for (var g=0; g<GRUPOS.length; g++) if (conteo[GRUPOS[g][0]]) pz.push(conteo[GRUPOS[g][0]] + ' ' + GRUPOS[g][1].toLowerCase());
-      var sub = lista.length + (lista.length===1?' paciente':' pacientes') + (pz.length ? '  (' + pz.join(' · ') + ')' : '');
+      for (var g=0; g<GRUPOS.length; g++){
+        var ng = conteo[GRUPOS[g][0]];
+        if (ng) pz.push(ng + ' ' + (ng === 1 ? GRUPOS[g][2] : GRUPOS[g][3]));
+      }
+      var sub = unidad(lista.length) + (pz.length ? '  (' + pz.join(' · ') + ')' : '');
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(SOFT);
       doc.text(T(fechaLarga + '   ·   ' + sub), W/2, yy, { align:'center' });
       if (filtro.length){
@@ -7639,7 +7540,7 @@ async function qxExportarInforme(){
     var contHeader = function(){
       var yy = 12;
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(SOFT);
-      doc.text(T('PACIENTES EN PROCESO QUIRÚRGICO · ' + fechaCorta + ' — continúa'), M, yy);
+      doc.text(T(cfg.titulo + ' · ' + fechaCorta + ' — continúa'), M, yy);
       yy += 3.5;
       doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, yy, RB, yy);
       return yy + 6;
@@ -7666,35 +7567,92 @@ async function qxExportarInforme(){
     var NBOX = 7, GAPB = 1.6;
     var BOXW = (BW - 2*PADX - GAPB*(NBOX-1)) / NBOX;
     var BOXHEAD = 5.2, ITEMH = 3.45;
+    // Rejilla etiqueta / valor en dos columnas: a la izquierda qué tiene y qué
+    // se le hace; a la derecha cuándo, quién y con qué anestesia.
+    var LBLW = 15, LH = 3.6, RGAP = 1;
+    var COLGAP = 6;
+    var COL1X = BX + PADX, COL1W = (BW - 2*PADX - COLGAP) * 0.58;
+    var COL2X = COL1X + COL1W + COLGAP, COL2W = BW - 2*PADX - COL1W - COLGAP;
+    var FSV = 7.8;
+
+    var wrap = function(items, ancho){
+      var out = []; doc.setFont('helvetica','normal'); doc.setFontSize(FSV);
+      for (var a=0;a<items.length;a++) out = out.concat(doc.splitTextToSize(T(items[a]), ancho));
+      return out.map(function(s){ return s.replace(/^\s+/, ''); });
+    };
+    var alto = function(rows){ var h = 0; for (var r=0;r<rows.length;r++) h += rows[r].lines.length * LH + RGAP; return h; };
+    var pintarFilas = function(rows, x, yy){
+      for (var r=0;r<rows.length;r++){
+        var row = rows[r];
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.6); doc.setTextColor(125);
+        doc.text(row.label, x, yy);
+        doc.setFont('helvetica', row.bold ? 'bold' : 'normal'); doc.setFontSize(FSV);
+        if (row.color) doc.setTextColor(row.color[0], row.color[1], row.color[2]); else doc.setTextColor(INK);
+        for (var i=0;i<row.lines.length;i++) doc.text(row.lines[i], x + LBLW, yy + i*LH);
+        yy += row.lines.length * LH + RGAP;
+      }
+    };
 
     for (var k=0;k<lista.length;k++){
       var p = lista[k];
-      var fases = qxProcesoFases(p);
+      var fases = fasesDe[p.id];
+      var falta = faltaDe[p.id];
       var anticipada = qxProgramadaPendiente(p);
 
-      // Diagnóstico (en gestante, la edad gestacional va primero) y procedimiento.
-      var dxg = qxDxGestacion(p), dxs = [];
-      if (dxg) dxs.push(dxg);
-      if (p.diagnostico) dxs.push(p.diagnostico + (p.cie10 ? ' (' + p.cie10 + ')' : ''));
-      else if (p.cie10) dxs.push(p.cie10);
-      if (p.diagnostico_secundario) dxs.push(p.diagnostico_secundario);
-      var proc = p.procedimiento || (p.tipo_receta ? qxTipoRecetaTexto(p.tipo_receta) : '');
-      var info = 'Dx: ' + (dxs.length ? dxs.join('  ·  ') : '—') + (proc ? '     Proc: ' + proc : '');
-      doc.setFontSize(8);
-      var infoLines = doc.splitTextToSize(T(info), BW - 2*PADX);
-      if (infoLines.length > 2) infoLines = infoLines.slice(0,2);
+      // Diagnósticos: en gestante el dx1 es la edad gestacional (calculada); el
+      // motivo de la cirugía (p. ej. de la cesárea) vive en dx2/dx3. Van todos.
+      var dxg = qxDxGestacion(p), dxItems = [];
+      if (dxg){
+        dxItems.push(dxg + (p.cie10 ? '  ·  ' + p.cie10 : ''));
+        if (p.diagnostico) dxItems.push(p.diagnostico);
+      } else if (p.diagnostico){
+        dxItems.push(p.diagnostico + (p.cie10 ? '  ·  ' + p.cie10 : ''));
+      } else if (p.cie10){
+        dxItems.push(p.cie10);
+      }
+      if (p.diagnostico_secundario) dxItems.push(p.diagnostico_secundario + (p.cie10_secundario ? '  ·  ' + p.cie10_secundario : ''));
+      if (p.diagnostico_tercero) dxItems.push(p.diagnostico_tercero + (p.cie10_tercero ? '  ·  ' + p.cie10_tercero : ''));
+      if (!dxItems.length) dxItems.push('—');
 
-      var cir = '';
+      var procTxt;
+      if (p.procedimiento) procTxt = p.procedimiento + (p.codigo_procedimiento ? '  ·  cód. ' + p.codigo_procedimiento : '');
+      else if (p.tipo_receta) procTxt = qxTipoRecetaTexto(p.tipo_receta) + '  (s/ tipo de receta)';
+      else procTxt = '(falta registrar el procedimiento)';
+
+      var cirTxt, cirColor = null;
       if (p.fecha_cirugia){
-        cir = 'Cirugía: ' + qxFmtFecha(p.fecha_cirugia) + (p.turno==='manana' ? '  ·  Mañana' : p.turno==='tarde' ? '  ·  Tarde' : '');
-        if (p.cama_hospitalizacion) cir += '  ·  ' + p.cama_hospitalizacion;
-        if (anticipada) cir += '  ·  ANTICIPADA: fecha puesta sin completar el proceso';
+        cirTxt = qxFmtFecha(p.fecha_cirugia) + (p.turno==='manana' ? '  ·  mañana' : p.turno==='tarde' ? '  ·  tarde' : '');
+        if (p.cama_hospitalizacion) cirTxt += '  ·  ' + p.cama_hospitalizacion;
+        if (anticipada){ cirTxt += '  ·  ANTICIPADA'; cirColor = ALARMA; }
+      } else {
+        cirTxt = 'sin fecha';
+      }
+      var sala = [];
+      if (p.tipo_anestesia) sala.push(qxAnestesiaTexto(p.tipo_anestesia));
+      if (p.nivel_cirugia)  sala.push('cirugía ' + String(p.nivel_cirugia).toLowerCase());
+
+      var izq = [
+        { label:'Dx',   lines: wrap(dxItems, COL1W - LBLW) },
+        { label:'Proc', lines: wrap([procTxt], COL1W - LBLW) }
+      ];
+      var der = [ { label:'Cirugía', lines: wrap([cirTxt], COL2W - LBLW), color: cirColor, bold: !!cirColor } ];
+      if (p.doctor) der.push({ label:'Cirujano', lines: wrap([p.doctor], COL2W - LBLW) });
+      if (sala.length) der.push({ label:'Anest.', lines: wrap([sala.join('  ·  ')], COL2W - LBLW) });
+
+      var estadoRow;
+      if (!falta.length){
+        var sigue = p.estado === 'hospitalizada' ? '   —   hospitalizada, en espera de la cirugía'
+          : p.estado === 'programada' ? '   —   pendiente de hospitalizar' : '';
+        estadoRow = { label:'Estado', lines:['TODO LISTO' + sigue], color: GRN, bold:true };
+      } else {
+        estadoRow = { label:'Falta', lines: wrap([falta.join('  ·  ')], BW - 2*PADX - LBLW), color: ALARMA };
       }
 
       var maxItems = 1;
       for (var f=0; f<fases.length; f++) if (fases[f].items.length > maxItems) maxItems = fases[f].items.length;
       var boxH = BOXHEAD + maxItems * ITEMH + 1.3;
-      var cardH = HBANDH + 2 + infoLines.length * 3.8 + (cir ? 3.8 : 0) + 1.4 + boxH + 2.4;
+      var gridH = Math.max(alto(izq), alto(der));
+      var cardH = HBANDH + 3.6 + gridH + alto([estadoRow]) + 0.6 + boxH + 2.4;
 
       var grupo = grupoDe(p);
       if (y + cardH + (grupo !== grupoActual ? 9 : 0) > H - 12){ doc.addPage(); y = contHeader(); grupoActual = '__none__'; }
@@ -7725,18 +7683,16 @@ async function qxExportarInforme(){
       doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(SOFT);
       doc.text(metaStr, BX + BW - 3.5, hb, { align:'right' });
 
-      // Dx / procedimiento / cirugía.
-      var iy = y + HBANDH + 2 + 3;
-      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(INK);
-      for (var il=0; il<infoLines.length; il++){ doc.text(infoLines[il], BX + PADX, iy); iy += 3.8; }
-      if (cir){
-        doc.setFont('helvetica','bold');
-        if (anticipada) doc.setTextColor(ALARMA[0], ALARMA[1], ALARMA[2]); else doc.setTextColor(TL[0], TL[1], TL[2]);
-        doc.text(T(cir), BX + PADX, iy); iy += 3.8;
-      }
+      // Rejilla de datos + fila de lo que falta.
+      var iy = y + HBANDH + 3.6;
+      pintarFilas(izq, COL1X, iy);
+      pintarFilas(der, COL2X, iy);
+      iy += gridH;
+      pintarFilas([estadoRow], COL1X, iy);
+      iy += alto([estadoRow]);
 
       // Las siete casillas del recorrido, como en la tarjeta.
-      var by = iy - 3 + 1.4;
+      var by = iy - 3 + 0.6 + 1.4;
       for (var b=0; b<fases.length; b++){
         var fase = fases[b];
         var bx = BX + PADX + b * (BOXW + GAPB);
@@ -7772,23 +7728,21 @@ async function qxExportarInforme(){
         for (var j=0; j<fase.items.length; j++){
           var it = fase.items[j];
           var mx = bx + 3.4, my = py - 0.95;
+          var tcol = (est === 'aqui' || est === 'fin') ? T2 : T3;
           if (it.ok){
             doc.setFillColor(TL[0], TL[1], TL[2]); doc.circle(mx, my, 1.05, 'F'); check(mx, my);
-            doc.setTextColor(INK);
           } else {
             var mc = (est === 'aqui') ? YODO : (est === 'fin' ? T2 : T3);
             doc.setDrawColor(mc[0], mc[1], mc[2]); doc.setLineWidth(it.info ? 0.2 : 0.3); doc.circle(mx, my, 0.95, 'S');
-            var tc = (est === 'aqui' || est === 'fin') ? T2 : T3;
-            doc.setTextColor(tc[0], tc[1], tc[2]);
           }
-          doc.setFont('helvetica', it.ok ? 'normal' : 'normal'); doc.setFontSize(6.8);
+          doc.setFont('helvetica','normal');
           var extraW = 0;
           if (it.extra){
             doc.setFontSize(6); var ex = T(String(it.extra)); extraW = doc.getTextWidth(ex) + 1.5;
             doc.setTextColor(SOFT); doc.text(ex, bx + BOXW - 1.8, py, { align:'right' });
-            doc.setFontSize(6.8);
-            if (it.ok) doc.setTextColor(INK); else { var tc2 = (est === 'aqui' || est === 'fin') ? T2 : T3; doc.setTextColor(tc2[0], tc2[1], tc2[2]); }
           }
+          doc.setFontSize(6.8);
+          if (it.ok) doc.setTextColor(INK); else doc.setTextColor(tcol[0], tcol[1], tcol[2]);
           doc.text(doc.splitTextToSize(T(it.label), BOXW - 7.2 - extraW)[0], bx + 5.9, py);
           py += ITEMH;
         }
@@ -7803,9 +7757,10 @@ async function qxExportarInforme(){
     }
 
     // Pie en todas las páginas.
-    var pad = function(n){ return n<10?'0'+n:''+n; };
+    var hoy = new Date(), pad = function(n){ return n<10?'0'+n:''+n; };
     var gen = pad(hoy.getDate())+'/'+pad(hoy.getMonth()+1)+'/'+hoy.getFullYear()+' '+pad(hoy.getHours())+':'+pad(hoy.getMinutes());
-    var footL = 'Generado ' + gen + '   ·   ' + QX_RECETA_CAB.l1 + '   ·   ' + lista.length + (lista.length===1?' paciente en proceso':' pacientes en proceso');
+    var footL = 'Generado ' + gen + '   ·   ' + QX_RECETA_CAB.l1 + '   ·   ' + unidad(lista.length)
+      + ' (' + nListas + ' ' + (nListas===1?'lista':'listas') + (nPend ? ', ' + nPend + ' con pendientes' : '') + ')';
     var tot = doc.getNumberOfPages();
     for (var pg=1; pg<=tot; pg++){
       doc.setPage(pg);
@@ -7815,8 +7770,8 @@ async function qxExportarInforme(){
       doc.text(pg + '/' + tot, RB, H-6.5, { align:'right' });
     }
 
-    doc.save('Pacientes_en_proceso_' + qxHoyStr() + '.pdf');
-    toast('Informe exportado ✓','success');
+    doc.save(cfg.archivo);
+    toast('PDF exportado ✓','success');
   } catch(e) {
     toast('No se pudo exportar: ' + mensajeDeError(e), 'error');
   }
@@ -8436,11 +8391,9 @@ async function qxWizGuardar(){
   if (QX_WIZ_EDIT_ID && QX_ACTUAL){
     for (var k in payload) QX_ACTUAL[k] = payload[k];
     await qxMarcarFases(QX_ACTUAL);
-    if (qxFase4Completa(QX_ACTUAL) && (QX_ACTUAL.estado==='en_tramite' || QX_ACTUAL.estado==='apta_para_sala')){
-      // Poner una fecha desde el asistente también reprograma a la que ya estaba
-      // "apta para sala"; antes solo subía de estado desde "en trámite".
-      var destinoWiz = (QX_ACTUAL.fecha_cirugia && QX_ACTUAL.turno) ? 'programada' : 'apta_para_sala';
-      if (QX_ACTUAL.estado !== destinoWiz) await qxSetEstado(QX_ACTUAL, destinoWiz);
+    // Pre-hospitalización completa y fecha puesta desde el asistente: queda programada.
+    if (qxFase4Completa(QX_ACTUAL) && QX_ACTUAL.estado==='en_tramite' && QX_ACTUAL.fecha_cirugia && QX_ACTUAL.turno){
+      await qxSetEstado(QX_ACTUAL, 'programada');
     }
     qxRenderDetalle();
   }
@@ -8457,7 +8410,7 @@ async function qxAbrir(id){
   var p = QX_PACIENTES.find(function(x){return x.id===id;});
   if (!p){
     var r = await sb.from('pacientes').select('*').eq('id',id).single();
-    p = r.data;
+    p = qxNormalizarEstado(r.data);
   }
   if (!p) return;
   QX_ACTUAL = p;
@@ -8933,7 +8886,7 @@ function qxRecetaEntregaHtml(p){
     return '<div style="margin-top:12px;font-size:11px;color:var(--tl);font-weight:700;text-align:center">✓ Ya figura como entregada a la paciente</div>';
   }
   if (!qxFase3Completa(p)){
-    return '<div style="margin-top:12px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center">Cuando se la entregues a la paciente, marcá «Recetas entregadas» en la Fase 4 (se habilita al estar apta para sala).</div>';
+    return '<div style="margin-top:12px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center">Cuando se la entregues a la paciente, marcá «Recetas entregadas» en la Fase 4 (se habilita con la Fase 3 completa).</div>';
   }
   return '<button class="qx-btn" style="width:100%;margin-top:12px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd);padding:11px;font-size:12px" onclick="qxRecetaEntregarDesdePanel()">📋 Ya se la entregué a la paciente — marcar «Recetas entregadas»</button>';
 }
@@ -9432,7 +9385,7 @@ function qxRenderDetalle(){
         : '<div class="qx-lock">🔒 Completa Fase 2 para habilitar citas</div>')
     + qxFaseTsHtml(p.fecha_fase3)
     + '</div>'
-    + '<div class="qx-phase'+(f3?'':' locked')+'"><div class="ph-head"><div class="ph-num">4</div><div><div class="ph-title">Pre-hospitalización</div><div class="ph-hint">Requiere Fase 3 completa → Apta para sala</div></div></div>'
+    + '<div class="qx-phase'+(f3?'':' locked')+'"><div class="ph-head"><div class="ph-num">4</div><div><div class="ph-title">Pre-hospitalización</div><div class="ph-hint">Requiere Fase 3 completa</div></div></div>'
     + (f3
         ? qxCheckHtml('hcl_hospitalizacion','HCL de hospitalización',p.hcl_hospitalizacion,true)
         + qxCheckHtml('consentimientos','Consentimientos firmados',p.consentimientos,true)
@@ -9441,12 +9394,12 @@ function qxRenderDetalle(){
         : '<div class="qx-lock">🔒 Completa Fase 3 para habilitar</div>')
     + qxFaseTsHtml(p.fecha_fase4)
     + '</div>'
-    + '<div class="qx-phase'+(p.estado==='apta_para_sala'||p.estado==='en_tramite'?'':' locked')+'"><div class="ph-head"><div class="ph-num">5</div><div><div class="ph-title">Programación quirúrgica</div><div class="ph-hint">'+(p.estado==='en_tramite'?'Programación anticipada (pendiente de checks)':'Solo si Apta para sala')+'</div></div></div>'
-    + ((p.estado==='apta_para_sala'||p.estado==='en_tramite')
+    + '<div class="qx-phase'+(p.estado==='en_tramite'?'':' locked')+'"><div class="ph-head"><div class="ph-num">5</div><div><div class="ph-title">Programación quirúrgica</div><div class="ph-hint">'+(p.estado!=='en_tramite'?'Solo en trámite':(qxFase4Completa(p)?'Pre-hospitalización completa: lista para programar':'Programación anticipada (pendiente de checks)'))+'</div></div></div>'
+    + (p.estado==='en_tramite'
         ? '<div class="qx-row"><div class="qx-field"><label>Fecha cirugía</label><input type="date" id="qxFechaQx" value="'+(p.fecha_cirugia||'')+'"></div>'
         + '<div class="qx-field"><label>Turno</label><select id="qxTurno"><option value=""'+(p.turno?'':' selected')+'>—</option><option value="manana"'+(p.turno==='manana'?' selected':'')+'>Mañana</option><option value="tarde"'+(p.turno==='tarde'?' selected':'')+'>Tarde</option></select></div></div>'
-        + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">'+(p.estado==='en_tramite'?'Programar (anticipado)':'Programar cirugía')+'</button>'
-        : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar "Apta para sala"</div>'))
+        + '<button class="qx-btn tl" style="width:100%" onclick="qxProgramar()">'+(qxFase4Completa(p)?'Programar cirugía':'Programar (anticipado)')+'</button>'
+        : ((p.estado==='programada'||p.estado==='hospitalizada'||p.estado==='operada'||p.estado==='suspendida'||p.estado==='referida') ? '<div class="qx-lock">✅ '+qxEsc(p.fecha_cirugia||'')+' '+(p.turno||'')+'</div>' : '<div class="qx-lock">🔒 Requiere estar en trámite</div>'))
     + ((p.estado==='programada' || (p.estado==='en_tramite' && p.fecha_cirugia)) ? '<button class="qx-btn" style="width:100%;margin-top:8px;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxReprogramar()">📅 Postergar o quitar la fecha</button>' : '')
     + qxFaseTsHtml(p.fecha_fase5)
     + '</div>'
@@ -9499,12 +9452,9 @@ async function qxToggle(campo){
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p[campo] = val;
   await qxMarcarFases(p);
-  if (qxFase4Completa(p) && p.estado==='en_tramite'){
-    if (p.fecha_cirugia && p.turno){
-      await qxSetEstado(p,'programada');
-    } else {
-      await qxSetEstado(p,'apta_para_sala');
-    }
+  // Sin fecha sigue en trámite (la Fase 5 queda lista para programar).
+  if (qxFase4Completa(p) && p.estado==='en_tramite' && p.fecha_cirugia && p.turno){
+    await qxSetEstado(p,'programada');
   }
   qxSyncSheets(p.id);
   qxRenderDetalle();
@@ -9527,7 +9477,7 @@ async function qxSetCampo(campo,valor,requiereFase2){
 
 async function qxProgramar(){
   var p = QX_ACTUAL; if(!p) return;
-  if (p.estado!=='apta_para_sala' && p.estado!=='en_tramite'){ toast('No se puede programar en este estado','error'); return; }
+  if (p.estado!=='en_tramite'){ toast('No se puede programar en este estado','error'); return; }
   var fecha = valorDe('qxFechaQx');
   var turno = valorDe('qxTurno');
   if (!fecha){ toast('Indica la fecha de cirugía','error'); return; }
@@ -9539,7 +9489,7 @@ async function qxProgramar(){
   var res = await sb.from('pacientes').update(patchProg).eq('id',p.id);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var kProg in patchProg) p[kProg] = patchProg[kProg];
-  if (p.estado==='apta_para_sala'){
+  if (qxFase4Completa(p)){
     await qxSetEstado(p,'programada');
   } else {
     toast('Programada anticipadamente — se confirmará al completar exámenes','success');
@@ -9620,8 +9570,7 @@ async function qxRpQuitarFecha(){
    las hojas como si algo siguiera programado. */
 async function qxQuitarFechaCirugia(p, motivo, detalle){
   if (p.estado === 'programada'){
-    var destino = qxFase4Completa(p) ? 'apta_para_sala' : 'en_tramite';
-    if (!(await qxSetEstado(p, destino, 'Se quitó la fecha de cirugía'+(motivo?' - '+motivo:'')))) return false;
+    if (!(await qxSetEstado(p, 'en_tramite','Se quitó la fecha de cirugía'+(motivo?' - '+motivo:'')))) return false;
   }
   var patch = {fecha_cirugia:null, turno:null, fecha_fase5:null, orden_intervencion:null};
   if (motivo !== undefined) patch.motivo_espera = motivo || null;
