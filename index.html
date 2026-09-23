@@ -7212,9 +7212,16 @@ function qxEstancada(p, fases){
     return { fase:i, nombre:nombre, dias:atraso, limite:0, estancada:true,
       texto:'La fecha de cirugía ('+qxFmtFecha(p.fecha_cirugia)+') pasó hace '+atraso+(atraso===1?' día':' días')+' sin hospitalizar' };
   }
+  // Cada reloj arranca cuando se cumplió la casilla anterior, con la fecha
+  // real si se anotó: Riesgo, cuando quedaron laboratorio y EKG (la última
+  // de las dos fechas de examen); Pre-hospitalización, cuando se evaluaron
+  // los dos riesgos (fecha de evaluación preoperatoria). fecha_fase2/3 son
+  // el respaldo; la 3 además exige las citas, que el recorrido no cuenta.
+  var examenes = (p.fecha_examen1 && p.fecha_examen2)
+    ? (p.fecha_examen1 > p.fecha_examen2 ? p.fecha_examen1 : p.fecha_examen2) : '';
   var desde = i === 1 ? (p.fecha_captacion || qxDiaLocal(p.created_at))
-    : i === 2 ? qxDiaLocal(p.fecha_fase2)
-    : i === 3 ? qxDiaLocal(p.fecha_fase3)
+    : i === 2 ? (qxDiaLocal(examenes) || qxDiaLocal(p.fecha_fase2))
+    : i === 3 ? (qxDiaLocal(p.fecha_evaluacion_preoperatoria) || qxDiaLocal(p.fecha_fase3))
     : i === 4 ? qxDiaLocal(p.fecha_fase4)
     : i === 6 ? qxDiaLocal(p.fecha_hospitalizacion) : '';
   var dias = qxDiasEntreFechas(desde, hoy);
