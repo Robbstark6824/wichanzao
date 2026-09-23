@@ -2108,6 +2108,53 @@ function toast(msg, type) {
   }, 3000);
 }
 
+/* ===== RED DE SEGURIDAD =====
+   Cualquier error que se escape de un try/catch terminaba en la consola, que
+   en un celular no la ve nadie: el boton simplemente no hacia nada y no habia
+   forma de saber por que. Esto lo convierte en un mensaje legible y deja el
+   detalle tecnico en la consola para cuando se pueda mirar. */
+var _fallasRecientes = [];
+
+function registrarFalla(origen, err) {
+  var detalle = (err && err.message) ? err.message : String(err);
+  try { console.error('[' + origen + ']', err); } catch(e) {}
+  _fallasRecientes.push({ origen: origen, detalle: detalle, t: new Date().toISOString() });
+  if (_fallasRecientes.length > 20) _fallasRecientes.shift();
+  return detalle;
+}
+
+/* Traduce los fallos mas comunes a algo que se pueda leer y actuar. */
+function mensajeDeError(err) {
+  var m = (err && err.message) ? String(err.message) : String(err || '');
+  if (/Failed to fetch|NetworkError|Load failed|network request failed/i.test(m))
+    return 'Sin conexión con el servidor. Revisá tu internet y volvé a intentar.';
+  if (/QuotaExceeded|quota/i.test(m))
+    return 'El teléfono se quedó sin espacio para guardar. Liberá espacio y volvé a intentar.';
+  if (/JWT|expired|invalid token|401|403/i.test(m))
+    return 'Tu sesión venció. Volvé a iniciar sesión.';
+  if (/jsPDF|generador de PDF/i.test(m))
+    return 'No se pudo cargar el generador de PDF. Revisá tu conexión.';
+  return m || 'Ocurrió un error inesperado.';
+}
+
+window.addEventListener('error', function(e) {
+  // Los errores de carga de <img>/<script> tambien disparan 'error' y no son
+  // fallas de la app: se ignoran.
+  if (!e || !e.error) return;
+  registrarFalla('error', e.error);
+  toast(mensajeDeError(e.error), 'error');
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+  var r = e ? e.reason : null;
+  // Una promesa abortada a proposito (cerrar la camara, cancelar una subida)
+  // no es una falla que valga la pena mostrar.
+  var m = (r && r.message) ? String(r.message) : String(r || '');
+  if (/AbortError|The play\(\) request|interrupted/i.test(m)) { registrarFalla('abort', r); return; }
+  registrarFalla('promesa', r);
+  toast(mensajeDeError(r), 'error');
+});
+
 /* ===== HAPTIC ===== */
 function haptic(ms) {
   // Solo vibrar si el usuario ya interactuo con la pagina
@@ -2317,7 +2364,13 @@ function isHashed(p) {
 }
 
 /* ===== REGISTRATION ===== */
+/* Un toque doble en el boton (habitual en celular) mandaba dos altas: la
+   segunda contestaba "esa carpeta ya existe" y el usuario creia que habia
+   fallado cuando en realidad la cuenta ya estaba creada. */
+var _authEnCurso = false;
+
 async function doRegister() {
+  if (_authEnCurso) return;
   var name = document.getElementById('regName').value.trim();
   var folder = document.getElementById('regFolder').value.trim().toLowerCase();
   var pass = document.getElementById('regPass').value;
@@ -2338,6 +2391,7 @@ async function doRegister() {
 
   haptic(25);
   toast('Creando cuenta...', 'info');
+  _authEnCurso = true;
 
   try {
     // Derive email for Supabase Auth (not a real email, just an identifier)
@@ -2346,10 +2400,11 @@ async function doRegister() {
     // 1. Create Supabase Auth account
     var signUpResult = await sb.auth.signUp({ email: email, password: pass });
     if (signUpResult.error) {
-      if (signUpResult.error.message.indexOf('already registered') !== -1) {
+      var msgReg = String(signUpResult.error.message || '');
+      if (msgReg.indexOf('already registered') !== -1 || /already.*exist/i.test(msgReg)) {
         toast('Esa carpeta ya existe. Usa Iniciar sesion.', 'error');
       } else {
-        toast('Error: ' + signUpResult.error.message, 'error');
+        toast(mensajeDeError(signUpResult.error), 'error');
       }
       return;
     }
@@ -2358,7 +2413,14 @@ async function doRegister() {
     var session = signUpResult.data.session;
     if (!session) {
       var signInRetry = await sb.auth.signInWithPassword({ email: email, password: pass });
-      session = signInRetry.data.session;
+      session = signInRetry.data && signInRetry.data.session;
+    }
+    // Sin sesion no hay token, y leer .access_token de null lanzaba un
+    // TypeError que el catch de abajo disfrazaba de "Error de conexion":
+    // el usuario revisaba su internet por un problema que no era de internet.
+    if (!session || !session.access_token) {
+      toast('La cuenta se creó pero no se pudo iniciar sesión. Probá con "Iniciar sesión".', 'error');
+      return;
     }
     var token = session.access_token;
 
@@ -2402,11 +2464,15 @@ async function doRegister() {
     showModule('dashboard');
     toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
   } catch(e) {
-    toast('Error de conexion. Verifica tu internet.', 'error');
+    registrarFalla('registro', e);
+    toast(mensajeDeError(e), 'error');
+  } finally {
+    _authEnCurso = false;
   }
 }
 
 async function doLogin() {
+  if (_authEnCurso) return;
   var folder = document.getElementById('loginFolder').value.trim().toLowerCase();
   var pass = document.getElementById('loginPass').value;
 
@@ -2418,10 +2484,18 @@ async function doLogin() {
 
   haptic(25);
   toast('Verificando...', 'info');
+  _authEnCurso = true;
 
   try {
     // Step 1: Check if user exists in workers table (fast lookup)
     var workerLookup = await sb.from('workers').select('servicio').eq('folder_id', folderId);
+    // Si la consulta fallo (sin red, RLS), seguir como si el usuario no
+    // existiera lo mandaba por el camino de migracion y terminaba diciendo
+    // "usuario no encontrado", que es mentira y asusta.
+    if (workerLookup.error) {
+      toast(mensajeDeError(workerLookup.error), 'error');
+      return;
+    }
     var existingRow = workerLookup.data && workerLookup.data.length > 0 ? workerLookup.data[0] : null;
 
     if (existingRow) {
@@ -2434,31 +2508,40 @@ async function doLogin() {
       }
       // Load full worker data from DB
       var wRow = await sb.from('workers').select('*').eq('folder_id', folderId).single();
-      if (wRow.data) {
-        var w = {
-          id: wRow.data.folder_id,
-          name: wRow.data.name,
-          servicio: wRow.data.servicio,
-          area: wRow.data.area,
-          picture: wRow.data.picture,
-          email: wRow.data.email,
-          google: wRow.data.google,
-          is_admin: wRow.data.is_admin,
-          created: wRow.data.created_at
-        };
-        saveWorker(w);
-        populateMain();
-        showView('vMain');
-        showModule('dashboard');
-        if (wRow.data.is_admin) {
-          isAdmin = true;
-          var snEl = document.getElementById('sidebarName');
-          if (snEl) snEl.textContent = w.name + ' 👑';
-        }
-        toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
-        syncTodayFromServer(true);
-        processOfflineQueue();
+      // Antes, si esto no traia fila, la funcion volvia sin decir nada: el
+      // boton se quedaba en "Verificando..." para siempre y no habia manera de
+      // saber que habia pasado.
+      if (!wRow.data) {
+        toast('Entraste, pero no se pudo leer tu perfil. Volvé a intentar en un momento.', 'error');
+        registrarFalla('login/perfil', wRow.error || new Error('workers sin fila para ' + folderId));
+        return;
       }
+      var w = {
+        id: wRow.data.folder_id,
+        name: wRow.data.name,
+        servicio: wRow.data.servicio,
+        area: wRow.data.area,
+        picture: wRow.data.picture,
+        email: wRow.data.email,
+        google: wRow.data.google,
+        is_admin: wRow.data.is_admin,
+        created: wRow.data.created_at
+      };
+      saveWorker(w);
+      populateMain();
+      showView('vMain');
+      showModule('dashboard');
+      if (wRow.data.is_admin) {
+        isAdmin = true;
+        var snEl = document.getElementById('sidebarName');
+        if (snEl) snEl.textContent = w.name + ' 👑';
+      }
+      toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
+      // Sin aviso: en una red floja, "Error al sincronizar: Failed to fetch"
+      // aparecia justo despues del "Bienvenido" y parecia que algo se rompio,
+      // cuando en realidad la sesion habia entrado bien.
+      syncTodayFromServer(false);
+      processOfflineQueue();
       return;
     }
 
@@ -2510,7 +2593,8 @@ async function doLogin() {
     var signUpResult = await sb.auth.signUp({ email: email, password: pass });
     if (signUpResult.error) {
       // If already registered in Auth but not in workers table, try sign in
-      if (signUpResult.error.message.indexOf('already registered') !== -1) {
+      var msgMig = String(signUpResult.error.message || '');
+      if (msgMig.indexOf('already registered') !== -1 || /already.*exist/i.test(msgMig)) {
         var retrySignIn = await sb.auth.signInWithPassword({ email: email, password: pass });
         if (retrySignIn.error) {
           toast('Error de migracion. Contacta al admin.', 'error');
@@ -2518,16 +2602,21 @@ async function doLogin() {
         }
         signUpResult = { data: retrySignIn.data };
       } else {
-        toast('Error: ' + signUpResult.error.message, 'error');
+        toast(mensajeDeError(signUpResult.error), 'error');
         return;
       }
     }
 
     // Ensure we have a valid session
-    var session = signUpResult.data.session;
+    var session = signUpResult.data && signUpResult.data.session;
     if (!session) {
       var signInRetry = await sb.auth.signInWithPassword({ email: email, password: pass });
-      session = signInRetry.data.session;
+      session = signInRetry.data && signInRetry.data.session;
+    }
+    if (!session || !session.user || !session.access_token) {
+      toast('No se pudo completar la actualización de tu cuenta. Volvé a intentar.', 'error');
+      registrarFalla('login/migracion', new Error('sin sesion tras signUp para ' + folderId));
+      return;
     }
     var userId = session.user.id;
     var token = session.access_token;
@@ -2575,10 +2664,13 @@ async function doLogin() {
     showView('vMain');
     showModule('dashboard');
     toast('Bienvenido/a, ' + (w.name || 'Usuario').split(' ')[0], 'success');
-    syncTodayFromServer(true);
+    syncTodayFromServer(false);
     processOfflineQueue();
   } catch(e) {
-    toast('Error de conexion. Verifica tu internet.', 'error');
+    registrarFalla('login', e);
+    toast(mensajeDeError(e), 'error');
+  } finally {
+    _authEnCurso = false;
   }
 }
 
