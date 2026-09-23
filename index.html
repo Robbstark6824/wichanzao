@@ -3772,8 +3772,19 @@ function syncTodayFromServer(showFeedback) {
   }).finally(function() { _syncInProgress = false; });
 }
 
+/* Guardar la lista del dia puede fallar si el telefono se quedo sin espacio.
+   Antes esto lanzaba desde addTodayFile(), que corre DESPUES de una subida
+   exitosa: el error subia al .catch de la subida y salia "No se pudo subir,
+   verifica tu conexion" por un archivo que ya estaba en el servidor. */
 function saveTodayFiles() {
-  localStorage.setItem(getTodayKey(), JSON.stringify(todayFiles));
+  try {
+    localStorage.setItem(getTodayKey(), JSON.stringify(todayFiles));
+    return true;
+  } catch(e) {
+    registrarFalla('guardar lista del dia', e);
+    toast('El teléfono no tiene espacio para la lista de hoy. Los archivos sí se subieron.', 'warn');
+    return false;
+  }
 }
 
 function addTodayFile(name, type, url) {
@@ -4001,8 +4012,28 @@ function openCamera(mode) {
   startCamera();
 }
 
+/* Cada apertura de camara lleva un numero. Si el usuario cierra la vista
+   mientras getUserMedia sigue pidiendo permiso, la promesa resuelve igual y
+   antes dejaba la camara prendida (luz verde encendida) con el usuario ya de
+   vuelta en el tablero. Ahora ese stream tardio se descarta. */
+var _camSesion = 0;
+
+/* getUserMedia falla por motivos muy distintos y todos salian como "No se pudo
+   abrir la camara", que no dice que hacer. */
+function mensajeDeCamara(err) {
+  var n = (err && err.name) ? err.name : '';
+  if (n === 'NotAllowedError' || n === 'SecurityError')
+    return 'No diste permiso para la cámara. Habilitalo en los ajustes del navegador.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError')
+    return 'No se encontró una cámara en este dispositivo.';
+  if (n === 'NotReadableError')
+    return 'La cámara está ocupada por otra app. Cerrala y volvé a intentar.';
+  return 'No se pudo abrir la cámara.';
+}
+
 function startCamera() {
   _cameraStarting = true;
+  var miSesion = ++_camSesion;
   // Se pide la resolución más alta que tenga el celular (ideal nunca falla:
   // si no llega a 4K el navegador entrega lo mejor que pueda). A 1280x720,
   // tras recortar al aspecto de la pantalla, la hoja quedaba en ~590 px de
@@ -4016,12 +4047,29 @@ function startCamera() {
     audio: false
   };
 
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    _cameraStarting = false;
+    toast('Este navegador no permite usar la cámara. Probá con Chrome o Safari.', 'error');
+    showView('vMain');
+    return;
+  }
+
   navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
     _cameraStarting = false;
+    // La vista se cerro mientras se pedia permiso: soltar el stream en vez de
+    // dejar la camara prendida de fondo.
+    if (miSesion !== _camSesion) {
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      return;
+    }
     currentStream = stream;
     var video = document.getElementById('camVideo');
+    if (!video) { stream.getTracks().forEach(function(t){ t.stop(); }); return; }
     video.srcObject = stream;
-    video.play();
+    // play() devuelve una promesa que rechaza al cambiar de camara o al pasar
+    // la app a segundo plano. Sin este catch quedaba como error suelto.
+    var pr = video.play();
+    if (pr && pr.catch) pr.catch(function(){});
 
     track = stream.getVideoTracks()[0];
     // Check flash support
@@ -4035,8 +4083,9 @@ function startCamera() {
     updateFlashIcon();
   }).catch(function(err) {
     _cameraStarting = false;
-    // Camera error handled via toast
-    toast('No se pudo abrir la camara', 'error');
+    if (miSesion !== _camSesion) return;   // ya se cerro la vista: no molestar
+    registrarFalla('camara', err);
+    toast(mensajeDeCamara(err), 'error');
     showView('vMain');
   });
 }
@@ -4044,6 +4093,8 @@ function startCamera() {
 // prewarmCamera removed - camera only activates when user opens Foto/PDF
 
 function stopCamera() {
+  // Invalida cualquier apertura en vuelo (ver _camSesion en startCamera).
+  _camSesion++;
   if (currentStream) {
     var tracks = currentStream.getTracks();
     for (var i = 0; i < tracks.length; i++) {
@@ -4053,7 +4104,7 @@ function stopCamera() {
     track = null;
   }
   var video = document.getElementById('camVideo');
-  video.srcObject = null;
+  if (video) video.srcObject = null;
   flashOn = false;
 }
 
@@ -4093,6 +4144,7 @@ function toggleFlash() {
 
 function updateFlashIcon() {
   var btn = document.getElementById('camFlashBtn');
+  if (!btn) return;
   if (flashOn) {
     btn.style.background = 'rgba(255,255,0,.3)';
   } else {
@@ -5162,10 +5214,13 @@ function optimizeImage(dataUrl, maxSizeBytes) {
 }
 
 function dataUrlToBlob(dataUrl) {
-  var parts = dataUrl.split(',');
+  var parts = String(dataUrl || '').split(',');
+  if (parts.length < 2) throw new Error('La imagen quedó dañada al procesarla.');
   var m = parts[0].match(/:(.*?);/);
   var mime = m ? m[1] : 'image/jpeg';
-  var bstr = atob(parts[1]);
+  var bstr;
+  try { bstr = atob(parts[1]); }
+  catch(e) { throw new Error('La imagen quedó dañada al procesarla.'); }
   var n = bstr.length;
   var u8arr = new Uint8Array(n);
   for (var i = 0; i < n; i++) {
@@ -5279,6 +5334,9 @@ function isAuthUploadError(err) {
 }
 
 /* ===== OFFLINE QUEUE ===== */
+// Intentos fallidos seguidos sobre el primer archivo de la cola.
+var _colaFallos = 0;
+
 function queueOfflineUpload(filename, mode, dataUrls) {
   var queue = getOfflineQueue();
   queue.push({
@@ -5360,15 +5418,27 @@ function processOfflineQueue() {
 
   doUpload().then(function() {
     queue.shift();
-    localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue));
+    try { localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue)); } catch(e) {}
     isUploading = false;
+    _colaFallos = 0;
     toast('Archivo pendiente subido: ' + item.filename, 'success');
     if (queue.length > 0) {
       setTimeout(processOfflineQueue, 1000);
     }
   }).catch(function(err) {
-    // Offline queue upload failed, will retry on reconnect
     isUploading = false;
+    // Un archivo que falla siempre (imagen corrupta, sesion muerta) quedaba
+    // primero en la cola para siempre y bloqueaba a todos los de atras: cada
+    // reconexion reintentaba el mismo y nunca llegaba al resto.
+    _colaFallos++;
+    registrarFalla('cola offline', err);
+    if (_colaFallos >= 3) {
+      _colaFallos = 0;
+      queue.shift();
+      try { localStorage.setItem('wichanzao_upload_queue', JSON.stringify(queue)); } catch(e) {}
+      toast('No se pudo subir "' + item.filename + '" tras varios intentos. Se descartó para no trabar los demás.', 'warn');
+      if (queue.length > 0) setTimeout(processOfflineQueue, 1500);
+    }
   });
 }
 
