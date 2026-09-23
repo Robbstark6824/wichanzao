@@ -6462,6 +6462,16 @@ function qxEstadoTerminal(e){ return e==='operada'||e==='suspendida'||e==='refer
 // puestos pero que aún siguen en_tramite por exámenes pendientes): así el número
 // de la tarjeta/filtro coincide con lo que ya se ve en el calendario.
 function qxCuentaComo(p,e){ return e==='programada' ? (p.estado===e || qxProgramadaPendiente(p)) : p.estado===e; }
+/* Valor de un campo por id, o '' si el campo ya no esta en pantalla.
+   Los paneles de Qx son overlays que se arman y se tiran: si uno se cerraba
+   (doble toque, o un refresco que redibujo la ficha) mientras el manejador
+   todavia estaba leyendo sus campos, leer .value de null lanzaba y el boton
+   moria sin decir nada. */
+function valorDe(id){
+  var el = document.getElementById(id);
+  return el ? String(el.value == null ? '' : el.value) : '';
+}
+
 function qxEsc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 function qxNormalizarTel(t){ if(!t) return ''; var d=t.replace(/\D/g,''); if(d.length===11 && d.slice(0,2)==='51') d=d.slice(2); return d; }
 function qxFmtFecha(d){ if(!d) return ''; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
@@ -6692,11 +6702,11 @@ async function qxSyncSheets(id){
 
   var texto;
   try {
-    var resp = await fetch(QX_SHEET_URL, {
+    var resp = await fetchConTiempo(QX_SHEET_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ token: QX_SHEET_TOKEN, paciente: r.data })
-    });
+    }, 30000);
     texto = await resp.text();
   } catch(e) {
     // Sin red, o el navegador no dejó leer la respuesta. La app sigue andando
@@ -6734,16 +6744,41 @@ async function qxSyncSheets(id){
    minutos. El botón sirve para no esperar a la siguiente pasada. */
 function qxNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
 
+/* fetch sin tiempo limite se queda colgado hasta que el sistema operativo lo
+   corta, que en un celular pueden ser minutos con el boton en "Sincronizando".
+   Esto le pone un techo. */
+function fetchConTiempo(url, opciones, ms){
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var op = Object.assign({}, opciones || {});
+  if (ctrl) op.signal = ctrl.signal;
+  var corte = setTimeout(function(){ if (ctrl) ctrl.abort(); }, ms || 30000);
+  return fetch(url, op).finally(function(){ clearTimeout(corte); });
+}
+
 async function qxSyncFromSheet(btn){
   var orig = btn ? btn.innerHTML : '';
   if (btn){ btn.disabled = true; btn.innerHTML = '↻ Sincronizando…'; }
   try {
-    var resp = await fetch(QX_SHEET_URL, {
+    var resp = await fetchConTiempo(QX_SHEET_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'sincronizar' })
-    });
-    var out = JSON.parse(await resp.text());
+    }, 45000);
+    var texto = await resp.text();
+    var out;
+    // Cuando Google devuelve una pagina de error o de login, esto no es JSON y
+    // el toast salia como "Unexpected token < in JSON at position 0", que no le
+    // dice nada a nadie.
+    try { out = JSON.parse(texto); }
+    catch(e){
+      registrarFalla('sincronizar hoja', new Error('respuesta no-JSON: ' + texto.slice(0, 200)));
+      toast('La hoja de Google no respondió como se esperaba. Probá de nuevo en un momento.', 'error');
+      return;
+    }
+    if (!out || typeof out !== 'object'){
+      toast('La hoja de Google no respondió como se esperaba. Probá de nuevo en un momento.', 'error');
+      return;
+    }
     if (out.ok === false){
       toast('No se pudo sincronizar: ' + ((out.errores && out.errores.join(' · ')) || out.error || 'la hoja no respondió'), 'error');
       return;
@@ -6758,7 +6793,9 @@ async function qxSyncFromSheet(btn){
     }
     qxLoad();
   } catch(e){
-    toast('No se pudo sincronizar: ' + (e && e.message ? e.message : e), 'error');
+    registrarFalla('sincronizar hoja', e);
+    var esCorte = e && (e.name === 'AbortError');
+    toast(esCorte ? 'La hoja de Google tardó demasiado. Probá de nuevo.' : 'No se pudo sincronizar: ' + mensajeDeError(e), 'error');
   } finally {
     if (btn){ btn.disabled = false; btn.innerHTML = orig; }
   }
@@ -8352,43 +8389,6 @@ async function qxWizGuardar(){
 
 function qxNuevo(){ qxFormulario(null); }
 
-async function qxGuardarNuevo(){
-  var dni = document.getElementById('qxNDni').value.trim();
-  var nombre = document.getElementById('qxNNombre').value.trim();
-  if (!dni || !nombre){ toast('DNI y nombre son obligatorios','error'); return; }
-  var hcl = document.getElementById('qxNHcl').value.trim();
-  var tel = qxNormalizarTel(document.getElementById('qxNTel').value.trim());
-  var dx = document.getElementById('qxNDx').value.trim();
-  var fcapt = document.getElementById('qxNFechaCapt').value.trim();
-  var interno = document.getElementById('qxNInterno').value.trim();
-  var doctor = document.getElementById('qxNDoctor').value.trim();
-  var edad = parseInt(document.getElementById('qxNEdad').value, 10);
-  var sexo = document.getElementById('qxNSexo').value;
-  var cie10 = document.getElementById('qxNCie10').value.trim();
-  var proc = document.getElementById('qxNProcedimiento').value.trim();
-  var seguro = document.getElementById('qxNSeguro').value;
-  var anestesia = document.getElementById('qxNAnestesia').value;
-  var nivel = document.getElementById('qxNNivel').value;
-  var res = await sb.from('pacientes').insert({
-    dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null, diagnostico:dx||null,
-    edad: isNaN(edad) ? null : edad, sexo: sexo||null,
-    fecha_captacion: fcapt||null, interno_medicina: interno||null, doctor: doctor||null,
-    cie10: cie10||null, procedimiento: proc||null, tipo_seguro: seguro||null,
-    tipo_anestesia: anestesia||null, nivel_cirugia: nivel||null,
-    estado:'en_tramite',
-    created_by: await qxUsuarioId(), origen: 'app'
-  }).select().single();
-  if (res.error){
-    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
-    else toast('Error: '+res.error.message,'error');
-    return;
-  }
-  toast('Paciente registrado ✓','success');
-  var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
-  if (res.data && res.data[0]) qxSyncSheets(res.data[0].id);
-  qxLoad();
-}
-
 async function qxAbrir(id){
   var p = QX_PACIENTES.find(function(x){return x.id===id;});
   if (!p){
@@ -9464,8 +9464,8 @@ async function qxSetCampo(campo,valor,requiereFase2){
 async function qxProgramar(){
   var p = QX_ACTUAL; if(!p) return;
   if (p.estado!=='apta_para_sala' && p.estado!=='en_tramite'){ toast('No se puede programar en este estado','error'); return; }
-  var fecha = document.getElementById('qxFechaQx').value;
-  var turno = document.getElementById('qxTurno').value;
+  var fecha = valorDe('qxFechaQx');
+  var turno = valorDe('qxTurno');
   if (!fecha){ toast('Indica la fecha de cirugía','error'); return; }
   if (!turno){ toast('Indica el turno','error'); return; }
   // Al poner fecha se acaba la espera: si venía de un "quitar fecha" con un
@@ -9517,9 +9517,9 @@ function qxReprogramar(){
 
 async function qxRpPostergar(){
   var p = QX_ACTUAL; if (!p) return;
-  var fecha = document.getElementById('qxRpFecha').value.trim();
+  var fecha = valorDe('qxRpFecha').trim();
   if (!fecha){ toast('Indica la nueva fecha, o usa “Quitar la fecha”','error'); return; }
-  var turno = document.getElementById('qxRpTurno').value;
+  var turno = valorDe('qxRpTurno');
   if (!turno){ toast('Indica el turno','error'); return; }
   // El N° de orden y el motivo de espera son del día y del vacío que dejaba
   // la programación ANTERIOR: con una fecha nueva ninguno de los dos sigue
@@ -9539,8 +9539,8 @@ async function qxRpPostergar(){
 
 async function qxRpQuitarFecha(){
   var p = QX_ACTUAL; if (!p) return;
-  var motivo = document.getElementById('qxRpMotivo').value;
-  var detalle = document.getElementById('qxRpDetalle').value.trim();
+  var motivo = valorDe('qxRpMotivo');
+  var detalle = valorDe('qxRpDetalle').trim();
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   if (!(await qxQuitarFechaCirugia(p, motivo, detalle))) return;
   toast('Sin fecha — vuelve a la lista de espera','success');
@@ -9573,7 +9573,7 @@ async function qxQuitarFechaCirugia(p, motivo, detalle){
 async function qxHospitalizar(){
   var p = QX_ACTUAL; if(!p) return;
   if (p.estado!=='programada'){ toast('Requiere estado "Programada"','error'); return; }
-  var cama = document.getElementById('qxCama').value.trim();
+  var cama = valorDe('qxCama').trim();
   if (!cama){ toast('Indica la cama','error'); return; }
   var res = await sb.from('pacientes').update({cama_hospitalizacion:cama, fecha_hospitalizacion:new Date().toISOString()}).eq('id',p.id);
   if (res.error){ toast('Error: '+res.error.message,'error'); return; }
@@ -9617,11 +9617,11 @@ function qxResolverOp(){
 
 async function qxConfirmarOp(){
   var p = QX_ACTUAL; if (!p) return;
-  var fecha = document.getElementById('qxOpFecha').value.trim();
+  var fecha = valorDe('qxOpFecha').trim();
   if (!fecha){ toast('Indica la fecha real de la operación','error'); return; }
-  var motivo = document.getElementById('qxOpMotivo').value;
-  var lugar = document.getElementById('qxOpLugar').value.trim();
-  var obs = document.getElementById('qxOpObs').value.trim();
+  var motivo = valorDe('qxOpMotivo');
+  var lugar = valorDe('qxOpLugar').trim();
+  var obs = valorDe('qxOpObs').trim();
   var patch = {
     fecha_real_operacion: fecha, fecha_cierre: fecha,
     tipo_cierre: 'Cirugía realizada', motivo_cierre: motivo,
@@ -9677,10 +9677,10 @@ function qxResolverRef(){
 }
 
 async function qxConfirmarSusp(){
-  var motivo = document.getElementById('qxMotivo').value.trim();
+  var motivo = valorDe('qxMotivo').trim();
   if (!motivo){ toast('Indica el motivo','error'); return; }
-  var detalle = document.getElementById('qxDetalleSusp').value.trim();
-  var fechaSusp = document.getElementById('qxFechaSusp').value.trim();
+  var detalle = valorDe('qxDetalleSusp').trim();
+  var fechaSusp = valorDe('qxFechaSusp').trim();
   if (!fechaSusp){ toast('Indica la fecha de la suspensión','error'); return; }
   var p = QX_ACTUAL;
   var patchS = {motivo_suspension:motivo, detalle_suspension:detalle||null, fecha_suspension:fechaSusp, referencia_hospital:null};
@@ -9694,10 +9694,10 @@ async function qxConfirmarSusp(){
 }
 
 async function qxConfirmarRef(){
-  var motivoCierre = document.getElementById('qxRefMotivoCierre').value;
-  var fecha = document.getElementById('qxRefFecha').value.trim();
-  var ref = document.getElementById('qxRefHospital').value.trim();
-  var detalle = document.getElementById('qxRefMotivo').value.trim();
+  var motivoCierre = valorDe('qxRefMotivoCierre');
+  var fecha = valorDe('qxRefFecha').trim();
+  var ref = valorDe('qxRefHospital').trim();
+  var detalle = valorDe('qxRefMotivo').trim();
   if (!fecha){ toast('Indica la fecha de cierre','error'); return; }
   var esReferencia = motivoCierre.indexOf('referido o transferido') >= 0;
   if (esReferencia && !ref){ toast('Indica el hospital de destino','error'); return; }
@@ -9739,7 +9739,7 @@ function qxCambiarEstadoUI(){
 
 async function qxAplicarEstado(){
   var p = QX_ACTUAL; if(!p) return;
-  var target = document.getElementById('qxEstadoNuevo').value;
+  var target = valorDe('qxEstadoNuevo');
   if (target === p.estado){ var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove(); return; }
   if (target === 'programada' && (!p.fecha_cirugia || !p.turno)){ toast('Requiere fecha de cirugía y turno','error'); return; }
   if (target === 'hospitalizada' && !p.cama_hospitalizacion){ toast('Requiere cama asignada','error'); return; }
@@ -9860,31 +9860,31 @@ function qxEditarBasicos(){
 
 async function qxGuardarEdicion(){
   var p = QX_ACTUAL; if (!p) return;
-  var dni = document.getElementById('qxEDni').value.trim();
-  var nombre = document.getElementById('qxENombre').value.trim();
+  var dni = valorDe('qxEDni').trim();
+  var nombre = valorDe('qxENombre').trim();
   if (!dni || !nombre){ toast('DNI y nombre son obligatorios','error'); return; }
-  var hcl = document.getElementById('qxEHcl').value.trim();
-  var tel = qxNormalizarTel(document.getElementById('qxETel').value.trim());
-  var edad = parseInt(document.getElementById('qxEEdad').value, 10);
-  var sexo = document.getElementById('qxESexo').value;
-  var dx = document.getElementById('qxEDx').value.trim();
-  var cie10 = document.getElementById('qxECie10').value.trim();
-  var proc = document.getElementById('qxEProcedimiento').value.trim();
-  var seguro = document.getElementById('qxESeguro').value;
-  var anestesia = document.getElementById('qxEAnestesia').value;
-  var nivel = document.getElementById('qxENivel').value;
-  var cie10sec = document.getElementById('qxECie10Sec').value.trim();
-  var dxsec = document.getElementById('qxEDxSec').value.trim();
-  var cie10ter = document.getElementById('qxECie10Ter').value.trim();
-  var dxter = document.getElementById('qxEDxTer').value.trim();
-  var codproc = document.getElementById('qxECodProc').value.trim();
-  var fprim = document.getElementById('qxEFechaPrimEval').value.trim();
-  var img = document.getElementById('qxEImagenes').value;
-  var fimg = document.getElementById('qxEFechaImg').value.trim();
-  var fevalpre = document.getElementById('qxEFechaEvalPreop').value.trim();
-  var orden = document.getElementById('qxEOrden').value.trim();
-  var lugar = document.getElementById('qxELugar').value.trim();
-  var obs = document.getElementById('qxEObs').value.trim();
+  var hcl = valorDe('qxEHcl').trim();
+  var tel = qxNormalizarTel(valorDe('qxETel').trim());
+  var edad = parseInt(valorDe('qxEEdad'), 10);
+  var sexo = valorDe('qxESexo');
+  var dx = valorDe('qxEDx').trim();
+  var cie10 = valorDe('qxECie10').trim();
+  var proc = valorDe('qxEProcedimiento').trim();
+  var seguro = valorDe('qxESeguro');
+  var anestesia = valorDe('qxEAnestesia');
+  var nivel = valorDe('qxENivel');
+  var cie10sec = valorDe('qxECie10Sec').trim();
+  var dxsec = valorDe('qxEDxSec').trim();
+  var cie10ter = valorDe('qxECie10Ter').trim();
+  var dxter = valorDe('qxEDxTer').trim();
+  var codproc = valorDe('qxECodProc').trim();
+  var fprim = valorDe('qxEFechaPrimEval').trim();
+  var img = valorDe('qxEImagenes');
+  var fimg = valorDe('qxEFechaImg').trim();
+  var fevalpre = valorDe('qxEFechaEvalPreop').trim();
+  var orden = valorDe('qxEOrden').trim();
+  var lugar = valorDe('qxELugar').trim();
+  var obs = valorDe('qxEObs').trim();
   var res = await sb.from('pacientes').update({
     dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null,
     edad: isNaN(edad) ? null : edad, sexo: sexo||null, diagnostico: dx||null,
@@ -9955,8 +9955,8 @@ async function qxEliminar(){
 }
 
 function qxFiltrarCaptacion(){
-  QX_CAPT_DESDE = document.getElementById('qxCaptDesde').value;
-  QX_CAPT_HASTA = document.getElementById('qxCaptHasta').value;
+  QX_CAPT_DESDE = valorDe('qxCaptDesde');
+  QX_CAPT_HASTA = valorDe('qxCaptHasta');
   qxRender();
 }
 
