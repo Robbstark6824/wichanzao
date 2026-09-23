@@ -1106,6 +1106,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="prev-section" id="prevSection">
             <div class="ps-header">
               <h4>Archivos anteriores</h4>
+              <button onclick="loadPreviousDates(true)" style="background:none;border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:11px;font-family:inherit;font-weight:600;color:var(--tl);cursor:pointer;display:flex;align-items:center;gap:4px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-3-6.74"/><polyline points="21 3 21 9 15 9"/></svg>
+                Actualizar
+              </button>
             </div>
             <div id="prevDatesContainer">
               <div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>
@@ -1916,13 +1920,19 @@ function iniciarApp() {
   setupOnlineOffline();
   registerSW();
 
-  // Auto-refresh content every 60 seconds
+  // Refresco cada 60 s de los archivos de hoy (para ver los que se subieron
+  // desde la PC). Antes esto recargaba tambien la lista de dias anteriores, lo
+  // que se bajaba el listado entero del servidor cada minuto y de paso cerraba
+  // la tarjeta que el usuario tuviera abierta leyendo. Y corria igual con la
+  // app en segundo plano o con el usuario en Programacion o Calculadora,
+  // gastando datos y bateria sin que nadie estuviera mirando.
   setInterval(function() {
-    if (worker && document.getElementById('vMain').classList.contains('on')) {
-      prevDatesLoaded = false;
-      loadPreviousDates();
-      updateTodayCount();
-    }
+    if (document.hidden) return;
+    if (!worker) return;
+    var main = document.getElementById('vMain');
+    if (!main || !main.classList.contains('on')) return;
+    if (currentModule !== 'scan' && currentModule !== 'dashboard') return;
+    syncTodayFromServer(false);
   }, 60000);
 
   // Enter key on quick name input
@@ -2803,6 +2813,7 @@ function formatFileSize(bytes) {
 function loadPreviousDates(forceRefresh) {
   if (!worker || !worker.id) return;
   var container = document.getElementById('prevDatesContainer');
+  if (!container) return;
   if (!forceRefresh && prevDatesLoaded) return;
 
   container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Cargando...</div>';
@@ -2842,7 +2853,8 @@ function loadPreviousDates(forceRefresh) {
     prevDatesLoaded = true;
     if (forceRefresh) { prevDatesCache = {}; toast('Actualizado', 'success'); }
   }).catch(function(e) {
-    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--danger);font-size:12px">Error al cargar fechas anteriores</div>';
+    registrarFalla('dias anteriores', e);
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--danger);font-size:12px">No se pudieron cargar. Tocá “Actualizar” para reintentar.</div>';
   });
 }
 
@@ -6660,12 +6672,27 @@ async function qxUsuarioId(){
 var QX_AUTORES = {};        // uuid → nombre, para mostrar quién registró a cada una
 var QX_AUTORES_OK = false;
 
-async function qxLoad(){
+/* Carga completa desde la base. Con {silencioso:true} no borra la lista ni
+   avisa si falla: se usa para reconciliar de fondo despues de un cambio, sin
+   que la pantalla parpadee. */
+async function qxLoad(opciones){
+  var silencioso = !!(opciones && opciones.silencioso);
   var list = document.getElementById('qxList');
-  if (list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
+  if (!silencioso && list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
   var res = await sb.from('pacientes').select('*').order('created_at',{ascending:false}).limit(500);
-  if (res.error){ toast('Error al cargar pacientes: '+res.error.message,'error'); return; }
+  if (res.error){
+    registrarFalla('cargar pacientes', res.error);
+    if (!silencioso) toast('No se pudo cargar la lista: ' + mensajeDeError(res.error), 'error');
+    return;
+  }
   QX_PACIENTES = res.data || [];
+  // La ficha abierta apuntaba al objeto viejo, que ya no esta en la lista: los
+  // cambios que se le hicieran despues no se veian reflejados arriba hasta la
+  // siguiente recarga. Se la vuelve a apuntar a la fila recien traida.
+  if (QX_ACTUAL && QX_ACTUAL.id){
+    var vigente = QX_PACIENTES.find(function(x){ return x.id === QX_ACTUAL.id; });
+    if (vigente) QX_ACTUAL = vigente;
+  }
   if (!QX_AUTORES_OK){
     var w = await sb.from('workers').select('id,name');
     if (!w.error && w.data){
@@ -6674,6 +6701,24 @@ async function qxLoad(){
     }
   }
   qxRender();
+}
+
+/* Refresco despues de un cambio puntual.
+   Antes cada tilde en el recorrido llamaba a qxLoad(): borraba la lista, se
+   bajaba las 500 fichas enteras y la volvia a dibujar. En la red del hospital
+   eso era un parpadeo y un segundo largo de espera por cada toque, y si el
+   usuario tildaba tres casillas seguidas eran tres descargas completas.
+   El cambio ya esta aplicado sobre el objeto en memoria, asi que se dibuja al
+   instante; la base se reconcilia de fondo, una sola vez. */
+var _qxRefrescoPendiente = null;
+
+function qxRefrescar(){
+  qxRender();
+  if (_qxRefrescoPendiente) clearTimeout(_qxRefrescoPendiente);
+  _qxRefrescoPendiente = setTimeout(function(){
+    _qxRefrescoPendiente = null;
+    qxLoad({ silencioso: true });
+  }, 1200);
 }
 
 /* De dónde salió esta ficha. Sin esto, rastrear a una paciente que apareció de
@@ -9444,7 +9489,7 @@ async function qxToggle(campo){
   }
   qxSyncSheets(p.id);
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 async function qxSetCampo(campo,valor,requiereFase2){
@@ -9458,7 +9503,7 @@ async function qxSetCampo(campo,valor,requiereFase2){
   await qxMarcarFases(p);
   qxSyncSheets(p.id);
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 async function qxProgramar(){
@@ -9482,7 +9527,7 @@ async function qxProgramar(){
   }
   qxSyncSheets(p.id);
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 /* Postergar o quitar la fecha de una cirugía ya programada.
@@ -9534,7 +9579,7 @@ async function qxRpPostergar(){
   qxSyncSheets(p.id);
   toast('Postergada al '+qxFmtFecha(fecha)+' ✓','success');
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 async function qxRpQuitarFecha(){
@@ -9545,7 +9590,7 @@ async function qxRpQuitarFecha(){
   if (!(await qxQuitarFechaCirugia(p, motivo, detalle))) return;
   toast('Sin fecha — vuelve a la lista de espera','success');
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 /* Saca a la paciente de la programación y recién entonces borra la fecha.
@@ -9582,14 +9627,14 @@ async function qxHospitalizar(){
   // sube igual, para que las hojas no queden atrasadas respecto a la app.
   if (!(await qxSetEstado(p,'hospitalizada'))) qxSyncSheets(p.id);
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 async function qxResolver(resultado){
   var p = QX_ACTUAL; if(!p) return;
   if (!(await qxSetEstado(p,resultado))) return;
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 /* Cierre por cirugía realizada. El formato pide la fecha REAL de la operación
@@ -9635,7 +9680,7 @@ async function qxConfirmarOp(){
   // las hojas: nada que esté en la base se queda sin reflejar en los formatos.
   if (!(await qxSetEstado(p,'operada'))){ qxSyncSheets(p.id); return; }
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 function qxResolverSusp(){
@@ -9690,7 +9735,7 @@ async function qxConfirmarSusp(){
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   if (!(await qxSetEstado(p,'suspendida',motivo))){ qxSyncSheets(p.id); return; }
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 async function qxConfirmarRef(){
@@ -9713,7 +9758,7 @@ async function qxConfirmarRef(){
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   if (!(await qxSetEstado(p,'referida', motivoCierre+(ref?' → '+ref:'')+(detalle?' - '+detalle:'')))){ qxSyncSheets(p.id); return; }
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 function qxCambiarEstadoUI(){
@@ -9749,7 +9794,7 @@ async function qxAplicarEstado(){
   if (target === 'referida'){ qxResolverRef(); return; }
   if (!(await qxSetEstado(p, target))) return;
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 /* Resolutor pendiente del aviso de cierre (los onclick son globales). */
@@ -9916,7 +9961,7 @@ async function qxGuardarEdicion(){
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   qxSyncSheets(p.id);
   qxRenderDetalle();
-  qxLoad();
+  qxRefrescar();
 }
 
 function qxConfirmarEliminar(){
