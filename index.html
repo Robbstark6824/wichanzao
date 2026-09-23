@@ -647,6 +647,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-fase.fin .fh i{background:var(--t3);border-color:var(--t3);color:#fff}
 .qx-fase.fin .fi{color:var(--t2)}
 .qx-proceso.cerrado .qx-fase:not(.fin){opacity:.6}
+.qx-fase .fh .dias{text-transform:none;margin-left:auto;padding-left:4px;font-size:9px;font-weight:600;color:var(--t3);white-space:nowrap}
+.qx-fase.aqui.tarde{border-color:var(--alarma);box-shadow:0 0 0 1px var(--alarma)}
+.qx-fase.aqui.tarde .fh,.qx-fase.aqui.tarde .fh .dias{color:var(--alarma)}
+.qx-fase.aqui.tarde .fh i{border-color:var(--alarma);color:var(--alarma)}
+.qx-estancada{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:3px;background:rgba(179,64,58,.1);color:var(--alarma);font-size:11.5px;font-weight:700;line-height:1.35}
 /* En pantalla angosta la fila se desliza; qxProcesoEnfocar deja a la
    vista la fase en curso. */
 @media (max-width:768px){
@@ -714,6 +719,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .calc-hint{font-size:11px;color:var(--t3);line-height:1.5;margin:-4px 0 12px}
 /* Pestañas activas/historial: lo resuelto deja de mezclarse con lo en curso. */
 .qx-buscar{position:relative;margin-bottom:10px}
+.qx-chip.estancadas{color:var(--alarma);border-color:rgba(179,64,58,.45)}
+.qx-chip.estancadas.active{background:var(--alarma);border-color:var(--alarma);color:#fff;box-shadow:none}
 .qx-buscar .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.55;pointer-events:none}
 .qx-buscar input{width:100%;box-sizing:border-box;padding:10px 38px 10px 36px;border:1.5px solid var(--bd);border-radius:10px;font-size:16px;font-family:inherit;background:var(--s1);color:var(--t1);-webkit-appearance:none;appearance:none}
 .qx-buscar input:focus{outline:none;border-color:var(--tl)}
@@ -6955,10 +6962,14 @@ function qxRender(){
       var n2 = pool.filter(function(p){return qxCuentaComo(p,e2);}).length;
       c += '<button class="qx-chip'+(QX_FILTER===e2?' active':'')+'" onclick="qxSetFilter(\''+e2+'\')">'+estadosBase[j][1]+' ('+n2+')</button>';
     }
+    if (enActivas){
+      var nEst = baseData.filter(qxEsEstancada).length;
+      c += '<button class="qx-chip estancadas'+(QX_FILTER==='estancadas'?' active':'')+'" onclick="qxSetFilter(\'estancadas\')">⏱ Estancadas ('+nEst+')</button>';
+    }
     fl.innerHTML = c;
   }
   if (!list) return;
-  var data = QX_FILTER==='todos' ? baseData : baseData.filter(function(p){return qxCuentaComo(p,QX_FILTER);});
+  var data = qxFiltrarPorChip(baseData);
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     data = data.filter(function(p){
       var f = p.fecha_captacion || (p.created_at ? p.created_at.slice(0,10) : '');
@@ -6978,7 +6989,8 @@ function qxRender(){
   }
   // Activas: de la más avanzada en el trámite a la menos avanzada, para ver
   // de un vistazo a quién le falta qué. El historial sigue por fecha de alta.
-  if (enActivas) data = qxOrdenarPorAvance(data);
+  // En "Estancadas", la que lleva más días parada primero: es la lista de trabajo.
+  if (enActivas) data = QX_FILTER === 'estancadas' ? qxOrdenarPorEstancamiento(data) : qxOrdenarPorAvance(data);
   var html = '';
   for (var k=0;k<data.length;k++){
     html += qxTarjetaHtml(data[k]);
@@ -7107,14 +7119,18 @@ function qxProcesoFases(p){
   return fases;
 }
 
-function qxProcesoHtml(p){
-  var fases = qxProcesoFases(p);
+function qxProcesoHtml(p, fases){
+  fases = fases || qxProcesoFases(p);
   var cerrado = qxEstadoTerminal(p.estado) && p.estado !== 'operada';
+  var est = qxEstancada(p, fases);
   var h = '<div class="qx-proceso'+(cerrado?' cerrado':'')+'">';
   for (var i=0;i<fases.length;i++){
     var f = fases[i];
     var badge = f.estado==='ok' ? '✓' : (f.estado==='fin' ? '×' : (f.estado==='antes' ? '!' : String(i+1)));
-    h += '<div class="qx-fase '+f.estado+'"><div class="fh"><i>'+badge+'</i>'+qxEsc(f.nombre)+(f.nota ? ' · '+qxEsc(f.nota) : '')+'</div>';
+    // La fase en curso lleva sus días; en rojo si pasó el límite.
+    var enEsta = est && est.fase === i;
+    var reloj = enEsta && est.limite ? '<small class="dias">'+est.dias+' d</small>' : '';
+    h += '<div class="qx-fase '+f.estado+(enEsta && est.estancada ? ' tarde' : '')+'"><div class="fh"><i>'+badge+'</i>'+qxEsc(f.nombre)+(f.nota ? ' · '+qxEsc(f.nota) : '')+reloj+'</div>';
     for (var j=0;j<f.items.length;j++){
       var it = f.items[j];
       h += '<div class="fi'+(it.ok?' ok':'')+(it.info?' info':'')+'"><b>'+(it.ok?'✓':'')+'</b><span>'+qxEsc(it.label)+'</span>'
@@ -7164,6 +7180,69 @@ function qxOrdenarPorAvance(lista){
   });
 }
 
+/* Pacientes estancadas: cuántos días lleva en la fase en curso y si pasó el
+   límite acordado con el servicio (2026-09-23). La cuenta arranca en la fecha
+   en que se cumplió la fase anterior, la misma que la app ya guarda al
+   completarla (fecha_fase2/3/4, fecha_hospitalizacion). Si esa fecha falta
+   (fichas antiguas o traídas de la hoja) no se marca: mejor "sin dato" que
+   una alarma falsa. Índices = casillas de qxProcesoFases. */
+var QX_ESTANCADA_LIMITE = { 1:7, 2:7, 3:10, 4:7, 6:2 };
+
+function qxDiaLocal(v){
+  if (!v) return '';
+  var s = String(v);
+  if (s.length <= 10) return s;
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? '' : qxFechaStr(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/* null = no aplica o sin dato. Si no: { fase, nombre, dias, limite, estancada, texto }. */
+function qxEstancada(p, fases){
+  if (qxEstadoTerminal(p.estado)) return null;
+  fases = fases || qxProcesoFases(p);
+  var i = -1;
+  for (var k=0;k<fases.length;k++) if (fases[k].estado === 'aqui') i = k;
+  if (i < 0) return null;
+  var hoy = qxHoyStr(), nombre = fases[i].nombre;
+  // Programada: la espera hasta la fecha es normal. Lo anormal es que la
+  // fecha pase sin hospitalizarla ni resolver el caso.
+  if (i === 5){
+    if (!p.fecha_cirugia || p.fecha_cirugia >= hoy) return null;
+    var atraso = qxDiasEntreFechas(p.fecha_cirugia, hoy);
+    return { fase:i, nombre:nombre, dias:atraso, limite:0, estancada:true,
+      texto:'La fecha de cirugía ('+qxFmtFecha(p.fecha_cirugia)+') pasó hace '+atraso+(atraso===1?' día':' días')+' sin hospitalizar' };
+  }
+  var desde = i === 1 ? (p.fecha_captacion || qxDiaLocal(p.created_at))
+    : i === 2 ? qxDiaLocal(p.fecha_fase2)
+    : i === 3 ? qxDiaLocal(p.fecha_fase3)
+    : i === 4 ? qxDiaLocal(p.fecha_fase4)
+    : i === 6 ? qxDiaLocal(p.fecha_hospitalizacion) : '';
+  var dias = qxDiasEntreFechas(desde, hoy);
+  if (dias === null) return null;
+  if (dias < 0) dias = 0;
+  var limite = QX_ESTANCADA_LIMITE[i];
+  var est = limite != null && dias > limite;
+  var donde = i === 4 ? 'lista para programar y sin fecha' : (i === 6 ? 'hospitalizada sin operarse' : 'en ' + nombre);
+  return { fase:i, nombre:nombre, dias:dias, limite:limite, estancada:est,
+    texto: 'Estancada: ' + dias + (dias===1?' día ':' días ') + donde + ' (límite ' + limite + ')' };
+}
+
+function qxEsEstancada(p){ var e = qxEstancada(p); return !!(e && e.estancada); }
+
+/* Días pasados del límite (la fecha vencida de una programada cuenta entera). */
+function qxOrdenarPorEstancamiento(lista){
+  var exceso = {};
+  lista.forEach(function(p){ var e = qxEstancada(p); exceso[p.id] = e ? e.dias - (e.limite || 0) : -1; });
+  return lista.slice().sort(function(a,b){ return exceso[b.id] - exceso[a.id]; });
+}
+
+/* El chip elegido: todos, un estado o "estancadas". */
+function qxFiltrarPorChip(lista){
+  if (QX_FILTER === 'todos') return lista;
+  if (QX_FILTER === 'estancadas') return lista.filter(qxEsEstancada);
+  return lista.filter(function(p){ return qxCuentaComo(p, QX_FILTER); });
+}
+
 /* Buscador de la lista: DNI, nombres, apellidos o HC. Cada palabra escrita
    tiene que aparecer (en cualquier orden), sin tildes ni mayúsculas:
    "quispe maria" encuentra a "MARÍA ... QUISPE". */
@@ -7201,6 +7280,8 @@ function qxProcesoEnfocar(root){
 }
 
 function qxTarjetaHtml(p){
+  var fases = qxProcesoFases(p);
+  var est = qxEstancada(p, fases);
   var pend = qxProgramadaPendiente(p);
   var dias = qxDiasEspera(p);
   var terminal = qxEstadoTerminal(p.estado);
@@ -7216,8 +7297,9 @@ function qxTarjetaHtml(p){
     + qxAcciones(p)
     + '</div>'
     + '<div class="dni">'+qxEsc(p.dni||'—')+(p.hcl?' · HC '+qxEsc(p.hcl):'')+(p.edad?' · '+p.edad+'a':'')+qxEGChip(p)+'</div>'
+    + (est && est.estancada ? '<div class="qx-estancada">⏱ '+qxEsc(est.texto)+'</div>' : '')
     + (qxDxPrincipal(p) ? '<div class="dx">'+qxEsc(qxDxPrincipal(p))+'</div>' : '')
-    + qxProcesoHtml(p)
+    + qxProcesoHtml(p, fases)
     + '</div>';
 }
 
@@ -7402,7 +7484,7 @@ async function qxExportarDia(){
 
 function qxPacientesInforme(){
   var lista = QX_PACIENTES.filter(function(p){ return !qxEstadoTerminal(p.estado) && qxCoincideBusqueda(p); });
-  if (QX_FILTER !== 'todos') lista = lista.filter(function(p){ return qxCuentaComo(p, QX_FILTER); });
+  lista = qxFiltrarPorChip(lista);
   if (QX_CAPT_DESDE || QX_CAPT_HASTA){
     lista = lista.filter(function(p){
       var f = p.fecha_captacion || (p.created_at ? String(p.created_at).slice(0,10) : '');
@@ -7418,7 +7500,7 @@ async function qxExportarInforme(){
   var lista = qxPacientesInforme();
   if (!lista.length){ toast('No hay pacientes para el informe','error'); return; }
   var filtro = [];
-  if (QX_FILTER !== 'todos') filtro.push('solo ' + qxEstadoLabel(QX_FILTER).toLowerCase());
+  if (QX_FILTER !== 'todos') filtro.push('solo ' + (QX_FILTER === 'estancadas' ? 'estancadas' : qxEstadoLabel(QX_FILTER).toLowerCase()));
   if (QX_CAPT_DESDE || QX_CAPT_HASTA) filtro.push('captadas ' + (QX_CAPT_DESDE ? 'del ' + qxFmtFecha(QX_CAPT_DESDE) : '') + (QX_CAPT_HASTA ? ' al ' + qxFmtFecha(QX_CAPT_HASTA) : ''));
   if (QX_BUSQ) filtro.push('búsqueda «' + valorDe('qxBuscar').trim() + '»');
   // Grupos en orden de avance: la hospitalizada ya está a un paso de operarse.
@@ -7648,11 +7730,16 @@ async function qxInformePDF(lista, cfg){
         estadoRow = { label:'Falta', lines: wrap([falta.join('  ·  ')], BW - 2*PADX - LBLW), color: ALARMA };
       }
 
+      var filasFin = [estadoRow];
+      var enCurso = qxEstancada(p, fases);
+      var tarde = enCurso && enCurso.estancada ? enCurso : null;
+      if (tarde) filasFin.push({ label:'Alerta', lines: wrap([tarde.texto], BW - 2*PADX - LBLW), color: ALARMA, bold:true });
+
       var maxItems = 1;
       for (var f=0; f<fases.length; f++) if (fases[f].items.length > maxItems) maxItems = fases[f].items.length;
       var boxH = BOXHEAD + maxItems * ITEMH + 1.3;
       var gridH = Math.max(alto(izq), alto(der));
-      var cardH = HBANDH + 3.6 + gridH + alto([estadoRow]) + 0.6 + boxH + 2.4;
+      var cardH = HBANDH + 3.6 + gridH + alto(filasFin) + 0.6 + boxH + 2.4;
 
       var grupo = grupoDe(p);
       if (y + cardH + (grupo !== grupoActual ? 9 : 0) > H - 12){ doc.addPage(); y = contHeader(); grupoActual = '__none__'; }
@@ -7688,8 +7775,8 @@ async function qxInformePDF(lista, cfg){
       pintarFilas(izq, COL1X, iy);
       pintarFilas(der, COL2X, iy);
       iy += gridH;
-      pintarFilas([estadoRow], COL1X, iy);
-      iy += alto([estadoRow]);
+      pintarFilas(filasFin, COL1X, iy);
+      iy += alto(filasFin);
 
       // Las siete casillas del recorrido, como en la tarjeta.
       var by = iy - 3 + 0.6 + 1.4;
@@ -7699,7 +7786,7 @@ async function qxInformePDF(lista, cfg){
         var est = fase.estado;
         var borde = BD, fill = [240,243,241], head = T3, lw = 0.2;
         if (est === 'ok'){ borde = [166,201,193]; fill = [236,244,241]; head = TL; }
-        else if (est === 'aqui'){ borde = YODO; fill = [255,255,255]; head = YODO; lw = 0.5; }
+        else if (est === 'aqui'){ borde = YODO; fill = [255,255,255]; head = YODO; lw = 0.5; if (tarde && tarde.fase === b){ borde = ALARMA; head = ALARMA; } }
         else if (est === 'antes'){ borde = ALARMA; fill = [250,238,237]; head = ALARMA; lw = 0.4; }
         else if (est === 'fin'){ borde = T3; fill = [221,229,225]; head = T2; }
         doc.setFillColor(fill[0], fill[1], fill[2]);
@@ -7720,8 +7807,16 @@ async function qxInformePDF(lista, cfg){
           doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(head[0], head[1], head[2]);
           doc.text(String(b+1), cx, cy + 0.8, { align:'center' });
         }
+        // Días en la fase en curso, a la derecha del encabezado.
+        var diasW = 0;
+        if (est === 'aqui' && enCurso && enCurso.fase === b && enCurso.limite){
+          doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(head[0], head[1], head[2]);
+          var dtx = enCurso.dias + ' d';
+          diasW = doc.getTextWidth(dtx) + 1.5;
+          doc.text(dtx, bx + BOXW - 1.8, cy + 0.8, { align:'right' });
+        }
         doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(head[0], head[1], head[2]);
-        doc.text(doc.splitTextToSize(T(fase.nombre.toUpperCase()), BOXW - 7.5)[0], bx + 6, cy + 0.8);
+        doc.text(doc.splitTextToSize(T(fase.nombre.toUpperCase()), BOXW - 7.5 - diasW)[0], bx + 6, cy + 0.8);
 
         // Pasos.
         var py = by + BOXHEAD + 2.4;
