@@ -2136,8 +2136,12 @@ function registrarFalla(origen, err) {
   return detalle;
 }
 
-/* Traduce los fallos mas comunes a algo que se pueda leer y actuar. */
-function mensajeDeError(err) {
+/* Traduce los fallos mas comunes a algo que se pueda leer y actuar.
+   Con generico=true, lo que no reconoce NO se muestra tal cual: un
+   "Cannot read properties of null" en pantalla no le sirve a nadie en un
+   consultorio, y el detalle tecnico igual queda en la consola y en
+   _fallasRecientes para cuando alguien pueda mirarlo. */
+function mensajeDeError(err, generico) {
   var m = (err && err.message) ? String(err.message) : String(err || '');
   if (/Failed to fetch|NetworkError|Load failed|network request failed/i.test(m))
     return 'Sin conexión con el servidor. Revisá tu internet y volvé a intentar.';
@@ -2147,6 +2151,8 @@ function mensajeDeError(err) {
     return 'Tu sesión venció. Volvé a iniciar sesión.';
   if (/jsPDF|generador de PDF/i.test(m))
     return 'No se pudo cargar el generador de PDF. Revisá tu conexión.';
+  if (generico)
+    return 'No se pudo completar la acción. Volvé a intentar.';
   return m || 'Ocurrió un error inesperado.';
 }
 
@@ -2155,7 +2161,7 @@ window.addEventListener('error', function(e) {
   // fallas de la app: se ignoran.
   if (!e || !e.error) return;
   registrarFalla('error', e.error);
-  toast(mensajeDeError(e.error), 'error');
+  toast(mensajeDeError(e.error, true), 'error');
 });
 
 window.addEventListener('unhandledrejection', function(e) {
@@ -2165,7 +2171,7 @@ window.addEventListener('unhandledrejection', function(e) {
   var m = (r && r.message) ? String(r.message) : String(r || '');
   if (/AbortError|The play\(\) request|interrupted/i.test(m)) { registrarFalla('abort', r); return; }
   registrarFalla('promesa', r);
-  toast(mensajeDeError(r), 'error');
+  toast(mensajeDeError(r, true), 'error');
 });
 
 /* ===== HAPTIC ===== */
