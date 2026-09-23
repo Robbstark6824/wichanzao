@@ -169,6 +169,7 @@ body.dark .placeholder-card h3{color:var(--t1)}
 .toast.out{animation:toastOut .3s cubic-bezier(.4,0,.2,1) forwards}
 .toast.success{background:#38A169}
 .toast.error{background:#E53E3E}
+.toast.warn{background:#D69E2E}
 .toast.info{background:var(--n1)}
 .toast svg{width:18px;height:18px;flex-shrink:0}
 @keyframes toastIn{from{opacity:0;transform:translateY(-16px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -1501,15 +1502,55 @@ var QX_SHEET_TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9'; // debe coincidir con TOKEN del 
 // CSV de la hoja oficial "HOSPITAL LAREDO" (la MISMA que escribe el Apps Script:
 // getSheets()[0]). Ojo: no usar gviz&gid=0, que apunta a otra hoja ("Hoja 2").
 
-/* ===== SUPABASE CLIENT ===== */
-var sb = window.supabase.createClient(SB_URL, SB_KEY, {
-  auth: {
-    persistSession: true,
-    storageKey: 'wichanzao_sb_session',
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+/* ===== SUPABASE CLIENT =====
+   El cliente se crea en arrancarApp(), no aca. Antes se creaba en esta misma
+   linea: si la libreria de Supabase no habia llegado todavia (red del hospital
+   lenta, CDN bloqueado), la linea lanzaba y el resto del archivo no llegaba a
+   ejecutarse. La app abria, los botones se veian, y nada respondia.
+   Ahora se espera a la libreria, hay un CDN de repuesto, y si aun asi no llega
+   se muestra una pantalla que se puede reintentar. */
+var sb = null;
+
+/* Carga un <script> a demanda. Se usa para los CDN de repuesto. */
+function cargarScriptExterno(url) {
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = url;
+    s.async = false;
+    s.onload = function() { resolve(); };
+    s.onerror = function() { reject(new Error('No cargo ' + url)); };
+    document.head.appendChild(s);
+  });
+}
+
+var CDN_REPUESTO = {
+  supabase: 'https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.3/supabase.min.js',
+  jspdf:    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+};
+
+function haySupabase() { return !!(window.supabase && window.supabase.createClient); }
+function hayJsPdf()    { return !!(window.jspdf && window.jspdf.jsPDF); }
+
+/* jsPDF solo hace falta al exportar o imprimir, asi que se reintenta recien en
+   ese momento: no vale la pena demorar la apertura de la app por el. */
+var _jspdfIntento = null;
+function asegurarJsPdf() {
+  if (hayJsPdf()) return Promise.resolve(true);
+  if (!_jspdfIntento) {
+    _jspdfIntento = cargarScriptExterno(CDN_REPUESTO.jspdf)
+      .then(function() { return hayJsPdf(); })
+      .catch(function() { _jspdfIntento = null; return false; });
   }
-});
+  return _jspdfIntento;
+}
+
+/* Devuelve el constructor de jsPDF, o lanza un error que se entiende leido.
+   Antes, sin la libreria, salia el toast "Cannot read properties of undefined
+   (reading 'jsPDF')", que no le dice nada a nadie. */
+function obtenerJsPDF() {
+  if (!hayJsPdf()) throw new Error('No se pudo cargar el generador de PDF. Revisa tu conexion y volve a intentar.');
+  return window.jspdf.jsPDF;
+}
 
 /* ===== SESSION DURABILITY (iOS standalone PWA) =====
    iOS evicts localStorage aggressively for installed PWAs, so the Supabase
@@ -1537,17 +1578,20 @@ function promptSessionExpired() {
   }, 350);
 }
 
-// Keep the durable backup in sync as Supabase rotates tokens
-sb.auth.onAuthStateChange(function(event, session) {
-  if (event === 'SIGNED_OUT') {
-    clearSessionBackup();
-    var wasManual = _manualLogout;
-    _manualLogout = false;
-    if (!wasManual) promptSessionExpired();
-    return;
-  }
-  if (session && session.refresh_token) saveSessionBackup(session);
-});
+// Keep the durable backup in sync as Supabase rotates tokens.
+// Se engancha desde arrancarApp(), cuando el cliente ya existe.
+function engancharAuthStateChange() {
+  sb.auth.onAuthStateChange(function(event, session) {
+    if (event === 'SIGNED_OUT') {
+      clearSessionBackup();
+      var wasManual = _manualLogout;
+      _manualLogout = false;
+      if (!wasManual) promptSessionExpired();
+      return;
+    }
+    if (session && session.refresh_token) saveSessionBackup(session);
+  });
+}
 
 // Ask the browser not to evict our storage (best-effort; helps on supported platforms)
 if (navigator.storage && navigator.storage.persist) {
@@ -1733,7 +1777,63 @@ document.addEventListener('touchstart', function() { window._userInteracted = tr
 document.addEventListener('click', function() { window._userInteracted = true; }, {once: true});
 
 /* ===== INITIALIZATION ===== */
-document.addEventListener('DOMContentLoaded', function() {
+
+/* Pantalla de "no cargo", con boton para reintentar. Es la unica salida
+   decente cuando la libreria de Supabase no llego: sin ella no hay base, ni
+   sesion, ni subida de archivos, y seguir como si nada solo produce errores
+   sueltos mas adelante, que es justo lo que pasaba. */
+function mostrarFalloDeCarga() {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0F2E28;color:#fff;display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;font-family:system-ui,-apple-system,sans-serif';
+  d.innerHTML = '<div style="max-width:340px">'
+    + '<div style="font-size:19px;font-weight:700;margin-bottom:12px">No se pudo cargar la app</div>'
+    + '<div style="font-size:14px;line-height:1.6;opacity:.85;margin-bottom:22px">Faltaron componentes que se descargan de internet. Conectate a una red con datos y volve a intentar.</div>'
+    + '<button id="btnReintentarCarga" style="background:#2E7D6E;color:#fff;border:0;border-radius:12px;padding:13px 26px;font-size:15px;font-weight:700">Reintentar</button>'
+    + '</div>';
+  document.body.appendChild(d);
+  var b = d.querySelector('#btnReintentarCarga');
+  if (b) b.addEventListener('click', function(){ location.reload(); });
+}
+
+function cuandoDomListo() {
+  return new Promise(function(resolve) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function(){ resolve(); }, { once: true });
+    } else {
+      resolve();
+    }
+  });
+}
+
+/* Punto de entrada unico: primero DOM y librerias, recien despues el arranque. */
+(function() {
+  async function arrancarApp() {
+    await cuandoDomListo();
+    // El <script> del CDN principal puede seguir en vuelo: se le da hasta 3 s
+    // antes de recurrir al de repuesto.
+    for (var i = 0; i < 30 && !haySupabase(); i++) {
+      await new Promise(function(r){ setTimeout(r, 100); });
+    }
+    if (!haySupabase()) {
+      try { await cargarScriptExterno(CDN_REPUESTO.supabase); } catch(e) {}
+    }
+    if (!haySupabase()) { mostrarFalloDeCarga(); return; }
+
+    sb = window.supabase.createClient(SB_URL, SB_KEY, {
+      auth: {
+        persistSession: true,
+        storageKey: 'wichanzao_sb_session',
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+    engancharAuthStateChange();
+    iniciarApp();
+  }
+  arrancarApp();
+})();
+
+function iniciarApp() {
   // Restore dark mode
   if (localStorage.getItem('wichanzao_dark') === '1') {
     document.body.classList.add('dark');
@@ -1855,7 +1955,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showView('vWelcome');
     // La recuperacion async (arriba) puede cambiar a vMain si encuentra sesion
   }
-});
+}
 
 /* ===== VIEW SYSTEM ===== */
 function showView(id) {
@@ -1969,14 +2069,29 @@ function populateDashboard() {
 }
 
 /* ===== TOAST SYSTEM ===== */
+/* Ultimo mensaje mostrado, para no apilar diez copias del mismo error cuando
+   algo falla en un bucle o en el refresco automatico. */
+var _toastUltimo = { msg: '', t: 0 };
+
 function toast(msg, type) {
   type = type || 'info';
+  if (type !== 'success' && type !== 'error' && type !== 'warn') type = 'info';
+  msg = String(msg == null ? '' : msg);
+  if (!msg) return;
+  var ahora = Date.now();
+  if (msg === _toastUltimo.msg && ahora - _toastUltimo.t < 2500) return;
+  _toastUltimo = { msg: msg, t: ahora };
   var container = document.getElementById('toastContainer');
+  // El contenedor es estatico, pero si por lo que sea no esta, avisar por
+  // consola es mejor que lanzar dentro del .catch de otro error y perder los dos.
+  if (!container) { try { console.warn('[toast]', type, msg); } catch(e) {} return; }
   var el = document.createElement('div');
   el.className = 'toast ' + type;
   var iconSvg = '';
   if (type === 'success') {
     iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  } else if (type === 'warn') {
+    iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg>';
   } else if (type === 'error') {
     iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';
   } else {
@@ -4969,9 +5084,12 @@ function dataUrlToBlob(dataUrl) {
 
 /* ===== PDF GENERATION ===== */
 function generatePdf(optimizedDataUrls) {
+  // Si el CDN de jsPDF no habia cargado, se reintenta aca (y no al abrir la
+  // app): es el unico momento en que hace falta de verdad.
+  return asegurarJsPdf().then(function() {
   return new Promise(function(resolve, reject) {
     try {
-      var jsPDF = window.jspdf.jsPDF;
+      var jsPDF = obtenerJsPDF();
       var pdf = null;
 
       var processed = 0;
@@ -5028,6 +5146,7 @@ function generatePdf(optimizedDataUrls) {
     } catch(e) {
       reject(e);
     }
+  });
   });
 }
 
@@ -6910,9 +7029,10 @@ async function qxExportarDia(){
   }
   var lista = (porDia[QX_CAL_DIA] || []).slice();
   if (lista.length === 0){ toast('No hay cirugías este día','error'); return; }
+  if (!(await asegurarJsPdf())){ toast('No se pudo cargar el generador de PDF. Revisá tu conexión.', 'error'); return; }
 
   try {
-    var jsPDF = window.jspdf.jsPDF;
+    var jsPDF = obtenerJsPDF();
     var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     var W = 210, H = 297, M = 15, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
     var GRN = [21,128,61], RED = [176,32,32];
@@ -7139,12 +7259,13 @@ function qxPacientesInforme(){
   return lista;
 }
 
-function qxExportarInforme(){
+async function qxExportarInforme(){
   var lista = qxPacientesInforme();
   if (!lista.length){ toast('No hay pacientes para el informe','error'); return; }
+  if (!(await asegurarJsPdf())){ toast('No se pudo cargar el generador de PDF. Revisá tu conexión.', 'error'); return; }
 
   try {
-    var jsPDF = window.jspdf.jsPDF;
+    var jsPDF = obtenerJsPDF();
     // Apaisado: las siete casillas del recorrido caben en una fila legible.
     var doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
     var W = 297, H = 210, M = 12, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
@@ -8462,6 +8583,7 @@ async function qxRecetaGenerarDesde(edit){
     + '<div style="font-size:13px;color:var(--t2);margin-top:16px">Armando el PDF y subiéndolo al servidor…</div></div>'
   );
 
+  await asegurarJsPdf();
   var doc;
   try { doc = qxRecetaPDF(p, ins, ane); }
   catch (e){
@@ -8515,6 +8637,7 @@ async function qxRecetaGenerarFaltantes(){
 
   qxRecetaSheet('<div class="qx-sheet-head"><h3>Generando…</h3></div><div class="qx-sheet-body" style="text-align:center;padding:44px 20px">' + QX_RECETA_SPIN + '<div style="font-size:13px;color:var(--t2);margin-top:16px">Armando la receta complementaria…</div></div>');
 
+  await asegurarJsPdf();
   var doc;
   try { doc = qxRecetaPDFComp(p, items); }
   catch (e){
@@ -8912,7 +9035,7 @@ function qxRecetaDatosPaciente(doc, p, x, yy, w, INK, SOFT){
 
 /* ---- Receta COMPLETA: A4, dos columnas (insumos | medicación) como el Excel ---- */
 function qxRecetaPDF(p, ins, ane){
-  var jsPDF = window.jspdf.jsPDF;
+  var jsPDF = obtenerJsPDF();
   var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
   var W = 210, H = 297, M = 14, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
 
@@ -8992,7 +9115,7 @@ function qxRecetaPDF(p, ins, ane){
 
 /* ---- Receta COMPLEMENTARIA: A4, una sola columna, insumos y anestesia juntos ---- */
 function qxRecetaPDFComp(p, items){
-  var jsPDF = window.jspdf.jsPDF;
+  var jsPDF = obtenerJsPDF();
   var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
   var W = 210, H = 297, M = 14, INK = 30, SOFT = 105, RULE = 175, T = qxRecetaT;
 
