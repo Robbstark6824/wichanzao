@@ -6695,12 +6695,22 @@ async function qxLoad(opciones){
     return;
   }
   QX_PACIENTES = res.data || [];
-  // La ficha abierta apuntaba al objeto viejo, que ya no esta en la lista: los
-  // cambios que se le hicieran despues no se veian reflejados arriba hasta la
-  // siguiente recarga. Se la vuelve a apuntar a la fila recien traida.
+  // La ficha abierta apuntaba al objeto viejo, que ya no estaba en la lista:
+  // la lista y el detalle mostraban cosas distintas de la misma paciente.
+  // Ahora quedan siempre en el MISMO objeto.
+  //
+  // Cual de los dos gana depende de por que se recargo. En una recarga
+  // silenciosa (la de fondo, despues de un cambio) gana el objeto de la ficha:
+  // si el usuario acaba de tildar algo y la recarga se cruzo con esa escritura,
+  // la fila del servidor puede venir sin ese cambio y la tilde se veria
+  // "saltar" hacia atras. En una recarga pedida a proposito gana el servidor,
+  // que es lo que el usuario fue a buscar.
   if (QX_ACTUAL && QX_ACTUAL.id){
-    var vigente = QX_PACIENTES.find(function(x){ return x.id === QX_ACTUAL.id; });
-    if (vigente) QX_ACTUAL = vigente;
+    var iAct = QX_PACIENTES.findIndex(function(x){ return x.id === QX_ACTUAL.id; });
+    if (iAct >= 0){
+      if (silencioso) QX_PACIENTES[iAct] = QX_ACTUAL;
+      else QX_ACTUAL = QX_PACIENTES[iAct];
+    }
   }
   if (!QX_AUTORES_OK){
     var w = await sb.from('workers').select('id,name');
