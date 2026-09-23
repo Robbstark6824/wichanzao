@@ -1493,7 +1493,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    =========================================================== */
 
 /* ===== APP VERSION ===== */
-var APP_VERSION = 'v224';
+var APP_VERSION = 'v225';
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2998,7 +2998,7 @@ function deletePrevFile(dateStr, index) {
     toast('Archivo eliminado', 'success');
   }
   function fail(e) {
-    toast('Error: ' + e.message, 'error');
+    toast(mensajeDeError(e), 'error');
   }
 
   // For PDFs: also delete their page images + thumbnails
@@ -3493,7 +3493,7 @@ function adminDeleteFolder(basePath) {
     toast('Carpeta y registro eliminados ✓', 'success');
     loadAdminWorkers();
   }).catch(function(e) {
-    toast('Error: ' + e.message, 'error');
+    toast(mensajeDeError(e), 'error');
     console.error('adminDeleteFolder error:', e);
   });
 }
@@ -3623,7 +3623,7 @@ function adminDeleteFile(filePath, basePath, displayName, subName) {
       adminBrowseFolder(basePath, displayName);
     }
   }).catch(function(e) {
-    toast('Error: ' + e.message, 'error');
+    toast(mensajeDeError(e), 'error');
   });
 }
 
@@ -3641,7 +3641,7 @@ function adminDeleteSub(basePath, subName, displayName) {
     toast('Carpeta eliminada ✓', 'success');
     adminBrowseFolder(basePath, displayName);
   }).catch(function(e) {
-    toast('Error: ' + e.message, 'error');
+    toast(mensajeDeError(e), 'error');
   });
 }
 
@@ -3789,7 +3789,7 @@ function syncTodayFromServer(showFeedback) {
     }
   }).catch(function(e) {
     // Sync error handled via toast
-    if (showFeedback) toast('Error al sincronizar: ' + e.message, 'error');
+    if (showFeedback) toast('No se pudo sincronizar: ' + mensajeDeError(e), 'error');
   }).finally(function() { _syncInProgress = false; });
 }
 
@@ -7486,7 +7486,7 @@ async function qxExportarDia(){
     doc.save('Programacion_Quirurgica_' + QX_CAL_DIA + '.pdf');
     toast('PDF exportado ✓','success');
   } catch(e) {
-    toast('Error al exportar: ' + e.message, 'error');
+    toast('No se pudo exportar: ' + mensajeDeError(e), 'error');
   }
 }
 
@@ -7808,7 +7808,7 @@ async function qxExportarInforme(){
     doc.save('Pacientes_en_proceso_' + qxHoyStr() + '.pdf');
     toast('Informe exportado ✓','success');
   } catch(e) {
-    toast('Error al exportar: ' + e.message, 'error');
+    toast('No se pudo exportar: ' + mensajeDeError(e), 'error');
   }
 }
 
@@ -8418,7 +8418,7 @@ async function qxWizGuardar(){
   }
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
-    else toast('Error: '+res.error.message,'error');
+    else toast('No se pudo guardar: '+mensajeDeError(res.error),'error');
     return;
   }
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
@@ -8652,7 +8652,7 @@ async function qxRecetaFaltantesBorrarOK(){
     await sb.from('pacientes').update({ receta_faltantes: null, receta_faltantes_at: null }).eq('id', p.id);
     p.receta_faltantes = null; p.receta_faltantes_at = null;
     if (QX_ACTUAL && QX_ACTUAL.id === p.id){ QX_ACTUAL.receta_faltantes = null; QX_ACTUAL.receta_faltantes_at = null; }
-  } catch (e){ toast('No se pudo borrar: ' + (e && e.message ? e.message : e), 'error'); return; }
+  } catch (e){ toast('No se pudo borrar: ' + mensajeDeError(e), 'error'); return; }
   toast('Receta complementaria borrada', 'success');
   qxRecetaCerrar();
 }
@@ -9486,7 +9486,7 @@ async function qxToggle(campo){
   if ((campo==='hcl_hospitalizacion'||campo==='consentimientos'||campo==='solicitud_sala_dejada'||campo==='recetas_entregadas') && val && !qxFase3Completa(p)){ toast('Requiere Fase 3 completa','error'); return; }
   var patch = {}; patch[campo] = val;
   var res = await sb.from('pacientes').update(patch).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p[campo] = val;
   await qxMarcarFases(p);
   if (qxFase4Completa(p) && p.estado==='en_tramite'){
@@ -9507,7 +9507,7 @@ async function qxSetCampo(campo,valor,requiereFase2){
   var v = valor === '' ? null : valor;
   var patch = {}; patch[campo] = v;
   var res = await sb.from('pacientes').update(patch).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p[campo] = v;
   await qxMarcarFases(p);
   qxSyncSheets(p.id);
@@ -9527,7 +9527,7 @@ async function qxProgramar(){
   // hojas junto a un "Programado" que lo contradice.
   var patchProg = {fecha_cirugia:fecha, turno:turno, fecha_fase5:new Date().toISOString(), motivo_espera:null, detalle_motivo_espera:null};
   var res = await sb.from('pacientes').update(patchProg).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var kProg in patchProg) p[kProg] = patchProg[kProg];
   if (p.estado==='apta_para_sala'){
     await qxSetEstado(p,'programada');
@@ -9581,7 +9581,7 @@ async function qxRpPostergar(){
   // como si la paciente siguiera esperando por el motivo de antes).
   var patchPost = {fecha_cirugia:fecha, turno:turno, orden_intervencion:null, motivo_espera:null, detalle_motivo_espera:null};
   var res = await sb.from('pacientes').update(patchPost).eq('id',p.id).select('id');
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   if (!res.data || !res.data.length){ toast('No se pudo guardar la nueva fecha','error'); return; }
   for (var kPost in patchPost) p[kPost] = patchPost[kPost];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
@@ -9617,7 +9617,7 @@ async function qxQuitarFechaCirugia(p, motivo, detalle){
   if (motivo !== undefined) patch.motivo_espera = motivo || null;
   if (detalle !== undefined) patch.detalle_motivo_espera = detalle || null;
   var res = await sb.from('pacientes').update(patch).eq('id',p.id).select('id');
-  if (res.error){ toast('Error: '+res.error.message,'error'); return false; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return false; }
   if (!res.data || !res.data.length){ toast('No se pudo quitar la fecha','error'); return false; }
   for (var k in patch) p[k] = patch[k];
   qxSyncSheets(p.id);
@@ -9630,7 +9630,7 @@ async function qxHospitalizar(){
   var cama = valorDe('qxCama').trim();
   if (!cama){ toast('Indica la cama','error'); return; }
   var res = await sb.from('pacientes').update({cama_hospitalizacion:cama, fecha_hospitalizacion:new Date().toISOString()}).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p.cama_hospitalizacion = cama;
   // Si el paso a "hospitalizada" no prospera, la cama ya está en la base: se
   // sube igual, para que las hojas no queden atrasadas respecto a la app.
@@ -9682,7 +9682,7 @@ async function qxConfirmarOp(){
     lugar_cirugia: lugar||null, observacion: obs||null
   };
   var res = await sb.from('pacientes').update(patch).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var k in patch) p[k] = patch[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   // Si el cierre se pospone (faltan datos GERESA), lo ya guardado igual sube a
@@ -9739,7 +9739,7 @@ async function qxConfirmarSusp(){
   var p = QX_ACTUAL;
   var patchS = {motivo_suspension:motivo, detalle_suspension:detalle||null, fecha_suspension:fechaSusp, referencia_hospital:null};
   var res = await sb.from('pacientes').update(patchS).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var k in patchS) p[k] = patchS[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   if (!(await qxSetEstado(p,'suspendida',motivo))){ qxSyncSheets(p.id); return; }
@@ -9762,7 +9762,7 @@ async function qxConfirmarRef(){
     fecha_cierre: fecha
   };
   var res = await sb.from('pacientes').update(patchR).eq('id',p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var k in patchR) p[k] = patchR[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   if (!(await qxSetEstado(p,'referida', motivoCierre+(ref?' → '+ref:'')+(detalle?' - '+detalle:'')))){ qxSyncSheets(p.id); return; }
@@ -9861,7 +9861,7 @@ async function qxSetEstado(p, nuevo, motivo){
   // un UPDATE que no toca ninguna fila vuelve sin error y la app daría por
   // guardado un cambio que nunca ocurrió.
   var res = await sb.from('pacientes').update({estado:nuevo, fecha_resolucion:resol}).eq('id',p.id).select('id,estado');
-  if (res.error){ toast('Error: '+res.error.message,'error'); return false; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return false; }
   if (!res.data || !res.data.length){ toast('No se pudo guardar el estado: la base no aceptó el cambio','error'); return false; }
   p.estado = nuevo;
   p.fecha_resolucion = resol;
@@ -9953,7 +9953,7 @@ async function qxGuardarEdicion(){
   }).eq('id', p.id);
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
-    else toast('Error: '+res.error.message,'error');
+    else toast('No se pudo guardar: '+mensajeDeError(res.error),'error');
     return;
   }
   p.dni = dni; p.nombre = nombre; p.hcl = hcl||null; p.telefono = tel||null;
@@ -9991,7 +9991,7 @@ async function qxEliminar(){
   var p = QX_ACTUAL; if (!p) return;
   var dni = p.dni;
   var res = await sb.from('pacientes').delete().eq('id', p.id);
-  if (res.error){ toast('Error: '+res.error.message,'error'); return; }
+  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   // Borrar también de las dos hojas de GERESA (mejor esfuerzo: no bloquea si falla).
   if (dni) {
     try {

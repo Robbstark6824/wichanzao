@@ -7,7 +7,7 @@
 <link rel="manifest" href="./manifest-pc.json">
 <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
 <title>Servicio de Ginecología - Hospital de Laredo · Panel de Referencias</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: https://xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' https://xqphjvppfgwabfruyjae.supabase.co wss://xqphjvppfgwabfruyjae.supabase.co; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net unpkg.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' blob: data: https://xqphjvppfgwabfruyjae.supabase.co; connect-src 'self' https://xqphjvppfgwabfruyjae.supabase.co wss://xqphjvppfgwabfruyjae.supabase.co cdnjs.cloudflare.com cdn.jsdelivr.net unpkg.com; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <!-- SW update handled at bottom of page -->
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -15,9 +15,10 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://xqphjvppfgwabfruyjae.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.__cdnFallo = {};</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="window.__cdnFallo.jspdf=1"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="window.__cdnFallo.jszip=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__cdnFallo.supabase=1"></script>
 <style>
 :root {
   --n1:#0C1F3D; --n2:#142952; --n3:#1B3A6B;
@@ -826,20 +827,45 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 /* =========================================================
    CONFIG
    ========================================================= */
-var APP_VERSION = 'v205';
+var APP_VERSION = 'v206';
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
 var BUCKET = 'documentos';
 
-/* ===== SUPABASE CLIENT (anon key + autenticación real) ===== */
-var sb = window.supabase.createClient(SB_URL, SB_KEY, {
-  auth: {
-    persistSession: true,
-    storageKey: 'wichanzao_pc_sb_session',
-    autoRefreshToken: true,
-    detectSessionInUrl: false
-  }
-});
+/* ===== SUPABASE CLIENT (anon key + autenticación real) =====
+   El cliente se crea en pcArrancar(), al final del archivo. Antes se creaba
+   aca mismo: si la libreria de Supabase no habia llegado, esta linea lanzaba y
+   nada de lo que sigue —incluido pcInit()— llegaba a ejecutarse. El panel
+   abria, los botones se veian, y ninguno respondia. */
+var sb = null;
+
+function pcCargarScript(url) {
+  return new Promise(function(resolve, reject) {
+    var e = document.createElement('script');
+    e.src = url; e.async = false;
+    e.onload = function(){ resolve(); };
+    e.onerror = function(){ reject(new Error('No cargo ' + url)); };
+    document.head.appendChild(e);
+  });
+}
+
+var PC_CDN_REPUESTO = 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';
+function pcHaySupabase(){ return !!(window.supabase && window.supabase.createClient); }
+
+/* Pantalla de "no cargo", con boton para reintentar: sin la libreria no hay
+   base ni sesion, y seguir como si nada solo da errores sueltos mas adelante. */
+function pcFalloDeCarga() {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0C1F3D;color:#fff;display:flex;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:system-ui,-apple-system,sans-serif';
+  d.innerHTML = '<div style="max-width:380px">'
+    + '<div style="font-size:20px;font-weight:800;margin-bottom:12px">No se pudo cargar el panel</div>'
+    + '<div style="font-size:14px;line-height:1.6;opacity:.85;margin-bottom:24px">Faltaron componentes que se descargan de internet. Revisa la conexion y volve a intentar.</div>'
+    + '<button id="pcBtnReintentar" style="background:#A03D63;color:#fff;border:0;border-radius:12px;padding:13px 28px;font-size:15px;font-weight:700;cursor:pointer">Reintentar</button>'
+    + '</div>';
+  document.body.appendChild(d);
+  var b = d.querySelector('#pcBtnReintentar');
+  if (b) b.addEventListener('click', function(){ location.reload(); });
+}
 var REFRESH_INTERVAL = 60;
 
 /* =========================================================
@@ -2826,8 +2852,46 @@ function deleteFromLightbox() {
 /* =========================================================
    TOAST
    ========================================================= */
+/* Red de seguridad: un error que se escapa de un try/catch terminaba solo en
+   la consola y el boton parecia muerto. Ahora sale como mensaje. */
+function pcMensajeDeError(err, generico) {
+  var m = (err && err.message) ? String(err.message) : String(err || '');
+  if (/Failed to fetch|NetworkError|Load failed|network request failed/i.test(m))
+    return 'Sin conexion con el servidor. Revisa la red y volve a intentar.';
+  if (/QuotaExceeded|quota/i.test(m))
+    return 'No hay espacio para guardar. Libera espacio y volve a intentar.';
+  if (/JWT|expired|invalid token|401|403/i.test(m))
+    return 'La sesion vencio. Volve a ingresar.';
+  if (generico) return 'No se pudo completar la accion. Volve a intentar.';
+  return m || 'Ocurrio un error inesperado.';
+}
+
+window.addEventListener('error', function(e) {
+  if (!e || !e.error) return;   // fallos de carga de <img>/<script>: no son de la app
+  try { console.error('[error]', e.error); } catch(x) {}
+  showToast(pcMensajeDeError(e.error, true), 'error');
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+  var r = e ? e.reason : null;
+  var m = (r && r.message) ? String(r.message) : String(r || '');
+  if (/AbortError|interrupted/i.test(m)) return;   // cancelado a proposito
+  try { console.error('[promesa]', r); } catch(x) {}
+  showToast(pcMensajeDeError(r, true), 'error');
+});
+
+var _pcToastUltimo = { msg: '', t: 0 };
+
 function showToast(msg, type) {
   var t = document.getElementById('toast');
+  // Sin el contenedor, avisar por consola es mejor que lanzar dentro del catch
+  // de otro error y perder los dos.
+  if (!t) { try { console.warn('[toast]', type, msg); } catch(e) {} return; }
+  msg = String(msg == null ? '' : msg);
+  if (!msg) return;
+  var ahora = Date.now();
+  if (msg === _pcToastUltimo.msg && ahora - _pcToastUltimo.t < 2500) return;
+  _pcToastUltimo = { msg: msg, t: ahora };
   t.textContent = msg;
   t.className = 'toast ' + (type || 'info');
   t.classList.add('show');
@@ -3462,14 +3526,41 @@ async function pcAuthSubmit() {
   btn.disabled = false; btn.textContent = 'Entrar';
 }
 
-// Si la sesión se cierra o expira, volver a bloquear el panel.
-sb.auth.onAuthStateChange(function(event) {
-  if (event === 'SIGNED_OUT') {
-    pcShowAuth('Sesion cerrada. Vuelve a ingresar.');
-  }
-});
+/* Arranque: primero la libreria de Supabase (con CDN de repuesto), y recien
+   entonces el cliente y pcInit(). Ver el comentario en SUPABASE CLIENT. */
+(function() {
+  async function pcArrancar() {
+    // El <script> del CDN principal puede seguir en vuelo: se le da hasta 3 s,
+    // salvo que el navegador ya haya avisado que la descarga murio.
+    for (var i = 0; i < 30 && !pcHaySupabase(); i++) {
+      if (window.__cdnFallo && window.__cdnFallo.supabase) break;
+      await new Promise(function(r){ setTimeout(r, 100); });
+    }
+    if (!pcHaySupabase()) {
+      try { await pcCargarScript(PC_CDN_REPUESTO); } catch(e) {}
+    }
+    if (!pcHaySupabase()) { pcFalloDeCarga(); return; }
 
-pcInit();
+    sb = window.supabase.createClient(SB_URL, SB_KEY, {
+      auth: {
+        persistSession: true,
+        storageKey: 'wichanzao_pc_sb_session',
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
+    });
+
+    // Si la sesión se cierra o expira, volver a bloquear el panel.
+    sb.auth.onAuthStateChange(function(event) {
+      if (event === 'SIGNED_OUT') {
+        pcShowAuth('Sesion cerrada. Vuelve a ingresar.');
+      }
+    });
+
+    pcInit();
+  }
+  pcArrancar();
+})();
 
 /* ===== PWA INSTALL ===== */
 var pcDeferredPrompt = null;
