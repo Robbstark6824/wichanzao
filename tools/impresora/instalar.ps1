@@ -175,32 +175,62 @@ try {
   Write-Host '       Podes volver a correr este instalador cuando quieras.' -ForegroundColor Yellow
 }
 
-$r = Read-Host '  Que el agente arranque solo al prender la PC? (S/n)'
+# Si habia un agente corriendo (por ejemplo, la version anterior), se cierra:
+# el que quede andando tiene que ser este, con esta configuracion.
+. (Join-Path $Aqui 'arranque-automatico.ps1')
+try { $n = Cerrar-Agentes; if ($n -gt 0) { Bien "Cerre el agente anterior ($n proceso(s))." } } catch { }
+
+$auto = $false
+$r = Read-Host '  Que el agente quede SIEMPRE andando, solo y escondido? (S/n)'
 if ($r -notmatch '^[nN]') {
   try {
-    $lnk = [Environment]::GetFolderPath('Startup') + '\Agente impresion recetas.lnk'
-    $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
-    # Apunta al lanzador invisible: en la PC del servicio nadie quiere ver una
-    # ventana negra abierta todo el dia.
-    $s.TargetPath = (Join-Path $Aqui 'iniciar-oculto.vbs')
-    $s.WorkingDirectory = $Aqui
-    $s.Description = 'Imprime las recetas enviadas desde la app (en segundo plano)'
-    $s.Save()
-    Bien 'Va a arrancar solo con Windows, y sin mostrarse en pantalla.'
+    Instalar-ArranqueAutomatico -Carpeta $Aqui
+    $auto = $true
+    Bien 'Arranca solo al prender la PC, al desbloquearla y al despertar.'
+    Bien 'Cada 5 minutos se revisa: si se cayo o se colgo, vuelve solo.'
   } catch { Mal "No se pudo: $($_.Exception.Message)" }
+
+  Write-Host ''
+  Write-Host '  Si la PC se SUSPENDE, no puede imprimir hasta que alguien la despierte.' -ForegroundColor Gray
+  $r2 = Read-Host '  Que no se suspenda nunca estando enchufada? (la pantalla si se apaga) (S/n)'
+  if ($r2 -notmatch '^[nN]') {
+    if (Evitar-Suspension) { Bien 'Listo: enchufada, ya no se suspende.' }
+    else {
+      Mal 'Windows no dejo cambiarlo (puede hacer falta un usuario administrador).'
+      Write-Host '       A mano: Configuracion > Sistema > Energia > Suspender: Nunca.' -ForegroundColor Yellow
+    }
+  }
 }
 
 Write-Host ''
-Write-Host '  =========================================================' -ForegroundColor Green
-Write-Host '   LISTO. Ahora se abre el agente para probarlo.' -ForegroundColor Green
-Write-Host '   Desde el celular, en una paciente con receta generada,' -ForegroundColor Green
-Write-Host '   toca "Enviar a imprimir" y fijate que salga el papel.' -ForegroundColor Green
-Write-Host '' -ForegroundColor Green
-Write-Host '   CUANDO COMPRUEBES QUE IMPRIME: corre ocultar.bat y la' -ForegroundColor Green
-Write-Host '   ventana negra desaparece para siempre (sigue imprimiendo' -ForegroundColor Green
-Write-Host '   igual, en segundo plano, sin que nadie la vea).' -ForegroundColor Green
-Write-Host '  =========================================================' -ForegroundColor Green
-Write-Host ''
-Read-Host '  Enter para abrir el agente'
-
-Start-Process -FilePath (Join-Path $Aqui 'iniciar.bat') -WorkingDirectory $Aqui
+if ($auto) {
+  $log = Join-Path $Aqui 'impresion.log'
+  $antes = 0
+  if (Test-Path $log) { $antes = (Get-Item $log).Length }
+  try { Lanzar-Vigilante } catch { }
+  Write-Host '  Arrancando en segundo plano...' -ForegroundColor Gray
+  $ok = $false
+  for ($i = 0; $i -lt 15 -and -not $ok; $i++) {
+    Start-Sleep -Seconds 2
+    if ((Test-Path $log) -and (Get-Item $log).Length -gt $antes -and ((Get-Content $log -Tail 8) -match 'Sesi')) { $ok = $true }
+  }
+  if ($ok) {
+    Write-Host '  =========================================================' -ForegroundColor Green
+    Write-Host '   LISTO. El agente ya esta andando, escondido, y queda asi' -ForegroundColor Green
+    Write-Host '   para siempre: no hay que volver a tocar nada.' -ForegroundColor Green
+    Write-Host '' -ForegroundColor Green
+    Write-Host '   Probalo: desde el celular, en una paciente con receta,' -ForegroundColor Green
+    Write-Host '   toca "Enviar a imprimir" y fijate que salga el papel.' -ForegroundColor Green
+    Write-Host '  =========================================================' -ForegroundColor Green
+  } else {
+    Mal 'Arranco, pero todavia no vi que entrara a la app.'
+    Write-Host '       Mira impresion.log en esta carpeta, o corre iniciar.bat' -ForegroundColor Yellow
+    Write-Host '       (antes detener.bat) para ver el error en pantalla.' -ForegroundColor Yellow
+  }
+  Write-Host ''
+  Read-Host '  Enter para cerrar'
+} else {
+  Write-Host '  Se abre el agente en una ventana para probarlo.' -ForegroundColor Green
+  Read-Host '  Enter para abrir el agente'
+  Start-Process -FilePath (Join-Path $Aqui 'iniciar.bat') -WorkingDirectory $Aqui
+}

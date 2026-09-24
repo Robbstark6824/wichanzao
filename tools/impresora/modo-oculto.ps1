@@ -20,9 +20,8 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 
 $Aqui  = $PSScriptRoot
-$Vbs   = Join-Path $Aqui 'iniciar-oculto.vbs'
 $Log   = Join-Path $Aqui 'impresion.log'
-$Acceso = [Environment]::GetFolderPath('Startup') + '\Agente impresion recetas.lnk'
+. (Join-Path $Aqui 'arranque-automatico.ps1')
 
 function Bien($t) { Write-Host "  [OK] $t" -ForegroundColor Green }
 function Mal ($t) { Write-Host "  [!]  $t" -ForegroundColor Yellow }
@@ -46,6 +45,8 @@ function Detener-Agente {
 Write-Host ''
 if ($Detener) {
   Write-Host '  Deteniendo el agente de impresion...' -ForegroundColor Cyan
+  # Primero el vigilante: si no, a los 5 minutos lo vuelve a arrancar.
+  try { if (Pausar-ArranqueAutomatico) { Bien 'Arranque automatico en pausa.' } } catch { Mal "No pude pausar el arranque automatico: $($_.Exception.Message)" }
   $n = Detener-Agente
   if ($n -gt 0) { Bien "Detenido ($n proceso(s))." } else { Mal 'No habia ninguno corriendo.' }
   Write-Host ''
@@ -71,20 +72,18 @@ if (-not (Test-Path (Join-Path $Aqui 'config.json'))) {
 $n = Detener-Agente
 if ($n -gt 0) { Bien "Cerre el agente que estaba abierto ($n proceso(s))." }
 
-# 2. Que a partir de ahora Windows lo arranque escondido.
+# 2. Que a partir de ahora Windows lo mantenga andando, escondido.
 try {
-  $s = (New-Object -ComObject WScript.Shell).CreateShortcut($Acceso)
-  $s.TargetPath = $Vbs
-  $s.WorkingDirectory = $Aqui
-  $s.Description = 'Imprime las recetas enviadas desde la app (en segundo plano)'
-  $s.Save()
-  Bien 'Al prender la PC va a arrancar solo, sin mostrarse.'
+  Instalar-ArranqueAutomatico -Carpeta $Aqui
+  Bien 'Arranca solo al prender la PC y se revisa cada 5 minutos: si se cae, vuelve.'
 } catch { Mal "No pude configurar el arranque automatico: $($_.Exception.Message)" }
 
-# 3. Arrancarlo ahora mismo, ya escondido.
+# 3. Arrancarlo ahora mismo, ya escondido (lo hace el vigilante).
 $antes = 0
 if (Test-Path $Log) { $antes = (Get-Item $Log).Length }
-Start-Process -FilePath 'wscript.exe' -ArgumentList "`"$Vbs`"" -WindowStyle Hidden
+try { Lanzar-Vigilante } catch {
+  Start-Process -FilePath 'wscript.exe' -ArgumentList "//B `"$(Join-Path $Aqui 'iniciar-oculto.vbs')`"" -WindowStyle Hidden
+}
 Write-Host '  Arrancando en segundo plano...' -ForegroundColor Gray
 Start-Sleep -Seconds 10
 

@@ -31,8 +31,19 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 # Supabase exige TLS 1.2; Windows PowerShell 5.1 no siempre lo usa por defecto.
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Sin tope, Windows PowerShell espera una respuesta PARA SIEMPRE: si el Wi-Fi se
+# cortaba o la PC se suspendia en medio de una consulta, el agente quedaba vivo
+# pero colgado, y al dia siguiente "ya no imprimia". Todas las llamadas llevan
+# este tope y abren conexion nueva (una conexion vieja no sobrevive a una
+# suspension ni a un cambio de red).
+$TopeRed = 30
+[Net.ServicePointManager]::DefaultConnectionLimit = 16
 
 $LogFile = Join-Path $PSScriptRoot 'impresion.log'
+# El vigilante (vigilante.ps1, cada 5 minutos) mira la fecha de este archivo:
+# si el agente deja de actualizarlo, esta colgado y lo reinicia.
+$LatidoFile = Join-Path $PSScriptRoot 'latido.txt'
+function Latido { try { Set-Content -Path $LatidoFile -Value (Get-Date -Format 'o') -Encoding ASCII } catch { } }
 
 function Salir($code) {
   if (-not $Silencioso) { Read-Host 'Enter para cerrar' }
@@ -78,7 +89,7 @@ function Resolver-Email {
   if ($cfg.email -and $cfg.email -ne '') { return }
   $folder = ($cfg.usuario.Trim().ToLower() -replace '[^a-z0-9\-]', '-') -replace '-+', '-'
   $folder = $folder.Trim('-')
-  $w = Invoke-RestMethod -Method Get -Headers @{ apikey = $AnonKey } `
+  $w = Invoke-RestMethod -Method Get -Headers @{ apikey = $AnonKey } -TimeoutSec $TopeRed -DisableKeepAlive `
         -Uri "$Url/rest/v1/workers?folder_id=eq.$folder&select=servicio"
   if (@($w).Count -eq 0) { throw "El usuario '$($cfg.usuario)' no existe en la app." }
   $cfg | Add-Member -NotePropertyName 'email' -NotePropertyValue "$folder.$(@($w)[0].servicio)@wichanzao.local" -Force
@@ -117,7 +128,7 @@ function Iniciar-Sesion {
   try {
     $r = Invoke-RestMethod -Method Post -Uri "$Url/auth/v1/token?grant_type=password" `
           -Headers @{ apikey = $AnonKey } -ContentType 'application/json' `
-          -Body ([Text.Encoding]::UTF8.GetBytes($body))
+          -TimeoutSec $TopeRed -DisableKeepAlive -Body ([Text.Encoding]::UTF8.GetBytes($body))
   } catch {
     # Supabase contestó pero rechazó la cuenta (400/401/403): no es la red.
     $code = $null
@@ -145,9 +156,10 @@ function Api {
       if ($null -ne $Body) {
         $json = $Body | ConvertTo-Json -Compress
         return Invoke-RestMethod -Method $Method -Uri "$Url$Path" -Headers $h `
+                 -TimeoutSec $TopeRed -DisableKeepAlive `
                  -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes($json))
       }
-      return Invoke-RestMethod -Method $Method -Uri "$Url$Path" -Headers $h
+      return Invoke-RestMethod -Method $Method -Uri "$Url$Path" -Headers $h -TimeoutSec $TopeRed -DisableKeepAlive
     } catch {
       $code = $null
       if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
@@ -239,7 +251,7 @@ function Procesar {
   try {
     $nombre = if ($t.nombre_archivo) { $t.nombre_archivo } else { 'receta.pdf' }
     $src = "$Url/storage/v1/object/public/$Bucket/$($t.objeto)"
-    Invoke-WebRequest -Uri $src -OutFile $tmp -UseBasicParsing -TimeoutSec 60 | Out-Null
+    Invoke-WebRequest -Uri $src -OutFile $tmp -UseBasicParsing -TimeoutSec 60 -DisableKeepAlive | Out-Null
     if (-not (Test-Path $tmp) -or (Get-Item $tmp).Length -lt 500) { throw 'El PDF bajó vacío o incompleto' }
 
     $copias = if ($t.copias) { [int]$t.copias } else { 1 }
@@ -279,6 +291,17 @@ function Rescatar-Colgados {
 # ---------------------------------------------------------------
 # Bucle principal
 # ---------------------------------------------------------------
+# Uno solo a la vez: el vigilante, el inicio de sesion y el desbloqueo de
+# pantalla pueden intentar arrancarlo casi juntos.
+$script:Unico = New-Object Threading.Mutex($false, 'Local\AgenteImpresionRecetasLaredo')
+$tengo = $false
+try { $tengo = $script:Unico.WaitOne(0) } catch [Threading.AbandonedMutexException] { $tengo = $true }
+if (-not $tengo) {
+  Write-Host 'Ya hay un agente corriendo en esta PC; este se cierra.' -ForegroundColor Yellow
+  if (-not $Silencioso) { Read-Host 'Enter para cerrar' }
+  exit 0
+}
+Latido
 Log '=========================================================' 'White'
 Log 'Agente de impresión de recetas — Ginecología Laredo' 'White'
 Log ("Impresora: {0} - revisa cada {1}s" -f $(if ($Impresora) { $Impresora } else { 'predeterminada de Windows' }), $Intervalo) 'White'
@@ -294,6 +317,7 @@ Log '=========================================================' 'White'
 # si el problema es la cuenta, avisa y reintenta cada 5 min por si la cambian.
 $fallosLogin = 0
 while (-not $script:Token) {
+  Latido
   try { Iniciar-Sesion } catch {
     $fallosLogin++
     $f = Explicar-Fallo $_
@@ -308,8 +332,15 @@ while (-not $script:Token) {
 Rescatar-Colgados
 
 $fallos = 0
+$ultimoRescate = Get-Date
+$ultimoAviso = Get-Date
 while ($true) {
   $hubo = $false
+  Latido
+  # De vez en cuando: devolver a la cola lo que quedo trabado, y dejar una
+  # linea en el log que diga que sigue vivo (sirve para diagnosticar).
+  if (((Get-Date) - $ultimoRescate).TotalMinutes -ge 10) { Rescatar-Colgados; $ultimoRescate = Get-Date }
+  if (((Get-Date) - $ultimoAviso).TotalHours -ge 6) { Log 'Sigo activo, esperando recetas.' 'DarkGray'; $ultimoAviso = Get-Date }
   try {
     $pendientes = Api 'Get' '/rest/v1/impresiones?estado=eq.pendiente&order=solicitado_at.asc&limit=5'
     $fallos = 0

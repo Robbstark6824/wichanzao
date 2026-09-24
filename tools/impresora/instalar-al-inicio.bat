@@ -1,12 +1,13 @@
 @echo off
-REM Deja un acceso directo en la carpeta de Inicio de Windows para que el
-REM agente arranque solo, y escondido, cuando se prende la PC del servicio.
+REM Deja el agente SIEMPRE andando: una tarea de Windows lo arranca al prender
+REM la PC, al desbloquearla y al despertar, y cada 5 minutos revisa que siga
+REM vivo (si se cayo o se colgo, lo vuelve a arrancar). Todo escondido.
 title Instalar agente de impresion al inicio de Windows
+cd /d "%~dp0"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
- "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Startup')+'\Agente impresion recetas.lnk'); $s.TargetPath='%~dp0iniciar-oculto.vbs'; $s.WorkingDirectory='%~dp0'; $s.Description='Imprime las recetas enviadas desde la app (en segundo plano)'; $s.Save(); Write-Host 'Listo: el agente va a arrancar solo al iniciar Windows, sin mostrarse.'"
+ ". '%~dp0arranque-automatico.ps1'; Instalar-ArranqueAutomatico -Carpeta '%~dp0.'; Lanzar-Vigilante; Write-Host 'Listo: el agente queda siempre andando, escondido.'"
 
 echo.
-echo Para desinstalarlo: tecla Windows + R, escribir  shell:startup  y borrar
-echo el acceso directo "Agente impresion recetas".
+echo Para apagarlo del todo: detener.bat
 pause

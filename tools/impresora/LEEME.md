@@ -35,16 +35,33 @@ porque después se borra).
 3. Muestra la **lista de impresoras** de la PC para elegir con un número por cuál
    salen las recetas.
 4. Prueba que entre bien y que la cola responda.
-5. Pregunta si querés que arranque solo cada vez que se prende la PC (decí que sí).
+5. Pregunta si querés que quede **siempre andando** (decí que sí) y si la PC puede
+   dejar de suspenderse estando enchufada (también sí: suspendida no imprime).
 
-Al terminar se abre la ventana del agente para que puedas comprobar que imprime.
+Al terminar el agente ya queda corriendo **escondido y para siempre**: no hay que
+correr nada más. Mandá una receta desde el celular para comprobar que sale.
 
-**Cuando confirmes que sale el papel, corré `ocultar.bat`.** La ventana negra
-desaparece y el agente sigue funcionando en segundo plano: no se ve en la pantalla
-ni en la barra de tareas, y arranca así cada vez que se prende la PC. Es lo
-recomendado en una computadora que usa todo el servicio.
+### Por qué no se cae más
+
+Antes arrancaba una sola vez al iniciar sesión y, si después se colgaba (un corte
+de Wi-Fi o una suspensión en medio de una consulta lo dejaban esperando para
+siempre), nadie lo volvía a levantar: «funcionaba al instalarlo y al día
+siguiente ya no». Ahora:
+
+- Toda consulta a internet tiene un tope de 30 segundos: ya no puede quedarse
+  colgado esperando.
+- El agente anota que sigue vivo en `latido.txt`.
+- Una tarea del **Programador de tareas de Windows** («Agente impresion recetas»)
+  corre el vigilante al iniciar sesión, al desbloquear la pantalla, al despertar
+  de la suspensión y **cada 5 minutos**. Si el agente no está, lo arranca; si
+  lleva más de 10 minutos sin dar señales, lo reinicia. Todo sin ventanas.
+
+Lo único que no puede hacer es imprimir con la PC **apagada** o con **nadie que
+haya iniciado sesión en Windows** (la pantalla bloqueada sí sirve). Lo que se
+mande en ese rato queda en cola y sale solo en cuanto alguien entra.
 
 Para apagarlo del todo (por ejemplo, para cambiar la impresora): `detener.bat`.
+Para volver a dejarlo andando: `ocultar.bat`.
 
 Si Windows muestra un cartel azul de *SmartScreen*: **Más información → Ejecutar de
 todas formas**. Pasa porque los `.bat` bajados de internet no están firmados.
@@ -74,15 +91,16 @@ Si la PC está apagada, el trabajo **queda esperando** y sale apenas se prenda.
 
 **Todo queda «En cola» y nunca avanza** — la PC está apagada, sin internet, o el
 agente no está corriendo. Pasado un minuto la app lo avisa en el mismo cartel
-(«la PC del servicio no responde»). En la PC: correr `ocultar.bat`, que lo
-arranca de nuevo, y mirar `impresion.log`: si la última línea es
+(«la PC del servicio no responde»). El vigilante lo revive solo en menos de 5
+minutos; si no, en la PC correr `ocultar.bat` y mirar `impresion.log`: si la última línea es
 «Sesión iniciada», está vivo; si dice «Sin conexión», no tiene internet; si dice
 «Usuario o contraseña incorrectos», hay que correr `INSTALAR.bat` de nuevo.
 
 **Se prendió la PC y no arrancó solo** — el agente arranca junto con Windows y
 espera a que haya internet (aunque el Wi-Fi tarde en conectarse). Si aun así
-no aparece nada nuevo en `impresion.log` al prender la PC, el acceso directo de
-inicio se borró: correr `ocultar.bat` una vez lo vuelve a dejar.
+no aparece nada nuevo en `impresion.log` al prender la PC, puede que alguien haya
+borrado o pausado la tarea «Agente impresion recetas»: correr `ocultar.bat` una
+vez la vuelve a dejar.
 
 **¿Está funcionando, si no se ve nada?** Abrí `impresion.log`: anota cada receta que
 imprime, con fecha y hora.
@@ -116,9 +134,12 @@ respondiendo `N`: conserva usuario e impresora y actualiza la clave.
 | Archivo | Para qué |
 |---|---|
 | `INSTALAR.bat` | Lo único que hay que tocar la primera vez. |
-| `ocultar.bat` | Deja el agente corriendo invisible (y así arranca siempre). |
-| `detener.bat` | Lo apaga del todo. |
-| `iniciar.bat` | Lo abre con ventana visible, para ver qué está pasando. |
+| `ocultar.bat` | Deja el agente corriendo invisible y vigilado (así queda siempre). |
+| `detener.bat` | Lo apaga del todo (y pausa el vigilante). |
+| `vigilante.ps1` / `.vbs` | Lo que corre cada 5 minutos para revivir el agente si hace falta. |
+| `arranque-automatico.ps1` | Crea la tarea de Windows que lanza el vigilante. |
+| `latido.txt` | El agente lo actualiza mientras está vivo. |
+| `iniciar.bat` | Lo abre con ventana visible, para ver qué está pasando (antes, `detener.bat`). |
 | `agente-impresion.ps1` | El agente en sí. |
 | `instalar-al-inicio.bat` | Solo el paso de «arrancar con Windows». |
 | `config.json` | Se crea al instalar. Tiene la contraseña: no compartirlo. |
