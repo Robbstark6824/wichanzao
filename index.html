@@ -6503,7 +6503,11 @@ function qxEstadoLabel(e){
   return e;
 }
 function qxFase2Completa(p){ return p.laboratorio_completo && p.ekg; }
-function qxFase3Completa(p){ return p.fecha_cita_cardiologia && p.fecha_cita_anestesiologia && p.riesgo_qx && p.riesgo_anestesiologico; }
+/* Fase 3 cumplida = los dos riesgos guardados en "Sí" (decisión del servicio,
+   2026-09-23). Las citas de cardiología y anestesiología quedan como dato de
+   la ficha, pero ya no traban la pre-hospitalización. fecha_fase3 no viaja a
+   las hojas: el Apps Script decide "Apto" con los mismos dos riesgos. */
+function qxFase3Completa(p){ return !!(p.riesgo_qx && p.riesgo_anestesiologico); }
 function qxFase4Completa(p){ return p.hcl_hospitalizacion && p.consentimientos && p.solicitud_sala_dejada && p.recetas_entregadas; }
 function qxProgramadaPendiente(p){ return !!(p.fecha_cirugia && p.turno) && p.estado === 'en_tramite'; }
 function qxEstadoTerminal(e){ return e==='operada'||e==='suspendida'||e==='referida'; }
@@ -7004,7 +7008,7 @@ function qxProximaAccion(p){
   if (p.estado==='en_tramite'){
     if (p.fecha_cirugia && p.turno) return 'Programada (pendiente de exámenes)';
     if (!qxFase2Completa(p)) return 'Completar exámenes (Fase 2)';
-    if (!qxFase3Completa(p)) return 'Agendar citas / riesgos (Fase 3)';
+    if (!qxFase3Completa(p)) return 'Evaluar riesgo quirúrgico y anestesiológico (Fase 3)';
     if (!qxFase4Completa(p)) return 'Checks pre-hospitalización (Fase 4)';
     return 'Programar cirugía (Fase 5)';
   }
@@ -7212,16 +7216,15 @@ function qxEstancada(p, fases){
     return { fase:i, nombre:nombre, dias:atraso, limite:0, estancada:true,
       texto:'La fecha de cirugía ('+qxFmtFecha(p.fecha_cirugia)+') pasó hace '+atraso+(atraso===1?' día':' días')+' sin hospitalizar' };
   }
-  // Cada reloj arranca cuando se cumplió la casilla anterior, con la fecha
-  // real si se anotó: Riesgo, cuando quedaron laboratorio y EKG (la última
-  // de las dos fechas de examen); Pre-hospitalización, cuando se evaluaron
-  // los dos riesgos (fecha de evaluación preoperatoria). fecha_fase2/3 son
-  // el respaldo; la 3 además exige las citas, que el recorrido no cuenta.
+  // Cada reloj arranca cuando se cumplió la casilla anterior: Riesgo, cuando
+  // quedaron laboratorio y EKG (la última de las dos fechas de examen, o si
+  // no se anotaron, fecha_fase2); Pre-hospitalización, cuando los dos riesgos
+  // se guardaron en Sí (fecha_fase3; respaldo: fecha de evaluación preop.).
   var examenes = (p.fecha_examen1 && p.fecha_examen2)
     ? (p.fecha_examen1 > p.fecha_examen2 ? p.fecha_examen1 : p.fecha_examen2) : '';
   var desde = i === 1 ? (p.fecha_captacion || qxDiaLocal(p.created_at))
     : i === 2 ? (qxDiaLocal(examenes) || qxDiaLocal(p.fecha_fase2))
-    : i === 3 ? (qxDiaLocal(p.fecha_evaluacion_preoperatoria) || qxDiaLocal(p.fecha_fase3))
+    : i === 3 ? (qxDiaLocal(p.fecha_fase3) || qxDiaLocal(p.fecha_evaluacion_preoperatoria))
     : i === 4 ? qxDiaLocal(p.fecha_fase4)
     : i === 6 ? qxDiaLocal(p.fecha_hospitalizacion) : '';
   var dias = qxDiasEntreFechas(desde, hoy);
@@ -8490,6 +8493,13 @@ async function qxWizGuardar(){
   }
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   var id = QX_WIZ_EDIT_ID || (res.data && res.data[0] && res.data[0].id);
+  // Alta nueva ya con los dos riesgos en Sí: se anota desde cuándo, para el
+  // reloj de pre-hospitalización. Solo fecha_fase3 (no llega a las hojas);
+  // qxMarcarFases no se usa aquí porque también sellaría fecha_fase2, que el
+  // Apps Script usa como fecha de examen.
+  if (!QX_WIZ_EDIT_ID && id && payload.riesgo_qx && payload.riesgo_anestesiologico){
+    await sb.from('pacientes').update({ fecha_fase3: new Date().toISOString() }).eq('id', id);
+  }
   if (QX_WIZ_EDIT_ID && QX_ACTUAL){
     for (var k in payload) QX_ACTUAL[k] = payload[k];
     await qxMarcarFases(QX_ACTUAL);
@@ -8988,7 +8998,7 @@ function qxRecetaEntregaHtml(p){
     return '<div style="margin-top:12px;font-size:11px;color:var(--tl);font-weight:700;text-align:center">✓ Ya figura como entregada a la paciente</div>';
   }
   if (!qxFase3Completa(p)){
-    return '<div style="margin-top:12px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center">Cuando se la entregues a la paciente, marcá «Recetas entregadas» en la Fase 4 (se habilita con la Fase 3 completa).</div>';
+    return '<div style="margin-top:12px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center">Cuando se la entregues a la paciente, marcá «Recetas entregadas» en la Fase 4 (se habilita con los dos riesgos en Sí).</div>';
   }
   return '<button class="qx-btn" style="width:100%;margin-top:12px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd);padding:11px;font-size:12px" onclick="qxRecetaEntregarDesdePanel()">📋 Ya se la entregué a la paciente — marcar «Recetas entregadas»</button>';
 }
@@ -9475,7 +9485,7 @@ function qxRenderDetalle(){
     + qxCheckReadonly('EKG',p.ekg)
     + qxFaseTsHtml(p.fecha_fase2)
     + '</div>'
-    + '<div class="qx-phase'+(f2?'':' locked')+'"><div class="ph-head"><div class="ph-num">3</div><div><div class="ph-title">Citas e interconsultas</div><div class="ph-hint">Requiere Fase 2 completa</div></div></div>'
+    + '<div class="qx-phase'+(f2?'':' locked')+'"><div class="ph-head"><div class="ph-num">3</div><div><div class="ph-title">Citas y riesgos</div><div class="ph-hint">Se cumple con los dos riesgos en Sí</div></div></div>'
     + (f2
         ? '<div style="font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;margin:2px 0 6px">📅 Citas</div>'
         + '<div style="font-size:12px;color:var(--t1);padding:2px 0">Cardiología: '+(p.fecha_cita_cardiologia?qxFmtFecha(p.fecha_cita_cardiologia)+(p.hora_cita_cardiologia?' · '+p.hora_cita_cardiologia:''):'—')+'</div>'
@@ -9487,13 +9497,13 @@ function qxRenderDetalle(){
         : '<div class="qx-lock">🔒 Completa Fase 2 para habilitar citas</div>')
     + qxFaseTsHtml(p.fecha_fase3)
     + '</div>'
-    + '<div class="qx-phase'+(f3?'':' locked')+'"><div class="ph-head"><div class="ph-num">4</div><div><div class="ph-title">Pre-hospitalización</div><div class="ph-hint">Requiere Fase 3 completa</div></div></div>'
+    + '<div class="qx-phase'+(f3?'':' locked')+'"><div class="ph-head"><div class="ph-num">4</div><div><div class="ph-title">Pre-hospitalización</div><div class="ph-hint">Requiere los dos riesgos en Sí</div></div></div>'
     + (f3
         ? qxCheckHtml('hcl_hospitalizacion','HCL de hospitalización',p.hcl_hospitalizacion,true)
         + qxCheckHtml('consentimientos','Consentimientos firmados',p.consentimientos,true)
         + qxCheckHtml('solicitud_sala_dejada','Solicitud de sala dejada',p.solicitud_sala_dejada,true)
         + qxCheckHtml('recetas_entregadas','Recetas entregadas',p.recetas_entregadas,true)
-        : '<div class="qx-lock">🔒 Completa Fase 3 para habilitar</div>')
+        : '<div class="qx-lock">🔒 Se habilita con los dos riesgos en Sí</div>')
     + qxFaseTsHtml(p.fecha_fase4)
     + '</div>'
     + '<div class="qx-phase'+(p.estado==='en_tramite'?'':' locked')+'"><div class="ph-head"><div class="ph-num">5</div><div><div class="ph-title">Programación quirúrgica</div><div class="ph-hint">'+(p.estado!=='en_tramite'?'Solo en trámite':(qxFase4Completa(p)?'Pre-hospitalización completa: lista para programar':'Programación anticipada (pendiente de checks)'))+'</div></div></div>'
@@ -9548,7 +9558,7 @@ async function qxToggle(campo){
   var val = !p[campo];
   if (campo==='riesgo_qx' && val && !qxFase2Completa(p)){ toast('Requiere Fase 2 completa','error'); return; }
   if (campo==='riesgo_anestesiologico' && val && !p.riesgo_qx){ toast('Requiere riesgo quirúrgico marcado','error'); return; }
-  if ((campo==='hcl_hospitalizacion'||campo==='consentimientos'||campo==='solicitud_sala_dejada'||campo==='recetas_entregadas') && val && !qxFase3Completa(p)){ toast('Requiere Fase 3 completa','error'); return; }
+  if ((campo==='hcl_hospitalizacion'||campo==='consentimientos'||campo==='solicitud_sala_dejada'||campo==='recetas_entregadas') && val && !qxFase3Completa(p)){ toast('Requiere los dos riesgos en Sí','error'); return; }
   var patch = {}; patch[campo] = val;
   var res = await sb.from('pacientes').update(patch).eq('id',p.id);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
