@@ -12,7 +12,7 @@ fs.readFileSync('.env', 'utf8').split('\n').forEach((l) => {
 });
 
 const SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo';
+const ANON_KEY = 'sb_publishable_6IfINEjJ7goLydijXYWktA_za2xsBWz';
 const SR_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
 const anon = createClient(SB_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });

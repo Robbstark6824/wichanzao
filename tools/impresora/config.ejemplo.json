@@ -2,7 +2,7 @@
   "_comentario": "Copiar este archivo como config.json y completar email y password. config.json NO se sube a git (tiene la contraseña).",
 
   "url": "https://xqphjvppfgwabfruyjae.supabase.co",
-  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxcGhqdnBwZmd3YWJmcnV5amFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzgwMzcsImV4cCI6MjA4ODUxNDAzN30.RfRjO72-53ixpT5G-cG5wTA2RIM8ZzEM67ZvA8Q2zOo",
+  "anonKey": "sb_publishable_6IfINEjJ7goLydijXYWktA_za2xsBWz",
   "bucket": "documentos",
 
   "_cuenta": "Usuario y contrasena de la app, los mismos que se escriben para entrar en el celular. El usuario es el nombre de la carpeta, NO un correo.",
