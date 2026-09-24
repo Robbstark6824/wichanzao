@@ -141,8 +141,42 @@ body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--t1); 
 .vt-btn.active { background:linear-gradient(135deg,var(--n1),var(--n2)); color:#fff; }
 
 /* ===== RECETAS VIEW ===== */
+.rx-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+.rx-tabs { display:flex; background:var(--s2); border-radius:12px; padding:4px; gap:4px; flex-shrink:0; }
+.rx-tabs button { border:none; background:transparent; padding:9px 18px; border-radius:9px; font-family:inherit; font-size:13px; font-weight:800; color:var(--t2); cursor:pointer; display:flex; align-items:center; gap:8px; }
+.rx-tabs button span { font-size:11px; background:var(--bd); color:var(--t2); padding:1px 8px; border-radius:10px; font-variant-numeric:tabular-nums; }
+.rx-tabs button.active { background:var(--s1); color:var(--t1); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+.rx-tabs button.active span { background:var(--tl); color:#fff; }
+.rx-search { flex:1; min-width:260px; position:relative; display:flex; align-items:center; }
+.rx-search svg { position:absolute; left:14px; color:var(--t3); pointer-events:none; }
+.rx-search input { width:100%; padding:11px 90px 11px 40px; border-radius:12px; border:2px solid var(--bd); font-size:13.5px; font-family:inherit; font-weight:500; color:var(--t1); background:var(--s1); outline:none; transition:border-color .2s, box-shadow .2s; }
+.rx-search input::-webkit-search-cancel-button { display:none; }
+.rx-search input:focus { border-color:var(--tl); box-shadow:0 0 0 4px rgba(160,61,99,.1); }
+.rx-search-x { position:absolute; right:64px; border:none; background:var(--s2); color:var(--t2); width:22px; height:22px; border-radius:50%; font-size:15px; line-height:1; cursor:pointer; }
+.rx-kbd { position:absolute; right:10px; font-size:10px; color:var(--t3); background:var(--s2); padding:3px 7px; border-radius:6px; font-weight:600; pointer-events:none; }
+.rx-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.rx-chip { border:1.5px solid var(--bd); background:var(--s1); color:var(--t2); font-family:inherit; font-size:12px; font-weight:700; padding:6px 12px; border-radius:20px; cursor:pointer; }
+.rx-chip b { font-weight:800; color:var(--t3); margin-left:3px; font-variant-numeric:tabular-nums; }
+.rx-chip:hover { border-color:var(--tl); }
+.rx-chip.on { background:var(--n1); border-color:var(--n1); color:#fff; }
+.rx-chip.on b { color:rgba(255,255,255,.7); }
+.rx-chip.warn { color:#975A16; border-color:rgba(214,158,46,.45); }
+.rx-chip.warn.on { background:var(--warn); border-color:var(--warn); color:#fff; }
+.rx-resumen { font-size:11.5px; color:var(--t3); margin-bottom:18px; }
 .rx-group { margin-bottom:26px; }
-.rx-group > h3 { font-size:13px; font-weight:800; color:var(--t2); margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--bd); }
+.rx-group > h3 { display:flex; align-items:baseline; gap:10px; font-size:13px; font-weight:800; color:var(--t1); margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--bd); text-transform:capitalize; }
+.rx-group > h3 em { font-style:normal; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--t2); background:var(--s2); padding:2px 8px; border-radius:6px; }
+.rx-group > h3 small { margin-left:auto; font-size:11px; font-weight:600; color:var(--t3); text-transform:none; }
+.rx-group.hoy > h3 { border-bottom-color:var(--tl); }
+.rx-group.hoy > h3 em { background:var(--tl); color:#fff; }
+.rx-group.pasada > h3 em { background:rgba(229,62,62,.1); color:var(--danger); }
+.rx-group.muted > h3 { color:var(--t2); }
+.rx-card mark { background:rgba(214,158,46,.3); color:inherit; border-radius:3px; padding:0 1px; }
+.rx-est { display:inline-block; font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; vertical-align:middle; margin-left:6px; background:var(--s2); color:var(--t2); }
+.rx-est.e-programada, .rx-est.e-hospitalizada { background:rgba(160,61,99,.1); color:var(--tl2); }
+.rx-est.e-operada { background:rgba(56,161,105,.12); color:#276749; }
+.rx-est.e-suspendida { background:rgba(214,158,46,.15); color:#975A16; }
+.rx-est.e-referida { background:rgba(229,62,62,.1); color:#C53030; }
 .rx-card { background:var(--s1); border:1.5px solid var(--bd); border-radius:12px; padding:13px 16px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.03); }
 .rx-name { font-size:15px; font-weight:800; color:var(--t1); }
 .rx-meta { font-size:12px; color:var(--t2); margin-top:2px; margin-bottom:8px; }
@@ -2953,7 +2987,7 @@ async function pcLoadRecetas() {
   var r;
   try {
     r = await sb.from('pacientes')
-      .select('id,nombre,dni,hcl,tipo_receta,fecha_cirugia,turno,estado,receta_generada_at,receta_faltantes,receta_faltantes_at')
+      .select('id,nombre,dni,hcl,tipo_receta,fecha_cirugia,turno,estado,fecha_resolucion,created_at,receta_generada_at,receta_faltantes,receta_faltantes_at')
       .not('tipo_receta', 'is', null)
       .order('fecha_cirugia', { ascending: true, nullsFirst: false })
       .limit(1000);
@@ -2984,34 +3018,229 @@ function pcAgenteImpresionHtml() {
     + '</div>';
 }
 
+/* Activas / Historial, igual que la lista Qx de la app: una paciente pasa al
+   historial cuando su estado es terminal (operada, suspendida o cerrada sin
+   cirugia). Mismo criterio que qxEstadoTerminal() de index.html. */
+var PC_RX = { rows: [], tab: 'activas', q: '', tipo: '', soloPend: false };
+var PC_RX_ESTADOS = {
+  en_tramite: 'En tramite', apta_para_sala: 'En tramite', programada: 'Programada',
+  hospitalizada: 'Hospitalizada', operada: 'Operada', suspendida: 'Suspendida',
+  referida: 'Cerrado sin cirugia'
+};
+var _rxDias = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'];
+var _rxMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+function pcRxTerminal(e) { return e === 'operada' || e === 'suspendida' || e === 'referida'; }
+
+function pcRxNorm(s) {
+  s = String(s == null ? '' : s).toLowerCase();
+  return (s.normalize ? s.normalize('NFD') : s).replace(/[̀-ͯ]/g, '');
+}
+
+function pcRxHoy() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function pcRxFechaCorta(ymd) {
+  if (!ymd) return '';
+  var p = ymd.slice(0, 10).split('-');
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+
+// Fecha que ordena el historial: cuando se resolvio; si no, la de la cirugia.
+function pcRxFechaHist(p) {
+  return (p.fecha_resolucion || p.fecha_cirugia || p.receta_generada_at || p.created_at || '').slice(0, 10);
+}
+
+// Todo lo que el buscador mira de una paciente, ya normalizado.
+function pcRxIndice(p) {
+  if (p._rxIdx) return p._rxIdx;
+  var tit = PC_RECETA_TITULOS[p.tipo_receta] || p.tipo_receta || '';
+  p._rxIdx = pcRxNorm([p.nombre, p.dni, p.hcl, tit, p.tipo_receta, PC_RX_ESTADOS[p.estado],
+    p.fecha_cirugia ? pcRxFechaCorta(p.fecha_cirugia) : '', p.fecha_cirugia].join(' | '));
+  return p._rxIdx;
+}
+
+function pcRxTokens() { return pcRxNorm(PC_RX.q).split(/\s+/).filter(Boolean); }
+
+function pcRxCoincide(p, toks) {
+  var idx = pcRxIndice(p);
+  for (var i = 0; i < toks.length; i++) if (idx.indexOf(toks[i]) < 0) return false;
+  return true;
+}
+
+/* Resalta en el texto original (con tildes) lo que coincide con la busqueda
+   normalizada: se arma un mapa caracter normalizado -> caracter original. */
+function pcRxResaltar(txt, toks) {
+  txt = String(txt == null ? '' : txt);
+  if (!toks.length || !txt) return escHtml(txt);
+  var norm = '', mapa = [];
+  for (var i = 0; i < txt.length; i++) {
+    var n = pcRxNorm(txt[i]);
+    for (var j = 0; j < n.length; j++) { norm += n[j]; mapa.push(i); }
+  }
+  var marca = new Array(txt.length);
+  toks.forEach(function(t) {
+    var desde = 0, k;
+    while ((k = norm.indexOf(t, desde)) >= 0) {
+      for (var m = k; m < k + t.length; m++) marca[mapa[m]] = true;
+      desde = k + t.length;
+    }
+  });
+  var out = '', abierto = false;
+  for (var c = 0; c < txt.length; c++) {
+    if (marca[c] && !abierto) { out += '<mark>'; abierto = true; }
+    if (!marca[c] && abierto) { out += '</mark>'; abierto = false; }
+    out += escHtml(txt[c]);
+  }
+  return out + (abierto ? '</mark>' : '');
+}
+
 function pcRenderRecetas(rows) {
+  PC_RX.rows = rows;
   var vr = document.getElementById('viewRecetas');
-  if (!rows.length) {
+  if (!document.getElementById('rxSearch')) {
     vr.innerHTML = pcAgenteImpresionHtml()
-      + '<div class="empty-state"><div class="icon">&#128138;</div><h3>Sin recetas todavia</h3><p>Cuando en la app de programacion se le asigne un &laquo;tipo de receta&raquo; a una paciente, aparece aca para abrir o imprimir.</p></div>';
+      + '<div class="rx-toolbar">'
+      +   '<div class="rx-tabs" id="rxTabs"></div>'
+      +   '<div class="rx-search">'
+      +     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
+      +     '<input type="search" id="rxSearch" autocomplete="off" spellcheck="false" placeholder="Buscar por nombre, DNI, HCL, tipo de cirugia o fecha (dd/mm)&hellip;">'
+      +     '<button class="rx-search-x" id="rxSearchX" title="Limpiar (Esc)" onclick="pcRxLimpiar()">&times;</button>'
+      +     '<span class="rx-kbd">Ctrl+F</span>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="rx-chips" id="rxChips"></div>'
+      + '<div class="rx-resumen" id="rxResumen"></div>'
+      + '<div id="rxLista"></div>';
+    var inp = document.getElementById('rxSearch');
+    inp.value = PC_RX.q;
+    var t = null;
+    inp.addEventListener('input', function() {
+      clearTimeout(t);
+      t = setTimeout(function() { PC_RX.q = inp.value; pcRxPintar(); }, 120);
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { e.stopPropagation(); pcRxLimpiar(); }
+    });
+  }
+  pcRxPintar();
+}
+
+function pcRxLimpiar() {
+  var inp = document.getElementById('rxSearch');
+  if (inp) { inp.value = ''; inp.focus(); }
+  PC_RX.q = '';
+  pcRxPintar();
+}
+function pcRxSetTab(t) { PC_RX.tab = t; PC_RX.tipo = ''; PC_RX.soloPend = false; pcRxPintar(); window.scrollTo(0, 0); }
+function pcRxSetTipo(t) { PC_RX.tipo = (PC_RX.tipo === t) ? '' : t; pcRxPintar(); }
+function pcRxTogglePend() { PC_RX.soloPend = !PC_RX.soloPend; pcRxPintar(); }
+
+function pcRxPintar() {
+  var lista = document.getElementById('rxLista');
+  if (!lista) return;
+  var toks = pcRxTokens();
+  var enActivas = PC_RX.tab === 'activas';
+  document.getElementById('rxSearchX').style.display = PC_RX.q ? '' : 'none';
+
+  // Con algo escrito, los contadores de las pestañas cuentan solo lo que coincide.
+  var pool = toks.length ? PC_RX.rows.filter(function(p) { return pcRxCoincide(p, toks); }) : PC_RX.rows;
+  var nAct = pool.filter(function(p) { return !pcRxTerminal(p.estado); }).length;
+  var nHist = pool.length - nAct;
+  document.getElementById('rxTabs').innerHTML =
+      '<button class="' + (enActivas ? 'active' : '') + '" onclick="pcRxSetTab(\'activas\')">Activas<span>' + nAct + '</span></button>'
+    + '<button class="' + (!enActivas ? 'active' : '') + '" onclick="pcRxSetTab(\'historial\')">Historial<span>' + nHist + '</span></button>';
+
+  var base = pool.filter(function(p) { return pcRxTerminal(p.estado) !== enActivas; });
+
+  // Chips por tipo de receta (+ "sin generar" en activas)
+  var porTipo = {};
+  base.forEach(function(p) { porTipo[p.tipo_receta] = (porTipo[p.tipo_receta] || 0) + 1; });
+  if (PC_RX.tipo && !porTipo[PC_RX.tipo]) PC_RX.tipo = '';
+  var tipos = Object.keys(porTipo).sort(function(a, b) { return porTipo[b] - porTipo[a] || a.localeCompare(b); });
+  var ch = '<button class="rx-chip' + (!PC_RX.tipo ? ' on' : '') + '" onclick="pcRxSetTipo(\'\')">Todas <b>' + base.length + '</b></button>';
+  tipos.forEach(function(k) {
+    ch += '<button class="rx-chip' + (PC_RX.tipo === k ? ' on' : '') + '" onclick="pcRxSetTipo(\'' + escJs(k) + '\')">'
+      + escHtml(PC_RECETA_TITULOS[k] || k) + ' <b>' + porTipo[k] + '</b></button>';
+  });
+  var nPend = base.filter(function(p) { return !p.receta_generada_at; }).length;
+  if (enActivas && (nPend || PC_RX.soloPend)) {
+    ch += '<button class="rx-chip warn' + (PC_RX.soloPend ? ' on' : '') + '" onclick="pcRxTogglePend()">&#9203; Sin generar <b>' + nPend + '</b></button>';
+  }
+  document.getElementById('rxChips').innerHTML = ch;
+
+  var data = base.filter(function(p) {
+    if (PC_RX.tipo && p.tipo_receta !== PC_RX.tipo) return false;
+    if (enActivas && PC_RX.soloPend && p.receta_generada_at) return false;
+    return true;
+  });
+
+  document.getElementById('rxResumen').innerHTML = enActivas
+    ? 'Ordenadas por fecha de cirugia, la mas proxima primero'
+      + (nPend ? ' &middot; <b style="color:var(--warn)">' + nPend + ' sin generar</b> (se generan desde la app, en el celular)' : '')
+    : 'Pacientes ya resueltas (operadas, suspendidas o cerradas sin cirugia), la mas reciente primero';
+
+  if (!PC_RX.rows.length) {
+    lista.innerHTML = '<div class="empty-state"><div class="icon">&#128138;</div><h3>Sin recetas todavia</h3><p>Cuando en la app de programacion se le asigne un &laquo;tipo de receta&raquo; a una paciente, aparece aca para abrir o imprimir.</p></div>';
     return;
   }
-  var grupos = {};
-  rows.forEach(function(p) {
-    var k = p.fecha_cirugia || 'zzz-sin-fecha';
-    (grupos[k] = grupos[k] || []).push(p);
-  });
-  var keys = Object.keys(grupos).sort();
-  var pend = 0;
-  rows.forEach(function(p) { if (!p.receta_generada_at) pend++; });
-  var html = pcAgenteImpresionHtml()
-    + '<div style="font-size:12px;color:var(--t3);margin-bottom:18px;line-height:1.6">'
-    + rows.length + ' paciente(s) con receta asignada'
-    + (pend ? ' &middot; <b style="color:var(--warn)">' + pend + ' sin generar</b> (se genera desde la app de programacion, en el celular)' : '')
-    + '</div>';
-  keys.forEach(function(k) {
-    var arr = grupos[k];
-    var label = (k === 'zzz-sin-fecha') ? 'Sin fecha de cirugia' : formatDate(k);
-    html += '<div class="rx-group"><h3>' + escHtml(label) + ' &middot; ' + arr.length + '</h3>';
-    arr.forEach(function(p) { html += pcRecetaCard(p); });
+  if (!data.length) {
+    var otra = toks.length ? (enActivas ? nHist : nAct) : 0;
+    lista.innerHTML = toks.length
+      ? '<div class="empty-state"><div class="icon">&#128269;</div><h3>Sin coincidencias ' + (enActivas ? 'en Activas' : 'en el Historial') + '</h3>'
+        + (otra ? '<p><button class="dl-btn primary" style="margin-top:6px" onclick="pcRxSetTab(\'' + (enActivas ? 'historial' : 'activas') + '\')">Ver ' + otra + ' en ' + (enActivas ? 'Historial' : 'Activas') + '</button></p>' : '<p>Prueba con el DNI, la HCL o parte del apellido.</p>')
+        + '</div>'
+      : '<div class="empty-state"><div class="icon">&#128237;</div><h3>' + (enActivas ? 'Sin recetas activas' : 'Historial vacio') + '</h3></div>';
+    return;
+  }
+
+  // Agrupar: activas por dia de cirugia (proxima primero, sin fecha al final);
+  // historial por mes de resolucion (reciente primero).
+  var hoy = pcRxHoy(), grupos = {}, claves;
+  if (enActivas) {
+    data.forEach(function(p) { var k = p.fecha_cirugia || '9999'; (grupos[k] = grupos[k] || []).push(p); });
+    claves = Object.keys(grupos).sort();
+    claves.forEach(function(k) {
+      grupos[k].sort(function(a, b) {
+        var ta = a.turno === 'manana' ? 0 : a.turno === 'tarde' ? 1 : 2;
+        var tb = b.turno === 'manana' ? 0 : b.turno === 'tarde' ? 1 : 2;
+        return ta - tb || String(a.nombre || '').localeCompare(String(b.nombre || ''));
+      });
+    });
+  } else {
+    data.forEach(function(p) { var k = pcRxFechaHist(p).slice(0, 7) || '0000'; (grupos[k] = grupos[k] || []).push(p); });
+    claves = Object.keys(grupos).sort().reverse();
+    claves.forEach(function(k) {
+      grupos[k].sort(function(a, b) { return pcRxFechaHist(b).localeCompare(pcRxFechaHist(a)); });
+    });
+  }
+
+  var html = '';
+  claves.forEach(function(k) {
+    var arr = grupos[k], label, nota = '', cls = '';
+    if (enActivas) {
+      if (k === '9999') { label = 'Sin fecha de cirugia'; cls = ' muted'; }
+      else {
+        var d = new Date(k + 'T12:00:00');
+        label = _rxDias[d.getDay()] + ' ' + formatDate(k);
+        if (k === hoy) { nota = 'Hoy'; cls = ' hoy'; }
+        else if (k < hoy) { nota = 'Fecha pasada'; cls = ' pasada'; }
+        else {
+          var dias = Math.round((d - new Date(hoy + 'T12:00:00')) / 86400000);
+          nota = dias === 1 ? 'Manana' : 'En ' + dias + ' dias';
+        }
+      }
+    } else {
+      label = k === '0000' ? 'Sin fecha' : _rxMeses[parseInt(k.slice(5, 7), 10) - 1] + ' ' + k.slice(0, 4);
+    }
+    html += '<div class="rx-group' + cls + '"><h3><span>' + escHtml(label) + '</span>'
+      + (nota ? '<em>' + nota + '</em>' : '') + '<small>' + arr.length + (arr.length === 1 ? ' paciente' : ' pacientes') + '</small></h3>';
+    arr.forEach(function(p) { html += pcRecetaCard(p, toks, enActivas); });
     html += '</div>';
   });
-  vr.innerHTML = html;
+  lista.innerHTML = html;
 }
 
 // Una fila de receta (completa o complementaria) dentro de la tarjeta.
@@ -3035,12 +3264,22 @@ function pcRecetaFila(p, variante, label, at) {
     + '</span></div>';
 }
 
-function pcRecetaCard(p) {
+function pcRecetaCard(p, toks, enActivas) {
+  toks = toks || [];
   var tit = PC_RECETA_TITULOS[p.tipo_receta] || p.tipo_receta;
   var turno = p.turno === 'manana' ? 'Manana' : (p.turno === 'tarde' ? 'Tarde' : '');
+  var est = PC_RX_ESTADOS[p.estado] || p.estado || '';
+  var extra = '';
+  if (enActivas) {
+    if (turno) extra += ' &middot; Turno ' + turno;
+  } else {
+    if (p.fecha_cirugia) extra += ' &middot; Cirugia ' + pcRxResaltar(pcRxFechaCorta(p.fecha_cirugia), toks);
+    if (p.fecha_resolucion) extra += ' &middot; Resuelta ' + pcRxFechaCorta(p.fecha_resolucion);
+  }
   return '<div class="rx-card">'
-    + '<div class="rx-name">' + escHtml(p.nombre) + '<span class="rx-tag">' + escHtml(tit) + '</span></div>'
-    + '<div class="rx-meta">DNI ' + escHtml(p.dni || '—') + ' &middot; HCL ' + escHtml(p.hcl || '—') + (turno ? ' &middot; ' + turno : '') + '</div>'
+    + '<div class="rx-name">' + pcRxResaltar(p.nombre, toks) + '<span class="rx-tag">' + pcRxResaltar(tit, toks) + '</span>'
+    + (est ? '<span class="rx-est e-' + escHtml(p.estado) + '">' + escHtml(est) + '</span>' : '') + '</div>'
+    + '<div class="rx-meta">DNI ' + pcRxResaltar(p.dni || '—', toks) + ' &middot; HCL ' + pcRxResaltar(p.hcl || '—', toks) + extra + '</div>'
     + pcRecetaFila(p, '', 'Receta completa', p.receta_generada_at)
     + pcRecetaFila(p, '-2', 'Complementaria', p.receta_faltantes_at)
     + '</div>';
@@ -3101,8 +3340,9 @@ document.addEventListener('keydown', function(e) {
   // Ctrl+F -> focus search
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
     e.preventDefault();
-    document.getElementById('searchInput').focus();
-    document.getElementById('searchInput').select();
+    var si = document.getElementById(pcView === 'recetas' && document.getElementById('rxSearch') ? 'rxSearch' : 'searchInput');
+    si.focus();
+    si.select();
   }
 
   // Escape -> close lightbox or go back to directory
