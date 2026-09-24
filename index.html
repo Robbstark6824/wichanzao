@@ -7212,16 +7212,16 @@ function qxEstancada(p, fases){
     return { fase:i, nombre:nombre, dias:atraso, limite:0, estancada:true,
       texto:'La fecha de cirugía ('+qxFmtFecha(p.fecha_cirugia)+') pasó hace '+atraso+(atraso===1?' día':' días')+' sin hospitalizar' };
   }
-  // Cada reloj arranca cuando se cumplió la casilla anterior, con la fecha
-  // real si se anotó: Riesgo, cuando quedaron laboratorio y EKG (la última
-  // de las dos fechas de examen); Pre-hospitalización, cuando se evaluaron
-  // los dos riesgos (fecha de evaluación preoperatoria). fecha_fase2/3 son
-  // el respaldo; la 3 además exige las citas, que el recorrido no cuenta.
+  // Cada reloj arranca cuando se cumplió la casilla anterior: Riesgo, cuando
+  // quedaron laboratorio y EKG (la última de las dos fechas de examen, o
+  // fecha_fase2); Pre-hospitalización, el día en que los dos riesgos quedaron
+  // en Sí (fecha_riesgos). Las fichas anteriores a ese dato usan fecha_fase3,
+  // que también implica los dos riesgos (más las citas).
   var examenes = (p.fecha_examen1 && p.fecha_examen2)
     ? (p.fecha_examen1 > p.fecha_examen2 ? p.fecha_examen1 : p.fecha_examen2) : '';
   var desde = i === 1 ? (p.fecha_captacion || qxDiaLocal(p.created_at))
     : i === 2 ? (qxDiaLocal(examenes) || qxDiaLocal(p.fecha_fase2))
-    : i === 3 ? (qxDiaLocal(p.fecha_evaluacion_preoperatoria) || qxDiaLocal(p.fecha_fase3))
+    : i === 3 ? (qxDiaLocal(p.fecha_riesgos) || qxDiaLocal(p.fecha_fase3))
     : i === 4 ? qxDiaLocal(p.fecha_fase4)
     : i === 6 ? qxDiaLocal(p.fecha_hospitalizacion) : '';
   var dias = qxDiasEntreFechas(desde, hoy);
@@ -7232,6 +7232,23 @@ function qxEstancada(p, fases){
   var donde = i === 4 ? 'lista para programar y sin fecha' : (i === 6 ? 'hospitalizada sin operarse' : 'en ' + nombre);
   return { fase:i, nombre:nombre, dias:dias, limite:limite, estancada:est,
     texto: 'Estancada: ' + dias + (dias===1?' día ':' días ') + donde + ' (límite ' + limite + ')' };
+}
+
+/* Anota el día en que la paciente quedó con los dos riesgos en Sí (y lo borra
+   si se desmarca uno). Solo lo usa la alerta de estancadas; la columna
+   (sql/029) no está en la lista de las hojas. Sin la columna creada, la base
+   rechaza el cambio y se ignora: nada más depende de él. */
+async function qxSellarRiesgos(p){
+  if (!p || !p.id) return;
+  var ambos = !!(p.riesgo_qx && p.riesgo_anestesiologico);
+  var nuevo;
+  if (ambos && !p.fecha_riesgos) nuevo = new Date().toISOString();
+  else if (!ambos && p.fecha_riesgos) nuevo = null;
+  else return;
+  try {
+    var r = await sb.from('pacientes').update({ fecha_riesgos: nuevo }).eq('id', p.id);
+    if (!r.error) p.fecha_riesgos = nuevo;
+  } catch(e){}
 }
 
 function qxEsEstancada(p){ var e = qxEstancada(p); return !!(e && e.estancada); }
@@ -8490,6 +8507,12 @@ async function qxWizGuardar(){
   }
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
   var id = QX_WIZ_EDIT_ID || (res.data && res.data[0] && res.data[0].id);
+  if (id){
+    var previo = (QX_WIZ_EDIT_ID && QX_ACTUAL) ? QX_ACTUAL.fecha_riesgos : null;
+    var sello = { id:id, fecha_riesgos:previo, riesgo_qx:payload.riesgo_qx, riesgo_anestesiologico:payload.riesgo_anestesiologico };
+    await qxSellarRiesgos(sello);
+    if (QX_WIZ_EDIT_ID && QX_ACTUAL) QX_ACTUAL.fecha_riesgos = sello.fecha_riesgos;
+  }
   if (QX_WIZ_EDIT_ID && QX_ACTUAL){
     for (var k in payload) QX_ACTUAL[k] = payload[k];
     await qxMarcarFases(QX_ACTUAL);
@@ -9554,6 +9577,7 @@ async function qxToggle(campo){
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p[campo] = val;
   await qxMarcarFases(p);
+  if (campo === 'riesgo_qx' || campo === 'riesgo_anestesiologico') await qxSellarRiesgos(p);
   // Sin fecha sigue en trámite (la Fase 5 queda lista para programar).
   if (qxFase4Completa(p) && p.estado==='en_tramite' && p.fecha_cirugia && p.turno){
     await qxSetEstado(p,'programada');
