@@ -1710,12 +1710,11 @@ function clearSessionBackup() {
 /* Helper: get auth headers (uses session token if logged in, anon key as fallback) */
 async function sbHeaders() {
   var sess = (await sb.auth.getSession()).data.session;
-  var token = sess ? sess.access_token : SB_KEY;
-  return {
-    'apikey': SB_KEY,
-    'Authorization': 'Bearer ' + token,
-    'Content-Type': 'application/json'
-  };
+  var h = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+  // Sin sesion basta el apikey: las claves nuevas (sb_publishable_…) no son
+  // JWT y no deben ir como Bearer.
+  if (sess) h['Authorization'] = 'Bearer ' + sess.access_token;
+  return h;
 }
 
 /* Storage helpers using authenticated client */
@@ -2588,7 +2587,7 @@ async function doLogin() {
 
     var fetches = paths.map(function(p, idx) {
       return fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + p, {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+        headers: { 'apikey': SB_KEY },
         cache: 'no-store'
       }).then(function(res) {
         if (!res.ok) return null;
