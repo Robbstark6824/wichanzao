@@ -76,7 +76,14 @@ if (Test-Path $ConfigFile) {
   $previo = Get-Content $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
   Write-Host "  Ya hay una configuracion para el usuario: $($previo.usuario)" -ForegroundColor Gray
   $r = Read-Host '  Volver a configurar? (s/N)'
-  if ($r -notmatch '^[sS]') { $cfg = $previo }
+  if ($r -notmatch '^[sS]') {
+    # Se conserva lo de esta PC (usuario, impresora...), pero la conexion
+    # (url, clave, bucket) viene siempre del instalador: si Supabase cambia de
+    # clave, reinstalar encima basta para ponerse al dia.
+    $nuevo = $cfg
+    $cfg = $previo
+    foreach ($k in @('url', 'anonKey', 'bucket')) { Set-Campo $cfg $k $nuevo.$k }
+  }
 }
 
 # La app no usa correos: se entra con "usuario (carpeta)" + contrasena. El

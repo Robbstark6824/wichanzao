@@ -102,6 +102,13 @@ ingreso de la app (el nombre de la carpeta). No es un correo.
 **Cambiar el usuario o la contraseña** — volver a correr `INSTALAR.bat` y responder
 `s` a «¿Volver a configurar?».
 
+**Dejó de imprimir de un día para otro y la contraseña está bien** — puede que la
+clave de conexión de Supabase haya cambiado. Arreglo rápido: abrir `config.json`
+con el Bloc de notas y poner en `anonKey` la clave que trae `config.ejemplo.json`
+del instalador más nuevo; guardar, `detener.bat` y `iniciar-oculto.vbs`. O bajar el
+instalador nuevo, descomprimirlo encima de esta carpeta y correr `INSTALAR.bat`
+respondiendo `N`: conserva usuario e impresora y actualiza la clave.
+
 ---
 
 ## Archivos
