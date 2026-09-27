@@ -1007,7 +1007,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Ginecología</h3>
           <span>Hospital de Laredo</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v265</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v266</span>
         </div>
         <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Colapsar menu">◀</button>
       </div>
@@ -1555,7 +1555,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v265';
+var APP_VERSION = 'v266';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -10802,30 +10802,58 @@ function qxConfirmarEliminar(){
     + '<div class="qx-sheet-body">'
     + '<p style="font-size:13px;color:var(--t1);margin:0 0 14px">¿Seguro que querés eliminar a <strong>'+qxEsc(p.nombre)+'</strong>? Esta acción no se puede deshacer.</p>'
     + '<div class="qx-row"><button class="qx-btn" style="background:var(--s2);color:var(--t1);flex:1" onclick="this.closest(\'.qx-overlay\').remove()">Cancelar</button>'
-    + '<button class="qx-btn" style="background:#dc2626;flex:1" onclick="qxEliminar()">Eliminar</button></div>'
+    + '<button class="qx-btn" id="qxElimBtn" style="background:#dc2626;flex:1" onclick="qxEliminar(this)">Eliminar</button></div>'
     + '</div></div>';
   document.body.appendChild(ov);
 }
 
-async function qxEliminar(){
+/* Borrar una paciente.
+   Antes esperaba la respuesta de la hoja GERESA (Apps Script, varios segundos)
+   y después recargaba las 500 fichas, sin ninguna señal en el botón: parecía
+   que no había pasado nada y se podía tocar dos veces. Ahora: el botón queda
+   en "Eliminando…", se espera SOLO a la base, la paciente sale de la lista al
+   instante, y la hoja se avisa de fondo. */
+async function qxEliminar(btn){
   var p = QX_ACTUAL; if (!p) return;
-  var dni = p.dni;
-  var res = await sb.from('pacientes').delete().eq('id', p.id);
-  if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
-  // Borrar también de las dos hojas de GERESA (mejor esfuerzo: no bloquea si falla).
-  if (dni) {
-    try {
-      await fetch(QX_SHEET_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'borrar', dni: dni })
-      });
-    } catch(e) { console.error('sheet delete:', e); }
+  if (btn){
+    if (btn.disabled) return;            // doble toque
+    btn.disabled = true; btn.textContent = 'Eliminando…'; btn.style.opacity = '.7';
+    var cancelar = btn.previousElementSibling; if (cancelar) cancelar.disabled = true;
   }
-  toast('Paciente eliminada ✓','success');
+  function soltar(){
+    if (!btn) return;
+    btn.disabled = false; btn.textContent = 'Eliminar'; btn.style.opacity = '';
+    var c = btn.previousElementSibling; if (c) c.disabled = false;
+  }
+  var dni = p.dni, id = p.id, res;
+  try {
+    // .select: si la base no deja borrar (permisos) no da error, devuelve 0 filas.
+    res = await sb.from('pacientes').delete().eq('id', id).select('id');
+  } catch (err) { res = { error: err }; }
+  if (res.error){
+    registrarFalla('eliminar paciente', res.error);
+    toast('No se pudo eliminar: ' + mensajeDeError(res.error), 'error');
+    soltar(); return;
+  }
+  if (!res.data || !res.data.length){
+    toast('No se pudo eliminar: no tenés permiso o la ficha ya no existe.', 'error');
+    soltar(); qxRefrescar(); return;
+  }
+  // Listo en la base: fuera de la lista ya mismo.
+  QX_PACIENTES = QX_PACIENTES.filter(function(x){ return x.id !== id; });
   document.querySelectorAll('.qx-overlay').forEach(function(o){ o.remove(); });
   QX_ACTUAL = null;
-  qxLoad();
+  toast('Paciente eliminada', 'success');
+  qxRefrescar();
+  // Borrar también de las dos hojas de GERESA, de fondo (mejor esfuerzo, igual
+  // que antes). keepalive: que llegue aunque se cierre la app enseguida.
+  if (dni) {
+    fetch(QX_SHEET_URL, {
+      method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'borrar', dni: dni })
+    }).catch(function(e){ registrarFalla('borrar en hoja GERESA', e); });
+  }
 }
 
 function qxFiltrarCaptacion(){
