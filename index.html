@@ -725,7 +725,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-rx-del{color:var(--alarma)}
 .qx-rx-add{width:100%;margin:2px 0 6px;padding:8px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px dashed var(--bd)}
 .qx-rx-pie{display:flex;gap:8px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--bd);background:var(--bg)}
-.qx-rx-nueva{width:100%;margin:0 0 12px;padding:11px;background:var(--tl)}
+.qx-rx-top{display:flex;gap:8px;margin:0 0 12px}
+.qx-rx-nueva{flex:1;padding:11px;background:var(--tl)}
+.qx-rx-resp{flex-shrink:0;padding:11px 14px;background:var(--s1);color:var(--t1);border:1px solid var(--bd)}
 .qx-rx-card.archivada{opacity:.62}
 .qx-rx-arch{margin-top:14px}
 .qx-rx-arch summary{font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;padding:8px 0;margin-bottom:6px}
@@ -6004,14 +6006,14 @@ var QX_CAT_ORIGEN = [
 ];
 
 /* ============================================================
- * RECETAS QUIRÚRGICAS POR TIPO DE CIRUGÍA
- * Fuente: /RECETAS/*.xlsx (Servicio de Ginecología). Transcripción fiel con
- * vocabulario unificado: cantidad → UNI · AMP · PAR · FCO · PAQ · TAB;
- * dosis → MG · ML · G · UI; typo de origen MIDAZOLAN → MIDAZOLAM.
+ * RECETAS QUIRÚRGICAS POR TIPO DE CIRUGÍA — RESPALDO
+ * Las recetas de verdad viven en la tabla recetas_plantillas (sql/030): el
+ * admin las crea, edita y archiva en Qx → 💊 Recetas. Estas 8 son la carga
+ * inicial y solo se usan si el equipo nunca pudo leer la base (ver
+ * qxRecetasAplicar abajo). NO editar acá para cambiar una receta.
+ * Origen: /RECETAS/*.xlsx, vocabulario unificado (UNI · AMP · PAR · FCO · PAQ ·
+ * TAB; MG · ML · G · UI) — igual a RECETAS/historico/recetas-carga-inicial-2026-09.json.
  * Solo la app: el campo pacientes.tipo_receta NO se sincroniza a las hojas GERESA.
- * legrado / histerectomia / prolapso comparten la misma lista.
- * Desde sql/030 las recetas viven en la tabla recetas_plantillas (las edita el
- * admin en la app); estas 8 quedan de respaldo — ver qxRecetasAplicar abajo.
  * ============================================================ */
 var QX_RECETA_TIPOS = [
   ["aqv", "AQV — Anticoncepción quirúrgica voluntaria"],
@@ -9035,7 +9037,8 @@ function qxRecetasVistaRender(){
   h += '<div class="qx-rx-intro">' + (isAdmin
     ? 'Tocá una receta para editarla. Los cambios valen para las recetas que se generen desde ahora; las ya generadas no cambian.'
     : 'Recetas quirúrgicas del servicio. Solo el administrador puede modificarlas.') + '</div>';
-  if (qxRxPuedeEditar()) h += '<button class="qx-btn qx-rx-nueva" onclick="qxRxNueva()">＋ Nueva receta</button>';
+  if (qxRxPuedeEditar()) h += '<div class="qx-rx-top"><button class="qx-btn qx-rx-nueva" onclick="qxRxNueva()">＋ Nueva receta</button>'
+    + '<button class="qx-btn qx-rx-resp" onclick="qxRxRespaldo()" title="Descargar todas las recetas (Excel o JSON)">⬇ Respaldo</button></div>';
   function tarjeta(f){
     var n = usos[f.clave] || 0;
     var editor = f.version > 1 && f.updated_at
@@ -9390,6 +9393,61 @@ async function qxRxArchivar(activar){
   if (!activar) QX_RX_ARCH_ABIERTO = true;
   qxRecetasVistaRender();
   toast(activar ? 'Receta reactivada' : 'Receta archivada', 'success');
+}
+
+/* ---------- Respaldo (admin): todas las recetas en un archivo ----------
+   Copia fuera de Supabase, o para entregar a quien las pida. Incluye las
+   archivadas. CSV = para abrir en Excel; JSON = copia exacta de la tabla. */
+function qxRxRespaldo(){
+  qxRxSheet('<div class="qx-sheet-head"><h3>Descargar respaldo</h3><button class="qx-sheet-close" onclick="qxRxCerrar()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-rx-intro">Todas las recetas del servicio, también las archivadas.</div>'
+    + '<button class="qx-rx-origen" onclick="qxRxRespaldoBajar(\'csv\')"><b>Excel (CSV)</b><small>Una fila por ítem: receta, sección, ítem, detalle y cantidad. Para leer, imprimir o entregar.</small></button>'
+    + '<button class="qx-rx-origen" onclick="qxRxRespaldoBajar(\'json\')"><b>Copia exacta (JSON)</b><small>Tal cual está en la base, con versión y fecha de cada receta. Para guardar como copia de seguridad.</small></button>'
+    + '</div>');
+}
+function qxRxBajarTexto(nombre, texto, mime){
+  var url = URL.createObjectURL(new Blob([texto], { type: mime }));
+  var a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+function qxRxRespaldoCSV(filas){
+  function c(v){ return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+  var out = [['Receta', 'Nombre en el selector', 'Estado', 'Lista de parto', 'Sección', 'N°', 'Ítem', 'Detalle', 'Cantidad'].map(c).join(',')];
+  filas.forEach(function(f){
+    [['insumos', 'Insumos / material'], ['anestesia', 'Medicación y anestesia']].forEach(function(sec){
+      (f[sec[0]] || []).forEach(function(it, i){
+        out.push([f.titulo, f.nombre_largo, f.activa === false ? 'Archivada' : 'Activa', f.es_parto ? 'Sí' : 'No',
+                  sec[1], i + 1, it.n, it.d, it.c].map(c).join(','));
+      });
+    });
+  });
+  return '﻿' + out.join('\r\n') + '\r\n';   // BOM: que Excel respete las tildes
+}
+async function qxRxRespaldoBajar(formato){
+  await qxRecetasCargar(true);
+  var filas = qxRxFilas();
+  var hoy = qxHoyStr();
+  if (formato === 'csv'){
+    qxRxBajarTexto('Recetas_quirurgicas_' + hoy + '.csv', qxRxRespaldoCSV(filas), 'text/csv;charset=utf-8');
+  } else {
+    var datos = {
+      exportado: new Date().toISOString(),
+      por: (worker && worker.name) || '',
+      origen: QX_RECETAS_ORIGEN,
+      recetas: filas.map(function(f){
+        return { clave: f.clave, titulo: f.titulo, nombre_largo: f.nombre_largo, es_parto: !!f.es_parto, activa: f.activa !== false,
+                 orden: f.orden, version: f.version, updated_at: f.updated_at, insumos: f.insumos, anestesia: f.anestesia };
+      })
+    };
+    qxRxBajarTexto('Recetas_quirurgicas_' + hoy + '.json', JSON.stringify(datos, null, 1), 'application/json');
+  }
+  qxRxCerrar(true);
+  toast(QX_RECETAS_ORIGEN === 'base'
+    ? 'Respaldo descargado (' + filas.length + ' recetas)'
+    : 'Sin conexión con la base: el respaldo tiene la copia guardada en este equipo.', QX_RECETAS_ORIGEN === 'base' ? 'success' : 'warn');
 }
 
 /* ---------- Vista previa (lo que se está editando, sin guardar) ---------- */

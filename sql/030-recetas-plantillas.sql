@@ -20,8 +20,8 @@
 --   3) pacientes.tipo_receta         — deja la lista fija de 8 valores y pasa
 --                                      a apuntar a recetas_plantillas(clave).
 --
--- Se carga con las 8 recetas actuales, idénticas a las de index.html y
--- tools/recetas-plantillas.json. La app sigue trayendo esas 8 embebidas como
+-- Se carga con las 8 recetas actuales, idénticas a las de index.html y a
+-- RECETAS/historico/recetas-carga-inicial-2026-09.json. La app sigue trayendo esas 8 embebidas como
 -- respaldo (sin conexión o si esta tabla todavía no existe).
 --
 -- NADA de esto va a las hojas GERESA: el Apps Script escribe solo su lista
