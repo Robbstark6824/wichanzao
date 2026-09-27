@@ -712,8 +712,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-rx-ol li{padding:3px 0;border-bottom:1px solid var(--s2)}
 .qx-rx-ol li span{display:inline-block;max-width:calc(100% - 70px)}
 .qx-rx-ol li b{float:right;font-weight:600;color:var(--t3);font-family:var(--mono);font-size:11px}
-.qx-rx-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);margin:0 0 6px;cursor:pointer}
-.qx-rx-check input{width:18px;height:18px}
+.qx-rx-parto{font-size:12px;color:var(--tl2);background:rgba(46,125,110,.08);border:1px solid rgba(46,125,110,.22);border-radius:4px;padding:8px 10px;margin:0 0 6px;line-height:1.4}
 .qx-rx-item{background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:7px;margin-bottom:6px}
 .qx-rx-l1,.qx-rx-l2{display:flex;gap:5px;align-items:center}
 .qx-rx-l2{margin-top:5px}
@@ -9168,7 +9167,9 @@ function qxRxEditorRender(enfocar){
   body.innerHTML =
     '<div class="qx-field"><label>Nombre en la receta (sale en el PDF)</label><input maxlength="60" value="' + qxAttr(e.titulo) + '" oninput="QX_RX_ED.titulo=this.value"></div>'
     + '<div class="qx-field"><label>Nombre en el selector del paso 3</label><input maxlength="120" value="' + qxAttr(e.nombre_largo) + '" oninput="QX_RX_ED.nombre_largo=this.value"></div>'
-    + '<label class="qx-rx-check"><input type="checkbox"' + (e.es_parto ? ' checked' : '') + ' onchange="QX_RX_ED.es_parto=this.checked"> Lleva la lista de útiles para parto (cesárea)</label>'
+    // Lista de parto: no se pregunta. Solo las cesáreas (CST, CST + AQV) la
+    // llevan, y una copia de ellas la hereda; las demás nunca.
+    + (e.es_parto ? '<div class="qx-rx-parto">👶 Cesárea: la lista de útiles por WhatsApp suma documentos y lo del bebé.</div>' : '')
     + seccion('Insumos / material', 'insumos')
     + seccion('Medicación y anestesia', 'anestesia')
     + (e.nueva ? '' : '<div class="qx-rx-sec">Otras acciones</div><div class="qx-rx-acc">'
