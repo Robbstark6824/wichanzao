@@ -2939,20 +2939,33 @@ function showToast(msg, type) {
    documentos/recetas/<id_paciente>.pdf. Acá solo se abre / descarga.
    ========================================================= */
 var pcView = 'carpetas';
-var PC_RECETA_TITULOS = {
+/* Nombre corto de cada receta para las tarjetas y los filtros. Las recetas
+   viven en la tabla recetas_plantillas (sql/030) y el admin las crea y
+   renombra desde la app: acá se muestra el nombre de la tabla. Las 8
+   originales conservan su nombre corto de siempre MIENTRAS nadie las
+   renombre (su título sigue igual al de la carga inicial); si la tabla no
+   existe o falla, quedan estos. */
+var PC_RECETA_CORTOS = {
   aqv: 'AQV', cst: 'CST', cst_aqv: 'CST + AQV', cono_frio: 'Cono frio',
   legrado: 'Legrado', histerectomia: 'Histerectomia', prolapso: 'Prolapso',
   tumorectomia: 'Tumorectomia'
 };
-/* Recetas creadas desde la app (tabla recetas_plantillas, sql/030): sus nombres
-   se suman a los de arriba. Las 8 originales conservan su nombre corto de acá.
-   Si la tabla no existe o falla, se sigue con lo que hay. */
+var PC_RECETA_TITULO_INICIAL = {
+  aqv: 'AQV', cst: 'CST', cst_aqv: 'CST + AQV', cono_frio: 'CONO FRÍO',
+  legrado: 'LEGRADO', histerectomia: 'HISTERECTOMÍA', prolapso: 'PROLAPSO',
+  tumorectomia: 'TUMORECTOMÍA (EXÉRESIS DE FIBROADENOMA)'
+};
+var PC_RECETA_TITULOS = Object.assign({}, PC_RECETA_CORTOS);
 async function pcRecetaTitulosCargar() {
   try {
     var r = await sb.from('recetas_plantillas').select('clave,titulo');
     if (r.error || !r.data) return;
     r.data.forEach(function(f) {
-      if (f && f.clave && !PC_RECETA_TITULOS[f.clave]) PC_RECETA_TITULOS[f.clave] = f.titulo || f.clave;
+      if (!f || !f.clave) return;
+      var k = f.clave;
+      PC_RECETA_TITULOS[k] = (PC_RECETA_CORTOS[k] && f.titulo === PC_RECETA_TITULO_INICIAL[k])
+        ? PC_RECETA_CORTOS[k]
+        : (f.titulo || PC_RECETA_CORTOS[k] || k);
     });
   } catch (e) {}
 }
