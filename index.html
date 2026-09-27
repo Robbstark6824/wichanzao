@@ -725,6 +725,15 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-rx-del{color:var(--alarma)}
 .qx-rx-add{width:100%;margin:2px 0 6px;padding:8px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px dashed var(--bd)}
 .qx-rx-pie{display:flex;gap:8px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--bd);background:var(--bg)}
+.qx-rx-nueva{width:100%;margin:0 0 12px;padding:11px;background:var(--tl)}
+.qx-rx-card.archivada{opacity:.62}
+.qx-rx-arch{margin-top:14px}
+.qx-rx-arch summary{font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;padding:8px 0;margin-bottom:6px}
+.qx-rx-acc{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.qx-rx-acc .qx-btn{width:100%;padding:10px;font-size:13px;background:var(--s1);color:var(--t1);border:1px solid var(--bd)}
+.qx-rx-acc .qx-rx-archivar{color:var(--alarma);border-color:rgba(179,64,58,.35)}
+.qx-rx-origen{display:block;width:100%;text-align:left;padding:11px 12px;margin-bottom:6px;background:var(--s1);border:1px solid var(--bd);border-radius:4px;font-family:inherit;font-size:13px;color:var(--t1);cursor:pointer}
+.qx-rx-origen small{display:block;color:var(--t3);font-size:11px;margin-top:2px}
 .qx-rx-hist{border-bottom:1px solid var(--bd);padding:10px 0}
 .qx-rx-hist-h{font-size:12px;color:var(--t1)}
 .qx-rx-hist-h span{float:right;color:var(--t3);font-family:var(--mono);font-size:11px}
@@ -9009,7 +9018,9 @@ function qxRxFechaHora(ts){
 
 function qxRecetasVistaRender(){
   var el = document.getElementById('qxRecetasVista'); if (!el) return;
-  var filas = qxRxFilas().filter(function(f){ return f.activa !== false; });
+  var todas = qxRxFilas();
+  var filas = todas.filter(function(f){ return f.activa !== false; });
+  var archivadas = todas.filter(function(f){ return f.activa === false; });
   var usos = {};
   (QX_PACIENTES || []).forEach(function(p){
     if (p.tipo_receta && !qxEstadoTerminal(p.estado)) usos[p.tipo_receta] = (usos[p.tipo_receta] || 0) + 1;
@@ -9024,21 +9035,30 @@ function qxRecetasVistaRender(){
   h += '<div class="qx-rx-intro">' + (isAdmin
     ? 'Tocá una receta para editarla. Los cambios valen para las recetas que se generen desde ahora; las ya generadas no cambian.'
     : 'Recetas quirúrgicas del servicio. Solo el administrador puede modificarlas.') + '</div>';
-  filas.forEach(function(f){
+  if (qxRxPuedeEditar()) h += '<button class="qx-btn qx-rx-nueva" onclick="qxRxNueva()">＋ Nueva receta</button>';
+  function tarjeta(f){
     var n = usos[f.clave] || 0;
     var editor = f.version > 1 && f.updated_at
       ? 'Editada' + (f.updated_by && QX_AUTORES[f.updated_by] ? ' por ' + QX_AUTORES[f.updated_by] : '') + ' · ' + qxRxFechaHora(f.updated_at).slice(0, 10)
       : '';
-    h += '<button class="qx-rx-card" onclick="qxRxAbrir(\'' + qxAttr(f.clave) + '\')">'
+    h += '<button class="qx-rx-card' + (f.activa === false ? ' archivada' : '') + '" onclick="qxRxAbrir(\'' + qxAttr(f.clave) + '\')">'
       + '<div class="qx-rx-tit">' + qxEsc(f.titulo) + (f.es_parto ? '<span class="qx-rx-chip">lista de parto</span>' : '') + '</div>'
       + '<div class="qx-rx-sub">' + qxEsc(f.nombre_largo) + '</div>'
       + '<div class="qx-rx-meta">' + f.insumos.length + ' insumos · ' + f.anestesia.length + ' de anestesia'
       + (n ? ' · ' + n + (n === 1 ? ' paciente activa' : ' pacientes activas') : '') + '</div>'
       + (editor ? '<div class="qx-rx-ed">' + qxEsc(editor) + '</div>' : '')
       + '</button>';
-  });
+  }
+  filas.forEach(tarjeta);
+  if (archivadas.length){
+    h += '<details class="qx-rx-arch"' + (QX_RX_ARCH_ABIERTO ? ' open' : '') + ' ontoggle="QX_RX_ARCH_ABIERTO=this.open">'
+      + '<summary>Archivadas (' + archivadas.length + ') — no salen en el selector del paso 3</summary>';
+    archivadas.forEach(tarjeta);
+    h += '</details>';
+  }
   el.innerHTML = h;
 }
+var QX_RX_ARCH_ABIERTO = false;
 
 function qxRxSheet(inner){
   if (!QX_RX_OV || !QX_RX_OV.isConnected){
@@ -9088,18 +9108,25 @@ function qxRxItemEd(it){
 function qxRxEditar(k){
   var f = qxRxFila(k); if (!f) return;
   QX_RX_ED = {
-    clave: f.clave, version: f.version,
+    clave: f.clave, version: f.version, activa: f.activa !== false,
     titulo: f.titulo || '', nombre_largo: f.nombre_largo || '', es_parto: !!f.es_parto,
     insumos: f.insumos.map(qxRxItemEd), anestesia: f.anestesia.map(qxRxItemEd)
   };
   QX_RX_ED.orig = JSON.stringify(qxRxNormalizar(QX_RX_ED).fila);
+  qxRxEditorAbrir();
+}
+/* Hoja del editor para QX_RX_ED (receta existente o nueva). */
+function qxRxEditorAbrir(){
+  var e = QX_RX_ED; if (!e) return;
+  var gris = 'background:var(--s1);color:var(--t1);border:1px solid var(--bd)';
   qxRxSheet(
-    '<div class="qx-sheet-head"><h3>Editar · ' + qxEsc(f.titulo) + '</h3>'
-    + '<button class="qx-btn" style="padding:6px 10px;font-size:11px;background:var(--s1);color:var(--t1);border:1px solid var(--bd)" onclick="qxRxHistorial(\'' + qxAttr(k) + '\')">🕘 Historial</button>'
+    '<div class="qx-sheet-head"><h3>' + (e.nueva ? 'Nueva receta' : 'Editar · ' + qxEsc(e.titulo)) + '</h3>'
+    + (e.nueva ? '' : '<button class="qx-btn" style="padding:6px 10px;font-size:11px;' + gris + '" onclick="qxRxHistorial(\'' + qxAttr(e.clave) + '\')">🕘 Historial</button>')
     + '<button class="qx-sheet-close" onclick="qxRxCerrar()">×</button></div>'
     + '<div class="qx-sheet-body" id="qxRxEdBody"></div>'
-    + '<div class="qx-rx-pie"><button class="qx-btn" style="flex:1;background:var(--s1);color:var(--t1);border:1px solid var(--bd)" onclick="qxRxCerrar()">Cancelar</button>'
-    + '<button class="qx-btn" id="qxRxGuardarBtn" style="flex:2;background:var(--tl)" onclick="qxRxGuardar()">Guardar cambios</button></div>');
+    + '<div class="qx-rx-pie"><button class="qx-btn" style="flex:1;' + gris + '" onclick="qxRxCerrar()">Cancelar</button>'
+    + '<button class="qx-btn" style="flex:1.2;' + gris + '" onclick="qxRxVistaPrevia()">👁 Vista previa</button>'
+    + '<button class="qx-btn" id="qxRxGuardarBtn" style="flex:1.3;background:var(--tl)" onclick="qxRxGuardar()">' + (e.nueva ? 'Crear receta' : 'Guardar') + '</button></div>');
   qxRxEditorRender();
 }
 /* Nombres ya usados en cualquier receta: sugerencias para escribir igual. */
@@ -9141,6 +9168,12 @@ function qxRxEditorRender(enfocar){
     + '<label class="qx-rx-check"><input type="checkbox"' + (e.es_parto ? ' checked' : '') + ' onchange="QX_RX_ED.es_parto=this.checked"> Lleva la lista de útiles para parto (cesárea)</label>'
     + seccion('Insumos / material', 'insumos')
     + seccion('Medicación y anestesia', 'anestesia')
+    + (e.nueva ? '' : '<div class="qx-rx-sec">Otras acciones</div><div class="qx-rx-acc">'
+        + '<button class="qx-btn" onclick="qxRxDuplicar()">⧉ Duplicar como receta nueva</button>'
+        + (e.activa
+            ? '<button class="qx-btn qx-rx-archivar" onclick="qxRxArchivar(false)">🗄 Archivar</button>'
+            : '<button class="qx-btn" onclick="qxRxArchivar(true)">♻ Reactivar</button>')
+        + '</div>')
     + '<datalist id="qxRxNombres">' + qxRxNombresConocidos().map(function(n){ return '<option value="' + qxAttr(n) + '">'; }).join('') + '</datalist>';
   body.scrollTop = sc;
   if (enfocar){
@@ -9204,10 +9237,16 @@ async function qxRxGuardar(){
   var e = QX_RX_ED; if (!e) return;
   var nz = qxRxNormalizar(e);
   if (nz.error){ toast(nz.error, 'error'); return; }
+  if (hayJsPdf()){
+    try {
+      if (qxRxPdfDe(nz.fila).qxDesborda && !confirm('Así la receta no entra en una hoja A4 (la lista pisa la firma).\n¿Guardar igual?')) return;
+    } catch (err) {}
+  }
+  if (e.nueva){ await qxRxCrear(nz.fila); return; }
   if (!qxRxHayCambios()){ qxRxCerrar(true); toast('No había cambios', 'info'); return; }
   var btn = document.getElementById('qxRxGuardarBtn');
   if (btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
-  function soltar(){ if (btn){ btn.disabled = false; btn.textContent = 'Guardar cambios'; } }
+  function soltar(){ if (btn){ btn.disabled = false; btn.textContent = 'Guardar'; } }
   var r;
   try {
     r = await sb.from('recetas_plantillas').update(nz.fila)
@@ -9235,6 +9274,144 @@ async function qxRxGuardar(){
   qxRxCerrar(true);
   qxRecetasVistaRender();
   toast('Receta guardada', 'success');
+}
+
+/* ---------- Nueva / duplicar / archivar (admin) ---------- */
+/* Paso 1 de «＋ Nueva receta»: empezar vacía o copiar una existente. */
+function qxRxNueva(){
+  if (!qxRxPuedeEditar()){ toast('Solo el administrador, y con conexión, puede crear recetas.', 'error'); return; }
+  var h = '<button class="qx-rx-origen" onclick="qxRxCrearDesde(null)"><b>Empezar vacía</b><small>Escribís todos los ítems desde cero.</small></button>'
+    + '<div class="qx-rx-sec">O copiar una existente y cambiarla</div>';
+  qxRxFilas().filter(function(f){ return f.activa !== false; }).forEach(function(f){
+    h += '<button class="qx-rx-origen" onclick="qxRxCrearDesde(\'' + qxAttr(f.clave) + '\')"><b>' + qxEsc(f.titulo) + '</b>'
+      + '<small>' + qxEsc(f.nombre_largo) + ' · ' + (f.insumos.length + f.anestesia.length) + ' ítems</small></button>';
+  });
+  qxRxSheet('<div class="qx-sheet-head"><h3>Nueva receta</h3><button class="qx-sheet-close" onclick="qxRxCerrar()">×</button></div>'
+    + '<div class="qx-sheet-body">' + h + '</div>');
+}
+/* Abre el editor en modo "nueva". base: clave a copiar, un estado del editor
+   (duplicar con lo que se estaba escribiendo) o null (vacía). */
+function qxRxCrearDesde(base){
+  var src = null;
+  if (typeof base === 'string'){
+    var f = qxRxFila(base);
+    if (f) src = { titulo: f.titulo, nombre_largo: f.nombre_largo, es_parto: !!f.es_parto,
+                   insumos: f.insumos.map(qxRxItemEd), anestesia: f.anestesia.map(qxRxItemEd) };
+  } else if (base) src = JSON.parse(JSON.stringify(base));
+  QX_RX_ED = {
+    nueva: true, clave: null, version: null, activa: true,
+    titulo: src ? src.titulo + ' (copia)' : '',
+    nombre_largo: src ? src.nombre_largo + ' (copia)' : '',
+    es_parto: src ? !!src.es_parto : false,
+    insumos: src ? src.insumos : [{ n: '', d: '', num: '1', u: 'UNI' }],
+    anestesia: src ? src.anestesia : []
+  };
+  QX_RX_ED.orig = JSON.stringify(qxRxNormalizar(QX_RX_ED).fila);
+  qxRxEditorAbrir();
+  var t = document.querySelector('#qxRxEdBody .qx-field input');
+  if (t){ t.focus(); if (src) t.select(); }
+}
+/* Desde el editor: la copia se lleva también lo que no se guardó; la
+   original queda como estaba en la base. */
+function qxRxDuplicar(){
+  var e = QX_RX_ED; if (!e) return;
+  var habiaCambios = qxRxHayCambios();
+  QX_RX_ED = null;
+  qxRxCrearDesde(e);
+  if (habiaCambios) toast('La copia lleva tus cambios sin guardar; la receta original quedó como estaba.', 'info');
+}
+/* "Miomectomía (copia)" -> "miomectomia_copia" */
+function qxRxSlug(titulo){
+  var base = String(titulo || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32).replace(/_+$/, '');
+  return base.length < 2 ? 'receta' : base;
+}
+/* Clave interna (única, no cambia nunca) a partir del nombre. */
+function qxRxClaveNueva(titulo){
+  var base = qxRxSlug(titulo);
+  var usadas = {};
+  qxRxFilas().forEach(function(f){ usadas[f.clave] = 1; });
+  var k = base, n = 2;
+  while (usadas[k]) k = base + '_' + (n++);
+  return k;
+}
+async function qxRxCrear(fila){
+  var btn = document.getElementById('qxRxGuardarBtn');
+  if (btn){ btn.disabled = true; btn.textContent = 'Creando…'; }
+  var orden = 10;
+  qxRxFilas().forEach(function(f){ if ((f.orden || 0) + 10 > orden) orden = (f.orden || 0) + 10; });
+  var r;
+  for (var intento = 0; intento < 2; intento++){
+    var nueva = Object.assign({ clave: qxRxClaveNueva(fila.titulo), orden: orden, activa: true }, fila);
+    try {
+      r = await sb.from('recetas_plantillas').insert(nueva).select('clave,version');
+    } catch (err) { r = { error: err }; }
+    // Clave repetida: otro admin creó una igual recién. Releer y probar con otra.
+    if (r.error && String(r.error.code) === '23505' && intento === 0){ await qxRecetasCargar(true); continue; }
+    break;
+  }
+  if (r.error || !r.data || !r.data.length){
+    var err = r.error || {};
+    registrarFalla('crear receta', r.error || 'sin filas');
+    toast(String(err.code) === '42501' ? 'No tenés permiso para crear recetas (solo el administrador).'
+      : 'No se pudo crear la receta: ' + mensajeDeError(r.error || new Error('la base no devolvió la receta')), 'error');
+    if (btn){ btn.disabled = false; btn.textContent = 'Crear receta'; }
+    return;
+  }
+  await qxRecetasCargar(true);
+  qxRxCerrar(true);
+  qxRecetasVistaRender();
+  toast('Receta «' + fila.titulo + '» creada. Ya se puede elegir en el paso 3.', 'success');
+}
+async function qxRxArchivar(activar){
+  var e = QX_RX_ED; if (!e || e.nueva) return;
+  var n = (QX_PACIENTES || []).filter(function(p){ return p.tipo_receta === e.clave && !qxEstadoTerminal(p.estado); }).length;
+  var msg = activar
+    ? '¿Reactivar «' + e.titulo + '»? Vuelve a salir en el selector del paso 3.'
+    : '¿Archivar «' + e.titulo + '»?\n\nYa no saldrá en el selector del paso 3.'
+      + (n ? '\n' + n + (n === 1 ? ' paciente activa la tiene' : ' pacientes activas la tienen') + ' y la siguen usando sin problema.' : '')
+      + '\nSe puede reactivar cuando quieras.';
+  if (qxRxHayCambios()) msg += '\n\nLos cambios sin guardar de esta receta se descartan.';
+  if (!confirm(msg)) return;
+  var r;
+  try {
+    r = await sb.from('recetas_plantillas').update({ activa: !!activar })
+      .eq('clave', e.clave).eq('version', e.version).select('version');
+  } catch (err) { r = { error: err }; }
+  if (r.error || !r.data || !r.data.length){
+    if (r.error) registrarFalla('archivar receta', r.error);
+    await qxRecetasCargar(true);
+    toast(r.error ? 'No se pudo: ' + mensajeDeError(r.error)
+      : 'No se pudo: otra persona cambió la receta o no tenés permiso. Volvé a intentar.', 'error');
+    return;
+  }
+  await qxRecetasCargar(true);
+  qxRxCerrar(true);
+  if (!activar) QX_RX_ARCH_ABIERTO = true;
+  qxRecetasVistaRender();
+  toast(activar ? 'Receta reactivada' : 'Receta archivada', 'success');
+}
+
+/* ---------- Vista previa (lo que se está editando, sin guardar) ---------- */
+function qxRxPdfDe(fila){
+  var p = { nombre: 'APELLIDOS Y NOMBRES DE EJEMPLO', edad: 30, dni: '00000000', hcl: '000000',
+            diagnostico: 'Diagnóstico de ejemplo', _rxTitulo: fila.titulo };
+  function items(arr){ return arr.map(function(it){ return { txt: it.n + (it.d ? ' ' + it.d : ''), cant: it.c }; }); }
+  return qxRecetaPDF(p, items(fila.insumos), items(fila.anestesia));
+}
+async function qxRxVistaPrevia(){
+  var e = QX_RX_ED; if (!e) return;
+  var nz = qxRxNormalizar(e);
+  if (nz.error){ toast(nz.error, 'error'); return; }
+  if (!(await asegurarJsPdf())){ toast('No se pudo cargar el generador de PDF. Revisá tu conexión.', 'error'); return; }
+  try {
+    var doc = qxRxPdfDe(nz.fila);
+    if (doc.qxDesborda) toast('Ojo: así no entra en una hoja A4 (la lista pisa la firma). Quitá o acortá ítems de la columna más larga.', 'warn');
+    else if (doc.qxLetra < 7) toast('Entra en una hoja, pero con letra chica (' + doc.qxLetra + ' pt) porque hay nombres largos.', 'info');
+    doc.save('Vista_previa_receta_' + qxRxSlug(nz.fila.titulo) + '.pdf');
+  } catch (err) {
+    toast('No se pudo armar la vista previa: ' + mensajeDeError(err), 'error');
+  }
 }
 
 /* ---------- Historial (admin) ---------- */
@@ -9751,7 +9928,8 @@ function qxRecetaMembrete(doc, p, M, W, INK, SOFT, RULE){
   doc.setDrawColor(RULE); doc.setLineWidth(0.2); doc.line(M, y, W - M, y);
   y += 6.5;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(INK);
-  doc.text('RECETA QUIRÚRGICA  —  ' + T(qxRecetaTituloTipo(p.tipo_receta)), W / 2, y, { align: 'center' });
+  // p._rxTitulo: vista previa de una receta que todavía no está guardada.
+  doc.text('RECETA QUIRÚRGICA  —  ' + T(p._rxTitulo || qxRecetaTituloTipo(p.tipo_receta)), W / 2, y, { align: 'center' });
   return y + 5;
 }
 
@@ -9821,6 +9999,7 @@ function qxRecetaPDF(p, ins, ane){
   var fs = 8;
   while (fs > 5.6 && !todosEnUnaLinea(fs)) fs -= 0.2;
   fs = Math.round(fs * 10) / 10;
+  doc.qxLetra = fs;
 
   var maxN = Math.max(ins.length, ane.length, 1);
   var avail = (yFirma - 6) - (yList + 5);
@@ -9851,6 +10030,8 @@ function qxRecetaPDF(p, ins, ane){
       }
       iy += (fs * 0.40) * (lines.length - 1) + lh;
     }
+    // Para la vista previa del editor de recetas: ¿la lista se mete en la firma?
+    if (n && iy - lh > yFirma - 5) doc.qxDesborda = true;
 
     doc.setDrawColor(INK); doc.setLineWidth(0.2);
     doc.line(x, yFirma, x + colW * 0.58, yFirma);
