@@ -697,6 +697,38 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-viewtoggle{display:flex;gap:8px;margin-bottom:12px}
 .qx-vt{flex:1;padding:9px;border-radius:4px;font-family:var(--mono);letter-spacing:.04em;border:1px solid var(--bd);background:var(--s1);color:var(--t2);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
 .qx-vt.active{background:var(--tl);color:#fff;border-color:var(--tl)}
+/* Sección 💊 Recetas (pestaña de Qx) */
+.qx-rx-intro{font-size:12px;color:var(--t2);line-height:1.5;margin:0 0 12px}
+.qx-rx-aviso{font-size:12px;color:var(--yodo);background:rgba(180,101,42,.08);border:1px solid rgba(180,101,42,.25);border-radius:4px;padding:9px 11px;margin-bottom:12px;line-height:1.45}
+.qx-rx-card{display:block;width:100%;text-align:left;background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:12px 14px;margin-bottom:8px;cursor:pointer;font-family:inherit;color:var(--t1)}
+.qx-rx-card:active{transform:scale(.99)}
+.qx-rx-tit{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qx-rx-chip{font-size:10px;font-weight:700;color:var(--tl2);background:rgba(46,125,110,.10);border:1px solid rgba(46,125,110,.25);border-radius:3px;padding:1px 6px}
+.qx-rx-sub{font-size:12px;color:var(--t2);margin-top:2px}
+.qx-rx-meta{font-size:11px;color:var(--t3);margin-top:6px;font-family:var(--mono)}
+.qx-rx-ed{font-size:11px;color:var(--t3);margin-top:2px}
+.qx-rx-sec{font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
+.qx-rx-ol{margin:0;padding-left:22px;font-size:12px;color:var(--t1)}
+.qx-rx-ol li{padding:3px 0;border-bottom:1px solid var(--s2)}
+.qx-rx-ol li span{display:inline-block;max-width:calc(100% - 70px)}
+.qx-rx-ol li b{float:right;font-weight:600;color:var(--t3);font-family:var(--mono);font-size:11px}
+.qx-rx-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);margin:0 0 6px;cursor:pointer}
+.qx-rx-check input{width:18px;height:18px}
+.qx-rx-item{background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:7px;margin-bottom:6px}
+.qx-rx-l1,.qx-rx-l2{display:flex;gap:5px;align-items:center}
+.qx-rx-l2{margin-top:5px}
+.qx-rx-num{width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);font-size:11px;color:var(--t3)}
+.qx-rx-in{padding:7px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;background:var(--bg);color:var(--t1);font-family:inherit;box-sizing:border-box;text-transform:uppercase}
+.qx-rx-l1 .qx-rx-in{flex:1;min-width:0}
+.qx-rx-mini{flex-shrink:0;width:28px;height:30px;border:1px solid var(--bd);border-radius:4px;background:var(--s1);color:var(--t2);font-size:14px;line-height:1;cursor:pointer;padding:0}
+.qx-rx-mini:disabled{opacity:.3;cursor:default}
+.qx-rx-del{color:var(--alarma)}
+.qx-rx-add{width:100%;margin:2px 0 6px;padding:8px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px dashed var(--bd)}
+.qx-rx-pie{display:flex;gap:8px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--bd);background:var(--bg)}
+.qx-rx-hist{border-bottom:1px solid var(--bd);padding:10px 0}
+.qx-rx-hist-h{font-size:12px;color:var(--t1)}
+.qx-rx-hist-h span{float:right;color:var(--t3);font-family:var(--mono);font-size:11px}
+.qx-rx-hist ul{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--t2);line-height:1.5}
 
 /* ===== CALCULADORA OBSTÉTRICA ===== */
 .calc-warn{background:rgba(180,101,42,.10);border:1px solid rgba(180,101,42,.30);color:var(--yodo);border-radius:4px;padding:9px 12px;font-size:11px;line-height:1.5;margin-bottom:14px;font-weight:600}
@@ -1164,6 +1196,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="qx-viewtoggle">
             <button class="qx-vt active" id="qxVtLista" onclick="qxSetView('lista')">📋 Lista</button>
             <button class="qx-vt" id="qxVtCal" onclick="qxSetView('calendario')">📅 Calendario</button>
+            <button class="qx-vt" id="qxVtRec" onclick="qxSetView('recetas')">💊 Recetas</button>
           </div>
           <div class="qx-buscar" id="qxBuscarWrap">
             <span class="ic" aria-hidden="true">🔍</span>
@@ -1183,6 +1216,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="qx-filters" id="qxFilters"></div>
           <div class="qx-list" id="qxList"></div>
           <div id="qxCalendario" style="display:none"></div>
+          <div id="qxRecetasVista" style="display:none"></div>
         </div>
       </div>
 
@@ -6464,6 +6498,7 @@ var QX_RECETAS = {
    pero sigue sirviendo para las pacientes que ya la tienen. */
 var QX_RECETAS_LS = 'qx_recetas_v1';
 var QX_RECETA_ARCHIVADAS = {};      // clave -> true
+var QX_RECETAS_FILAS = null;        // filas tal cual (con version / updated_by) para la sección 💊 Recetas
 var QX_RECETAS_ORIGEN = 'app';      // 'app' (embebidas) | 'copia' (localStorage) | 'base'
 var QX_RECETAS_LEIDAS_AT = 0;
 
@@ -6482,6 +6517,7 @@ function qxRecetasAplicar(filas){
   QX_RECETA_TIPOS = tipos;
   QX_RECETAS = recs;
   QX_RECETA_ARCHIVADAS = arch;
+  QX_RECETAS_FILAS = ok;
   return true;
 }
 
@@ -6500,10 +6536,11 @@ async function qxRecetasCargar(forzar){
   QX_RECETAS_LEIDAS_AT = Date.now();
   try {
     var r = await sb.from('recetas_plantillas')
-      .select('clave,titulo,nombre_largo,insumos,anestesia,es_parto,activa,orden,version,updated_at');
+      .select('clave,titulo,nombre_largo,insumos,anestesia,es_parto,activa,orden,version,updated_at,updated_by');
     if (r.error || !r.data || !qxRecetasAplicar(r.data)) return;
     QX_RECETAS_ORIGEN = 'base';
     try { localStorage.setItem(QX_RECETAS_LS, JSON.stringify({ at: Date.now(), filas: r.data })); } catch (e) {}
+    if (QX_VIEW === 'recetas') qxRecetasVistaRender();
   } catch (e) {}
 }
 
@@ -6961,9 +6998,19 @@ function qxRender(){
   var cal = document.getElementById('qxCalendario');
   var captf = document.getElementById('qxCaptFilter');
   var busq = document.getElementById('qxBuscarWrap');
-  if (busq) busq.style.display = QX_VIEW==='calendario' ? 'none' : '';
+  var vtR = document.getElementById('qxVtRec');
+  var rxv = document.getElementById('qxRecetasVista');
+  if (busq) busq.style.display = QX_VIEW==='lista' ? '' : 'none';
   if (vtL) vtL.classList.toggle('active', QX_VIEW==='lista');
   if (vtC) vtC.classList.toggle('active', QX_VIEW==='calendario');
+  if (vtR) vtR.classList.toggle('active', QX_VIEW==='recetas');
+  if (rxv) rxv.style.display = QX_VIEW==='recetas' ? 'block' : 'none';
+
+  if (QX_VIEW === 'recetas'){
+    [tabsEl, st, fl, captf, list, cal].forEach(function(x){ if (x) x.style.display = 'none'; });
+    qxRecetasVistaRender();
+    return;
+  }
 
   if (QX_VIEW === 'calendario'){
     if (tabsEl) tabsEl.style.display = 'none';
@@ -7070,7 +7117,10 @@ function qxProximaAccion(p){
 
 function qxSetFilter(f){ QX_FILTER=f; qxRender(); }
 
-function qxSetView(v){ QX_VIEW = v; qxRender(); }
+function qxSetView(v){
+  QX_VIEW = v; qxRender();
+  if (v === 'recetas') qxRecetasCargar(true);   // al entrar, lo último de la base
+}
 
 function qxTelefono(p){ return qxNormalizarTel(p.telefono_contacto || p.telefono); }
 
@@ -8919,6 +8969,341 @@ function qxRecetaEdAgregar(campo){
   if (!QX_RECETA_EDIT || !QX_RECETA_EDIT[campo]) return;
   QX_RECETA_EDIT[campo].push({ txt: '', cant: '', on: true });
   qxRecetaEditorRender();
+}
+
+/* ============================================================
+ * SECCIÓN 💊 RECETAS (pestaña de Qx): ver y editar las plantillas.
+ * Todos las ven; solo el admin las edita (la base también lo exige: RLS con
+ * is_admin()). Cada guardado queda en recetas_plantillas_historial (trigger).
+ * Guardar usa .eq('version', v): si otro admin la cambió mientras tanto no se
+ * pisa nada — se avisa y se carga la versión nueva.
+ * Cambiar una receta vale para las que se generen desde ahora; los PDF ya
+ * generados no cambian.
+ * ============================================================ */
+var QX_RX_UNIDADES = ['UNI', 'AMP', 'PAR', 'FCO', 'PAQ', 'TAB'];
+var QX_RX_OV = null;     // overlay propio (encima de la lista)
+var QX_RX_ED = null;     // receta en edición
+
+function qxAttr(s){ return qxEsc(s == null ? '' : String(s)).replace(/"/g, '&quot;'); }
+
+/* Filas de la base; si todavía no se leyó, las arma desde las embebidas. */
+function qxRxFilas(){
+  if (QX_RECETAS_FILAS && QX_RECETAS_FILAS.length) return QX_RECETAS_FILAS;
+  return QX_RECETA_TIPOS.map(function(t, i){
+    var r = QX_RECETAS[t[0]] || {};
+    return { clave: t[0], titulo: r.titulo || t[0], nombre_largo: t[1], insumos: r.insumos || [], anestesia: r.anestesia || [],
+             es_parto: !!r.esParto, activa: !QX_RECETA_ARCHIVADAS[t[0]], orden: (i + 1) * 10 };
+  });
+}
+function qxRxFila(k){
+  var f = qxRxFilas();
+  for (var i = 0; i < f.length; i++) if (f[i].clave === k) return f[i];
+  return null;
+}
+function qxRxPuedeEditar(){ return !!isAdmin && QX_RECETAS_ORIGEN === 'base'; }
+function qxRxFechaHora(ts){
+  var d = new Date(ts); if (isNaN(d)) return '';
+  function z(n){ return (n < 10 ? '0' : '') + n; }
+  return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+}
+
+function qxRecetasVistaRender(){
+  var el = document.getElementById('qxRecetasVista'); if (!el) return;
+  var filas = qxRxFilas().filter(function(f){ return f.activa !== false; });
+  var usos = {};
+  (QX_PACIENTES || []).forEach(function(p){
+    if (p.tipo_receta && !qxEstadoTerminal(p.estado)) usos[p.tipo_receta] = (usos[p.tipo_receta] || 0) + 1;
+  });
+  var h = '';
+  if (QX_RECETAS_ORIGEN !== 'base'){
+    h += '<div class="qx-rx-aviso">' + (QX_RECETAS_ORIGEN === 'copia'
+      ? 'Sin conexión con la base: se muestra la última copia guardada en este equipo.'
+      : 'Todavía no se pudo leer la base: se muestran las recetas que trae la app.')
+      + (isAdmin ? ' Para editar hace falta conexión.' : '') + '</div>';
+  }
+  h += '<div class="qx-rx-intro">' + (isAdmin
+    ? 'Tocá una receta para editarla. Los cambios valen para las recetas que se generen desde ahora; las ya generadas no cambian.'
+    : 'Recetas quirúrgicas del servicio. Solo el administrador puede modificarlas.') + '</div>';
+  filas.forEach(function(f){
+    var n = usos[f.clave] || 0;
+    var editor = f.version > 1 && f.updated_at
+      ? 'Editada' + (f.updated_by && QX_AUTORES[f.updated_by] ? ' por ' + QX_AUTORES[f.updated_by] : '') + ' · ' + qxRxFechaHora(f.updated_at).slice(0, 10)
+      : '';
+    h += '<button class="qx-rx-card" onclick="qxRxAbrir(\'' + qxAttr(f.clave) + '\')">'
+      + '<div class="qx-rx-tit">' + qxEsc(f.titulo) + (f.es_parto ? '<span class="qx-rx-chip">lista de parto</span>' : '') + '</div>'
+      + '<div class="qx-rx-sub">' + qxEsc(f.nombre_largo) + '</div>'
+      + '<div class="qx-rx-meta">' + f.insumos.length + ' insumos · ' + f.anestesia.length + ' de anestesia'
+      + (n ? ' · ' + n + (n === 1 ? ' paciente activa' : ' pacientes activas') : '') + '</div>'
+      + (editor ? '<div class="qx-rx-ed">' + qxEsc(editor) + '</div>' : '')
+      + '</button>';
+  });
+  el.innerHTML = h;
+}
+
+function qxRxSheet(inner){
+  if (!QX_RX_OV || !QX_RX_OV.isConnected){
+    QX_RX_OV = document.createElement('div');
+    QX_RX_OV.className = 'qx-overlay';
+    QX_RX_OV.style.zIndex = '70';
+    document.body.appendChild(QX_RX_OV);
+  }
+  QX_RX_OV.innerHTML = '<div class="qx-sheet">' + inner + '</div>';
+}
+function qxRxCerrar(forzar){
+  if (!forzar && QX_RX_ED && qxRxHayCambios() && !confirm('¿Salir sin guardar los cambios de la receta?')) return;
+  if (QX_RX_OV){ QX_RX_OV.remove(); QX_RX_OV = null; }
+  QX_RX_ED = null;
+}
+
+function qxRxAbrir(k){
+  if (qxRxPuedeEditar()) qxRxEditar(k);
+  else qxRxVer(k);
+}
+
+/* Solo lectura (no admin, o sin conexión con la base). */
+function qxRxVer(k){
+  var f = qxRxFila(k); if (!f) return;
+  function lista(titulo, arr){
+    var h = '<div class="qx-rx-sec">' + titulo + ' (' + arr.length + ')</div><ol class="qx-rx-ol">';
+    arr.forEach(function(it){
+      h += '<li><span>' + qxEsc(it.n + (it.d ? ' ' + it.d : '')) + '</span><b>' + qxEsc(it.c) + '</b></li>';
+    });
+    return h + '</ol>';
+  }
+  qxRxSheet(
+    '<div class="qx-sheet-head"><h3>' + qxEsc(f.titulo) + '</h3><button class="qx-sheet-close" onclick="qxRxCerrar()">×</button></div>'
+    + '<div class="qx-sheet-body">'
+    + '<div class="qx-rx-sub" style="margin-bottom:12px">' + qxEsc(f.nombre_largo) + (f.es_parto ? ' · lleva lista de parto' : '') + '</div>'
+    + (isAdmin && !qxRxPuedeEditar() ? '<div class="qx-rx-aviso">Sin conexión con la base: por ahora solo se puede ver.</div>' : '')
+    + lista('Insumos / material', f.insumos)
+    + lista('Medicación y anestesia', f.anestesia)
+    + '</div>');
+}
+
+/* ---------- Editor (admin) ---------- */
+function qxRxItemEd(it){
+  var m = /^(\d+)\s*([A-Za-z]+)$/.exec(String(it.c || '').trim());
+  return { n: it.n || '', d: it.d || '', num: m ? String(parseInt(m[1], 10)) : '', u: m ? m[2].toUpperCase() : 'UNI' };
+}
+function qxRxEditar(k){
+  var f = qxRxFila(k); if (!f) return;
+  QX_RX_ED = {
+    clave: f.clave, version: f.version,
+    titulo: f.titulo || '', nombre_largo: f.nombre_largo || '', es_parto: !!f.es_parto,
+    insumos: f.insumos.map(qxRxItemEd), anestesia: f.anestesia.map(qxRxItemEd)
+  };
+  QX_RX_ED.orig = JSON.stringify(qxRxNormalizar(QX_RX_ED).fila);
+  qxRxSheet(
+    '<div class="qx-sheet-head"><h3>Editar · ' + qxEsc(f.titulo) + '</h3>'
+    + '<button class="qx-btn" style="padding:6px 10px;font-size:11px;background:var(--s1);color:var(--t1);border:1px solid var(--bd)" onclick="qxRxHistorial(\'' + qxAttr(k) + '\')">🕘 Historial</button>'
+    + '<button class="qx-sheet-close" onclick="qxRxCerrar()">×</button></div>'
+    + '<div class="qx-sheet-body" id="qxRxEdBody"></div>'
+    + '<div class="qx-rx-pie"><button class="qx-btn" style="flex:1;background:var(--s1);color:var(--t1);border:1px solid var(--bd)" onclick="qxRxCerrar()">Cancelar</button>'
+    + '<button class="qx-btn" id="qxRxGuardarBtn" style="flex:2;background:var(--tl)" onclick="qxRxGuardar()">Guardar cambios</button></div>');
+  qxRxEditorRender();
+}
+/* Nombres ya usados en cualquier receta: sugerencias para escribir igual. */
+function qxRxNombresConocidos(){
+  var s = {};
+  qxRxFilas().forEach(function(f){ f.insumos.concat(f.anestesia).forEach(function(it){ if (it.n) s[it.n] = 1; }); });
+  return Object.keys(s).sort();
+}
+function qxRxEditorRender(enfocar){
+  var e = QX_RX_ED, body = document.getElementById('qxRxEdBody');
+  if (!e || !body) return;
+  var sc = body.scrollTop;
+  function fila(campo, i, it, total){
+    var opts = QX_RX_UNIDADES.concat(QX_RX_UNIDADES.indexOf(it.u) < 0 ? [it.u] : []).map(function(u){
+      return '<option' + (u === it.u ? ' selected' : '') + '>' + qxEsc(u) + '</option>';
+    }).join('');
+    var ref = '\'' + campo + '\',' + i;
+    return '<div class="qx-rx-item">'
+      + '<div class="qx-rx-l1"><span class="qx-rx-num">' + (i + 1) + '</span>'
+      + '<input class="qx-rx-in" id="qxRx_' + campo + '_' + i + '" list="qxRxNombres" value="' + qxAttr(it.n) + '" placeholder="Nombre del insumo o medicamento" oninput="qxRxSet(' + ref + ',\'n\',this.value)"></div>'
+      + '<div class="qx-rx-l2">'
+      + '<input class="qx-rx-in" value="' + qxAttr(it.d) + '" placeholder="Dosis / N°" oninput="qxRxSet(' + ref + ',\'d\',this.value)" style="flex:1;min-width:0">'
+      + '<input class="qx-rx-in" type="number" inputmode="numeric" min="1" max="999" value="' + qxAttr(it.num) + '" oninput="qxRxSet(' + ref + ',\'num\',this.value)" style="width:54px;text-align:center" aria-label="Cantidad">'
+      + '<select class="qx-rx-in" onchange="qxRxSet(' + ref + ',\'u\',this.value)" style="width:66px" aria-label="Unidad">' + opts + '</select>'
+      + '<button class="qx-rx-mini" onclick="qxRxMover(' + ref + ',-1)"' + (i === 0 ? ' disabled' : '') + ' title="Subir">↑</button>'
+      + '<button class="qx-rx-mini" onclick="qxRxMover(' + ref + ',1)"' + (i === total - 1 ? ' disabled' : '') + ' title="Bajar">↓</button>'
+      + '<button class="qx-rx-mini qx-rx-del" onclick="qxRxQuitar(' + ref + ')" title="Quitar">×</button>'
+      + '</div></div>';
+  }
+  function seccion(titulo, campo){
+    var arr = e[campo];
+    var h = '<div class="qx-rx-sec">' + titulo + ' (' + arr.length + ')</div>';
+    for (var i = 0; i < arr.length; i++) h += fila(campo, i, arr[i], arr.length);
+    return h + '<button class="qx-btn qx-rx-add" onclick="qxRxAgregar(\'' + campo + '\')">＋ Agregar ítem</button>';
+  }
+  body.innerHTML =
+    '<div class="qx-field"><label>Nombre en la receta (sale en el PDF)</label><input maxlength="60" value="' + qxAttr(e.titulo) + '" oninput="QX_RX_ED.titulo=this.value"></div>'
+    + '<div class="qx-field"><label>Nombre en el selector del paso 3</label><input maxlength="120" value="' + qxAttr(e.nombre_largo) + '" oninput="QX_RX_ED.nombre_largo=this.value"></div>'
+    + '<label class="qx-rx-check"><input type="checkbox"' + (e.es_parto ? ' checked' : '') + ' onchange="QX_RX_ED.es_parto=this.checked"> Lleva la lista de útiles para parto (cesárea)</label>'
+    + seccion('Insumos / material', 'insumos')
+    + seccion('Medicación y anestesia', 'anestesia')
+    + '<datalist id="qxRxNombres">' + qxRxNombresConocidos().map(function(n){ return '<option value="' + qxAttr(n) + '">'; }).join('') + '</datalist>';
+  body.scrollTop = sc;
+  if (enfocar){
+    var inp = document.getElementById(enfocar);
+    if (inp){ inp.focus(); inp.scrollIntoView({ block: 'center' }); }
+  }
+}
+function qxRxSet(campo, i, prop, val){
+  if (QX_RX_ED && QX_RX_ED[campo] && QX_RX_ED[campo][i]) QX_RX_ED[campo][i][prop] = val;
+}
+function qxRxMover(campo, i, d){
+  var arr = QX_RX_ED && QX_RX_ED[campo]; if (!arr) return;
+  var j = i + d; if (j < 0 || j >= arr.length) return;
+  var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  qxRxEditorRender();
+}
+function qxRxQuitar(campo, i){
+  var arr = QX_RX_ED && QX_RX_ED[campo]; if (!arr) return;
+  arr.splice(i, 1);
+  qxRxEditorRender();
+}
+function qxRxAgregar(campo){
+  var arr = QX_RX_ED && QX_RX_ED[campo]; if (!arr) return;
+  arr.push({ n: '', d: '', num: '1', u: 'UNI' });
+  qxRxEditorRender('qxRx_' + campo + '_' + (arr.length - 1));
+}
+
+/* Estado del editor -> fila para la base, con el vocabulario de siempre
+   (mayúsculas, cantidad "03 FCO"). Renglones vacíos se descartan. */
+function qxRxNormalizar(e){
+  var error = null;
+  function limpio(s){ return String(s || '').trim().replace(/\s+/g, ' ').toUpperCase(); }
+  function lista(arr, nombreSec){
+    var out = [];
+    arr.forEach(function(it){
+      var n = limpio(it.n), d = limpio(it.d), num = parseInt(it.num, 10);
+      if (!n && !d) return;
+      if (!n){ error = error || ('Hay un ítem sin nombre en ' + nombreSec + '.'); return; }
+      if (!(num > 0)){ error = error || ('"' + n + '" no tiene cantidad.'); return; }
+      out.push({ n: n, d: d, c: (num < 10 ? '0' : '') + num + ' ' + it.u });
+    });
+    return out;
+  }
+  var fila = {
+    titulo: String(e.titulo || '').trim().replace(/\s+/g, ' '),
+    nombre_largo: String(e.nombre_largo || '').trim().replace(/\s+/g, ' '),
+    es_parto: !!e.es_parto,
+    insumos: lista(e.insumos, 'insumos'),
+    anestesia: lista(e.anestesia, 'anestesia')
+  };
+  if (!fila.titulo) error = 'Falta el nombre de la receta.';
+  else if (!fila.nombre_largo) error = 'Falta el nombre para el selector.';
+  else if (!fila.insumos.length && !fila.anestesia.length) error = error || 'La receta no tiene ningún ítem.';
+  return { fila: fila, error: error };
+}
+function qxRxHayCambios(){
+  return !!QX_RX_ED && JSON.stringify(qxRxNormalizar(QX_RX_ED).fila) !== QX_RX_ED.orig;
+}
+
+async function qxRxGuardar(){
+  var e = QX_RX_ED; if (!e) return;
+  var nz = qxRxNormalizar(e);
+  if (nz.error){ toast(nz.error, 'error'); return; }
+  if (!qxRxHayCambios()){ qxRxCerrar(true); toast('No había cambios', 'info'); return; }
+  var btn = document.getElementById('qxRxGuardarBtn');
+  if (btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
+  function soltar(){ if (btn){ btn.disabled = false; btn.textContent = 'Guardar cambios'; } }
+  var r;
+  try {
+    r = await sb.from('recetas_plantillas').update(nz.fila)
+      .eq('clave', e.clave).eq('version', e.version).select('version');
+  } catch (err) { r = { error: err }; }
+  if (r.error){
+    registrarFalla('guardar receta', r.error);
+    toast('No se pudo guardar: ' + mensajeDeError(r.error), 'error');
+    soltar(); return;
+  }
+  if (!r.data || !r.data.length){
+    // 0 filas: o la cambió otro admin (versión vieja) o no hay permiso (RLS).
+    await qxRecetasCargar(true);
+    var f = qxRxFila(e.clave);
+    if (f && f.version !== e.version){
+      toast('Otra persona modificó esta receta mientras la editabas. Se abrió la versión nueva: volvé a hacer tus cambios.', 'error');
+      qxRxCerrar(true); qxRxEditar(e.clave);
+    } else {
+      toast('No tenés permiso para modificar recetas (solo el administrador).', 'error');
+      soltar();
+    }
+    return;
+  }
+  await qxRecetasCargar(true);
+  qxRxCerrar(true);
+  qxRecetasVistaRender();
+  toast('Receta guardada', 'success');
+}
+
+/* ---------- Historial (admin) ---------- */
+function qxRxDiff(antes, despues){
+  if (!antes) return ['Receta creada (' + ((despues.insumos || []).length + (despues.anestesia || []).length) + ' ítems)'];
+  var out = [];
+  if (antes.titulo !== despues.titulo) out.push('Nombre: «' + antes.titulo + '» → «' + despues.titulo + '»');
+  if (antes.nombre_largo !== despues.nombre_largo) out.push('Nombre en el selector: «' + antes.nombre_largo + '» → «' + despues.nombre_largo + '»');
+  if (!!antes.es_parto !== !!despues.es_parto) out.push(despues.es_parto ? 'Ahora lleva la lista de parto' : 'Ya no lleva la lista de parto');
+  if (antes.activa !== despues.activa) out.push(despues.activa ? 'Reactivada' : 'Archivada');
+  [['insumos', 'Insumos'], ['anestesia', 'Anestesia']].forEach(function(s){
+    var a = antes[s[0]] || [], b = despues[s[0]] || [];
+    function key(it){ return it.n + (it.d ? ' ' + it.d : ''); }
+    var ma = {}, mb = {};
+    a.forEach(function(it){ if (!(key(it) in ma)) ma[key(it)] = it.c; });
+    b.forEach(function(it){ if (!(key(it) in mb)) mb[key(it)] = it.c; });
+    var hubo = false;
+    b.forEach(function(it){ var k = key(it); if (!(k in ma)){ out.push(s[1] + ': + ' + k + ' (' + it.c + ')'); hubo = true; } });
+    a.forEach(function(it){ var k = key(it); if (!(k in mb)){ out.push(s[1] + ': − ' + k); hubo = true; } });
+    Object.keys(mb).forEach(function(k){ if (k in ma && ma[k] !== mb[k]){ out.push(s[1] + ': ' + k + ' ' + ma[k] + ' → ' + mb[k]); hubo = true; } });
+    if (!hubo && JSON.stringify(a) !== JSON.stringify(b)) out.push(s[1] + ': cambió el orden');
+  });
+  return out.length ? out : ['Sin cambios de contenido'];
+}
+async function qxRxHistorial(k){
+  var volver = QX_RX_ED ? JSON.parse(JSON.stringify(QX_RX_ED)) : null;
+  var head = '<div class="qx-sheet-head">'
+    + '<button class="qx-sheet-close" style="font-size:22px" title="Volver" onclick="qxRxHistorialVolver()">←</button>'
+    + '<h3>Historial · ' + qxEsc((qxRxFila(k) || {}).titulo || k) + '</h3>'
+    + '<button class="qx-sheet-close" onclick="qxRxCerrar()">×</button></div>';
+  QX_RX_HIST_VOLVER = volver;
+  qxRxSheet(head + '<div class="qx-sheet-body"><div style="text-align:center;padding:30px 0">' + QX_RECETA_SPIN + '</div></div>');
+  var r;
+  try {
+    r = await sb.from('recetas_plantillas_historial')
+      .select('accion,version,antes,despues,por_nombre,at')
+      .eq('clave', k).order('at', { ascending: false }).limit(50);
+  } catch (err) { r = { error: err }; }
+  if (!QX_RX_OV) return;   // se cerró mientras cargaba
+  var body;
+  if (r.error){
+    registrarFalla('historial receta', r.error);
+    body = '<div class="qx-rx-aviso">No se pudo leer el historial: ' + qxEsc(mensajeDeError(r.error)) + '</div>';
+  } else if (!r.data || !r.data.length){
+    body = '<div class="qx-empty">Sin registros.</div>';
+  } else {
+    var ACC = { crear: 'Creada', editar: 'Editada', archivar: 'Archivada', reactivar: 'Reactivada' };
+    body = r.data.map(function(h){
+      return '<div class="qx-rx-hist">'
+        + '<div class="qx-rx-hist-h"><b>' + qxEsc(ACC[h.accion] || h.accion) + '</b> · ' + qxEsc(h.por_nombre || '—')
+        + '<span>' + qxEsc(qxRxFechaHora(h.at)) + '</span></div>'
+        + '<ul>' + qxRxDiff(h.antes, h.despues || {}).map(function(l){ return '<li>' + qxEsc(l) + '</li>'; }).join('') + '</ul>'
+        + '</div>';
+    }).join('');
+  }
+  qxRxSheet(head + '<div class="qx-sheet-body">' + body + '</div>');
+}
+var QX_RX_HIST_VOLVER = null;
+/* Vuelve al editor sin perder lo que se estaba escribiendo. */
+function qxRxHistorialVolver(){
+  var v = QX_RX_HIST_VOLVER; QX_RX_HIST_VOLVER = null;
+  if (!v){ qxRxCerrar(true); return; }
+  var orig = v.orig;
+  qxRxEditar(v.clave);
+  if (QX_RX_ED){
+    ['titulo', 'nombre_largo', 'es_parto', 'insumos', 'anestesia'].forEach(function(p){ QX_RX_ED[p] = v[p]; });
+    QX_RX_ED.version = v.version; QX_RX_ED.orig = orig;
+    qxRxEditorRender();
+  }
 }
 
 /* Nombre de archivo para descargar: Receta_aqv_APELLIDO_NOMBRE.pdf */
