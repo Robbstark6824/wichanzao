@@ -254,6 +254,9 @@ body.dark .settings-item{border-bottom-color:rgba(255,255,255,.05)}
 .settings-item .si-text{min-width:0}
 .settings-item .si-text h5{font-size:14px;font-weight:600;color:var(--t1)}
 .settings-item .si-text p{font-size:11px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.settings-version-estado{font-size:11px;font-weight:600;margin-left:4px}
+.settings-version-estado.ok{color:var(--tl)}
+.settings-version-estado.nueva{color:var(--yodo)}
 .settings-version-badge{background:linear-gradient(135deg,var(--tl),var(--tl2));color:var(--n1);font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.3px}
 .settings-logout{width:100%;padding:15px;background:none;border:1.5px solid rgba(229,62,62,.15);border-radius:14px;color:#E53E3E;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
 .settings-logout:active{background:rgba(229,62,62,.06);transform:scale(.98)}
@@ -484,6 +487,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .author-uni-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 14px;font-size:11px;color:rgba(255,255,255,.8);font-weight:500}
 .author-dedication-card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:24px 20px;margin-bottom:16px;width:100%}
 .author-ded-icon{text-align:center;margin-bottom:10px}
+.author-ded-familia{border-color:rgba(46,125,110,.35)}
 .author-ded-title{font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:-.01em;font-size:18px;font-weight:700;color:var(--t1);text-align:center;margin:0 0 16px}
 .author-ded-text{font-size:13.5px;line-height:1.7;color:var(--t2);margin:0 0 12px;text-align:justify}
 .author-ded-text:last-of-type{margin-bottom:16px}
@@ -1003,7 +1007,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         <div class="sidebar-brand-text">
           <h3>Ginecología</h3>
           <span>Hospital de Laredo</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v208</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v264</span>
         </div>
         <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Colapsar menu">◀</button>
       </div>
@@ -1370,18 +1374,6 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     <div class="settings-section">
       <h4>Acerca de</h4>
       <div class="settings-card">
-        <div class="settings-item">
-          <div class="si-left">
-            <div class="si-icon" style="background:linear-gradient(135deg,rgba(160,61,99,.15),rgba(160,61,99,.05))">
-              <svg viewBox="0 0 24 24" fill="var(--tl)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-            </div>
-            <div class="si-text">
-              <h5>Version</h5>
-              <p id="settingsVersionText">v208</p>
-            </div>
-          </div>
-          <span class="settings-version-badge">Ultima</span>
-        </div>
         <div class="settings-item" onclick="showAuthorInfo()" style="cursor:pointer">
           <div class="si-left">
             <div class="si-icon" style="background:linear-gradient(135deg,rgba(212,168,83,.15),rgba(212,168,83,.05))">
@@ -1389,7 +1381,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Mensaje del desarrollador</h5>
-              <p style="font-style:italic;line-height:1.4">Robert Macedo Rios</p>
+              <p style="font-style:italic;line-height:1.4">Para Isabella y Milagros</p>
             </div>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
@@ -1407,7 +1399,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             </div>
             <div class="si-text">
               <h5>Versión</h5>
-              <p id="settingsAppVersion">—</p>
+              <p><span id="settingsAppVersion">—</span> <span id="settingsAppVersionEstado" class="settings-version-estado"></span></p>
             </div>
           </div>
           <button onclick="forceUpdateApp()" style="background:rgba(160,61,99,.12);border:none;color:var(--tl);padding:7px 12px;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:600;font-size:12px">🔄 Actualizar</button>
@@ -1461,11 +1453,25 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     </div>
 
     <!-- Dedicatoria -->
+    <div class="author-dedication-card author-ded-familia">
+      <div class="author-ded-icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="var(--tl)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </div>
+      <h4 class="author-ded-title">Para Isabella y Milagros</h4>
+      <p class="author-ded-text">Este sistema nació entre guardias, madrugadas y pacientes. En medio de ese camino llegó lo más importante de mi vida.</p>
+      <p class="author-ded-text">A mi hija <strong>Isabella</strong>: llegaste para darle sentido a cada hora frente a esta pantalla. Cada línea la escribí pensando en el mundo que quiero para ti, uno donde cuidar a las personas se haga con más orden, más tiempo y más cariño.</p>
+      <p class="author-ded-text">A <strong>Milagros Loyola</strong>, mi compañera: gracias por tu paciencia en las noches largas, por sostenernos a los tres y por hacer posible cada paso. Nada de esto existiría sin ti.</p>
+      <p class="author-ded-text">Todo mi trabajo, y todo lo que soy, es para ustedes.</p>
+      <p class="author-ded-quote">"Que cada madre que pase por este servicio sea cuidada como quisiera que cuiden a las mías."</p>
+      <p class="author-ded-signature"><strong>Robert Macedo Rios</strong></p>
+    </div>
+
+    <!-- Agradecimiento al hospital -->
     <div class="author-dedication-card">
       <div class="author-ded-icon">
         <svg viewBox="0 0 24 24" width="28" height="28" fill="var(--gd)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
       </div>
-      <h4 class="author-ded-title">Dedicatoria</h4>
+      <h4 class="author-ded-title">Agradecimiento</h4>
       <p class="author-ded-text">Este sistema es una contribución técnica desarrollada en gratitud al <strong>Hospital de Laredo</strong> por la formación recibida durante el internado médico.</p>
       <p class="author-ded-text">Un reconocimiento especial a los <strong>doctores</strong>, <strong>enfermeras</strong>, <strong>obstetras</strong>, <strong>técnicos</strong> y a todo el personal <strong>administrativo</strong>, de <strong>servicios</strong> y <strong>seguridad</strong>. Gracias por compartir su experiencia diaria y permitirme entender que la medicina se fortalece con la colaboración de cada integrante del equipo de salud.</p>
       <p class="author-ded-quote">"La medicina es una vocación que se aprende al lado de quienes la viven cada día."</p>
@@ -1557,8 +1563,53 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    Production build — Vanilla JS, single file
    =========================================================== */
 
-/* ===== APP VERSION ===== */
-var APP_VERSION = 'v225';
+/* ===== APP VERSION =====
+   La versión de verdad es la del service worker: CACHE_NAME de sw.js
+   ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
+   el respaldo mientras no se pudo leer (navegador sin service worker). */
+var APP_VERSION = 'v264';
+
+function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
+/* La que tiene este equipo: el caché del service worker activo. */
+async function appVersionInstalada(){
+  try {
+    var ks = await caches.keys(), mejor = null;
+    ks.forEach(function(k){
+      var m = /^sghl-(v\d+)$/.exec(k);
+      if (m && appVersionNum(m[1]) > appVersionNum(mejor)) mejor = m[1];
+    });
+    return mejor;
+  } catch (e) { return null; }
+}
+/* La publicada: se lee sw.js del servidor, sin caché. */
+async function appVersionPublicada(){
+  try {
+    var r = await fetch('./sw.js', { cache: 'no-store' });
+    if (!r.ok) return null;
+    var m = /CACHE_NAME\s*=\s*'sghl-(v\d+)'/.exec(await r.text());
+    return m ? m[1] : null;
+  } catch (e) { return null; }
+}
+/* Pinta la versión en el encabezado y en Configuración, y avisa si hay una nueva. */
+async function appVersionRevisar(){
+  var inst = await appVersionInstalada();
+  if (inst) APP_VERSION = inst;
+  var badge = document.getElementById('appVersionBadge');
+  if (badge) badge.textContent = APP_VERSION;
+  var verEl = document.getElementById('settingsAppVersion');
+  if (verEl) verEl.textContent = APP_VERSION;
+  var est = document.getElementById('settingsAppVersionEstado');
+  if (!est) return;
+  est.textContent = 'revisando…'; est.className = 'settings-version-estado';
+  var pub = await appVersionPublicada();
+  if (!pub){ est.textContent = '· sin conexión para revisar'; return; }
+  if (appVersionNum(pub) > appVersionNum(APP_VERSION)){
+    est.textContent = '· hay una nueva (' + pub + '): tocá Actualizar'; est.className = 'settings-version-estado nueva';
+    if (badge){ badge.textContent = APP_VERSION + ' ⬆'; badge.style.color = 'var(--tl)'; }
+  } else {
+    est.textContent = '· al día'; est.className = 'settings-version-estado ok';
+  }
+}
 
 /* ===== SUPABASE CONFIG ===== */
 var SB_URL = 'https://xqphjvppfgwabfruyjae.supabase.co';
@@ -2048,6 +2099,7 @@ function showView(id) {
     // Update version badge
     var badge = document.getElementById('appVersionBadge');
     if (badge) badge.textContent = APP_VERSION;
+    appVersionRevisar();
   }
 }
 
@@ -3190,9 +3242,10 @@ function openSettings() {
   document.getElementById('settingsProfileBadge').textContent = sLabel;
   var darkOn = document.body.classList.contains('dark');
   document.getElementById('toggleDark').classList.toggle('on', darkOn);
-  // Version
+  // Version: la instalada de verdad + si hay una nueva publicada
   var verEl = document.getElementById('settingsAppVersion');
   if (verEl) verEl.textContent = APP_VERSION;
+  appVersionRevisar();
   var roleEl = document.getElementById('settingsRole');
   if (roleEl) roleEl.textContent = isAdmin ? '👑 Super administrador' : (worker.area || 'Usuario');
   showView('vSettings');

@@ -1,4 +1,4 @@
-var CACHE_NAME = 'sghl-v263';
+var CACHE_NAME = 'sghl-v264';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
@@ -43,6 +43,9 @@ self.addEventListener('fetch', function(e) {
 
   // NEVER intercept Supabase calls — always go to network
   if (url.hostname.includes('supabase.co')) return;
+
+  // sw.js nunca desde caché: la app lo lee para saber si hay una versión nueva.
+  if (url.pathname.endsWith('/sw.js')) return;
 
   // HTML files & navigation: ALWAYS network first, cache fallback for offline only
   if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/')) {
