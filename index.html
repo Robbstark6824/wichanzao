@@ -712,6 +712,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
 .qx-rx-ol li{padding:3px 0;border-bottom:1px solid var(--s2)}
 .qx-rx-ol li span{display:inline-block;max-width:calc(100% - 70px)}
 .qx-rx-ol li b{float:right;font-weight:600;color:var(--t3);font-family:var(--mono);font-size:11px}
+.qx-rx-check{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--t2);line-height:1.45;background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:9px 10px;margin:0 0 6px;cursor:pointer}
+.qx-rx-check input{width:20px;height:20px;flex-shrink:0;margin:0}
+.qx-rx-check b{color:var(--t1)}
 .qx-rx-parto{font-size:12px;color:var(--tl2);background:rgba(46,125,110,.08);border:1px solid rgba(46,125,110,.22);border-radius:4px;padding:8px 10px;margin:0 0 6px;line-height:1.4}
 .qx-rx-item{background:var(--s1);border:1px solid var(--bd);border-radius:4px;padding:7px;margin-bottom:6px}
 .qx-rx-l1,.qx-rx-l2{display:flex;gap:5px;align-items:center}
@@ -8991,6 +8994,8 @@ function qxRecetaEdAgregar(campo){
  * generados no cambian.
  * ============================================================ */
 var QX_RX_UNIDADES = ['UNI', 'AMP', 'PAR', 'FCO', 'PAQ', 'TAB'];
+// Las 8 de la carga inicial: su "lista del bebé" es fija (solo CST y CST + AQV).
+var QX_RX_ORIGINALES = ['aqv', 'cst', 'cst_aqv', 'cono_frio', 'legrado', 'histerectomia', 'prolapso', 'tumorectomia'];
 var QX_RX_OV = null;     // overlay propio (encima de la lista)
 var QX_RX_ED = null;     // receta en edición
 
@@ -9167,9 +9172,13 @@ function qxRxEditorRender(enfocar){
   body.innerHTML =
     '<div class="qx-field"><label>Nombre en la receta (sale en el PDF)</label><input maxlength="60" value="' + qxAttr(e.titulo) + '" oninput="QX_RX_ED.titulo=this.value"></div>'
     + '<div class="qx-field"><label>Nombre en el selector del paso 3</label><input maxlength="120" value="' + qxAttr(e.nombre_largo) + '" oninput="QX_RX_ED.nombre_largo=this.value"></div>'
-    // Lista de parto: no se pregunta. Solo las cesáreas (CST, CST + AQV) la
-    // llevan, y una copia de ellas la hereda; las demás nunca.
-    + (e.es_parto ? '<div class="qx-rx-parto">👶 Cesárea: la lista de útiles por WhatsApp suma documentos y lo del bebé.</div>' : '')
+    // Lista del bebé: en las 8 originales no se pregunta (solo CST y CST + AQV
+    // la llevan). En las creadas en la app decide quien la crea; una copia de
+    // una cesárea viene marcada.
+    + (QX_RX_ORIGINALES.indexOf(e.clave) < 0
+        ? '<label class="qx-rx-check"><input type="checkbox"' + (e.es_parto ? ' checked' : '') + ' onchange="QX_RX_ED.es_parto=this.checked">'
+          + '<span><b>Lista del bebé</b> — marcar solo si es cesárea o parto: la lista de útiles que se manda por WhatsApp suma documentos y lo del recién nacido. La receta (PDF) no cambia.</span></label>'
+        : (e.es_parto ? '<div class="qx-rx-parto">👶 Cesárea: la lista de útiles por WhatsApp suma documentos y lo del bebé.</div>' : ''))
     + seccion('Insumos / material', 'insumos')
     + seccion('Medicación y anestesia', 'anestesia')
     + (e.nueva ? '' : '<div class="qx-rx-sec">Otras acciones</div><div class="qx-rx-acc">'
