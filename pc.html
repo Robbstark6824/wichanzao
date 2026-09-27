@@ -2944,6 +2944,18 @@ var PC_RECETA_TITULOS = {
   legrado: 'Legrado', histerectomia: 'Histerectomia', prolapso: 'Prolapso',
   tumorectomia: 'Tumorectomia'
 };
+/* Recetas creadas desde la app (tabla recetas_plantillas, sql/030): sus nombres
+   se suman a los de arriba. Las 8 originales conservan su nombre corto de acá.
+   Si la tabla no existe o falla, se sigue con lo que hay. */
+async function pcRecetaTitulosCargar() {
+  try {
+    var r = await sb.from('recetas_plantillas').select('clave,titulo');
+    if (r.error || !r.data) return;
+    r.data.forEach(function(f) {
+      if (f && f.clave && !PC_RECETA_TITULOS[f.clave]) PC_RECETA_TITULOS[f.clave] = f.titulo || f.clave;
+    });
+  } catch (e) {}
+}
 
 function pcRecetaUrl(id, variante) { return _pubBase + 'recetas/' + id + (variante || '') + '.pdf'; }
 
@@ -2986,11 +2998,13 @@ async function pcLoadRecetas() {
   }
   var r;
   try {
+    var titulosP = pcRecetaTitulosCargar();   // en paralelo con las pacientes
     r = await sb.from('pacientes')
       .select('id,nombre,dni,hcl,tipo_receta,fecha_cirugia,turno,estado,fecha_resolucion,created_at,receta_generada_at,receta_faltantes,receta_faltantes_at')
       .not('tipo_receta', 'is', null)
       .order('fecha_cirugia', { ascending: true, nullsFirst: false })
       .limit(1000);
+    await titulosP;
   } catch (e) {
     vr.innerHTML = '<div class="empty-state"><div class="icon">&#9888;</div><h3>Error</h3><p>' + escHtml(e.message || String(e)) + '</p></div>';
     return;

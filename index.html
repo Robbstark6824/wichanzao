@@ -5967,7 +5967,8 @@ var QX_CAT_ORIGEN = [
  * dosis → MG · ML · G · UI; typo de origen MIDAZOLAN → MIDAZOLAM.
  * Solo la app: el campo pacientes.tipo_receta NO se sincroniza a las hojas GERESA.
  * legrado / histerectomia / prolapso comparten la misma lista.
- * Editar una plantilla = cambiar aquí y en tools/recetas-plantillas.json.
+ * Desde sql/030 las recetas viven en la tabla recetas_plantillas (las edita el
+ * admin en la app); estas 8 quedan de respaldo — ver qxRecetasAplicar abajo.
  * ============================================================ */
 var QX_RECETA_TIPOS = [
   ["aqv", "AQV — Anticoncepción quirúrgica voluntaria"],
@@ -6042,6 +6043,7 @@ var QX_RECETAS = {
   },
   cst: {
     titulo: "CST",
+    esParto: true,
     insumos: [
       {n:"CLORURO DE SODIO 0.9%",d:"",c:"03 FCO"},
       {n:"OXITOCINA",d:"10 UI",c:"05 AMP"},
@@ -6103,6 +6105,7 @@ var QX_RECETAS = {
   },
   cst_aqv: {
     titulo: "CST + AQV",
+    esParto: true,
     insumos: [
       {n:"CLORURO DE SODIO 0.9%",d:"",c:"03 FCO"},
       {n:"OXITOCINA",d:"10 UI",c:"04 AMP"},
@@ -6452,6 +6455,58 @@ var QX_RECETAS = {
 };
 /* legrado, histerectomia y prolapso son la misma receta con distinto título */
 
+/* Recetas desde la base (tabla recetas_plantillas, sql/030): el admin las crea
+   y edita desde la app. Las 8 de arriba quedan de RESPALDO: sin conexión, o si
+   la tabla todavía no existe, se usa la última copia guardada en este equipo
+   y, si no hay ninguna, esas 8. Todo el resto del código sigue leyendo
+   QX_RECETA_TIPOS / QX_RECETAS como siempre.
+   Una receta archivada (activa = false) no sale en el selector del paso 3,
+   pero sigue sirviendo para las pacientes que ya la tienen. */
+var QX_RECETAS_LS = 'qx_recetas_v1';
+var QX_RECETA_ARCHIVADAS = {};      // clave -> true
+var QX_RECETAS_ORIGEN = 'app';      // 'app' (embebidas) | 'copia' (localStorage) | 'base'
+var QX_RECETAS_LEIDAS_AT = 0;
+
+function qxRecetasAplicar(filas){
+  if (!Array.isArray(filas)) return false;
+  var ok = filas.filter(function(f){
+    return f && typeof f.clave === 'string' && Array.isArray(f.insumos) && Array.isArray(f.anestesia);
+  }).sort(function(a, b){ return ((a.orden || 0) - (b.orden || 0)) || a.clave.localeCompare(b.clave); });
+  if (!ok.length) return false;
+  var tipos = [], recs = {}, arch = {};
+  ok.forEach(function(f){
+    recs[f.clave] = { titulo: f.titulo || f.clave.toUpperCase(), esParto: !!f.es_parto, insumos: f.insumos, anestesia: f.anestesia };
+    tipos.push([f.clave, f.nombre_largo || f.titulo || f.clave]);
+    if (f.activa === false) arch[f.clave] = true;
+  });
+  QX_RECETA_TIPOS = tipos;
+  QX_RECETAS = recs;
+  QX_RECETA_ARCHIVADAS = arch;
+  return true;
+}
+
+(function qxRecetasDesdeCopia(){
+  try {
+    var c = JSON.parse(localStorage.getItem(QX_RECETAS_LS) || 'null');
+    if (c && qxRecetasAplicar(c.filas)) QX_RECETAS_ORIGEN = 'copia';
+  } catch (e) {}
+})();
+
+/* Trae las recetas de la base (máx. una vez cada 5 min salvo forzar). Si falla
+   —sin red, o la tabla aún no se creó— se queda con lo que ya tenía, sin avisar. */
+async function qxRecetasCargar(forzar){
+  if (!sb) return;
+  if (!forzar && Date.now() - QX_RECETAS_LEIDAS_AT < 5 * 60 * 1000) return;
+  QX_RECETAS_LEIDAS_AT = Date.now();
+  try {
+    var r = await sb.from('recetas_plantillas')
+      .select('clave,titulo,nombre_largo,insumos,anestesia,es_parto,activa,orden,version,updated_at');
+    if (r.error || !r.data || !qxRecetasAplicar(r.data)) return;
+    QX_RECETAS_ORIGEN = 'base';
+    try { localStorage.setItem(QX_RECETAS_LS, JSON.stringify({ at: Date.now(), filas: r.data })); } catch (e) {}
+  } catch (e) {}
+}
+
 /* Estados internos de la app y su equivalencia EXACTA en la columna
    "Estado actual del paciente" de los dos formatos. El catálogo oficial solo
    tiene cuatro valores: En lista de espera · Operado · Suspendido · Cerrado
@@ -6715,6 +6770,7 @@ async function qxLoad(opciones){
   var silencioso = !!(opciones && opciones.silencioso);
   var list = document.getElementById('qxList');
   if (!silencioso && list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
+  qxRecetasCargar(!silencioso);   // de fondo: no retrasa la lista
   var res = await sb.from('pacientes').select('*').order('created_at',{ascending:false}).limit(500);
   if (res.error){
     registrarFalla('cargar pacientes', res.error);
@@ -8347,10 +8403,15 @@ function qxWizPaso3Html(){
     + '<div style="font-size:10px;color:var(--t3);margin-top:3px;line-height:1.5">No va a las hojas GERESA. Al elegirlo se habilita el botón «📄 Receta» en la ficha para exportar el PDF de insumos y anestesia listo para imprimir.</div></div>';
 }
 
-/* <option> de cada plantilla de receta para el selector del paso 3. */
+/* <option> de cada plantilla de receta para el selector del paso 3.
+   Las archivadas no salen, salvo la que ya tiene esta paciente. */
 function qxRecetaTipoOpts(){
-  var h = '';
-  for (var i=0;i<QX_RECETA_TIPOS.length;i++) h += qxWizOpt('tipo_receta', QX_RECETA_TIPOS[i][0], QX_RECETA_TIPOS[i][1]);
+  var h = '', cur = QX_WIZ_DATOS.tipo_receta;
+  for (var i=0;i<QX_RECETA_TIPOS.length;i++){
+    var k = QX_RECETA_TIPOS[i][0];
+    if (QX_RECETA_ARCHIVADAS[k] && k !== cur) continue;
+    h += qxWizOpt('tipo_receta', k, qxEsc(QX_RECETA_TIPOS[i][1]) + (QX_RECETA_ARCHIVADAS[k] ? ' (archivada)' : ''));
+  }
   return h;
 }
 
@@ -8584,7 +8645,7 @@ function qxRecetaWaPacienteLink(p, variante){
 /* ---- Lista de útiles que la paciente trae para su internamiento ----
    Fuente: listas impresas del servicio (/RECETAS/WhatsApp Image ...).
    - QX_UTILES.hospitalizacion: aseo personal, aplica a TODAS las pacientes.
-   - QX_UTILES.parto: adicional SOLO para cesárea/parto (tipo_receta cst / cst_aqv);
+   - QX_UTILES.parto: adicional SOLO si la receta lleva lista de parto (es_parto: cst / cst_aqv);
      documentos + cosas del recién nacido y de la mamá. Los ítems de aseo de esa
      hoja (higiene personal, papel higiénico) NO se repiten acá: ya van en la
      sección de hospitalización.
@@ -8619,8 +8680,8 @@ var QX_UTILES = {
   }
 };
 function qxUtilesEsParto(p){
-  var t = p && p.tipo_receta;
-  return t === 'cst' || t === 'cst_aqv';
+  var r = p && p.tipo_receta && QX_RECETAS[p.tipo_receta];
+  return !!(r && r.esParto);
 }
 function qxUtilesSeccion(titulo, items){
   return titulo + '\n' + items.map(function(x){ return '• ' + x; }).join('\n');
