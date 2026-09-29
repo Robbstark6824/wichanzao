@@ -68,6 +68,41 @@ const g2 = await como('ginecologia');
 ver('recupera sus recetas', g2.recetas > 0, g2.recetas);
 ver('recupera la calculadora', g2.calcNav !== 'none');
 
+console.log('\n"NA" (no aplica) en exámenes y riesgo');
+const na = await page.evaluate(async () => {
+  const opciones = async (servicio) => {
+    worker = { id: 'prueba', name: 'Persona Prueba', servicio: servicio, area: 'Interno de Medicina' };
+    await qxFormulario(null);
+    QX_WIZ_PASO = 4; qxWizRender && qxWizRender();
+    const r = {
+      lab: [...document.querySelectorAll('#qxW_laboratorio_completo option')].map(o => o.value).join('|'),
+      labHtml: (document.getElementById('qxW_laboratorio_completo') || {}).innerHTML
+    };
+    const ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
+    return r;
+  };
+  const g = await opciones('ginecologia');
+  const c = await opciones('cirugia_general');
+  const pNA = { laboratorio_completo: false, laboratorio_na: true, ekg: false, ekg_na: true,
+                fecha_cita_anestesiologia: '2026-09-01', riesgo_qx: false, riesgo_qx_na: true, riesgo_anestesiologico: true };
+  const pGin = { laboratorio_completo: true, ekg: false };
+  return {
+    g, c,
+    fase2NA: !!qxFase2Completa(pNA), fase3NA: !!qxFase3Completa(pNA),
+    etiqueta: qxNAEt(pNA, 'laboratorio_completo'),
+    fase2Gin: !!qxFase2Completa(pGin),
+    siMarcoHecho: qxNoAplica({ laboratorio_completo: true, laboratorio_na: true }, 'laboratorio_completo')
+  };
+});
+ver('gineco: Laboratorio solo Sí/No (como antes)', na.g.lab === 'true|false', na.g.lab);
+ver('gineco: mismo HTML de siempre', na.g.labHtml === '<option value="true">Sí</option><option value="false" selected="">No</option>', na.g.labHtml);
+ver('cirugía: Laboratorio Sí/No/NA', na.c.lab === 'true|false|na', na.c.lab);
+ver('NA en laboratorio y EKG completa la fase 2', na.fase2NA);
+ver('NA en riesgo quirúrgico (sin cita cardiología) completa la fase 3', na.fase3NA);
+ver('en el recorrido se ve "(NA)"', na.etiqueta === ' (NA)', na.etiqueta);
+ver('gineco sin EKG sigue sin fase 2', na.fase2Gin === false);
+ver('si después se marca Sí, deja de contar como NA', na.siMarcoHecho === false);
+
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {
   SERVICIOS_ACTIVOS = ['ginecologia']; populateServicioSelects();

@@ -60,6 +60,21 @@ var SHEET_NAME_CG = 'HOSPITAL LAREDO';
      generoLargo   el formato de 47 columnas lleva el género como "F"/"M" en
                    gineco (así está toda su hoja); Cirugía General siempre usó
                    "Femenino"/"Masculino", que es además el catálogo oficial
+     origenPropioVacio  paciente propio: provincia/distrito de origen en
+                   blanco (así lo lleva su hoja y la práctica regional). Gineco
+                   los llena con TRUJILLO/LAREDO por decisión del hospital
+     preopVacioSinEvaluacion  "Resultado evaluación preoperatoria" en
+                   blanco si no hubo evaluación (riesgo quirúrgico NA, o
+                   paciente cerrado sin riesgos evaluados), en vez de
+                   "Pendiente". El "NA" de exámenes y riesgo (sql/034) solo lo
+                   marca la app en los servicios que lo usan
+     importarTalCual  al traer una fila NUEVA de la hoja: entra con su estado
+                   real (Operado → operada, Suspendido → suspendida…) y con su
+                   tipo de anestesia. En gineco rige la regla general (un
+                   cierre entra en trámite y la anestesia no se importa); en
+                   Cirugía General casi todo lo de su hoja ya está operado, y
+                   con esa regla la app escribiría "En lista de espera" encima
+                   de "Operado" y borraría la anestesia al devolverlo a la hoja
      hojas         formato 'antigua' (47 col.) u 'oficial' (56 col.);
                    filtrarEspecialidad: la hoja la comparten varios servicios
                    y solo se leen las filas de esta especialidad
@@ -76,6 +91,7 @@ var SERVICIOS_HOJAS = {
   },
   cirugia_general: {
     especialidad: 'CIRUGIA GENERAL', generoLargo: true,
+    origenPropioVacio: true, preopVacioSinEvaluacion: true, importarTalCual: true,
     hojas: [
       { ssId: SS_ID_CG, name: SHEET_NAME_CG, formato: 'antigua', etiqueta: 'hoja de cirugía general' }
     ]
@@ -94,6 +110,12 @@ function configDe_(p) {
   return cfg;
 }
 
+/** Una bandera de SERVICIOS_HOJAS para el servicio del paciente (false si no la tiene). */
+function opcionDe_(p, nombre) {
+  var cfg = SERVICIOS_HOJAS[servicioDe_(p)];
+  return !!(cfg && cfg[nombre]);
+}
+
 function especialidadDe_(p) {
   var cfg = SERVICIOS_HOJAS[servicioDe_(p)];
   return cfg ? cfg.especialidad : CONSTANTES.especialidad;
@@ -103,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-multiservicio';
+var VERSION = '2026-09-29-cirugia-na';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -375,6 +397,12 @@ function mapResultadoPreop(p) {
   var elegido = catalogMatch(p.resultado_preop, CAT.resultadoPreop);
   if (elegido) return elegido;
   if (p.riesgo_qx === true && p.riesgo_anestesiologico === true) return 'Apto';
+  // Cirugía General: sin evaluación no se afirma "Pendiente" (una cirugía
+  // menor con riesgo NA, o un caso ya cerrado que nunca se evaluó).
+  if (opcionDe_(p, 'preopVacioSinEvaluacion')) {
+    if (p.riesgo_qx_na === true && p.riesgo_qx !== true) return '';
+    if (esTerminal_(p.estado) && p.riesgo_qx !== true && p.riesgo_anestesiologico !== true) return '';
+  }
   return 'Pendiente';   // aún sin ambas evaluaciones completas
 }
 
@@ -427,8 +455,8 @@ function resolverOrigen(p) {
     return {
       origen: CONSTANTES.establecimientoOrigen,
       codigo: '',
-      provincia: provincia || CONSTANTES.provincia,
-      distrito:  distrito  || CONSTANTES.distrito,
+      provincia: provincia || (opcionDe_(p, 'origenPropioVacio') ? '' : CONSTANTES.provincia),
+      distrito:  distrito  || (opcionDe_(p, 'origenPropioVacio') ? '' : CONSTANTES.distrito),
       fechaRef: ''
     };
   }
@@ -612,7 +640,7 @@ function buildValuesOld(p) {
   v['procedimiento quirurgico propuesto'] = p.procedimiento;
   v['nivel de cirugia']                  = mapNivel(p.nivel_cirugia);
   v['tipo de anestesia']                 = mapAnestesia(p.tipo_anestesia);
-  v['f. riesgo quirurgico']              = fmtFecha(p.fecha_cita_cardiologia);
+  v['f. riesgo quirurgico']              = (p.riesgo_qx_na === true && p.riesgo_qx !== true) ? 'NA' : fmtFecha(p.fecha_cita_cardiologia);
   v['f. evaluacion anestesica']          = fmtFecha(p.fecha_cita_anestesiologia);
   v['resultado evaluacion preoperatoria'] = mapResultadoPreop(p);
   v['estado de programacion']            = mapEstadoProgramacion(p);
@@ -633,6 +661,10 @@ function buildValuesOld(p) {
   var t1 = '', f1 = '', t2 = '', f2 = '';
   if (p.laboratorio_completo === true) { t1 = 'Laboratorio'; f1 = fmtFecha(p.fecha_examen1 || p.fecha_fase2); }
   if (p.ekg === true) { t2 = 'EKG'; f2 = fmtFecha(p.fecha_examen2 || p.fecha_fase2); }
+  // "NA" (no aplica, sql/034): cirugías menores de Cirugía General. En gineco
+  // estas marcas están siempre en false.
+  if (p.laboratorio_na === true && p.laboratorio_completo !== true) { t1 = 'NA'; f1 = ''; }
+  if (p.ekg_na === true && p.ekg !== true) { t2 = 'NA'; f2 = ''; }
   v['tipo examen prequirurgico 1']  = t1;
   v['fecha examen prequirurgico 1'] = f1;
   v['tipo examen prequirurgico 2']  = t2;
@@ -1270,6 +1302,11 @@ function filaAPaciente_(v) {
     p.ekg = true;
     p.fecha_examen2 = fechaISO_(v[t1.indexOf('ekg') >= 0 ? 'fecha examen prequirurgico 1' : 'fecha examen prequirurgico 2']);
   }
+  // "NA" (no aplica): el examen 1 es el laboratorio y el 2 el EKG, que es como
+  // los escribe la app. Solo aparece en las hojas de Cirugía General.
+  if (t1 === 'na') p.laboratorio_na = true;
+  if (t2 === 'na') p.ekg_na = true;
+  if (norm(v['f. riesgo quirurgico']) === 'na') p.riesgo_qx_na = true;
   p.tipo_examen3  = txt('tipo examen prequirurgico 3');
   p.fecha_examen3 = fechaISO_(v['fecha examen prequirurgico 3']);
 
@@ -1290,6 +1327,26 @@ function estadoDeFila_(v, campos) {
   if (norm(v['estado de programacion']) === 'programado' && campos.fecha_cirugia) return 'programada';
   if (catalogMatch(v['resultado evaluacion preoperatoria'], CAT.resultadoPreop) === 'Apto') return 'apta_para_sala';
   return 'en_tramite';
+}
+
+/** Estado (y lo que la base exige con él) de una fila NUEVA de un servicio con
+ *  importarTalCual. La base pide un motivo para suspendida y para cerrada sin
+ *  cirugía, y el formato de 47 columnas no lo trae: va "Otro motivo" y una
+ *  persona lo precisa en la app. */
+function estadoTalCual_(v, campos) {
+  var a = norm(v['estado actual del paciente']);
+  if (a.indexOf('operad') >= 0) return { estado: 'operada' };
+  if (a.indexOf('suspendid') >= 0) return { estado: 'suspendida', motivo_suspension: 'Otro motivo' };
+  if (a.indexOf('cerrado sin') >= 0) return { estado: 'referida', motivo_cierre: 'Otro motivo' };
+  return { estado: estadoDeFila_(v, campos) };
+}
+
+/** Tipo de anestesia tal como está en la hoja: "Local" es el LOCAL de la app;
+ *  "Regional/General" queda así hasta que alguien elija la exacta en la app. */
+function anestesiaDeHoja_(v) {
+  var t = String(v['tipo de anestesia'] || '').trim();
+  if (!t) return null;
+  return norm(t) === 'local' ? 'LOCAL' : t;
 }
 
 /* Sello de versión del bloque de sincronización, para saber qué hay desplegado. */
@@ -1395,7 +1452,14 @@ function reconciliar_(simular) {
         if (!app) {
           var fila = {};
           for (var k in f.campos) if (f.campos[k] !== null && f.campos[k] !== undefined) fila[k] = f.campos[k];
-          fila.estado = estadoDeFila_(f.crudo, f.campos);
+          if (cfg.importarTalCual) {
+            var et = estadoTalCual_(f.crudo, f.campos);
+            for (var ek in et) fila[ek] = et[ek];
+            var an = anestesiaDeHoja_(f.crudo);
+            if (an) fila.tipo_anestesia = an;
+          } else {
+            fila.estado = estadoDeFila_(f.crudo, f.campos);
+          }
           fila.turno  = (fila.estado === 'programada') ? 'manana' : null;
           fila.origen = 'hoja';
           fila.servicio = serv;

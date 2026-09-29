@@ -906,7 +906,8 @@ var REFRESH_INTERVAL = 60;
    SERVICIOS
    ========================================================= */
 var SERVICIOS = {
-  'ginecologia':     { label: 'Ginecología y Obstetricia' }
+  'ginecologia':     { label: 'Ginecología y Obstetricia' },
+  'cirugia_general': { label: 'Cirugía General' }
 };
 var SERVICIOS_KEYS = Object.keys(SERVICIOS);
 
@@ -1480,7 +1481,8 @@ async function loadAllData() {
    RENDER WORKER DIRECTORY
    ========================================================= */
 var SERVICE_ICONS = {
-  'ginecologia':     { icon: '&#128118;', bg: 'rgba(160,61,99,.12)', color: '#A03D63' }
+  'ginecologia':     { icon: '&#128118;', bg: 'rgba(160,61,99,.12)', color: '#A03D63' },
+  'cirugia_general': { icon: '&#129658;', bg: 'rgba(46,125,110,.12)', color: '#2E7D6E' }
 };
 
 function computeServiceCounts() {

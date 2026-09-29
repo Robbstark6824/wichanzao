@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Servicio de Ginecología - Hospital de Laredo</title>
+<title>Lista de Espera Quirúrgica - Hospital de Laredo</title>
 <script>
 // Nuclear SW reset: runs BEFORE anything else to ensure latest code
 (function(){
@@ -909,8 +909,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
     <div class="auth-logo">
       <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" fill="rgba(160,61,99,.3)"/><path d="M14 2v6h6" stroke="#A03D63" stroke-width="1.5" fill="none"/><rect x="8" y="13" width="8" height="1.5" rx=".75" fill="#A03D63" opacity=".6"/><rect x="8" y="16" width="5" height="1.5" rx=".75" fill="#A03D63" opacity=".4"/></svg>
     </div>
-    <h1>Servicio de Ginecología</h1>
-    <div class="auth-subtitle">Hospital de Laredo</div>
+    <h1>Lista de Espera Quirúrgica</h1>
+    <div class="auth-subtitle">Hospital Distrital de Laredo</div>
     <div class="auth-badge"><span class="pulse"></span> Plataforma Medica Integral</div>
   </div>
   <div class="auth-card">
@@ -1578,7 +1578,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v269';
+var APP_VERSION = 'v270';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -1881,19 +1881,21 @@ function sbPublicUrl(path) {
      especialidad "Especialidad quirúrgica" que va a las hojas GERESA
      obstetricia  sección de gestante (FUR/eco), calculadora obstétrica y
                   recetas de respaldo embebidas (las 8 de gineco)
-     sexos        opciones del campo Sexo al registrar un paciente */
+     sexos        opciones del campo Sexo al registrar un paciente
+     permiteNA    laboratorio, EKG y riesgo quirúrgico admiten "NA" (no
+                  aplica), como en la hoja de Cirugía General (sql/034) */
 var SERVICIOS = {
   'ginecologia': {
     label: 'Ginecología y Obstetricia', corto: 'Ginecología',
     areas: ['Interno de Medicina', 'Gineco Obstetra'],
     titulo: 'Servicio de Ginecología y Obstetricia', especialidad: 'GINECOLOGIA',
-    obstetricia: true, sexos: ['Femenino']
+    obstetricia: true, sexos: ['Femenino'], permiteNA: false
   },
   'cirugia_general': {
     label: 'Cirugía General', corto: 'Cirugía General',
     areas: ['Interno de Medicina', 'Cirujano General'],
     titulo: 'Servicio de Cirugía General', especialidad: 'CIRUGIA GENERAL',
-    obstetricia: false, sexos: ['Femenino', 'Masculino']
+    obstetricia: false, sexos: ['Femenino', 'Masculino'], permiteNA: true
   }
 };
 var SERVICIOS_KEYS = Object.keys(SERVICIOS);
@@ -6851,8 +6853,16 @@ function qxEstadoLabel(e){
   for (var i=0;i<QX_ESTADOS.length;i++) if (QX_ESTADOS[i][0]===e) return QX_ESTADOS[i][1];
   return e;
 }
-function qxFase2Completa(p){ return p.laboratorio_completo && p.ekg; }
-function qxFase3Completa(p){ return p.fecha_cita_cardiologia && p.fecha_cita_anestesiologia && p.riesgo_qx && p.riesgo_anestesiologico; }
+/* "NA" (no aplica, sql/034): Cirugía General lo marca en laboratorio, EKG y
+   riesgo quirúrgico de las cirugías menores. Cuenta como paso resuelto. En
+   ginecología esas marcas están siempre en false: todo queda como antes. */
+var QX_NA_DE = { laboratorio_completo: 'laboratorio_na', ekg: 'ekg_na', riesgo_qx: 'riesgo_qx_na' };
+function qxNoAplica(p, campo){ return !!p && !p[campo] && p[QX_NA_DE[campo]] === true; }
+function qxHecho(p, campo){ return !!p[campo] || qxNoAplica(p, campo); }
+function qxNAEt(p, campo){ return qxNoAplica(p, campo) ? ' (NA)' : ''; }
+
+function qxFase2Completa(p){ return qxHecho(p,'laboratorio_completo') && qxHecho(p,'ekg'); }
+function qxFase3Completa(p){ return (p.fecha_cita_cardiologia || qxNoAplica(p,'riesgo_qx')) && p.fecha_cita_anestesiologia && qxHecho(p,'riesgo_qx') && p.riesgo_anestesiologico; }
 function qxFase4Completa(p){ return p.hcl_hospitalizacion && p.consentimientos && p.solicitud_sala_dejada && p.recetas_entregadas; }
 function qxProgramadaPendiente(p){ return !!(p.fecha_cirugia && p.turno) && p.estado === 'en_tramite'; }
 function qxEstadoTerminal(e){ return e==='operada'||e==='suspendida'||e==='referida'; }
@@ -7426,12 +7436,12 @@ function qxProcesoFases(p){
     { nombre:'Captación', items:[
       {label:'Captada', ok:true, extra:qxFechaCorta(captada)} ] },
     { nombre:'Exámenes', items:[
-      {label:'Laboratorio', ok:!!p.laboratorio_completo},
-      {label:'EKG', ok:!!p.ekg} ] },
+      {label:'Laboratorio'+qxNAEt(p,'laboratorio_completo'), ok:qxHecho(p,'laboratorio_completo')},
+      {label:'EKG'+qxNAEt(p,'ekg'), ok:qxHecho(p,'ekg')} ] },
     // Riesgo: solo las dos evaluaciones. Las citas quedan en la ficha; con
     // el riesgo evaluado ya se sabe que la cita ocurrió.
     { nombre:'Riesgo', items:[
-      {label:'Riesgo quirúrgico', ok:!!p.riesgo_qx},
+      {label:'Riesgo quirúrgico'+qxNAEt(p,'riesgo_qx'), ok:qxHecho(p,'riesgo_qx')},
       {label:'Riesgo anestesiológico', ok:!!p.riesgo_anestesiologico} ] },
     { nombre:'Pre-hospitalización', items:[
       {label:'HCL de hospitalización', ok:!!p.hcl_hospitalizacion},
@@ -7790,12 +7800,12 @@ function qxRenderCalendario(){
 function qxChecklistItems(p){
   var it = [];
   it.push({h:1, label:'Exámenes (Fase 2)'});
-  it.push({label:'Laboratorio completo', ok:!!p.laboratorio_completo});
-  it.push({label:'EKG', ok:!!p.ekg});
+  it.push({label:'Laboratorio completo'+qxNAEt(p,'laboratorio_completo'), ok:qxHecho(p,'laboratorio_completo')});
+  it.push({label:'EKG'+qxNAEt(p,'ekg'), ok:qxHecho(p,'ekg')});
   it.push({h:1, label:'Citas e interconsultas (Fase 3)'});
   it.push({label:'Cita cardiología', ok:!!p.fecha_cita_cardiologia, extra:p.fecha_cita_cardiologia?(qxFmtFecha(p.fecha_cita_cardiologia)+(p.hora_cita_cardiologia?' '+p.hora_cita_cardiologia:'')):''});
   it.push({label:'Cita anestesiología', ok:!!p.fecha_cita_anestesiologia, extra:p.fecha_cita_anestesiologia?(qxFmtFecha(p.fecha_cita_anestesiologia)+(p.hora_cita_anestesiologia?' '+p.hora_cita_anestesiologia:'')):''});
-  it.push({label:'Riesgo quirúrgico', ok:!!p.riesgo_qx});
+  it.push({label:'Riesgo quirúrgico'+qxNAEt(p,'riesgo_qx'), ok:qxHecho(p,'riesgo_qx')});
   it.push({label:'Riesgo anestesiológico', ok:!!p.riesgo_anestesiologico});
   it.push({h:1, label:'Pre-hospitalización (Fase 4)'});
   it.push({label:'HCL de hospitalización', ok:!!p.hcl_hospitalizacion});
@@ -8579,7 +8589,7 @@ async function qxFormulario(p){
   QX_WIZ_EDIT_ID = p ? p.id : null;
   QX_WIZ_SERVICIO = SERVICIOS[(p && p.servicio) || (worker && worker.servicio)] || SERVICIOS.ginecologia;
   QX_WIZ_DATOS = {};
-  var campos = ['dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','tipo_receta','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop','fur','eco_fecha','eco_semanas','eco_dias'];
+  var campos = ['laboratorio_na','ekg_na','riesgo_qx_na','dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','tipo_receta','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop','fur','eco_fecha','eco_semanas','eco_dias'];
   if (p){
     for (var i=0;i<campos.length;i++) QX_WIZ_DATOS[campos[i]] = p[campos[i]];
     // Registros antiguos pueden no tener los establecimientos: se completan con
@@ -8736,10 +8746,20 @@ function qxRecetaTipoOpts(){
   return h;
 }
 
+/* Sí / No, y "NA (no aplica)" en los servicios que lo usan. En gineco genera
+   exactamente las mismas dos opciones de siempre. */
+function qxWizSiNoNA(campo){
+  var na = qxNoAplica(QX_WIZ_DATOS, campo);
+  var h = '<option value="true"'+(QX_WIZ_DATOS[campo]?' selected':'')+'>Sí</option>'
+        + '<option value="false"'+(QX_WIZ_DATOS[campo]||na?'':' selected')+'>No</option>';
+  if ((QX_WIZ_SERVICIO || SERVICIOS.ginecologia).permiteNA) h += '<option value="na"'+(na?' selected':'')+'>NA (no aplica)</option>';
+  return h;
+}
+
 function qxWizPaso4Html(){
   return ''
-    + '<div class="qx-row"><div class="qx-field"><label>Laboratorio completo</label><select id="qxW_laboratorio_completo"><option value="true"'+(QX_WIZ_DATOS.laboratorio_completo?' selected':'')+'>Sí</option><option value="false"'+(QX_WIZ_DATOS.laboratorio_completo?'':' selected')+'>No</option></select></div>'
-    + '<div class="qx-field"><label>EKG</label><select id="qxW_ekg"><option value="true"'+(QX_WIZ_DATOS.ekg?' selected':'')+'>Sí</option><option value="false"'+(QX_WIZ_DATOS.ekg?'':' selected')+'>No</option></select></div></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Laboratorio completo</label><select id="qxW_laboratorio_completo">'+qxWizSiNoNA('laboratorio_completo')+'</select></div>'
+    + '<div class="qx-field"><label>EKG</label><select id="qxW_ekg">'+qxWizSiNoNA('ekg')+'</select></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Fecha laboratorio (examen 1)</label><input type="date" id="qxW_fecha_examen1" value="'+qxWizV('fecha_examen1')+'"></div>'
     + '<div class="qx-field"><label>Fecha EKG (examen 2)</label><input type="date" id="qxW_fecha_examen2" value="'+qxWizV('fecha_examen2')+'"></div></div>'
     + '<div class="qx-row"><div class="qx-field"><label>¿Aplica diagnóstico por imágenes? '+QX_REQ+'</label><select id="qxW_aplica_imagenes">'+qxWizOpt('aplica_imagenes','','—')+qxWizOpt('aplica_imagenes','Sí','Sí')+qxWizOpt('aplica_imagenes','No','No')+'</select></div>'
@@ -8754,7 +8774,7 @@ function qxWizPaso5Html(){
     + '<div class="qx-field"><label>F. riesgo quirúrgico</label><input type="date" id="qxW_fecha_cita_cardiologia" value="'+qxWizV('fecha_cita_cardiologia')+'"></div>'
     + '<div class="qx-field"><label>F. evaluación anestésica</label><input type="date" id="qxW_fecha_cita_anestesiologia" value="'+qxWizV('fecha_cita_anestesiologia')+'"></div>'
     + '<div class="qx-field"><label>F. evaluación preoperatoria</label><input type="date" id="qxW_fecha_evaluacion_preoperatoria" value="'+qxWizV('fecha_evaluacion_preoperatoria')+'"></div>'
-    + '<div class="qx-row"><div class="qx-field"><label>Riesgo quirúrgico evaluado</label><select id="qxW_riesgo_qx"><option value="true"'+(QX_WIZ_DATOS.riesgo_qx?' selected':'')+'>Sí</option><option value="false"'+(QX_WIZ_DATOS.riesgo_qx?'':' selected')+'>No</option></select></div>'
+    + '<div class="qx-row"><div class="qx-field"><label>Riesgo quirúrgico evaluado</label><select id="qxW_riesgo_qx">'+qxWizSiNoNA('riesgo_qx')+'</select></div>'
     + '<div class="qx-field"><label>Riesgo anestesiológico</label><select id="qxW_riesgo_anestesiologico"><option value="true"'+(QX_WIZ_DATOS.riesgo_anestesiologico?' selected':'')+'>Sí</option><option value="false"'+(QX_WIZ_DATOS.riesgo_anestesiologico?'':' selected')+'>No</option></select></div></div>'
     + '<div class="qx-field"><label>Resultado evaluación preoperatoria</label><select id="qxW_resultado_preop">'+qxWizOpt('resultado_preop','','—')+qxWizOpt('resultado_preop','Pendiente','Pendiente')+qxWizOpt('resultado_preop','Apto','Apto')+qxWizOpt('resultado_preop','No apto','No apto')+'</select><div style="font-size:10px;color:var(--t3);margin-top:2px">Si lo dejás en “—” se deduce de los dos riesgos de arriba. “No apto” solo se puede marcar acá.</div></div>';
 }
@@ -8809,7 +8829,10 @@ function qxWizGuardarPaso(){
     if (!el) continue;
     var v = el.value.trim();
     if (campos[i]==='edad'){ QX_WIZ_DATOS.edad = v===''?null:parseInt(v,10); }
-    else if (campos[i]==='laboratorio_completo' || campos[i]==='ekg' || campos[i]==='riesgo_qx' || campos[i]==='riesgo_anestesiologico'){ QX_WIZ_DATOS[campos[i]] = (v==='true'); }
+    else if (campos[i]==='laboratorio_completo' || campos[i]==='ekg' || campos[i]==='riesgo_qx' || campos[i]==='riesgo_anestesiologico'){
+      QX_WIZ_DATOS[campos[i]] = (v==='true');
+      if (QX_NA_DE[campos[i]]) QX_WIZ_DATOS[QX_NA_DE[campos[i]]] = (v==='na');
+    }
     else { QX_WIZ_DATOS[campos[i]] = (v===''?null:v); }
   }
 }
@@ -8864,6 +8887,12 @@ async function qxWizGuardar(){
     motivo_espera: d.motivo_espera||null, detalle_motivo_espera: d.detalle_motivo_espera||null,
     tipo_examen3: d.tipo_examen3||null, fecha_examen3: d.fecha_examen3||null
   };
+  // "NA" solo viaja en los servicios que lo usan: gineco guarda lo de siempre.
+  if ((QX_WIZ_SERVICIO || SERVICIOS.ginecologia).permiteNA){
+    payload.laboratorio_na = d.laboratorio_na===true;
+    payload.ekg_na = d.ekg_na===true;
+    payload.riesgo_qx_na = d.riesgo_qx_na===true;
+  }
   // Borrar la fecha de cirugía de una paciente programada daba
   // "violates check constraint chk_programada_requiere_fecha_turno": la base
   // exige fecha y turno mientras el estado sea "programada". Sale primero de la
@@ -10458,8 +10487,8 @@ function qxRenderDetalle(){
     + '<button class="qx-btn" style="margin-top:6px;width:100%;padding:8px 12px;font-size:12px;background:var(--s1);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxUtilesAbrir()">📋 ' + (qxUtilesEsParto(p) ? 'Lista de útiles para parto y hospitalización' : 'Lista de útiles para hospitalización') + '</button>'
     + '</div>'
     + '<div class="qx-phase"><div class="ph-head"><div class="ph-num">2</div><div><div class="ph-title">Exámenes</div><div class="ph-hint">Requeridos para agendar citas</div></div></div>'
-    + qxCheckReadonly('Laboratorio completo',p.laboratorio_completo)
-    + qxCheckReadonly('EKG',p.ekg)
+    + qxCheckReadonly('Laboratorio completo'+qxNAEt(p,'laboratorio_completo'),qxHecho(p,'laboratorio_completo'))
+    + qxCheckReadonly('EKG'+qxNAEt(p,'ekg'),qxHecho(p,'ekg'))
     + qxFaseTsHtml(p.fecha_fase2)
     + '</div>'
     + '<div class="qx-phase'+(f2?'':' locked')+'"><div class="ph-head"><div class="ph-num">3</div><div><div class="ph-title">Citas e interconsultas</div><div class="ph-hint">Requiere Fase 2 completa</div></div></div>'
@@ -10469,7 +10498,7 @@ function qxRenderDetalle(){
         + '<div style="font-size:12px;color:var(--t1);padding:2px 0">Anestesiología: '+(p.fecha_cita_anestesiologia?qxFmtFecha(p.fecha_cita_anestesiologia)+(p.hora_cita_anestesiologia?' · '+p.hora_cita_anestesiologia:''):'—')+'</div>'
         + ((p.fecha_cita_cardiologia||p.fecha_cita_anestesiologia) ? '<a class="qx-wa" target="_blank" href="'+qxWhatsAppLink(p)+'">📲 Notificar citas por WhatsApp</a>' : '')
         + '<div style="font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;margin:12px 0 6px">⚠️ Riesgo quirúrgico</div>'
-        + qxCheckReadonly('Riesgo quirúrgico evaluado',p.riesgo_qx)
+        + qxCheckReadonly('Riesgo quirúrgico evaluado'+qxNAEt(p,'riesgo_qx'),qxHecho(p,'riesgo_qx'))
         + qxCheckReadonly('Riesgo anestesiológico',p.riesgo_anestesiologico)
         : '<div class="qx-lock">🔒 Completa Fase 2 para habilitar citas</div>')
     + qxFaseTsHtml(p.fecha_fase3)
@@ -10534,7 +10563,7 @@ async function qxToggle(campo){
   var p = QX_ACTUAL; if (!p) return;
   var val = !p[campo];
   if (campo==='riesgo_qx' && val && !qxFase2Completa(p)){ toast('Requiere Fase 2 completa','error'); return; }
-  if (campo==='riesgo_anestesiologico' && val && !p.riesgo_qx){ toast('Requiere riesgo quirúrgico marcado','error'); return; }
+  if (campo==='riesgo_anestesiologico' && val && !qxHecho(p,'riesgo_qx')){ toast('Requiere riesgo quirúrgico marcado','error'); return; }
   if ((campo==='hcl_hospitalizacion'||campo==='consentimientos'||campo==='solicitud_sala_dejada'||campo==='recetas_entregadas') && val && !qxFase3Completa(p)){ toast('Requiere Fase 3 completa','error'); return; }
   var patch = {}; patch[campo] = val;
   var res = await sb.from('pacientes').update(patch).eq('id',p.id);
