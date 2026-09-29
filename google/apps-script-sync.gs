@@ -46,11 +46,64 @@ var SHEET_NAME = 'HOSPITAL LAREDO';
 var SS_ID_2 = '1IoT5KGuTcT83ZLyHh4SrLR4yhbFjIKkI';
 var SHEET_NAME_2 = 'LISTA_ESPERA_QX';
 
+/* ---- Hoja de CIRUGÍA GENERAL (mismo formato de 47 columnas) ---- */
+var SS_ID_CG = '1XsoXl-4mv0CY1sSYi7MrLmf671rvoWC6Uf9xfXLngkc';
+var SHEET_NAME_CG = 'HOSPITAL LAREDO';
+
+/* ---- A qué hojas va cada servicio ----
+   La app tiene varios servicios (pacientes.servicio). Cada uno escribe SOLO
+   en sus hojas y el reconciliador solo cruza cada hoja con los pacientes de
+   su servicio: un paciente de Cirugía General nunca toca las hojas de gineco
+   ni al revés.
+
+     especialidad  "Especialidad quirúrgica" por defecto
+     generoLargo   el formato de 47 columnas lleva el género como "F"/"M" en
+                   gineco (así está toda su hoja); Cirugía General siempre usó
+                   "Femenino"/"Masculino", que es además el catálogo oficial
+     hojas         formato 'antigua' (47 col.) u 'oficial' (56 col.);
+                   filtrarEspecialidad: la hoja la comparten varios servicios
+                   y solo se leen las filas de esta especialidad
+
+   Un paciente sin servicio (filas viejas, una app sin actualizar) es de
+   ginecología: exactamente lo que pasaba antes de que hubiera servicios. */
+var SERVICIOS_HOJAS = {
+  ginecologia: {
+    especialidad: 'GINECOLOGIA', generoLargo: false,
+    hojas: [
+      { ssId: SS_ID,   name: SHEET_NAME,   formato: 'antigua', etiqueta: 'hoja antigua' },
+      { ssId: SS_ID_2, name: SHEET_NAME_2, formato: 'oficial', etiqueta: 'hoja oficial', filtrarEspecialidad: true }
+    ]
+  },
+  cirugia_general: {
+    especialidad: 'CIRUGIA GENERAL', generoLargo: true,
+    hojas: [
+      { ssId: SS_ID_CG, name: SHEET_NAME_CG, formato: 'antigua', etiqueta: 'hoja de cirugía general' }
+    ]
+  }
+};
+
+function servicioDe_(p) { return (p && p.servicio) || 'ginecologia'; }
+
+/** Configuración del servicio del paciente. Un servicio que este código no
+ *  conoce NO se escribe en ninguna hoja: mejor un error visible que una fila
+ *  en la hoja de otro servicio. */
+function configDe_(p) {
+  var s = servicioDe_(p);
+  var cfg = SERVICIOS_HOJAS[s];
+  if (!cfg) throw new Error('servicio desconocido "' + s + '": no se escribió en ninguna hoja');
+  return cfg;
+}
+
+function especialidadDe_(p) {
+  var cfg = SERVICIOS_HOJAS[servicioDe_(p)];
+  return cfg ? cfg.especialidad : CONSTANTES.especialidad;
+}
+
 /* Sello del código desplegado. Viaja en TODA respuesta, incluso en la de token
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-08-28-trimestre-eco';
+var VERSION = '2026-09-29-multiservicio';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -447,7 +500,7 @@ function buildValuesNew(p) {
   v['celular']                           = String(p.telefono || '');
   v['tipo de seguro']                    = mapSeguro(p.tipo_seguro);
   v['n° historia clinica']               = p.hcl;
-  v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
+  v['especialidad quirurgica']           = p.especialidad || especialidadDe_(p);
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
   v['diagnostico principal']             = dxPrincipal_(p);
@@ -548,11 +601,11 @@ function buildValuesOld(p) {
   v['dni']                               = p.dni;
   v['apellidos y nombres completos']     = p.nombre;
   v['edad']                              = p.edad;
-  v['genero']                            = mapGeneroCorto(p.sexo);
+  v['genero']                            = (SERVICIOS_HOJAS[servicioDe_(p)] || {}).generoLargo ? mapGenero(p.sexo) : mapGeneroCorto(p.sexo);
   v['celular']                           = String(p.telefono || '');
   v['tipo de seguro']                    = mapSeguro(p.tipo_seguro);
   v['n° historia clinica']               = p.hcl;
-  v['especialidad quirurgica']           = p.especialidad || CONSTANTES.especialidad;
+  v['especialidad quirurgica']           = p.especialidad || especialidadDe_(p);
   v['cirujano responsable']              = p.doctor;
   v['cie-10 principal']                  = p.cie10;
   v['diagnostico principal']             = dxPrincipal_(p);
@@ -768,6 +821,32 @@ function borrarDeHoja(ssId, sheetName, dni) {
  * Endpoint
  * ============================================================ */
 
+/** Aplica fn a cada hoja del servicio de p y junta los resultados como la
+ *  app los espera: { ok, antiguo, oficial } (antiguo = la hoja de 47 columnas
+ *  del servicio, oficial = la de 56 si el servicio la tiene). Un error en una
+ *  hoja no impide intentar la otra. */
+function enHojasDe_(p, fn) {
+  var cfg;
+  try { cfg = configDe_(p); }
+  catch (err) { return { ok: false, error: err.message }; }
+  var out = { ok: true };
+  cfg.hojas.forEach(function (h) {
+    var clave = h.formato === 'oficial' ? 'oficial' : 'antiguo';
+    try { out[clave] = fn(h); }
+    catch (err) { out[clave] = { ok: false, error: String(err) }; }
+    if (!out[clave].ok) out.ok = false;
+  });
+  return out;
+}
+
+/** Escribe (o actualiza) al paciente en las hojas de su servicio. */
+function escribirPaciente_(p) {
+  return enHojasDe_(p, function (h) {
+    var u = upsert(h.ssId, h.name, h.formato === 'oficial' ? buildValuesNew(p) : buildValuesOld(p), p);
+    return { ok: true, row: u.row, rechazadas: u.rechazadas };
+  });
+}
+
 function json(obj) {
   obj.version = VERSION;
   return ContentService
@@ -800,31 +879,18 @@ function doPost(e) {
       });
     }
 
-    // Borrado explícito (eliminar paciente en la app): borra por DNI en ambas hojas.
+    // Borrado explícito (eliminar paciente en la app): borra por DNI en las
+    // hojas de SU servicio. Una app sin actualizar no manda servicio: gineco.
     if (body.accion === 'borrar') {
       if (!body.dni) return json({ ok: false, error: 'falta dni' });
-      var d1 = { ok: false, error: '' }, d2 = { ok: false, error: '' };
-      try { d1 = borrarDeHoja(SS_ID, SHEET_NAME, body.dni); }
-      catch (err) { d1 = { ok: false, error: String(err) }; }
-      try { d2 = borrarDeHoja(SS_ID_2, SHEET_NAME_2, body.dni); }
-      catch (err) { d2 = { ok: false, error: String(err) }; }
-      return json({ ok: (d1.ok && d2.ok), antiguo: d1, oficial: d2 });
+      return json(enHojasDe_({ servicio: body.servicio }, function (h) {
+        return borrarDeHoja(h.ssId, h.name, body.dni);
+      }));
     }
 
     var p = body.paciente || {};
     if (!p.dni) return json({ ok: false, error: 'falta dni' });
-
-    var r1 = { ok: false, error: '' }, r2 = { ok: false, error: '' };
-    try {
-      var u1 = upsert(SS_ID, SHEET_NAME, buildValuesOld(p), p);
-      r1 = { ok: true, row: u1.row, rechazadas: u1.rechazadas };
-    } catch (err) { r1 = { ok: false, error: String(err) }; }
-    try {
-      var u2 = upsert(SS_ID_2, SHEET_NAME_2, buildValuesNew(p), p);
-      r2 = { ok: true, row: u2.row, rechazadas: u2.rechazadas };
-    } catch (err) { r2 = { ok: false, error: String(err) }; }
-
-    return json({ ok: (r1.ok && r2.ok), antiguo: r1, oficial: r2 });
+    return json(escribirPaciente_(p));
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
@@ -873,6 +939,76 @@ function formatearCelular() {
   var lastRow = sheet.getLastRow();
   var n = Math.max(1, lastRow - headerRow);
   sheet.getRange(headerRow + 1, col, n, 1).setNumberFormat('@').setHorizontalAlignment('center');
+}
+
+/* ============================================================
+ * DESPLEGABLES de la hoja de CIRUGÍA GENERAL
+ * ============================================================
+ * La hoja de gineco tiene listas desplegables y la de Cirugía General no tenía
+ * ninguna. Estas son las columnas con catálogo en el formato de 47 columnas,
+ * con los valores EXACTOS que escribe la app (los del catálogo oficial). No se
+ * ponen en columnas de texto libre (distrito, cirujano…): con una lista
+ * cerrada la hoja rechazaría un distrito que no esté en ella.
+ *
+ *   probarDesplegablesCirugia()  NO escribe: dice qué pondría y qué celdas ya
+ *                                escritas quedarían fuera de la lista.
+ *   ponerDesplegablesCirugia()   los pone, desde la fila siguiente al
+ *                                encabezado "ID registro" hasta 500 filas más
+ *                                abajo. Se puede repetir: reemplaza la regla.
+ *
+ * Una celda ya escrita que no esté en la lista NO se borra ni se cambia: queda
+ * marcada en rojo para que alguien la corrija a mano.
+ * ============================================================ */
+var DESPLEGABLES_47 = {
+  'genero':                             CAT.genero,
+  'tipo de seguro':                     CAT.seguro,
+  'nivel de cirugia':                   CAT.nivel,
+  'tipo de anestesia':                  CAT.anestesia,
+  '¿aplica diagnostico por imagenes?':  CAT.imagenes,
+  'resultado evaluacion preoperatoria': CAT.resultadoPreop,
+  'estado de programacion':             CAT.estadoProgramacion,
+  'motivo de espera':                   CAT.motivoEspera,
+  'estado actual del paciente':         CAT.estadoActual
+};
+
+function probarDesplegablesCirugia() { return desplegables_(SS_ID_CG, SHEET_NAME_CG, true); }
+function ponerDesplegablesCirugia()  { return desplegables_(SS_ID_CG, SHEET_NAME_CG, false); }
+
+function desplegables_(ssId, sheetName, simular) {
+  var sheet = SpreadsheetApp.openById(ssId).getSheetByName(sheetName);
+  if (!sheet) throw new Error('No se encontró la pestaña "' + sheetName + '".');
+  var headerRow = findHeaderRow(sheet);
+  if (!headerRow) throw new Error('No se encontró el encabezado "ID registro" en "' + sheetName + '".');
+  var colMap = buildColumnMap(sheet, headerRow);
+  var filas = Math.max(sheet.getLastRow() - headerRow, 0) + 500;
+  var L = [simular ? '=== SIMULACIÓN (no se escribió nada) ===' : '=== DESPLEGABLES PUESTOS ==='];
+  L.push('Hoja "' + sheetName + '", encabezado en la fila ' + headerRow + ', filas ' + (headerRow + 1) + '–' + (headerRow + filas));
+
+  for (var key in DESPLEGABLES_47) {
+    var col = colMap[key];
+    if (!col) { L.push('  ✗ no está la columna "' + key + '"'); continue; }
+    var lista = DESPLEGABLES_47[key];
+    var fuera = [];
+    var n = sheet.getLastRow() - headerRow;
+    if (n > 0) {
+      var vals = sheet.getRange(headerRow + 1, col, n, 1).getValues();
+      for (var i = 0; i < vals.length; i++) {
+        var v = String(vals[i][0]).trim();
+        if (v && lista.indexOf(v) < 0) fuera.push('fila ' + (headerRow + 1 + i) + ' «' + v + '»');
+      }
+    }
+    L.push('  ✓ ' + key + ' (col ' + col + '): ' + lista.join(' | ')
+      + (fuera.length ? '\n      fuera de la lista (quedan marcadas, no se tocan): ' + fuera.join(', ') : ''));
+    if (!simular) {
+      var regla = SpreadsheetApp.newDataValidation()
+        .requireValueInList(lista, true)
+        .setAllowInvalid(false)
+        .build();
+      sheet.getRange(headerRow + 1, col, filas, 1).setDataValidation(regla);
+    }
+  }
+  Logger.log(L.join('\n'));
+  return L.join('\n');
 }
 
 function listarDesplegables() {
@@ -1162,7 +1298,7 @@ function versionSync() {
 }
 
 /** Lee el bloque GERESA de una hoja. Devuelve una entrada por paciente. */
-function leerHoja_(ssId, sheetName, soloGinecologia) {
+function leerHoja_(ssId, sheetName, especialidadFiltro) {
   var sheet = SpreadsheetApp.openById(ssId).getSheetByName(sheetName);
   if (!sheet) throw new Error('No existe la pestaña "' + sheetName + '".');
   var headerRow = findHeaderRow(sheet);
@@ -1178,7 +1314,7 @@ function leerHoja_(ssId, sheetName, soloGinecologia) {
     for (var key in colMap) v[key] = datos[i][colMap[key] - 1];
     var dni = String(v['dni'] || '').trim();
     if (!dni || !String(v['apellidos y nombres completos'] || '').trim()) continue;
-    if (soloGinecologia && norm(v['especialidad quirurgica']) !== norm(CONSTANTES.especialidad)) continue;
+    if (especialidadFiltro && norm(v['especialidad quirurgica']) !== norm(especialidadFiltro)) continue;
     var idReg = parseInt(String(v['id registro'] || '').trim(), 10);
     out.push({
       dni: dni,
@@ -1189,6 +1325,18 @@ function leerHoja_(ssId, sheetName, soloGinecologia) {
     });
   }
   return out;
+}
+
+/** Servicios cuyas hojas se leen hacia la app: los activos de la tabla
+ *  `servicios`. Si no se puede leer, solo ginecología — lo de siempre. */
+function serviciosActivos_() {
+  try {
+    var filas = sbFetch_('get', 'servicios?select=clave&activo=eq.true&order=orden');
+    var claves = (filas || []).map(function (x) { return x.clave; })
+      .filter(function (k) { return !!SERVICIOS_HOJAS[k]; });
+    if (claves.length) return claves;
+  } catch (e) {}
+  return ['ginecologia'];
 }
 
 /** Campos que la hoja llenaría y en la app están vacíos, y los que chocan. */
@@ -1217,61 +1365,67 @@ function reconciliar_(simular) {
   var r = { altas: [], rellenos: [], discrepancias: [], empujadas: 0, errores: [], simulado: !!simular };
 
   var pacientes = sbFetch_('get', 'pacientes?select=*');
-  var porDni = {}, idsUsados = {};
-  pacientes.forEach(function (p) {
-    porDni[String(p.dni || '').trim()] = p;
-    if (p.id_registro !== null && p.id_registro !== undefined) idsUsados[p.id_registro] = true;
-  });
 
-  var hojas = [
-    { ssId: SS_ID,   name: SHEET_NAME,   soloGineco: false, etiqueta: 'hoja antigua' },
-    { ssId: SS_ID_2, name: SHEET_NAME_2, soloGineco: true,  etiqueta: 'hoja oficial' }
-  ];
+  // ---- HOJAS -> APP, servicio por servicio -------------------------------
+  // Cada hoja se cruza SOLO con los pacientes de su servicio (el DNI se repite
+  // entre servicios si una persona espera dos cirugías distintas) y lo que se
+  // importa entra con ese servicio. Solo servicios activos en la tabla
+  // `servicios`: encender uno (Fase 5) es lo que trae sus filas a la app.
+  serviciosActivos_().forEach(function (serv) {
+    var cfg = SERVICIOS_HOJAS[serv];
+    if (!cfg) return;
+    var porDni = {}, idsUsados = {};
+    pacientes.forEach(function (p) {
+      if (servicioDe_(p) !== serv) return;
+      porDni[String(p.dni || '').trim()] = p;
+      if (p.id_registro !== null && p.id_registro !== undefined) idsUsados[p.id_registro] = true;
+    });
 
-  // ---- HOJAS -> APP ------------------------------------------------------
-  var vistos = {};
-  hojas.forEach(function (h) {
-    var filas;
-    try { filas = leerHoja_(h.ssId, h.name, h.soloGineco); }
-    catch (e) { r.errores.push(h.etiqueta + ': ' + e.message); return; }
+    var vistos = {};
+    cfg.hojas.forEach(function (h) {
+      var filas;
+      try { filas = leerHoja_(h.ssId, h.name, h.filtrarEspecialidad ? cfg.especialidad : null); }
+      catch (e) { r.errores.push(h.etiqueta + ': ' + e.message); return; }
 
-    filas.forEach(function (f) {
-      if (vistos[f.dni]) return;         // ya tratada desde la otra hoja
-      vistos[f.dni] = true;
-      var app = porDni[f.dni];
+      filas.forEach(function (f) {
+        if (vistos[f.dni]) return;         // ya tratada desde la otra hoja
+        vistos[f.dni] = true;
+        var app = porDni[f.dni];
 
-      if (!app) {
-        var fila = {};
-        for (var k in f.campos) if (f.campos[k] !== null && f.campos[k] !== undefined) fila[k] = f.campos[k];
-        fila.estado = estadoDeFila_(f.crudo, f.campos);
-        fila.turno  = (fila.estado === 'programada') ? 'manana' : null;
-        fila.origen = 'hoja';
-        if (f.idRegistro && !idsUsados[f.idRegistro]) { fila.id_registro = f.idRegistro; idsUsados[f.idRegistro] = true; }
-        r.altas.push((fila.nombre || f.dni) + ' · ' + h.etiqueta + ' fila ' + f.fila + ' -> ' + fila.estado);
-        if (!simular) {
-          try { sbFetch_('post', 'pacientes', fila, 'return=minimal'); }
-          catch (e) { r.errores.push('alta ' + (fila.nombre || f.dni) + ': ' + e.message); }
+        if (!app) {
+          var fila = {};
+          for (var k in f.campos) if (f.campos[k] !== null && f.campos[k] !== undefined) fila[k] = f.campos[k];
+          fila.estado = estadoDeFila_(f.crudo, f.campos);
+          fila.turno  = (fila.estado === 'programada') ? 'manana' : null;
+          fila.origen = 'hoja';
+          fila.servicio = serv;
+          if (f.idRegistro && !idsUsados[f.idRegistro]) { fila.id_registro = f.idRegistro; idsUsados[f.idRegistro] = true; }
+          r.altas.push((fila.nombre || f.dni) + ' · ' + h.etiqueta + ' fila ' + f.fila + ' -> ' + fila.estado);
+          if (!simular) {
+            try { sbFetch_('post', 'pacientes', fila, 'return=minimal'); }
+            catch (e) { r.errores.push('alta ' + (fila.nombre || f.dni) + ': ' + e.message); }
+          }
+          return;
         }
-        return;
-      }
 
-      var cmp = compararConApp_(app, f.campos);
-      // El estado y el turno los manda la app: la hoja no los toca nunca.
-      delete cmp.patch.estado; delete cmp.patch.turno;
-      var claves = [];
-      for (var c in cmp.patch) claves.push(c);
-      if (claves.length) {
-        r.rellenos.push((app.nombre || f.dni) + ' · ' + h.etiqueta + ' -> ' + claves.join(', '));
-        if (!simular) {
-          try { sbFetch_('patch', 'pacientes?id=eq.' + app.id, cmp.patch, 'return=minimal'); }
-          catch (e) { r.errores.push('relleno ' + (app.nombre || f.dni) + ': ' + e.message); }
+        var cmp = compararConApp_(app, f.campos);
+        // El estado y el turno los manda la app: la hoja no los toca nunca.
+        delete cmp.patch.estado; delete cmp.patch.turno;
+        var claves = [];
+        for (var c in cmp.patch) claves.push(c);
+        if (claves.length) {
+          r.rellenos.push((app.nombre || f.dni) + ' · ' + h.etiqueta + ' -> ' + claves.join(', '));
+          if (!simular) {
+            try { sbFetch_('patch', 'pacientes?id=eq.' + app.id, cmp.patch, 'return=minimal'); }
+            catch (e) { r.errores.push('relleno ' + (app.nombre || f.dni) + ': ' + e.message); }
+          }
         }
-      }
-      if (cmp.choques.length) r.discrepancias.push((app.nombre || f.dni) + ' · ' + h.etiqueta + ' -> ' + cmp.choques.join(' | '));
+        if (cmp.choques.length) r.discrepancias.push((app.nombre || f.dni) + ' · ' + h.etiqueta + ' -> ' + cmp.choques.join(' | '));
+      });
     });
   });
 
-  // ---- APP -> LAS DOS HOJAS ---------------------------------------------
+  // ---- APP -> LAS HOJAS DE CADA SERVICIO --------------------------------
   // Solo lo que cambió desde la última pasada, incluido lo que se acaba de
   // importar arriba. Así lo escrito a mano en una hoja acaba en la otra.
   var desde = props.getProperty('ULTIMA_SYNC') || '1970-01-01T00:00:00Z';
@@ -1295,11 +1449,13 @@ function reconciliar_(simular) {
   }
   cambiadas.forEach(function (p) {
     if (simular) { r.empujadas++; return; }
-    try {
-      upsert(SS_ID, SHEET_NAME, buildValuesOld(p), p);
-      upsert(SS_ID_2, SHEET_NAME_2, buildValuesNew(p), p);
-      r.empujadas++;
-    } catch (e) { r.errores.push('empujar ' + p.nombre + ': ' + e.message); }
+    // Cada paciente, a las hojas de SU servicio (mismo camino que usa la app).
+    var res = escribirPaciente_(p);
+    if (res.ok) { r.empujadas++; return; }
+    var err = res.error
+      || (res.antiguo && !res.antiguo.ok && res.antiguo.error)
+      || (res.oficial && !res.oficial.ok && res.oficial.error) || 'error';
+    r.errores.push('empujar ' + p.nombre + ': ' + err);
   });
 
   if (!simular) props.setProperty('ULTIMA_SYNC', t0.toISOString());

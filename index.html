@@ -1578,7 +1578,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v268';
+var APP_VERSION = 'v269';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -11054,7 +11054,7 @@ async function qxEliminar(btn){
     btn.disabled = false; btn.textContent = 'Eliminar'; btn.style.opacity = '';
     var c = btn.previousElementSibling; if (c) c.disabled = false;
   }
-  var dni = p.dni, id = p.id, res;
+  var dni = p.dni, id = p.id, servicio = p.servicio || 'ginecologia', res;
   try {
     // .select: si la base no deja borrar (permisos) no da error, devuelve 0 filas.
     res = await sb.from('pacientes').delete().eq('id', id).select('id');
@@ -11074,13 +11074,13 @@ async function qxEliminar(btn){
   QX_ACTUAL = null;
   toast('Paciente eliminada', 'success');
   qxRefrescar();
-  // Borrar también de las dos hojas de GERESA, de fondo (mejor esfuerzo, igual
+  // Borrar también de las hojas GERESA de su servicio, de fondo (mejor esfuerzo, igual
   // que antes). keepalive: que llegue aunque se cierre la app enseguida.
   if (dni) {
     fetch(QX_SHEET_URL, {
       method: 'POST', keepalive: true,
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'borrar', dni: dni })
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'borrar', dni: dni, servicio: servicio })
     }).catch(function(e){ registrarFalla('borrar en hoja GERESA', e); });
   }
 }
