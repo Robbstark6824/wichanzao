@@ -91,6 +91,30 @@ await como(comun, `UPDATE workers SET rol = 'jefe_info' WHERE id = $1`, async db
   ver('NO puede registrar pacientes', !!i.error, i.error ? i.error.slice(0, 60) : 'se registró');
 });
 
+console.log('\nCUENTA PENDIENTE (recién registrada, sin aprobar)');
+await como(comun, `UPDATE workers SET aprobado = false WHERE id = $1`, async db => {
+  const n = cuenta(await db(`SELECT count(*) FROM pacientes`));
+  ver('NO ve pacientes', n === 0, n);
+  ver('NO ve recetas', cuenta(await db(`SELECT count(*) FROM recetas_plantillas`)) === 0);
+  ver('NO ve la cola de impresión', cuenta(await db(`SELECT count(*) FROM impresiones`)) === 0);
+  const i = await db(`INSERT INTO pacientes (dni, nombre) VALUES ('00000005', 'PRUEBA NO GUARDAR')`);
+  ver('NO puede registrar pacientes', !!i.error, i.error ? i.error.slice(0, 60) : 'se registró');
+  const a = await db(`UPDATE workers SET aprobado = true WHERE id = auth.uid()`);
+  ver('NO puede aprobarse a sí misma (columna)', !!a.error, a.error ? a.error.slice(0, 60) : 'se aprobó');
+  const r = await db(`SELECT admin_aprobar_worker(auth.uid(), true)`);
+  ver('NO puede aprobarse a sí misma (función)', !!r.error, r.error ? r.error.slice(0, 60) : 'se aprobó');
+  const yo = await db(`SELECT aprobado FROM workers WHERE id = auth.uid()`);
+  ver('puede leer que está pendiente (para la pantalla de espera)', !yo.error && yo.rows[0].aprobado === false, yo.error || yo.rows[0].aprobado);
+});
+
+console.log('\nADMIN aprueba una cuenta pendiente');
+await como(admin, null, async db => {
+  const r = await db(`SELECT admin_aprobar_worker($1, true)`, [comun]);
+  ver('el admin puede aprobar', !r.error, r.error);
+  const s = await db(`SELECT admin_aprobar_worker(auth.uid(), false)`);
+  ver('el admin no puede quitarse la aprobación a sí mismo', !!s.error, s.error ? s.error.slice(0, 60) : 'se la quitó');
+});
+
 console.log('\nADMIN');
 await como(admin, null, async db => {
   ver('ve a todas las pacientes', cuenta(await db(`SELECT count(*) FROM pacientes`)) === totalGineco);
@@ -106,7 +130,7 @@ catch (e) { ver('no ve pacientes', true, 'sin permiso'); }
 await c.query('ROLLBACK');
 
 const quedan = +(await q(`SELECT count(*) FROM pacientes WHERE nombre = 'PRUEBA NO GUARDAR'`))[0].count;
-const rolRaro = +(await q(`SELECT count(*) FROM workers WHERE rol <> 'medico' OR servicio <> 'ginecologia'`))[0].count;
+const rolRaro = +(await q(`SELECT count(*) FROM workers WHERE rol <> 'medico' OR servicio <> 'ginecologia' OR NOT aprobado`))[0].count;
 ver('\nno quedó nada de las pruebas en la base', quedan === 0 && rolRaro === 0, quedan + ' pacientes, ' + rolRaro + ' usuarios alterados');
 
 await c.end();

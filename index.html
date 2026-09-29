@@ -989,8 +989,27 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
       <input type="password" id="regPass" placeholder="Minimo 6 caracteres" autocomplete="new-password">
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
+    <div style="font-size:11px;color:var(--t3);margin-top:10px;text-align:center;line-height:1.5">Tu cuenta quedará en revisión hasta que un administrador la apruebe.</div>
     <div class="auth-footer">
       ¿Ya tienes cuenta? <a onclick="showView('vLogin')">Iniciar sesion</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: CUENTA PENDIENTE DE APROBACIÓN ===== -->
+<div class="V auth-bg" id="vPendiente">
+  <div class="auth-top">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#A03D63" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9" fill="rgba(160,61,99,.15)"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <h1 style="font-size:24px">Cuenta en revisión</h1>
+    <div class="auth-subtitle" id="pendienteQuien"></div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-desc" style="line-height:1.6">Tu cuenta ya está creada. Para proteger los datos de los pacientes, un administrador tiene que aprobarla antes de que puedas usar la app.<br><br>Avísale a tu jefe de servicio o al administrador. Cuando te aprueben, toca el botón de abajo.</div>
+    <div class="auth-btns">
+      <button class="btn-auth-primary" onclick="reintentarAprobacion()">Ya me aprobaron — entrar</button>
+      <button class="btn-auth-secondary" onclick="doLogout(false)">Cerrar sesión</button>
     </div>
   </div>
 </div>
@@ -1555,7 +1574,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v266';
+var APP_VERSION = 'v267';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -2088,7 +2107,74 @@ function showView(id) {
     var badge = document.getElementById('appVersionBadge');
     if (badge) badge.textContent = APP_VERSION;
     appVersionRevisar();
+    comprobarAprobacion();
   }
+}
+
+/* ===== APROBACIÓN DE CUENTAS =====
+   Una cuenta nueva queda pendiente (workers.aprobado = false) hasta que un
+   admin la aprueba. Quien protege los datos es la base (sql/033: sin
+   aprobación no se ve ni un paciente); esto es para que la persona entienda
+   por qué no ve nada, en vez de encontrarse una lista vacía.
+   Se comprueba al entrar a vMain, que es por donde pasan el inicio automático,
+   el login y el registro. Sin red no se bloquea: la base igual protege. */
+var _aprobacionOk = false;
+
+async function leerAprobacion() {
+  var sess = (await sb.auth.getSession()).data.session;
+  if (!sess || !sess.user) return null;
+  var r = await sb.from('workers').select('aprobado,is_admin').eq('id', sess.user.id).maybeSingle();
+  if (r.error || !r.data) return null;
+  return r.data;
+}
+
+function mostrarPendiente() {
+  var q = document.getElementById('pendienteQuien');
+  if (q && worker) q.textContent = (worker.name || '') + ' · usuario ' + (worker.id || '');
+  showView('vPendiente');
+}
+
+async function comprobarAprobacion() {
+  if (_aprobacionOk) return;
+  try {
+    var a = await leerAprobacion();
+    if (!a) return;
+    if (a.aprobado === false && !a.is_admin) { mostrarPendiente(); return; }
+    _aprobacionOk = true;
+    if (a.is_admin) avisarCuentasPendientes();
+  } catch(e) {}
+}
+
+async function reintentarAprobacion() {
+  try {
+    var a = await leerAprobacion();
+    if (!a) { toast('No se pudo comprobar. Revisá tu conexión y volvé a intentar.', 'error'); return; }
+    if (a.aprobado === false && !a.is_admin) { toast('Tu cuenta todavía está en revisión.', 'info'); return; }
+    _aprobacionOk = true;
+    populateMain();
+    showView('vMain');
+    showModule('dashboard');
+    syncTodayFromServer(false);
+    toast('¡Cuenta aprobada! Bienvenido/a.', 'success');
+  } catch(e) {
+    toast(mensajeDeError(e), 'error');
+  }
+}
+
+// Al admin se le avisa al entrar si hay cuentas esperando.
+async function avisarCuentasPendientes() {
+  try {
+    var r = await sb.from('workers').select('id', { count: 'exact', head: true }).eq('aprobado', false);
+    if (r.count > 0) toast(r.count + (r.count === 1 ? ' cuenta espera' : ' cuentas esperan') + ' tu aprobación (👑 → Usuarios).', 'info');
+  } catch(e) {}
+}
+
+async function adminAprobar(id, nombre) {
+  if (!confirm('¿Aprobar la cuenta de ' + nombre + '?\n\nPodrá ver y editar los pacientes de su servicio.')) return;
+  var r = await sb.rpc('admin_aprobar_worker', { p_id: id, p_aprobado: true });
+  if (r.error) { toast(mensajeDeError(r.error), 'error'); return; }
+  toast('Cuenta de ' + nombre + ' aprobada.', 'success');
+  loadAdminWorkers();
 }
 
 /* ===== SIDEBAR + MODULE NAVIGATION ===== */
@@ -2582,10 +2668,10 @@ async function doRegister() {
     // 4. Upload profile.json as backup (backward compatibility + offline)
     uploadProfileToSupabase(w);
 
+    // Toda cuenta nueva empieza pendiente de aprobación (sql/033).
     populateMain();
-    showView('vMain');
-    showModule('dashboard');
-    toast('Cuenta creada. Bienvenido/a, ' + name.split(' ')[0], 'success');
+    mostrarPendiente();
+    toast('Cuenta creada. Falta que un administrador la apruebe.', 'success');
   } catch(e) {
     registrarFalla('registro', e);
     toast(mensajeDeError(e), 'error');
@@ -3387,11 +3473,13 @@ async function loadAdminWorkers() {
       for (var i = 0; i < dbResult.data.length; i++) {
         var w = dbResult.data[i];
         workersMap[w.folder_id] = {
+          uid: w.id,
           folder_id: w.folder_id,
           name: w.name || w.folder_id,
           area: w.area || '',
           servicio: w.servicio || '',
           is_admin: w.is_admin,
+          pendiente: w.aprobado === false,
           basePath: (w.servicio || '') + '/workers/' + w.folder_id,
           fromDB: true
         };
@@ -3408,8 +3496,10 @@ async function loadAdminWorkers() {
     }
 
     var workers = Object.values(workersMap);
-    // Sort: DB workers first, then by name
+    // Sort: pendientes de aprobación primero, luego DB, luego por nombre
     workers.sort(function(a, b) {
+      if (a.pendiente && !b.pendiente) return -1;
+      if (!a.pendiente && b.pendiente) return 1;
       if (a.fromDB && !b.fromDB) return -1;
       if (!a.fromDB && b.fromDB) return 1;
       return (a.name || '').localeCompare(b.name || '');
@@ -3427,11 +3517,13 @@ async function loadAdminWorkers() {
       var sLabel = wk.servicio ? (SERVICIOS[wk.servicio] ? SERVICIOS[wk.servicio].label : wk.servicio) : 'Storage';
       var adminBadge = wk.is_admin ? ' <span style=\"color:var(--gd);font-size:10px\">&#x1F451;</span>' : '';
       var storageBadge = !wk.fromDB ? ' <span style=\"color:var(--t3);font-size:9px\">(storage)</span>' : '';
+      if (wk.pendiente) storageBadge += ' <span style=\"background:var(--yodo);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.3px\">PENDIENTE</span>';
       html += '<div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)\">';
       html += '<div onclick=\"adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(wk.name).replace(/'/g, "\'") + '\')\" style=\"cursor:pointer;flex:1\">';
       html += '<div style=\"font-weight:700;font-size:13px;color:var(--tl)\">' + escapeHtml(wk.name) + adminBadge + storageBadge + ' <span style=\"font-size:10px;opacity:.5\">&#9654;</span></div>';
       if (wk.area) html += '<div style=\"font-size:11px;color:var(--t3)\">' + escapeHtml(wk.area) + ' &middot; ' + sLabel + '</div>';
       html += '<div style=\"font-size:10px;color:var(--t3);opacity:.6\">' + escapeHtml(wk.folder_id) + '</div></div>';
+      if (wk.pendiente && wk.uid) html += '<button data-uid=\"' + escapeHtml(wk.uid) + '\" data-nombre=\"' + escapeHtml(wk.name).replace(/"/g, '&quot;') + '\" onclick=\"adminAprobar(this.dataset.uid, this.dataset.nombre)\" style=\"background:var(--tl);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:6px\">Aprobar</button>';
       html += '<button onclick=\"adminDeleteFolder(\'' + bp + '\')\" style=\"background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit\">Borrar</button>';
       html += '</div>';
     }
