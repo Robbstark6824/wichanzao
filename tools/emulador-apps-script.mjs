@@ -13,8 +13,10 @@
 // Lo usan tools/test-sync-servicios.mjs, tools/test-exportar.mjs y
 // tools/simular-importacion-cg.mjs.
 
+let SIG_ID = 1;
 export class Hoja {
   constructor(filas, maxRows) {
+    this.sid = SIG_ID++;
     this.f = filas.map(r => r.slice());
     this.dv = {}; this.formatos = {}; this.fx = {};
     this.maxRows = Math.max(maxRows || 0, this.f.length);
@@ -22,6 +24,7 @@ export class Hoja {
   getLastRow() { for (let i = this.f.length - 1; i >= 0; i--) if (this.f[i].some(v => v !== '' && v != null)) return i + 1; return 0; }
   getLastColumn() { let m = 0; this.f.forEach(r => { for (let j = r.length - 1; j >= 0; j--) if (r[j] !== '' && r[j] != null) { m = Math.max(m, j + 1); break; } }); return m; }
   getMaxRows() { return Math.max(this.maxRows, this.f.length); }
+  getSheetId() { return this.sid; }
   insertRowsAfter(r, n) { this.maxRows = this.getMaxRows() + n; }
   celda(r, c) { return (this.f[r - 1] || [])[c - 1] ?? ''; }
   poner(r, c, v) { while (this.f.length < r) this.f.push([]); const row = this.f[r - 1]; while (row.length < c) row.push(''); row[c - 1] = v; }
@@ -54,7 +57,7 @@ export class Rango {
   setHorizontalAlignment() { return this; }
   setFontWeight() { return this; } setBackground() { return this; } setFontColor() { return this; }
   setWrap() { return this; } setVerticalAlignment() { return this; }
-  setDataValidation(regla) { for (let i = 0; i < this.nr; i++) this.h.dv[(this.r + i) + ',' + this.c] = regla; return this; }
+  setDataValidation(regla) { for (let i = 0; i < this.nr; i++) { const k = (this.r + i) + ',' + this.c; if (regla) this.h.dv[k] = regla; else delete this.h.dv[k]; } return this; }
   getDataValidation() { return this.h.dv[this.r + ',' + this.c] || null; }
 }
 
@@ -66,6 +69,8 @@ export function cargar(gsTexto, estado) {
   // Un "libro" (archivo) a partir de las pestañas de estado.hojas con ese id.
   const libroDe = id => ({
     getSheetByName: n => estado.hojas[id + '|' + n] || null,
+    getSheets: () => Object.keys(estado.hojas).filter(k => k.startsWith(id + '|')).map(k => estado.hojas[k]),
+    deleteSheet: h => { const k = Object.keys(estado.hojas).find(x => x.startsWith(id + '|') && estado.hojas[x] === h); if (k) delete estado.hojas[k]; },
     getUrl: () => 'https://docs.google.com/spreadsheets/d/' + id + '/edit',
     getId: () => id
   });
@@ -103,8 +108,13 @@ export function cargar(gsTexto, estado) {
     SpreadsheetApp: {
       openById: libroDe,
       flush() {},
-      newDataValidation() { const r = {}; const b = { requireValueInList(l) { r.lista = l; return b; }, setAllowInvalid(x) { r.invalido = x; return b; }, build() { return r; } }; return b; },
-      DataValidationCriteria: {}
+      newDataValidation() {
+        const r = { getCriteriaType: () => r.tipo, getCriteriaValues: () => [r.tipo === 'VALUE_IN_RANGE' ? r.rango : r.lista], getAllowInvalid: () => !!r.invalido };
+        const b = { requireValueInList(l) { r.tipo = 'VALUE_IN_LIST'; r.lista = l; return b; }, requireValueInRange(g) { r.tipo = 'VALUE_IN_RANGE'; r.rango = g; return b; },
+                    setAllowInvalid(x) { r.invalido = x; return b; }, build() { return r; } };
+        return b;
+      },
+      DataValidationCriteria: { VALUE_IN_LIST: 'VALUE_IN_LIST', VALUE_IN_RANGE: 'VALUE_IN_RANGE' }
     },
     UrlFetchApp: {
       fetch(url, o) {

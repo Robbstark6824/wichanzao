@@ -35,11 +35,23 @@ function estadoNuevo() {
   for (let r = 4; r <= 500; r++) lista.fx[r + ',' + colF] = '=IF(A' + r + '="","",TODAY()-I' + r + ')';
   const valid = new Hoja([['VALIDACIÓN BÁSICA DE CALIDAD DE DATOS'], [''], ['Indicador', 'Resultado'], ['Total registros con paciente', '']]);
   valid.fx['4,2'] = '=COUNTA(LISTA_ESPERA_QX!K4:K500)';
+  // Desplegables que toman sus opciones de otras pestañas, como en el real:
+  // Género desde CATALOGOS (lista corta) y establecimiento de origen desde
+  // CAT_ORIGEN (miles de filas).
+  const catalogos = new Hoja([['Género'], ['Masculino'], ['Femenino']]);
+  const catOrigen = new Hoja([['Establecimiento']].concat(Array.from({ length: 700 }, (_, i) => ['ESTABLECIMIENTO ' + (i + 1)])));
+  const reglaRango = rango => ({ getCriteriaType: () => 'VALUE_IN_RANGE', getCriteriaValues: () => [rango], getAllowInvalid: () => false });
+  const colGen = cab.indexOf('genero') + 1, colOri = cab.indexOf('establecimiento origen que refiere') + 1;
+  for (let r = 4; r <= 500; r++) {
+    lista.dv[r + ',' + colGen] = reglaRango(catalogos.getRange(2, 1, 2, 1));
+    lista.dv[r + ',' + colOri] = reglaRango(catOrigen.getRange(2, 1, 700, 1));
+  }
   const e = {
     hojas: {
       [SS2 + '|LISTA_ESPERA_QX']: lista,
       [SS2 + '|VALIDACION_CALIDAD']: valid,
-      [SS2 + '|CATALOGOS']: new Hoja([['Género'], ['Masculino'], ['Femenino']]),
+      [SS2 + '|CATALOGOS']: catalogos,
+      [SS2 + '|CAT_ORIGEN']: catOrigen,
       [SS2 + '|INSTRUCTIVO']: new Hoja([['Instructivo']])
     },
     db: JSON.parse(JSON.stringify(DB)), activos: ['ginecologia', 'cirugia_general'],
@@ -85,14 +97,21 @@ console.log('\nCOPIA FIEL DEL ARCHIVO GERESA (link)');
   ver('cuenta los pacientes del filtro', r.pacientes === esperados.length, r.pacientes + ' de ' + esperados.length);
   const id = e.copias[0].id;
   const L = e.hojas[id + '|LISTA_ESPERA_QX'];
-  ver('copia todas las pestañas', ['LISTA_ESPERA_QX', 'VALIDACION_CALIDAD', 'CATALOGOS', 'INSTRUCTIVO'].every(n => e.hojas[id + '|' + n]));
+  const pestanasCopia = Object.keys(e.hojas).filter(k => k.startsWith(id + '|')).map(k => k.split('|')[1]);
+  ver('la copia exportada queda SOLO con LISTA_ESPERA_QX', pestanasCopia.join() === 'LISTA_ESPERA_QX', pestanasCopia.join(', '));
+  const pestanasOriginal = Object.keys(e.hojas).filter(k => k.startsWith(SS2 + '|')).map(k => k.split('|')[1]).sort();
+  ver('el archivo oficial que llena la app conserva TODAS sus pestañas', pestanasOriginal.join() === 'CATALOGOS,CAT_ORIGEN,INSTRUCTIVO,LISTA_ESPERA_QX,VALIDACION_CALIDAD', pestanasOriginal.join(', '));
   ver('conserva el título (fila 1) y el encabezado (fila 3)', L.f[0][0] === 'MATRIZ NOMINAL REGIONAL DE LISTA DE ESPERA QUIRÚRGICA' && JSON.stringify(L.f[2]) === JSON.stringify(cab));
   const datos = L.f.slice(3).filter(x => x.some(v => v !== ''));
   ver('solo quedan los pacientes exportados (sin otros hospitales/servicios)', datos.length === esperados.length && !L.f.some(x => x.includes('OTRO HOSPITAL') || x.includes('CARGADO A MANO')), datos.length);
   ver('ID registro correlativo 1..N', datos.every((x, i) => String(x[0]) === String(i + 1)));
   ver('todas con especialidad GINECOLOGIA', datos.every(x => x[cab.indexOf('especialidad quirurgica')] === 'GINECOLOGIA'));
-  ver('la columna con fórmula conserva sus fórmulas', L.fx['4,' + colF] && L.fx['500,' + colF]);
-  ver('VALIDACION_CALIDAD conserva su fórmula', e.hojas[id + '|VALIDACION_CALIDAD'].fx['4,2'] === '=COUNTA(LISTA_ESPERA_QX!K4:K500)');
+  ver('las fórmulas quedan como valores (sin #REF! al quitar pestañas)', Object.keys(L.fx).length === 0, Object.keys(L.fx).length + ' fórmulas');
+  const dvGen = L.dv['4,' + (cab.indexOf('genero') + 1)];
+  ver('el desplegable de Género (desde CATALOGOS) sigue, con su lista dentro', !!dvGen && dvGen.getCriteriaType() === 'VALUE_IN_LIST' && dvGen.lista.join() === 'Masculino,Femenino', dvGen && (dvGen.lista || []).join());
+  ver('el desplegable gigante (CAT_ORIGEN) se quita en vez de quedar roto', !L.dv['4,' + (cab.indexOf('establecimiento origen que refiere') + 1)]);
+  ver('el original conserva su fórmula en VALIDACION_CALIDAD', e.hojas[SS2 + '|VALIDACION_CALIDAD'].fx['4,2'] === '=COUNTA(LISTA_ESPERA_QX!K4:K500)');
+  ver('el original conserva sus desplegables desde otras pestañas', e.hojas[SS2 + '|LISTA_ESPERA_QX'].dv['4,' + (cab.indexOf('genero') + 1)].getCriteriaType() === 'VALUE_IN_RANGE');
   const colFecha = cab.findIndex(h => h === 'fecha programacion quirurgica') + 1;
   ver('las fechas se escriben como texto, como hace la sincronización', colFecha > 0 && L.formatos['4,' + colFecha] === '@');
   ver('el archivo original de la GERESA no se tocó', JSON.stringify(e.hojas[SS2 + '|LISTA_ESPERA_QX'].f) === original);

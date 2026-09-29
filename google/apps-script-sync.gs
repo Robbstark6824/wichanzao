@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-exportar-2';
+var VERSION = '2026-09-29-exportar-3';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -1022,8 +1022,9 @@ var DESPLEGABLES_47 = {
  *   2. Lee los pacientes de la base, filtra, y arma cada fila con las MISMAS
  *      funciones que escriben las hojas (buildValuesOld / buildValuesNew).
  *   3. Hace una COPIA FIEL del archivo oficial de la GERESA
- *      (FORMATO_LISTA_ESPERA_QUIRURGICA_LAREDO.xlsx, pestaña LISTA_ESPERA_QX),
- *      vacía sus filas de datos y escribe solo los pacientes elegidos.
+ *      (FORMATO_LISTA_ESPERA_QUIRURGICA_LAREDO.xlsx), vacía las filas de datos
+ *      de LISTA_ESPERA_QX, escribe solo los pacientes elegidos y deja ÚNICAMENTE
+ *      esa pestaña (el jefe no necesita catálogos ni instructivo para enviar).
  *   4. Según pida el jefe: la comparte SOLO con su correo (link; nunca
  *      "cualquiera con el enlace", lleva DNI y teléfonos) o la devuelve como
  *      archivo .xlsx y manda la copia a la papelera.
@@ -1091,11 +1092,10 @@ function exportar_(body) {
     return (a.id_registro || 1e9) - (b.id_registro || 1e9);
   });
 
-  // COPIA FIEL del archivo oficial de la GERESA: todas sus pestañas
-  // (INSTRUCTIVO, CATALOGOS, DICCIONARIO_DATOS, VALIDACION_CALIDAD, CAT_…),
-  // formatos, desplegables y fórmulas. Solo se vacían los valores de las
-  // filas de datos —las de otros servicios— sin borrar filas: la pestaña
-  // VALIDACION_CALIDAD cuenta sobre ese rango y tiene que seguir funcionando.
+  // COPIA FIEL de LISTA_ESPERA_QX del archivo oficial de la GERESA: título,
+  // encabezado, formatos y desplegables. Se vacían los valores de las filas de
+  // datos —las de otros servicios— sin borrar filas, se escriben los pacientes
+  // y al final quedan fuera las demás pestañas (soloListaEspera_).
   var nombres = servicios.map(function (s) { return s === 'ginecologia' ? 'Ginecología' : 'Cirugía General'; });
   var titulo = 'LISTA_ESPERA_QX · ' + nombres.join(' + ') + ' · ' + body.desde + ' a ' + body.hasta
     + ' · por fecha de ' + (fechaPor === 'cirugia' ? 'cirugía' : 'registro');
@@ -1155,6 +1155,8 @@ function exportar_(body) {
     }
     SpreadsheetApp.flush();
 
+    soloListaEspera_(ss, hoja, filaCab);
+
     copia.setDescription('Exportado desde la app por ' + quien.name + ' el '
       + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm')
       + '. ' + lista.length + ' pacientes; ' + sinFecha + ' sin esa fecha'
@@ -1178,6 +1180,54 @@ function exportar_(body) {
     try { copia.setTrashed(true); } catch (e) {}
     throw err;
   }
+}
+
+/** Deja en la copia SOLO la pestaña LISTA_ESPERA_QX (pedido del jefe de
+ *  información: CATALOGOS, INSTRUCTIVO, DICCIONARIO_DATOS, CAT_ORIGEN… no
+ *  hacen falta para enviar). Antes de quitar las demás:
+ *   · un desplegable que toma sus opciones de otra pestaña pasa a tener la
+ *     lista escrita en la regla (si no, quedaría roto); si la lista es enorme
+ *     (CAT_ORIGEN tiene miles de establecimientos) la regla se quita, porque
+ *     Google no admite listas tan largas;
+ *   · una celda con fórmula se queda con su valor, para que no salga #REF!. */
+function soloListaEspera_(ss, hoja, filaCab) {
+  var nCol = hoja.getLastColumn(), maxR = hoja.getMaxRows(), n = maxR - filaCab;
+  var RANGO = SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE;
+  for (var c = 1; c <= nCol; c++) {
+    var dv = hoja.getRange(filaCab + 1, c).getDataValidation();
+    if (!dv || dv.getCriteriaType() !== RANGO) continue;
+    var lista = [];
+    try {
+      dv.getCriteriaValues()[0].getValues().forEach(function (r) {
+        var v = String(r[0] == null ? '' : r[0]).trim();
+        if (v && lista.indexOf(v) < 0) lista.push(v);
+      });
+    } catch (e) {}
+    var destino = hoja.getRange(filaCab + 1, c, n, 1);
+    try {
+      if (lista.length && lista.length <= 500) {
+        destino.setDataValidation(SpreadsheetApp.newDataValidation()
+          .requireValueInList(lista, true).setAllowInvalid(dv.getAllowInvalid()).build());
+      } else {
+        destino.setDataValidation(null);
+      }
+    } catch (e) {}
+  }
+
+  var todo = hoja.getRange(1, 1, maxR, nCol);
+  var formulas = todo.getFormulas();
+  var valores = todo.getValues();
+  for (var col = 0; col < nCol; col++) {
+    var tiene = false;
+    for (var r = 0; r < maxR && !tiene; r++) if (formulas[r][col]) tiene = true;
+    if (!tiene) continue;
+    try { hoja.getRange(1, col + 1, maxR, 1).setValues(valores.map(function (fila) { return [fila[col]]; })); } catch (e) {}
+  }
+  SpreadsheetApp.flush();
+
+  ss.getSheets().forEach(function (s) {
+    if (s.getSheetId() !== hoja.getSheetId()) ss.deleteSheet(s);
+  });
 }
 
 function probarDesplegablesCirugia() { return desplegables_(SS_ID_CG, SHEET_NAME_CG, true); }

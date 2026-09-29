@@ -1113,7 +1113,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
             <div class="module-card" id="cardExportar" style="display:none" onclick="showModule('exportar')">
               <span class="mc-icon">📤</span>
               <div class="mc-title">Exportar a la GERESA</div>
-              <div class="mc-desc">Formato oficial LISTA_ESPERA_QX por servicio y periodo · link o archivo Excel</div>
+              <div class="mc-desc">Hoja LISTA_ESPERA_QX (formato oficial) por servicio y periodo · link o archivo Excel</div>
             </div>
             <div class="module-card" id="cardCalculadora" onclick="showModule('calculadora')">
               <span class="mc-icon">🧮</span>
@@ -1309,7 +1309,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
         </style>
         <div class="exp-wrap">
           <h2>📤 Exportar a la GERESA</h2>
-          <p class="exp-intro">Genera una <b>copia fiel del formato oficial</b> (FORMATO_LISTA_ESPERA_QUIRURGICA_LAREDO · pestaña LISTA_ESPERA_QX, con su instructivo, catálogos y validación) solo con los pacientes que elijas, llenos con los mismos datos que la app manda a las hojas.</p>
+          <p class="exp-intro">Genera la hoja <b>LISTA_ESPERA_QX</b> como <b>copia fiel del formato oficial</b> de la GERESA (título, encabezado, formatos y desplegables) solo con los pacientes que elijas, llenos con los mismos datos que la app manda a las hojas.</p>
           <div class="exp-card">
             <div class="exp-lbl">1 · Servicios</div>
             <label class="exp-op"><input type="checkbox" id="expServGineco" checked onchange="expLimpiarPrevia()"> Ginecología y Obstetricia</label>
@@ -1666,7 +1666,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v275';
+var APP_VERSION = 'v276';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
