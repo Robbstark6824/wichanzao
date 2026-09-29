@@ -973,6 +973,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
       <label>Nombre completo</label>
       <input type="text" id="regName" placeholder="Ej: Maria Garcia" autocomplete="name">
     </div>
+    <div class="field" id="regServicioField" style="display:none">
+      <label>Servicio</label>
+      <select id="regServicio" onchange="populateServicioSelects()"></select>
+    </div>
     <div class="field">
       <label>Rol</label>
       <select id="regArea">
@@ -1024,7 +1028,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="18" rx="1" fill="#fff" opacity=".9"/><rect x="13" y="3" width="8" height="18" rx="1" fill="#fff" opacity=".6"/><line x1="11" y1="8" x2="13" y2="8" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="11" y1="12" x2="13" y2="12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="11" y1="16" x2="13" y2="16" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
         </div>
         <div class="sidebar-brand-text">
-          <h3>Ginecología</h3>
+          <h3 id="sidebarServicio">Ginecología</h3>
           <span>Hospital de Laredo</span>
           <span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400" id="appVersionBadge">v266</span>
         </div>
@@ -1043,7 +1047,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span class="sni-icon">🗓️</span>
           <span class="sni-label">Programación Qx</span>
         </a>
-        <a class="sidebar-nav-item" data-module="calculadora" onclick="showModule('calculadora')">
+        <a class="sidebar-nav-item" data-module="calculadora" id="navCalculadora" onclick="showModule('calculadora')">
           <span class="sni-icon">🧮</span>
           <span class="sni-label">Calculadora</span>
         </a>
@@ -1101,7 +1105,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <div class="mc-title">Programación Qx</div>
               <div class="mc-desc">Pipeline quirúrgico · 7 fases · Cirugía</div>
             </div>
-            <div class="module-card" onclick="showModule('calculadora')">
+            <div class="module-card" id="cardCalculadora" onclick="showModule('calculadora')">
               <span class="mc-icon">🧮</span>
               <div class="mc-title">Calculadora obstétrica</div>
               <div class="mc-desc">Edad gestacional (FUR/eco) y crecimiento fetal · INTERGROWTH-21st</div>
@@ -1574,7 +1578,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v267';
+var APP_VERSION = 'v268';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -1869,10 +1873,38 @@ function sbPublicUrl(path) {
 }
 
 /* ===== SERVICIOS DEL CENTRO ===== */
+/* Cada servicio quirúrgico del hospital. La tabla `servicios` de la base
+   (sql/031) dice cuáles están activos para registrarse; lo que cambia en
+   pantalla según el servicio vive acá:
+     label        nombre corto (menú, ajustes)
+     titulo       encabezado de los PDF y firma del WhatsApp
+     especialidad "Especialidad quirúrgica" que va a las hojas GERESA
+     obstetricia  sección de gestante (FUR/eco), calculadora obstétrica y
+                  recetas de respaldo embebidas (las 8 de gineco)
+     sexos        opciones del campo Sexo al registrar un paciente */
 var SERVICIOS = {
-  'ginecologia': { label: 'Ginecología y Obstetricia', areas: ['Interno de Medicina', 'Gineco Obstetra'] }
+  'ginecologia': {
+    label: 'Ginecología y Obstetricia', corto: 'Ginecología',
+    areas: ['Interno de Medicina', 'Gineco Obstetra'],
+    titulo: 'Servicio de Ginecología y Obstetricia', especialidad: 'GINECOLOGIA',
+    obstetricia: true, sexos: ['Femenino']
+  },
+  'cirugia_general': {
+    label: 'Cirugía General', corto: 'Cirugía General',
+    areas: ['Interno de Medicina', 'Cirujano General'],
+    titulo: 'Servicio de Cirugía General', especialidad: 'CIRUGIA GENERAL',
+    obstetricia: false, sexos: ['Femenino', 'Masculino']
+  }
 };
 var SERVICIOS_KEYS = Object.keys(SERVICIOS);
+// Los que aceptan registros nuevos (se actualiza desde la tabla servicios).
+var SERVICIOS_ACTIVOS = ['ginecologia'];
+
+/* El servicio de quien está usando la app. Sin sesión o con un servicio que
+   esta versión no conoce, ginecología: el comportamiento de siempre. */
+function servicioActual(){
+  return SERVICIOS[(worker && worker.servicio) || 'ginecologia'] || SERVICIOS.ginecologia;
+}
 
 function workerBasePath(w) {
   if (w && w.servicio) return w.servicio + '/workers/' + w.id;
@@ -1971,6 +2003,7 @@ function iniciarApp() {
     }
   }
   populateServicioSelects();
+  cargarServiciosActivos();
   migrateOldProfile();
   loadWorker();
 
@@ -2519,11 +2552,37 @@ function avatarColor(name) {
 }
 
 /* ===== SERVICIO/AREA HELPERS ===== */
+/* Qué servicios aceptan cuentas nuevas: tabla `servicios` (legible sin
+   sesión). Si no se puede leer, queda el de siempre (ginecología). */
+async function cargarServiciosActivos() {
+  try {
+    var r = await sb.from('servicios').select('clave').eq('activo', true).order('orden');
+    if (r.error || !r.data || !r.data.length) return;
+    var act = r.data.map(function(x){ return x.clave; }).filter(function(k){ return SERVICIOS[k]; });
+    if (!act.length) return;
+    SERVICIOS_ACTIVOS = act;
+    populateServicioSelects();
+  } catch(e) {}
+}
+
 function populateServicioSelects() {
+  var servSel = document.getElementById('regServicio');
+  var servField = document.getElementById('regServicioField');
+  if (servSel) {
+    var previo = servSel.value;
+    var activos = SERVICIOS_ACTIVOS.filter(function(k){ return SERVICIOS[k]; });
+    if (!activos.length) activos = ['ginecologia'];
+    servSel.innerHTML = activos.map(function(k){
+      return '<option value="' + k + '">' + SERVICIOS[k].label + '</option>';
+    }).join('');
+    if (activos.indexOf(previo) >= 0) servSel.value = previo;
+    // Con un solo servicio abierto no hay nada que elegir: no se muestra.
+    if (servField) servField.style.display = activos.length > 1 ? '' : 'none';
+  }
   var areaSel = document.getElementById('regArea');
   if (!areaSel) return;
   areaSel.innerHTML = '<option value="">Seleccionar rol...</option>';
-  var areas = SERVICIOS[SERVICIOS_KEYS[0]].areas;
+  var areas = SERVICIOS[(servSel && servSel.value) || SERVICIOS_ACTIVOS[0]].areas;
   for (var i = 0; i < areas.length; i++) {
     var opt = document.createElement('option');
     opt.value = areas[i];
@@ -2583,7 +2642,9 @@ async function doRegister() {
   var name = document.getElementById('regName').value.trim();
   var folder = document.getElementById('regFolder').value.trim().toLowerCase();
   var pass = document.getElementById('regPass').value;
-  var servicio = SERVICIOS_KEYS[0]; // único servicio: ginecologia
+  var servSel = document.getElementById('regServicio');
+  var servicio = (servSel && servSel.value) || SERVICIOS_ACTIVOS[0];
+  if (SERVICIOS_ACTIVOS.indexOf(servicio) < 0) servicio = SERVICIOS_ACTIVOS[0];
   var area = document.getElementById('regArea').value;
 
   if (!name) { toast('Ingresa tu nombre', 'error'); return; }
@@ -2603,6 +2664,15 @@ async function doRegister() {
   _authEnCurso = true;
 
   try {
+    // El usuario (carpeta) es único en toda la app (sql/033). Como el correo
+    // interno lleva el servicio, sin esta consulta alguien con la misma
+    // carpeta en otro servicio crearía una cuenta de acceso sin perfil.
+    var yaExiste = await sb.from('workers').select('folder_id').eq('folder_id', folderId).limit(1);
+    if (!yaExiste.error && yaExiste.data && yaExiste.data.length) {
+      toast('Ese usuario ya existe. Elegí otro nombre de carpeta, o usá Iniciar sesión.', 'error');
+      return;
+    }
+
     // Derive email for Supabase Auth (not a real email, just an identifier)
     var email = folderId + '.' + servicio + '@wichanzao.local';
 
@@ -2906,6 +2976,19 @@ function getGreeting() {
   return 'Buenas noches';
 }
 
+/* Lo que cambia en pantalla según el servicio de quien entra. En ginecología
+   todo queda como siempre. */
+function aplicarServicio() {
+  var s = servicioActual();
+  var h = document.getElementById('sidebarServicio');
+  if (h) h.textContent = s.corto;
+  ['navCalculadora', 'cardCalculadora'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = s.obstetricia ? '' : 'none';
+  });
+  if (typeof qxRecetasSegunServicio === 'function') qxRecetasSegunServicio();
+}
+
 function populateMain() {
   if (!worker) return;
   var servicioLabel = worker.servicio && SERVICIOS[worker.servicio] ? SERVICIOS[worker.servicio].label : '';
@@ -2919,6 +3002,7 @@ function populateMain() {
   }
   if (sbNm) sbNm.textContent = worker.name + ((isAdmin || worker.is_admin) ? ' 👑' : '');
   if (sbAr) sbAr.textContent = worker.area + (servicioLabel ? ' · ' + servicioLabel : '');
+  aplicarServicio();
   // Populate dashboard home if visible
   populateDashboard();
   loadTodayFiles();
@@ -6667,12 +6751,39 @@ function qxRecetasAplicar(filas){
   return true;
 }
 
+// Las 8 embebidas son de ginecología: se guardan para volver a ellas si en el
+// mismo equipo entra alguien de gineco después de alguien de otro servicio.
+var QX_RECETAS_EMBEBIDAS = { tipos: QX_RECETA_TIPOS, recs: QX_RECETAS };
+var QX_RECETAS_SERVICIO = null;     // servicio al que corresponden las recetas cargadas
+
 (function qxRecetasDesdeCopia(){
   try {
     var c = JSON.parse(localStorage.getItem(QX_RECETAS_LS) || 'null');
-    if (c && qxRecetasAplicar(c.filas)) QX_RECETAS_ORIGEN = 'copia';
+    if (c && qxRecetasAplicar(c.filas)) {
+      QX_RECETAS_ORIGEN = 'copia';
+      QX_RECETAS_SERVICIO = c.servicio || 'ginecologia';   // copias viejas: eran de gineco
+    }
   } catch (e) {}
 })();
+
+/* Cada servicio ve sus recetas (sql/032). Al entrar alguien de un servicio
+   distinto al de las recetas cargadas, se descartan y se piden de nuevo; sin
+   base, gineco vuelve a las embebidas y los demás se quedan sin recetas (mejor
+   ninguna que las de otro servicio). */
+function qxRecetasSegunServicio(){
+  var serv = (worker && worker.servicio) || 'ginecologia';
+  if (QX_RECETAS_SERVICIO === serv) return;
+  if (QX_RECETAS_SERVICIO !== null || serv !== 'ginecologia') {
+    var obst = servicioActual().obstetricia;
+    QX_RECETA_TIPOS = obst ? QX_RECETAS_EMBEBIDAS.tipos : [];
+    QX_RECETAS = obst ? QX_RECETAS_EMBEBIDAS.recs : {};
+    QX_RECETA_ARCHIVADAS = {};
+    QX_RECETAS_FILAS = null;
+    QX_RECETAS_ORIGEN = 'app';
+    QX_RECETAS_LEIDAS_AT = 0;
+  }
+  QX_RECETAS_SERVICIO = serv;
+}
 
 /* Trae las recetas de la base (máx. una vez cada 5 min salvo forzar). Si falla
    —sin red, o la tabla aún no se creó— se queda con lo que ya tenía, sin avisar. */
@@ -6685,7 +6796,8 @@ async function qxRecetasCargar(forzar){
       .select('clave,titulo,nombre_largo,insumos,anestesia,es_parto,activa,orden,version,updated_at,updated_by');
     if (r.error || !r.data || !qxRecetasAplicar(r.data)) return;
     QX_RECETAS_ORIGEN = 'base';
-    try { localStorage.setItem(QX_RECETAS_LS, JSON.stringify({ at: Date.now(), filas: r.data })); } catch (e) {}
+    QX_RECETAS_SERVICIO = (worker && worker.servicio) || 'ginecologia';
+    try { localStorage.setItem(QX_RECETAS_LS, JSON.stringify({ at: Date.now(), servicio: QX_RECETAS_SERVICIO, filas: r.data })); } catch (e) {}
     if (QX_VIEW === 'recetas') qxRecetasVistaRender();
   } catch (e) {}
 }
@@ -7848,7 +7960,7 @@ async function qxInformePDF(lista, cfg){
       doc.setTextColor(INK); doc.setFont('helvetica','bold'); doc.setFontSize(12);
       doc.text(T(QX_RECETA_CAB.l1), W/2, yy+4, { align:'center' });
       doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-      doc.text('Servicio de Ginecología y Obstetricia', W/2, yy+8.6, { align:'center' });
+      doc.text(qxTituloServicio(lista), W/2, yy+8.6, { align:'center' });
       doc.setFontSize(7);
       doc.text(T(QX_RECETA_CAB.l2 + '  ·  ' + QX_RECETA_CAB.l3), W/2, yy+12.4, { align:'center' });
       yy += 16;
@@ -8155,6 +8267,9 @@ async function qxInformePDF(lista, cfg){
 var QX_WIZ_PASO = 1;
 var QX_WIZ_DATOS = {};
 var QX_WIZ_EDIT_ID = null;
+// Servicio del paciente que se registra/edita (SERVICIOS[...]): decide sexo,
+// sección de gestante y especialidad por defecto. En gineco, lo de siempre.
+var QX_WIZ_SERVICIO = null;
 var QX_WIZ_STEP_TITLES = ['Captación','Diagnóstico','Procedimiento','Exámenes y estudios','Riesgo y citas','Programación'];
 var QX_WIZ_STEP_HINTS = [
   'Datos de la paciente al momento de captarla',
@@ -8233,6 +8348,15 @@ function qxFaltantesGeresa(d, keys){
 }
 
 function qxWizV(k){ var v = QX_WIZ_DATOS[k]; return (v===null||v===undefined)?'':qxEsc(String(v)); }
+/* Opciones de Sexo según el servicio. Gineco: solo Femenino, como siempre.
+   Los demás empiezan en blanco para no dejar a un varón como Femenino. */
+function qxWizSexoOpts(){
+  var sx = (QX_WIZ_SERVICIO || SERVICIOS.ginecologia).sexos;
+  var h = sx.length > 1 ? qxWizOpt('sexo', '', '—') : '';
+  sx.forEach(function(v){ h += qxWizOpt('sexo', v, v); });
+  return h;
+}
+
 function qxWizOpt(k, val, label){
   var cur = QX_WIZ_DATOS[k];
   var curStr = (cur===null||cur===undefined)?'':String(cur);
@@ -8453,6 +8577,7 @@ async function qxFormulario(p){
   var prev = document.querySelector('.qx-overlay'); if (prev) prev.remove();
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
+  QX_WIZ_SERVICIO = SERVICIOS[(p && p.servicio) || (worker && worker.servicio)] || SERVICIOS.ginecologia;
   QX_WIZ_DATOS = {};
   var campos = ['dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','tipo_receta','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop','fur','eco_fecha','eco_semanas','eco_dias'];
   if (p){
@@ -8462,7 +8587,7 @@ async function qxFormulario(p){
     if (!QX_WIZ_DATOS.establecimiento_destino) QX_WIZ_DATOS.establecimiento_destino = 'HOSPITAL DISTRITAL LAREDO';
     if (!QX_WIZ_DATOS.codigo_destino) QX_WIZ_DATOS.codigo_destino = '00005231';
     if (!QX_WIZ_DATOS.red_destino) QX_WIZ_DATOS.red_destino = 'TRUJILLO';
-    if (!QX_WIZ_DATOS.especialidad) QX_WIZ_DATOS.especialidad = 'GINECOLOGIA';
+    if (!QX_WIZ_DATOS.especialidad) QX_WIZ_DATOS.especialidad = QX_WIZ_SERVICIO.especialidad;
     if (!QX_WIZ_DATOS.establecimiento_origen) QX_WIZ_DATOS.establecimiento_origen = 'N.A. - Paciente propio / no referido';
     if (!QX_WIZ_DATOS.provincia_origen || !QX_WIZ_DATOS.distrito_origen) {
       var pd0 = qxProvinciaDistrito(QX_WIZ_DATOS.establecimiento_origen);
@@ -8480,7 +8605,7 @@ async function qxFormulario(p){
     QX_WIZ_DATOS.provincia_origen = 'TRUJILLO';
     QX_WIZ_DATOS.distrito_origen = 'LAREDO';
     QX_WIZ_DATOS.red_destino = 'TRUJILLO';
-    QX_WIZ_DATOS.especialidad = 'GINECOLOGIA';
+    QX_WIZ_DATOS.especialidad = QX_WIZ_SERVICIO.especialidad;
     QX_WIZ_DATOS.id_registro = await qxProximoIdRegistro();
   }
   var ov = document.createElement('div');
@@ -8518,8 +8643,8 @@ function qxWizPaso1Html(){
     + '<div class="qx-field"><label>DNI '+QX_REQ+'</label><input id="qxW_dni" placeholder="8 dígitos" value="'+qxWizV('dni')+'"></div>'
     + '<div class="qx-field"><label>Nombre completo '+QX_REQ+'</label><input id="qxW_nombre" placeholder="Apellidos y nombres" value="'+qxWizV('nombre')+'"></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Edad</label><input id="qxW_edad" type="number" min="0" max="120" placeholder="Años" value="'+qxWizV('edad')+'"></div>'
-    + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizOpt('sexo','Femenino','Femenino')+'</select></div></div>'
-    + '<details style="margin:10px 0;border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px"'+((qxWizV('fur')||qxWizV('eco_fecha'))?' open':'')+'>'
+    + '<div class="qx-field"><label>Sexo</label><select id="qxW_sexo">'+qxWizSexoOpts()+'</select></div></div>'
+    + '<details style="margin:10px 0;border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px'+(QX_WIZ_SERVICIO&&!QX_WIZ_SERVICIO.obstetricia?';display:none':'')+'"'+((qxWizV('fur')||qxWizV('eco_fecha'))?' open':'')+'>'
     + '<summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--t1)">🤰 Gestante — para calcular las semanas solas</summary>'
     + '<div style="font-size:11px;color:var(--t3);line-height:1.5;margin:8px 0 10px">Con esto la app cuenta la edad gestacional cada día y te dice cuántas semanas tendrá el día de la cirugía. Si hay eco del primer trimestre, manda ella.</div>'
     + '<div class="qx-field"><label>FUR (fecha de última regla)</label><input type="date" id="qxW_fur" value="'+qxWizV('fur')+'"></div>'
@@ -8590,7 +8715,7 @@ function qxWizPaso2Html(){
 
 function qxWizPaso3Html(){
   return ''
-    + '<div class="qx-field"><label>Especialidad quirúrgica</label><input id="qxW_especialidad" placeholder="GINECOLOGIA" value="'+qxWizV('especialidad')+'"></div>'
+    + '<div class="qx-field"><label>Especialidad quirúrgica</label><input id="qxW_especialidad" placeholder="'+qxEsc((QX_WIZ_SERVICIO||SERVICIOS.ginecologia).especialidad)+'" value="'+qxWizV('especialidad')+'"></div>'
     + '<div class="qx-field"><label>Código de procedimiento</label><input id="qxW_codigo_procedimiento" placeholder="Opcional — solo si el hospital maneja códigos" value="'+qxWizV('codigo_procedimiento')+'"></div>'
     + '<div class="qx-field"><label>Procedimiento quirúrgico '+QX_REQ+'</label><input id="qxW_procedimiento" placeholder="Nombre del procedimiento" value="'+qxWizV('procedimiento')+'"><button class="qx-btn" style="margin-top:6px;width:100%;padding:7px 12px;font-size:12px;background:var(--s2);color:var(--t1);border:1.5px solid var(--bd)" onclick="qxProcedimientoPicker()">🔍 Ver los ya usados</button></div>'
     + '<div class="qx-row"><div class="qx-field"><label>Nivel de cirugía</label><select id="qxW_nivel_cirugia">'+qxWizOpt('nivel_cirugia','','—')+qxWizOpt('nivel_cirugia','Menor','Menor')+qxWizOpt('nivel_cirugia','Mayor','Mayor')+qxWizOpt('nivel_cirugia','Alta complejidad','Alta complejidad')+'</select></div>'
@@ -8882,6 +9007,18 @@ function qxUtilesEsParto(p){
 function qxUtilesSeccion(titulo, items){
   return titulo + '\n' + items.map(function(x){ return '• ' + x; }).join('\n');
 }
+/* Encabezado de los PDF y firma de los mensajes: el servicio de los pacientes.
+   Si una lista mezcla servicios (el jefe de información ve todos), el del
+   hospital. Paciente sin servicio (registros viejos): ginecología. */
+function qxTituloServicio(pacientes){
+  var claves = {};
+  (pacientes || []).forEach(function(x){ claves[(x && x.servicio) || 'ginecologia'] = true; });
+  var ks = Object.keys(claves);
+  if (ks.length > 1) return 'Hospital Distrital de Laredo';
+  var s = SERVICIOS[ks[0]] || servicioActual();
+  return s.titulo;
+}
+
 function qxUtilesMensaje(p){
   var esParto = qxUtilesEsParto(p);
   var secciones = [];
@@ -8898,7 +9035,7 @@ function qxUtilesMensaje(p){
   var intro = esParto
     ? 'Hola, para tu parto y hospitalización en el Hospital Distrital de Laredo necesitás traer lo siguiente:'
     : 'Hola, para tu hospitalización en el Hospital Distrital de Laredo necesitás traer estos útiles de aseo:';
-  return intro + '\n\n' + secciones.join('\n\n') + '\n\nServicio de Ginecología y Obstetricia';
+  return intro + '\n\n' + secciones.join('\n\n') + '\n\n' + qxTituloServicio([p]);
 }
 function qxUtilesAbrir(){
   var p = QX_ACTUAL; if (!p) return;
@@ -10122,7 +10259,7 @@ function qxRecetaMembrete(doc, p, M, W, INK, SOFT, RULE){
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
   doc.text(T(QX_RECETA_CAB.l1), W / 2, y + 4, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(SOFT);
-  doc.text('Servicio de Ginecología y Obstetricia', W / 2, y + 8.6, { align: 'center' });
+  doc.text(qxTituloServicio([p]), W / 2, y + 8.6, { align: 'center' });
   doc.setFontSize(7);
   doc.text(T(QX_RECETA_CAB.l2 + '  ·  ' + QX_RECETA_CAB.l3), W / 2, y + 12.4, { align: 'center' });
   y += 17;
