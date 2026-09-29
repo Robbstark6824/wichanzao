@@ -39,3 +39,7 @@ tools/impresora/agente-impresion-recetas.zip
 tools/impresora/SumatraPDF-settings.txt
 
 tools/impresora/latido.txt
+
+# clasp: la copia del .gs que se sube (la fuente es google/apps-script-sync.gs)
+google/clasp/src/Código.gs
+google/clasp/_pull/
