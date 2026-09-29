@@ -1665,7 +1665,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v273';
+var APP_VERSION = 'v274';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -7313,6 +7313,13 @@ async function expGenerar(){
     item.url = out.url;
     res.innerHTML = '✓ Listo: ' + out.pacientes + ' paciente(s). Compartido solo con ' + qxEsc(correo) + '.<br>'
       + '<a href="' + qxEsc(out.url) + '" target="_blank" rel="noopener">Abrir «' + qxEsc(out.nombre) + '»</a>';
+  }
+  // Que no pase inadvertido: por fecha de registro, Cirugía General no tiene
+  // esa fecha y queda fuera entera si no se marca la casilla.
+  if (out.sinFecha && !document.getElementById('expSinFecha').checked) {
+    res.innerHTML += '<div style="margin-top:8px;font-size:12px;color:var(--yodo);font-weight:700">⚠ ' + out.sinFecha + ' paciente(s) de los servicios elegidos NO entraron porque no tienen fecha de '
+      + (expRadio('expFechaPor', 'registro') === 'cirugia' ? 'cirugía' : 'registro') + '. Para sumarlos, marcá «Incluir también a los pacientes que no tienen esa fecha»'
+      + (expRadio('expFechaPor', 'registro') === 'registro' ? ' o exportá por fecha de cirugía' : '') + '.</div>';
   }
   if (out.rechazadas && out.rechazadas.length) {
     res.innerHTML += '<div style="margin-top:8px;font-size:12px;color:var(--yodo)">⚠ El formato oficial no aceptó ' + out.rechazadas.length + ' celda(s); quedaron vacías: '
