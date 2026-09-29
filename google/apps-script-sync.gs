@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-cirugia-na';
+var VERSION = '2026-09-29-exportar';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -911,6 +911,13 @@ function doPost(e) {
       });
     }
 
+    // Exportación del jefe de información (ver EXPORTACIÓN más abajo). Exige
+    // además la sesión de la app: el TOKEN solo no alcanza.
+    if (body.accion === 'exportar') {
+      try { return json(exportar_(body)); }
+      catch (err) { return json({ ok: false, error: err.message || String(err) }); }
+    }
+
     // Borrado explícito (eliminar paciente en la app): borra por DNI en las
     // hojas de SU servicio. Una app sin actualizar no manda servicio: gineco.
     if (body.accion === 'borrar') {
@@ -1002,6 +1009,160 @@ var DESPLEGABLES_47 = {
   'motivo de espera':                   CAT.motivoEspera,
   'estado actual del paciente':         CAT.estadoActual
 };
+
+/* ============================================================
+ * EXPORTACIÓN PARA EL JEFE DE INFORMACIÓN
+ * ============================================================
+ * La app (módulo 📤 Exportar) pide un Excel en línea con los pacientes de uno
+ * o varios servicios en un rango de fechas, en el formato de las hojas. Este
+ * código:
+ *   1. Comprueba QUIÉN lo pide con su sesión de la app (el TOKEN de arriba
+ *      está en el código de la app, que es público: no basta). Solo el jefe
+ *      de información o un admin, con cuenta aprobada.
+ *   2. Lee los pacientes de la base, filtra, y arma cada fila con las MISMAS
+ *      funciones que escriben las hojas (buildValuesOld / buildValuesNew).
+ *   3. Hace una COPIA FIEL del archivo oficial de la GERESA
+ *      (FORMATO_LISTA_ESPERA_QUIRURGICA_LAREDO.xlsx, pestaña LISTA_ESPERA_QX),
+ *      vacía sus filas de datos y escribe solo los pacientes elegidos.
+ *   4. Según pida el jefe: la comparte SOLO con su correo (link; nunca
+ *      "cualquiera con el enlace", lleva DNI y teléfonos) o la devuelve como
+ *      archivo .xlsx y manda la copia a la papelera.
+ *
+ * Después de pegar este código hay que ejecutar UNA vez autorizarExportacion()
+ * para darle permiso de crear y compartir archivos en Drive.
+ * ============================================================ */
+var CARPETA_EXPORTES = 'Exportaciones GERESA - Hospital Laredo';
+
+function autorizarExportacion() {
+  var c = carpetaExportes_();
+  Logger.log('Listo. Las exportaciones se guardan en la carpeta "' + c.getName() + '" de tu Drive.');
+}
+
+function carpetaExportes_() {
+  var it = DriveApp.getFoldersByName(CARPETA_EXPORTES);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(CARPETA_EXPORTES);
+}
+
+/** Quién pide la exportación, a partir de su sesión de la app. */
+function usuarioDeSesion_(jwt) {
+  if (!jwt) throw new Error('falta la sesión: vuelve a iniciar sesión en la app');
+  var k = sbKey_();
+  var r = UrlFetchApp.fetch(SB_URL + '/auth/v1/user', {
+    headers: { apikey: k, Authorization: 'Bearer ' + jwt }, muteHttpExceptions: true
+  });
+  if (r.getResponseCode() !== 200) throw new Error('la sesión venció: vuelve a iniciar sesión en la app');
+  var u = JSON.parse(r.getContentText());
+  var w = sbFetch_('get', 'workers?select=name,rol,is_admin,aprobado&id=eq.' + encodeURIComponent(u.id));
+  if (!w || !w.length) throw new Error('tu cuenta no tiene perfil en la app');
+  w = w[0];
+  if (!w.is_admin && !w.aprobado) throw new Error('tu cuenta todavía no está aprobada');
+  if (!w.is_admin && w.rol !== 'jefe_info') throw new Error('solo el jefe de información puede exportar');
+  return w;
+}
+
+/** Fecha con la que se filtra "por registro": la de captación/referencia y,
+ *  si no hay, la primera evaluación por cirugía. Igual que en la app. */
+function fechaRegistro_(p) {
+  return String(p.fecha_captacion || p.fecha_primera_evaluacion || '').slice(0, 10) || null;
+}
+
+function exportar_(body) {
+  var quien = usuarioDeSesion_(body.jwt);
+  var servicios = (body.servicios || []).filter(function (s) { return !!SERVICIOS_HOJAS[s]; });
+  if (!servicios.length) throw new Error('elige al menos un servicio');
+  var fechaPor = body.fechaPor === 'cirugia' ? 'cirugia' : 'registro';
+  var re = /^\d{4}-\d{2}-\d{2}$/;
+  if (!re.test(body.desde || '') || !re.test(body.hasta || '')) throw new Error('faltan las fechas desde / hasta');
+  if (body.desde > body.hasta) throw new Error('la fecha "desde" es posterior a "hasta"');
+  var salida = body.salida === 'archivo' ? 'archivo' : 'link';
+  var correo = String(body.correo || '').trim();
+  if (salida === 'link' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) throw new Error('falta un correo de Google válido para compartir el Excel');
+
+  // Pacientes
+  var todos = sbFetch_('get', 'pacientes?select=*&servicio=in.(' + servicios.join(',') + ')');
+  var sinFecha = 0;
+  var lista = todos.filter(function (p) {
+    var f = fechaPor === 'cirugia' ? String(p.fecha_cirugia || '').slice(0, 10) : fechaRegistro_(p);
+    if (!f) { sinFecha++; return !!body.incluirSinFecha; }
+    return f >= body.desde && f <= body.hasta;
+  });
+  lista.sort(function (a, b) {
+    if (servicioDe_(a) !== servicioDe_(b)) return servicios.indexOf(servicioDe_(a)) - servicios.indexOf(servicioDe_(b));
+    return (a.id_registro || 1e9) - (b.id_registro || 1e9);
+  });
+
+  // COPIA FIEL del archivo oficial de la GERESA: todas sus pestañas
+  // (INSTRUCTIVO, CATALOGOS, DICCIONARIO_DATOS, VALIDACION_CALIDAD, CAT_…),
+  // formatos, desplegables y fórmulas. Solo se vacían los valores de las
+  // filas de datos —las de otros servicios— sin borrar filas: la pestaña
+  // VALIDACION_CALIDAD cuenta sobre ese rango y tiene que seguir funcionando.
+  var nombres = servicios.map(function (s) { return s === 'ginecologia' ? 'Ginecología' : 'Cirugía General'; });
+  var titulo = 'LISTA_ESPERA_QX · ' + nombres.join(' + ') + ' · ' + body.desde + ' a ' + body.hasta
+    + ' · por fecha de ' + (fechaPor === 'cirugia' ? 'cirugía' : 'registro');
+  var copia = DriveApp.getFileById(SS_ID_2).makeCopy(titulo, carpetaExportes_());
+  try {
+    var ss = SpreadsheetApp.openById(copia.getId());
+    var hoja = ss.getSheetByName(SHEET_NAME_2);
+    if (!hoja) throw new Error('la copia no tiene la pestaña "' + SHEET_NAME_2 + '"');
+    var filaCab = findHeaderRow(hoja);
+    if (!filaCab) throw new Error('la copia no tiene el encabezado "ID registro"');
+    var colMap = buildColumnMap(hoja, filaCab);
+    var nCol = hoja.getLastColumn();
+    var nDatos = hoja.getMaxRows() - filaCab;
+    if (lista.length > nDatos) {
+      hoja.insertRowsAfter(hoja.getMaxRows(), lista.length - nDatos);
+      nDatos = lista.length;
+    }
+    var rango = hoja.getRange(filaCab + 1, 1, nDatos, nCol);
+    var formulas = rango.getFormulas();
+    var hayFormulas = formulas.some(function (r) { return r.some(function (f) { return !!f; }); });
+    rango.clearContent();
+    if (hayFormulas) rango.setFormulas(formulas);
+
+    // Filas: las MISMAS funciones que escriben la hoja oficial. El ID registro
+    // es el correlativo del archivo, como en la hoja oficial.
+    var valores = lista.map(function (p, i) {
+      var v = buildValuesNew(p);
+      v['id registro'] = i + 1;
+      return v;
+    });
+    // Columna por columna, y solo las que la app llena: una columna con
+    // fórmulas no se pisa.
+    if (valores.length) {
+      for (var key in colMap) {
+        if (!(key in valores[0])) continue;
+        var col = colMap[key];
+        var celdas = hoja.getRange(filaCab + 1, col, valores.length, 1);
+        if (esColumnaFecha(key) || key === 'celular' || key === 'dni' || key.indexOf('codigo') === 0) celdas.setNumberFormat('@');
+        celdas.setValues(valores.map(function (v) { return [v[key] == null ? '' : v[key]]; }));
+      }
+    }
+    SpreadsheetApp.flush();
+
+    copia.setDescription('Exportado desde la app por ' + quien.name + ' el '
+      + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm')
+      + '. ' + lista.length + ' pacientes; ' + sinFecha + ' sin esa fecha'
+      + (body.incluirSinFecha ? ' (incluidos).' : ' (no incluidos).'));
+
+    if (salida === 'archivo') {
+      // Se descarga y la copia se va a la papelera: no queda otro archivo con
+      // datos de pacientes dando vueltas en Drive.
+      var blob = copia.getBlob();
+      var b64 = Utilities.base64Encode(blob.getBytes());
+      copia.setTrashed(true);
+      return { ok: true, salida: 'archivo', nombre: titulo + '.xlsx', base64: b64, pacientes: lista.length, sinFecha: sinFecha };
+    }
+
+    try { copia.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) {}
+    try { copia.addEditor(correo); }
+    catch (e) { throw new Error('no se pudo compartir con "' + correo + '": ¿es una cuenta de Google (Gmail)?'); }
+    return { ok: true, salida: 'link', url: ss.getUrl(), nombre: titulo, pacientes: lista.length, sinFecha: sinFecha };
+  } catch (err) {
+    // Una copia con datos de pacientes no se deja a medias.
+    try { copia.setTrashed(true); } catch (e) {}
+    throw err;
+  }
+}
 
 function probarDesplegablesCirugia() { return desplegables_(SS_ID_CG, SHEET_NAME_CG, true); }
 function ponerDesplegablesCirugia()  { return desplegables_(SS_ID_CG, SHEET_NAME_CG, false); }

@@ -128,6 +128,47 @@ ver('el admin empieza en su propio servicio', vista.adminInicio === 'ginecologia
 ver('el admin ve el selector con los dos servicios', vista.selectorAdmin !== 'none' && vista.opciones === 'ginecologia|cirugia_general', vista.opciones);
 ver('el admin puede pasar a Cirugía General', vista.adminCG === 'cirugia_general');
 
+console.log('\nJEFE DE INFORMACIÓN Y EXPORTAR');
+const jefe = await page.evaluate(async () => {
+  const r = {};
+  const vis = id => getComputedStyle(document.getElementById(id)).display !== 'none';
+  isAdmin = false;
+  worker = { id: 'x', name: 'Interno', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'medico' };
+  aplicarServicio(); r.comunVe = vis('navExportar') || vis('cardExportar');
+  r.comunEdita = !qxSoloLectura();
+  worker = { id: 'j', name: 'Anestesióloga', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'jefe_info' };
+  aplicarServicio(); r.jefeVe = vis('navExportar') && vis('cardExportar');
+  let aviso = ''; const t0 = window.toast; window.toast = m => { aviso = m; };
+  r.jefeSoloLectura = qxSoloLectura(); r.aviso = aviso;
+  await qxFormulario(null); r.jefeNoAbreFormulario = !document.querySelector('.qx-overlay');
+  window.toast = t0;
+  qxServicioVistaPintar(); r.jefeSelector = document.getElementById('qxServicioVistaWrap').style.display !== 'none';
+  r.jefeMarca = (document.querySelector('#qxServicioVista option') || {}).textContent || '';
+  worker = { id: 'r', name: 'Admin', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'medico', is_admin: true };
+  aplicarServicio(); r.adminVe = vis('navExportar'); r.adminEdita = !qxSoloLectura();
+  showModule('exportar');
+  r.panel = document.getElementById('moduleExportar').classList.contains('active');
+  expRango('mesPasado'); r.mesPasado = document.getElementById('expDesde').value + ' a ' + document.getElementById('expHasta').value;
+  document.querySelector('input[name="expSalida"][value="archivo"]').checked = true; expSalidaCambio();
+  r.correoOculto = document.getElementById('expCorreoWrap').style.display === 'none';
+  r.fechaReg = [expFechaRegistro({ fecha_captacion: '2026-03-01' }), expFechaRegistro({ fecha_primera_evaluacion: '2026-04-02' }), expFechaRegistro({})].join('|');
+  showModule('dashboard');
+  return r;
+});
+const hoy = new Date(), mp = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1), mpFin = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+ver('un médico/interno no ve Exportar', !jefe.comunVe);
+ver('un médico/interno edita como siempre', jefe.comunEdita);
+ver('el jefe ve Exportar (menú e inicio)', jefe.jefeVe);
+ver('el jefe es solo lectura y se le avisa', jefe.jefeSoloLectura && /Solo lectura/.test(jefe.aviso), jefe.aviso);
+ver('el jefe no abre el formulario de paciente', jefe.jefeNoAbreFormulario);
+ver('el jefe elige qué servicio mira (📊)', jefe.jefeSelector && jefe.jefeMarca.indexOf('📊') === 0, jefe.jefeMarca);
+ver('el admin ve Exportar y sigue editando', jefe.adminVe && jefe.adminEdita);
+ver('se abre el módulo', jefe.panel);
+ver('"Mes pasado" pone el mes anterior completo', jefe.mesPasado === iso(mp) + ' a ' + iso(mpFin), jefe.mesPasado);
+ver('con "archivo" no pide correo', jefe.correoOculto);
+ver('fecha de registro = captación, si no 1.ª evaluación (igual que el Apps Script)', jefe.fechaReg === '2026-03-01|2026-04-02|', jefe.fechaReg);
+
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {
   SERVICIOS_ACTIVOS = ['ginecologia']; populateServicioSelects();

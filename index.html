@@ -1051,6 +1051,10 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <span class="sni-icon">🧮</span>
           <span class="sni-label">Calculadora</span>
         </a>
+        <a class="sidebar-nav-item" data-module="exportar" id="navExportar" style="display:none" onclick="showModule('exportar')">
+          <span class="sni-icon">📤</span>
+          <span class="sni-label">Exportar GERESA</span>
+        </a>
       </nav>
       <div class="sidebar-user">
         <div class="sidebar-user-avatar" id="sidebarAvatar" style="background:var(--tl)"></div>
@@ -1104,6 +1108,11 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
               <span class="mc-icon">🗓️</span>
               <div class="mc-title">Programación Qx</div>
               <div class="mc-desc">Pipeline quirúrgico · 7 fases · Cirugía</div>
+            </div>
+            <div class="module-card" id="cardExportar" style="display:none" onclick="showModule('exportar')">
+              <span class="mc-icon">📤</span>
+              <div class="mc-title">Exportar a la GERESA</div>
+              <div class="mc-desc">Formato oficial LISTA_ESPERA_QX por servicio y periodo · link o archivo Excel</div>
             </div>
             <div class="module-card" id="cardCalculadora" onclick="showModule('calculadora')">
               <span class="mc-icon">🧮</span>
@@ -1264,6 +1273,81 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
       </div>
 
       <!-- === MODULE: CALCULADORA OBSTÉTRICA === -->
+      <div class="module-panel" id="moduleExportar">
+        <div class="module-header">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="mh-breadcrumb">
+            <a onclick="showModule('dashboard')">Inicio</a> / Exportar a la GERESA
+          </div>
+        </div>
+        <style>
+          .exp-wrap{max-width:720px;margin:0 auto;padding:16px}
+          .exp-wrap h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--t1);margin:0 0 4px}
+          .exp-intro{font-size:12.5px;color:var(--t2);line-height:1.55;margin:0 0 14px}
+          .exp-card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+          .exp-lbl{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--tl);margin:12px 0 6px}
+          .exp-lbl:first-child{margin-top:0}
+          .exp-op{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--t1);padding:5px 0;line-height:1.4;cursor:pointer}
+          .exp-op input{margin-top:2px;accent-color:var(--tl)}
+          .exp-op small{display:block;color:var(--t3);font-size:11px}
+          .exp-fechas{display:flex;gap:10px;flex-wrap:wrap}
+          .exp-fechas label{flex:1;min-width:140px;font-size:12px;color:var(--t2);font-weight:700}
+          .exp-fechas input,.exp-correo input{width:100%;margin-top:4px;padding:9px 10px;border:1.5px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--t1);font:inherit}
+          .exp-rapidos{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+          .exp-rapidos button,.exp-sec{border:1.5px solid var(--bd);background:var(--bg);color:var(--t1);border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+          .exp-sec{border-radius:10px;padding:8px 12px;margin-top:8px}
+          .exp-correo{margin-top:6px;font-size:12px;color:var(--t2);font-weight:700}
+          .exp-previa{font-size:12.5px;color:var(--t1);line-height:1.55;margin-top:10px}
+          .exp-previa .falta{font-size:11.5px;color:var(--t2);padding:3px 0;border-bottom:1px dashed var(--bd)}
+          .exp-res{margin-top:12px;font-size:13px;line-height:1.5}
+          .exp-res a{color:var(--tl);font-weight:800;word-break:break-all}
+          .exp-hist{font-size:12px;color:var(--t2);padding:6px 0;border-bottom:1px solid var(--bd)}
+          .exp-hist a{color:var(--tl);font-weight:700}
+        </style>
+        <div class="exp-wrap">
+          <h2>📤 Exportar a la GERESA</h2>
+          <p class="exp-intro">Genera una <b>copia fiel del formato oficial</b> (FORMATO_LISTA_ESPERA_QUIRURGICA_LAREDO · pestaña LISTA_ESPERA_QX, con su instructivo, catálogos y validación) solo con los pacientes que elijas, llenos con los mismos datos que la app manda a las hojas.</p>
+          <div class="exp-card">
+            <div class="exp-lbl">1 · Servicios</div>
+            <label class="exp-op"><input type="checkbox" id="expServGineco" checked onchange="expLimpiarPrevia()"> Ginecología y Obstetricia</label>
+            <label class="exp-op"><input type="checkbox" id="expServCG" checked onchange="expLimpiarPrevia()"> Cirugía General</label>
+
+            <div class="exp-lbl">2 · Qué fecha usar</div>
+            <label class="exp-op"><input type="radio" name="expFechaPor" value="registro" checked onchange="expLimpiarPrevia()"><span>Fecha de registro<small>Captación / referencia aceptada; si falta, la 1.ª evaluación por cirugía</small></span></label>
+            <label class="exp-op"><input type="radio" name="expFechaPor" value="cirugia" onchange="expLimpiarPrevia()"><span>Fecha de cirugía<small>La fecha de programación quirúrgica</small></span></label>
+
+            <div class="exp-lbl">3 · Periodo</div>
+            <div class="exp-fechas">
+              <label>Desde<input type="date" id="expDesde" onchange="expLimpiarPrevia()"></label>
+              <label>Hasta<input type="date" id="expHasta" onchange="expLimpiarPrevia()"></label>
+            </div>
+            <div class="exp-rapidos">
+              <button type="button" onclick="expRango('mes')">Este mes</button>
+              <button type="button" onclick="expRango('mesPasado')">Mes pasado</button>
+              <button type="button" onclick="expRango('trimestre')">Últimos 3 meses</button>
+              <button type="button" onclick="expRango('anio')">Este año</button>
+            </div>
+            <label class="exp-op"><input type="checkbox" id="expSinFecha" onchange="expLimpiarPrevia()"><span>Incluir también a los pacientes que no tienen esa fecha<small>La vista previa dice cuántos son</small></span></label>
+            <button type="button" class="exp-sec" onclick="expVistaPrevia()">👁 Ver cuántos entran</button>
+            <div class="exp-previa" id="expPrevia"></div>
+
+            <div class="exp-lbl">4 · Cómo lo quieres</div>
+            <label class="exp-op"><input type="radio" name="expSalida" value="link" checked onchange="expSalidaCambio()"><span>Link de Excel en línea<small>Se abre en Google; compartido solo con tu correo</small></span></label>
+            <label class="exp-op"><input type="radio" name="expSalida" value="archivo" onchange="expSalidaCambio()"><span>Archivo Excel (.xlsx) para descargar<small>Se guarda en este equipo; no queda copia en Drive</small></span></label>
+            <label class="exp-correo" id="expCorreoWrap">Tu correo de Google (Gmail)<input type="email" id="expCorreo" placeholder="nombre@gmail.com" autocomplete="email"></label>
+
+            <button type="button" class="btn btn-primary" id="expGenerar" style="margin-top:14px" onclick="expGenerar()">Generar Excel</button>
+            <div class="exp-res" id="expResultado"></div>
+          </div>
+          <div class="exp-card">
+            <div class="exp-lbl">Exportaciones recientes en este equipo</div>
+            <div id="expHistorial"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="module-panel" id="moduleCalculadora">
         <div class="module-header">
           <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
@@ -1581,7 +1665,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v271';
+var APP_VERSION = 'v272';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -1907,6 +1991,21 @@ var SERVICIOS_ACTIVOS = ['ginecologia'];
 
 /* El servicio de quien está usando la app. Sin sesión o con un servicio que
    esta versión no conoce, ginecología: el comportamiento de siempre. */
+/* Roles (sql/031): el jefe de información ve todos los servicios, no edita
+   pacientes y exporta a la GERESA. El admin hace todo. */
+function esAdminApp(){ return !!(isAdmin || (worker && worker.is_admin)); }
+function esJefeInfo(){ return !!(worker && worker.rol === 'jefe_info'); }
+function puedeExportar(){ return esJefeInfo() || esAdminApp(); }
+/* El jefe solo mira: la base igual le rechaza cualquier cambio, pero en
+   silencio (un UPDATE sin permiso devuelve 0 filas, sin error). Mejor decirlo. */
+function qxSoloLectura(){
+  if (esJefeInfo() && !esAdminApp()){
+    toast('Solo lectura: el jefe de información no modifica pacientes.', 'info');
+    return true;
+  }
+  return false;
+}
+
 function servicioActual(){
   return SERVICIOS[(worker && worker.servicio) || 'ginecologia'] || SERVICIOS.ginecologia;
 }
@@ -2055,7 +2154,7 @@ function iniciarApp() {
         var wf = await sb.from('workers').select('*').eq('email', email).maybeSingle();
         if (!wf.data) wf = await sb.from('workers').select('*').eq('folder_id', folderId).maybeSingle();
         if (wf.data) {
-          var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, is_admin: wf.data.is_admin, created: wf.data.created_at };
+          var w = { id: wf.data.folder_id, name: wf.data.name, servicio: wf.data.servicio, area: wf.data.area, picture: wf.data.picture, email: wf.data.email, google: wf.data.google, is_admin: wf.data.is_admin, rol: wf.data.rol, created: wf.data.created_at };
           if (wf.data.is_admin) isAdmin = true;
           saveWorker(w);
           return true;
@@ -2161,7 +2260,7 @@ var _aprobacionOk = false;
 async function leerAprobacion() {
   var sess = (await sb.auth.getSession()).data.session;
   if (!sess || !sess.user) return null;
-  var r = await sb.from('workers').select('aprobado,is_admin').eq('id', sess.user.id).maybeSingle();
+  var r = await sb.from('workers').select('aprobado,is_admin,rol').eq('id', sess.user.id).maybeSingle();
   if (r.error || !r.data) return null;
   return r.data;
 }
@@ -2179,6 +2278,12 @@ async function comprobarAprobacion() {
     if (!a) return;
     if (a.aprobado === false && !a.is_admin) { mostrarPendiente(); return; }
     _aprobacionOk = true;
+    // El rol lo cambia un admin (sql/036): se trae del servidor en cada entrada.
+    if (worker && (worker.rol !== a.rol || !!worker.is_admin !== !!a.is_admin)) {
+      worker.rol = a.rol; worker.is_admin = !!a.is_admin;
+      saveWorker(worker);
+      aplicarServicio();
+    }
     if (a.is_admin) avisarCuentasPendientes();
   } catch(e) {}
 }
@@ -2272,6 +2377,7 @@ function showModule(moduleName) {
     closeSidebar();
   }
   currentModule = moduleName;
+  if (moduleName === 'exportar' && typeof expIniciar === 'function') expIniciar();
   haptic(10);
 }
 
@@ -2809,6 +2915,7 @@ async function doLogin() {
         email: wRow.data.email,
         google: wRow.data.google,
         is_admin: wRow.data.is_admin,
+        rol: wRow.data.rol,
         created: wRow.data.created_at
       };
       saveWorker(w);
@@ -2986,10 +3093,14 @@ function getGreeting() {
 function aplicarServicio() {
   var s = servicioActual();
   var h = document.getElementById('sidebarServicio');
-  if (h) h.textContent = s.corto;
+  if (h) h.textContent = esJefeInfo() ? 'Jefe de información' : s.corto;
   ['navCalculadora', 'cardCalculadora'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = s.obstetricia ? '' : 'none';
+  });
+  ['navExportar', 'cardExportar'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = puedeExportar() ? '' : 'none';
   });
   if (typeof qxRecetasSegunServicio === 'function') qxRecetasSegunServicio();
 }
@@ -3322,6 +3433,7 @@ async function refreshAdminStatus() {
       isAdmin = true;
       // Persist locally so the crown + edit controls appear instantly next time
       if (worker && !worker.is_admin) { worker.is_admin = true; saveWorker(worker); }
+      aplicarServicio();
       var nameEl = document.getElementById('sidebarName');
       if (nameEl && worker && nameEl.textContent.indexOf('👑') === -1) nameEl.textContent = worker.name + ' 👑';
     }
@@ -3569,6 +3681,7 @@ async function loadAdminWorkers() {
           servicio: w.servicio || '',
           is_admin: w.is_admin,
           pendiente: w.aprobado === false,
+          rol: w.rol,
           basePath: (w.servicio || '') + '/workers/' + w.folder_id,
           fromDB: true
         };
@@ -3607,11 +3720,13 @@ async function loadAdminWorkers() {
       var adminBadge = wk.is_admin ? ' <span style=\"color:var(--gd);font-size:10px\">&#x1F451;</span>' : '';
       var storageBadge = !wk.fromDB ? ' <span style=\"color:var(--t3);font-size:9px\">(storage)</span>' : '';
       if (wk.pendiente) storageBadge += ' <span style=\"background:var(--yodo);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.3px\">PENDIENTE</span>';
+      if (wk.rol === 'jefe_info') storageBadge += ' <span style=\"background:var(--tl);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.3px\">📊 JEFE INFO</span>';
       html += '<div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)\">';
       html += '<div onclick=\"adminBrowseFolder(\'' + bp + '\',\'' + escapeHtml(wk.name).replace(/'/g, "\'") + '\')\" style=\"cursor:pointer;flex:1\">';
       html += '<div style=\"font-weight:700;font-size:13px;color:var(--tl)\">' + escapeHtml(wk.name) + adminBadge + storageBadge + ' <span style=\"font-size:10px;opacity:.5\">&#9654;</span></div>';
       if (wk.area) html += '<div style=\"font-size:11px;color:var(--t3)\">' + escapeHtml(wk.area) + ' &middot; ' + sLabel + '</div>';
       html += '<div style=\"font-size:10px;color:var(--t3);opacity:.6\">' + escapeHtml(wk.folder_id) + '</div></div>';
+      if (!wk.pendiente && wk.uid && !wk.is_admin) html += '<button data-uid=\"' + escapeHtml(wk.uid) + '\" data-nombre=\"' + escapeHtml(wk.name).replace(/"/g, '&quot;') + '\" data-rol=\"' + (wk.rol === 'jefe_info' ? 'medico' : 'jefe_info') + '\" onclick=\"adminRol(this.dataset.uid, this.dataset.nombre, this.dataset.rol)\" style=\"background:var(--s2);color:var(--t1);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:6px\">' + (wk.rol === 'jefe_info' ? 'Quitar jefe' : '📊 Jefe info') + '</button>';
       if (wk.pendiente && wk.uid) html += '<button data-uid=\"' + escapeHtml(wk.uid) + '\" data-nombre=\"' + escapeHtml(wk.name).replace(/"/g, '&quot;') + '\" onclick=\"adminAprobar(this.dataset.uid, this.dataset.nombre)\" style=\"background:var(--tl);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:6px\">Aprobar</button>';
       html += '<button onclick=\"adminDeleteFolder(\'' + bp + '\')\" style=\"background:#E53E3E;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit\">Borrar</button>';
       html += '</div>';
@@ -7074,6 +7189,163 @@ var QX_AUTORES_OK = false;
 /* Carga completa desde la base. Con {silencioso:true} no borra la lista ni
    avisa si falla: se usa para reconciliar de fondo despues de un cambio, sin
    que la pantalla parpadee. */
+/* ===== 📤 EXPORTAR A LA GERESA (jefe de información / admin) =====
+   La app arma el pedido y el Apps Script hace el trabajo (acción "exportar"):
+   copia fiel del archivo oficial, llenado con buildValuesNew. El Apps Script
+   comprueba la sesión de quien pide; la vista previa de acá solo cuenta, con
+   la MISMA regla de fechas que allá (fechaRegistro_ del .gs). */
+var EXP_HIST_LS = 'exp_historial';
+
+function expFechaRegistro(p){ return String(p.fecha_captacion || p.fecha_primera_evaluacion || '').slice(0, 10) || null; }
+function expServicios(){
+  var s = [];
+  if (document.getElementById('expServGineco').checked) s.push('ginecologia');
+  if (document.getElementById('expServCG').checked) s.push('cirugia_general');
+  return s;
+}
+function expRadio(nombre, def){ var r = document.querySelector('input[name="'+nombre+'"]:checked'); return r ? r.value : def; }
+function expISO(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+function expRango(k){
+  var hoy = new Date(), d, h;
+  if (k === 'mes') { d = new Date(hoy.getFullYear(), hoy.getMonth(), 1); h = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); }
+  else if (k === 'mesPasado') { d = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); h = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
+  else if (k === 'trimestre') { d = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1); h = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); }
+  else { d = new Date(hoy.getFullYear(), 0, 1); h = new Date(hoy.getFullYear(), 11, 31); }
+  document.getElementById('expDesde').value = expISO(d);
+  document.getElementById('expHasta').value = expISO(h);
+  expLimpiarPrevia();
+}
+
+function expLimpiarPrevia(){ var el = document.getElementById('expPrevia'); if (el) el.innerHTML = ''; }
+
+function expSalidaCambio(){
+  document.getElementById('expCorreoWrap').style.display = expRadio('expSalida', 'link') === 'link' ? '' : 'none';
+}
+
+function expIniciar(){
+  if (!puedeExportar()) { showModule('dashboard'); return; }
+  if (!document.getElementById('expDesde').value) expRango('mes');
+  var c = document.getElementById('expCorreo');
+  if (c && !c.value) { try { c.value = localStorage.getItem('exp_correo') || ''; } catch(e){} }
+  expSalidaCambio();
+  expHistorialPintar();
+}
+
+async function expVistaPrevia(){
+  var el = document.getElementById('expPrevia');
+  var servs = expServicios(), por = expRadio('expFechaPor', 'registro');
+  var desde = document.getElementById('expDesde').value, hasta = document.getElementById('expHasta').value;
+  if (!servs.length) { el.innerHTML = 'Elegí al menos un servicio.'; return; }
+  if (!desde || !hasta || desde > hasta) { el.innerHTML = 'Revisá las fechas: "desde" tiene que ser anterior a "hasta".'; return; }
+  el.innerHTML = 'Contando…';
+  var r = await sb.from('pacientes').select('*').in('servicio', servs);
+  if (r.error) { el.innerHTML = ''; toast(mensajeDeError(r.error), 'error'); return; }
+  var incluirSin = document.getElementById('expSinFecha').checked;
+  var sinFecha = 0, porServ = {}, lista = [];
+  (r.data || []).forEach(function(p){
+    var f = por === 'cirugia' ? String(p.fecha_cirugia || '').slice(0, 10) : expFechaRegistro(p);
+    if (!f) { sinFecha++; if (!incluirSin) return; }
+    else if (f < desde || f > hasta) return;
+    lista.push(p);
+    porServ[p.servicio] = (porServ[p.servicio] || 0) + 1;
+  });
+  var incompletos = lista.map(function(p){ return { p: p, f: qxFaltantesGeresa(p) }; }).filter(function(x){ return x.f.length; });
+  var h = '<b>' + lista.length + ' paciente(s)</b> entrarían: '
+    + servs.map(function(s){ return SERVICIOS[s].corto + ' ' + (porServ[s] || 0); }).join(' · ') + '.';
+  if (sinFecha) h += '<br>' + sinFecha + ' no tienen fecha de ' + (por === 'cirugia' ? 'cirugía' : 'registro') + (incluirSin ? ' (incluidos).' : ' (no incluidos; marcá la casilla de arriba si querés sumarlos).');
+  if (incompletos.length) {
+    h += '<div style="margin-top:8px;font-weight:800;color:var(--yodo)">⚠ ' + incompletos.length + ' con campos obligatorios de la GERESA vacíos:</div>';
+    incompletos.slice(0, 12).forEach(function(x){
+      h += '<div class="falta"><b>' + qxEsc(x.p.nombre || x.p.dni) + '</b> (' + SERVICIOS[x.p.servicio].corto + '): ' + x.f.map(function(c){ return qxEsc(c.label); }).join(', ') + '</div>';
+    });
+    if (incompletos.length > 12) h += '<div class="falta">… y ' + (incompletos.length - 12) + ' más.</div>';
+    h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">Se pueden exportar igual; salen con esas celdas vacías.</div>';
+  } else if (lista.length) {
+    h += '<div style="margin-top:6px;color:var(--tl);font-weight:700">✓ Todos con los campos obligatorios completos.</div>';
+  }
+  el.innerHTML = h;
+}
+
+async function expGenerar(){
+  var btn = document.getElementById('expGenerar'), res = document.getElementById('expResultado');
+  var servs = expServicios(), salida = expRadio('expSalida', 'link');
+  var desde = document.getElementById('expDesde').value, hasta = document.getElementById('expHasta').value;
+  var correo = document.getElementById('expCorreo').value.trim();
+  if (!servs.length) { toast('Elegí al menos un servicio', 'error'); return; }
+  if (!desde || !hasta || desde > hasta) { toast('Revisá las fechas', 'error'); return; }
+  if (salida === 'link' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { toast('Poné tu correo de Google para compartirte el Excel', 'error'); return; }
+  try { if (correo) localStorage.setItem('exp_correo', correo); } catch(e){}
+  var sess = (await sb.auth.getSession()).data.session;
+  if (!sess) { toast('Tu sesión venció: volvé a iniciar sesión', 'error'); return; }
+
+  btn.disabled = true; btn.textContent = 'Generando… (puede tardar un minuto)';
+  res.innerHTML = '';
+  var out = null;
+  try {
+    var resp = await fetchConTiempo(QX_SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'exportar', jwt: sess.access_token,
+        servicios: servs, fechaPor: expRadio('expFechaPor', 'registro'), desde: desde, hasta: hasta,
+        incluirSinFecha: document.getElementById('expSinFecha').checked, salida: salida, correo: correo })
+    }, 240000);
+    out = JSON.parse(await resp.text());
+  } catch(e) {
+    registrarFalla('exportar GERESA', e);
+    out = { ok: false, error: mensajeDeError(e) };
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generar Excel';
+  }
+  if (!out || !out.ok) {
+    res.innerHTML = '<span style="color:var(--alarma);font-weight:700">No se pudo generar: ' + qxEsc((out && out.error) || 'error desconocido') + '</span>';
+    return;
+  }
+  var item = { at: new Date().toISOString(), nombre: out.nombre, pacientes: out.pacientes, salida: out.salida };
+  if (out.salida === 'archivo') {
+    var bin = atob(out.base64), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    var a = document.createElement('a'); a.href = url; a.download = out.nombre; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+    res.innerHTML = '✓ Descargado: <b>' + qxEsc(out.nombre) + '</b> — ' + out.pacientes + ' paciente(s).';
+  } else {
+    item.url = out.url;
+    res.innerHTML = '✓ Listo: ' + out.pacientes + ' paciente(s). Compartido solo con ' + qxEsc(correo) + '.<br>'
+      + '<a href="' + qxEsc(out.url) + '" target="_blank" rel="noopener">Abrir «' + qxEsc(out.nombre) + '»</a>';
+  }
+  try {
+    var h = JSON.parse(localStorage.getItem(EXP_HIST_LS) || '[]');
+    h.unshift(item); localStorage.setItem(EXP_HIST_LS, JSON.stringify(h.slice(0, 15)));
+  } catch(e){}
+  expHistorialPintar();
+  toast('Exportación lista', 'success');
+}
+
+function expHistorialPintar(){
+  var el = document.getElementById('expHistorial'); if (!el) return;
+  var h = [];
+  try { h = JSON.parse(localStorage.getItem(EXP_HIST_LS) || '[]'); } catch(e){}
+  if (!h.length) { el.innerHTML = '<div class="exp-hist">Todavía no exportaste nada desde este equipo.</div>'; return; }
+  el.innerHTML = h.map(function(x){
+    var cuando = new Date(x.at).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+    return '<div class="exp-hist">' + cuando + ' · ' + x.pacientes + ' pac. · '
+      + (x.url ? '<a href="' + qxEsc(x.url) + '" target="_blank" rel="noopener">' + qxEsc(x.nombre) + '</a>' : qxEsc(x.nombre) + ' (archivo)') + '</div>';
+  }).join('');
+}
+
+/* 👑 → Usuarios: nombrar o quitar al jefe de información (sql/036). */
+async function adminRol(id, nombre, rol){
+  var txt = rol === 'jefe_info'
+    ? '¿Nombrar a ' + nombre + ' jefe de información?\n\nVerá los pacientes de todos los servicios (sin editarlos) y podrá exportar a la GERESA.'
+    : '¿Quitarle a ' + nombre + ' el rol de jefe de información?';
+  if (!confirm(txt)) return;
+  var r = await sb.rpc('admin_set_rol', { p_id: id, p_rol: rol });
+  if (r.error) { toast(mensajeDeError(r.error), 'error'); return; }
+  toast(rol === 'jefe_info' ? nombre + ' ahora es jefe de información.' : nombre + ' ya no es jefe de información.', 'success');
+  loadAdminWorkers();
+}
+
 /* ===== Qué servicio muestra la lista Qx =====
    Cada usuario ve el suyo (la base ya no le deja ver otro, sql/032). El admin
    ve todos: sin esto su lista mezclaría los servicios y el próximo "ID
@@ -7083,7 +7355,7 @@ var QX_AUTORES_OK = false;
 var QX_SERVICIO_VISTA = null;
 function qxServicioVista(){
   var propio = (worker && worker.servicio && SERVICIOS[worker.servicio]) ? worker.servicio : 'ginecologia';
-  if (!(isAdmin || (worker && worker.is_admin))) return propio;
+  if (!(esAdminApp() || esJefeInfo())) return propio;
   if (!QX_SERVICIO_VISTA){
     try { QX_SERVICIO_VISTA = localStorage.getItem('qx_servicio_vista'); } catch(e){}
     if (!SERVICIOS[QX_SERVICIO_VISTA]) QX_SERVICIO_VISTA = propio;
@@ -7093,12 +7365,13 @@ function qxServicioVista(){
 function qxServicioVistaPintar(){
   var wrap = document.getElementById('qxServicioVistaWrap'), sel = document.getElementById('qxServicioVista');
   if (!wrap || !sel) return;
-  var admin = !!(isAdmin || (worker && worker.is_admin));
-  wrap.style.display = admin ? '' : 'none';
-  if (!admin) return;
+  var puede = esAdminApp() || esJefeInfo();
+  wrap.style.display = puede ? '' : 'none';
+  if (!puede) return;
   var actual = qxServicioVista();
+  var marca = esAdminApp() ? '👑 ' : '📊 ';
   sel.innerHTML = SERVICIOS_KEYS.map(function(k){
-    return '<option value="'+k+'"'+(k===actual?' selected':'')+'>👑 Lista de '+SERVICIOS[k].label+'</option>';
+    return '<option value="'+k+'"'+(k===actual?' selected':'')+'>'+marca+'Lista de '+SERVICIOS[k].label+'</option>';
   }).join('');
 }
 function qxCambiarServicioVista(k){
@@ -8624,6 +8897,7 @@ async function qxProximoIdRegistro(){
 }
 
 async function qxFormulario(p){
+  if (qxSoloLectura()) return;
   var prev = document.querySelector('.qx-overlay'); if (prev) prev.remove();
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
@@ -10601,6 +10875,7 @@ function qxWhatsAppLink(p){
 }
 
 async function qxToggle(campo){
+  if (qxSoloLectura()) return;
   var p = QX_ACTUAL; if (!p) return;
   var val = !p[campo];
   if (campo==='riesgo_qx' && val && !qxFase2Completa(p)){ toast('Requiere Fase 2 completa','error'); return; }
@@ -10970,6 +11245,7 @@ function qxAvisoResponder(cerrarIgual, paso){
 }
 
 async function qxSetEstado(p, nuevo, motivo){
+  if (qxSoloLectura()) return;
   if (qxEstadoTerminal(nuevo)){
     var seguir = await qxAvisoCierreGeresa(p, nuevo);
     if (!seguir) return;
@@ -11032,6 +11308,7 @@ function qxEditarBasicos(){
 }
 
 async function qxGuardarEdicion(){
+  if (qxSoloLectura()) return;
   var p = QX_ACTUAL; if (!p) return;
   var dni = valorDe('qxEDni').trim();
   var nombre = valorDe('qxENombre').trim();
@@ -11093,6 +11370,7 @@ async function qxGuardarEdicion(){
 }
 
 function qxConfirmarEliminar(){
+  if (qxSoloLectura()) return;
   var p = QX_ACTUAL; if (!p) return;
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
