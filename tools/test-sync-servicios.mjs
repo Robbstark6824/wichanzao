@@ -29,7 +29,11 @@ const GS_VIEJO = iv >= 0 ? fs.readFileSync(args[iv + 1], 'utf8')
 const GS_NUEVO = fs.readFileSync('google/apps-script-sync.gs', 'utf8');
 
 const ultimoRespaldo = fs.readdirSync(RESP).filter(d => /^\d{4}-\d{2}-\d{2}_\d{4}$/.test(d)).sort().pop();
+// Solo los de ginecología: el diferencial compara con el Apps Script de antes
+// de que hubiera servicios, y el escenario "encender Cirugía General" parte
+// de una base sin sus pacientes (desde el 29/09 los respaldos ya los traen).
 const PACIENTES = JSON.parse(fs.readFileSync(path.join(RESP, ultimoRespaldo, 'datos/public.pacientes.json'), 'utf8'))
+  .filter(p => (p.servicio || 'ginecologia') === 'ginecologia')
   .map(p => { const o = {}; for (const k in p) o[k] = p[k] instanceof Object && !(Array.isArray(p[k])) && p[k] !== null && p[k].constructor === Object ? p[k] : p[k]; return o; });
 // Las fechas del respaldo vienen como ISO completas; la app manda 'YYYY-MM-DD'
 // en columnas date. Se normalizan como las devolvería PostgREST.
