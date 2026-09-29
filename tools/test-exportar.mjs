@@ -93,11 +93,28 @@ console.log('\nCOPIA FIEL DEL ARCHIVO GERESA (link)');
   ver('todas con especialidad GINECOLOGIA', datos.every(x => x[cab.indexOf('especialidad quirurgica')] === 'GINECOLOGIA'));
   ver('la columna con fórmula conserva sus fórmulas', L.fx['4,' + colF] && L.fx['500,' + colF]);
   ver('VALIDACION_CALIDAD conserva su fórmula', e.hojas[id + '|VALIDACION_CALIDAD'].fx['4,2'] === '=COUNTA(LISTA_ESPERA_QX!K4:K500)');
-  ver('DNI y fechas se escriben como texto (no se pierden ceros)', L.formatos['4,' + (cab.indexOf('dni') + 1)] === '@');
+  const colFecha = cab.findIndex(h => h === 'fecha programacion quirurgica') + 1;
+  ver('las fechas se escriben como texto, como hace la sincronización', colFecha > 0 && L.formatos['4,' + colFecha] === '@');
   ver('el archivo original de la GERESA no se tocó', JSON.stringify(e.hojas[SS2 + '|LISTA_ESPERA_QX'].f) === original);
   ver('compartido SOLO con el correo de la jefa, privado', JSON.stringify(e.copias[0].editores) === '["jefa@gmail.com"]' && e.copias[0].acceso === 'PRIVATE');
   ver('queda en la carpeta de exportaciones', e.copias[0].carpeta === 'Exportaciones GERESA - Hospital Laredo', e.copias[0].carpeta);
   ver('no va a la papelera', !e.copias[0].papelera);
+}
+
+console.log('\nTABLA CON COLUMNAS TIPADAS (como el LISTA_ESPERA_QX real)');
+{
+  const { e, G, cab } = estadoNuevo();
+  const L0 = e.hojas[SS2 + '|LISTA_ESPERA_QX'];
+  L0.tipada = true;                                         // setNumberFormat falla
+  const colOrden = cab.indexOf('n° orden de intervencion') + 1;
+  L0.rechaza = (col, v) => col === colOrden && v !== '';     // esa columna no acepta lo que llega
+  const r = G.post(Object.assign({}, base, { jwt: 'jwt-jefa', servicios: ['ginecologia'] }));
+  ver('ya no falla con "columna escrita"', r.ok === true, r.error);
+  const L = e.hojas[e.copias[0].id + '|LISTA_ESPERA_QX'];
+  const datos = L.f.slice(3).filter(x => x.some(v => v !== ''));
+  ver('escribe igual a todos los pacientes', datos.length === r.pacientes && r.pacientes > 0, datos.length);
+  ver('informa las celdas que la hoja no aceptó', Array.isArray(r.rechazadas) && r.rechazadas.length > 0 && r.rechazadas.every(x => /orden de intervencion/.test(x)), (r.rechazadas || []).length + ' celdas');
+  ver('las demás columnas quedan llenas', datos.every(x => x[cab.indexOf('dni')] !== ''));
 }
 
 console.log('\nARCHIVO .xlsx PARA DESCARGAR');

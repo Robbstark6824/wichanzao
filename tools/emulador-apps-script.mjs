@@ -30,7 +30,7 @@ export class Hoja {
   setName(n) { this.nombre = n; return this; }
   setFrozenRows(n) { this.congeladas = n; return this; }
   autoResizeColumns() { return this; }
-  copiar() { const h = new Hoja(this.f, this.maxRows); h.dv = { ...this.dv }; h.formatos = { ...this.formatos }; h.fx = { ...this.fx }; h.nombre = this.nombre; return h; }
+  copiar() { const h = new Hoja(this.f, this.maxRows); h.dv = { ...this.dv }; h.formatos = { ...this.formatos }; h.fx = { ...this.fx }; h.nombre = this.nombre; h.tipada = this.tipada; h.rechaza = this.rechaza; return h; }
 }
 
 export class Rango {
@@ -38,11 +38,19 @@ export class Rango {
   cada(fn) { for (let i = 0; i < this.nr; i++) for (let j = 0; j < this.nc; j++) fn(this.r + i, this.c + j, i, j); }
   getValues() { const out = []; for (let i = 0; i < this.nr; i++) { const row = []; for (let j = 0; j < this.nc; j++) row.push(this.h.celda(this.r + i, this.c + j)); out.push(row); } return out; }
   getFormulas() { const out = []; for (let i = 0; i < this.nr; i++) { const row = []; for (let j = 0; j < this.nc; j++) row.push(this.h.fx[(this.r + i) + ',' + (this.c + j)] || ''); out.push(row); } return out; }
-  setValue(v) { this.h.poner(this.r, this.c, v); delete this.h.fx[this.r + ',' + this.c]; return this; }
-  setValues(m) { m.forEach((row, i) => row.forEach((v, j) => { this.h.poner(this.r + i, this.c + j, v); delete this.h.fx[(this.r + i) + ',' + (this.c + j)]; })); return this; }
+  setValue(v) { if (this.h.rechaza && this.h.rechaza(this.c, v)) throw new Error('valor no válido para la columna'); this.h.poner(this.r, this.c, v); delete this.h.fx[this.r + ',' + this.c]; return this; }
+  setValues(m) {
+    if (this.h.rechaza && m.some((row, i) => row.some((v, j) => this.h.rechaza(this.c + j, v)))) throw new Error('valor no válido para la columna');
+    m.forEach((row, i) => row.forEach((v, j) => { this.h.poner(this.r + i, this.c + j, v); delete this.h.fx[(this.r + i) + ',' + (this.c + j)]; })); return this;
+  }
   setFormulas(m) { m.forEach((row, i) => row.forEach((f, j) => { if (f) this.h.fx[(this.r + i) + ',' + (this.c + j)] = f; })); return this; }
   clearContent() { this.cada((r, c) => { if (this.h.f[r - 1] && this.h.f[r - 1].length >= c) this.h.f[r - 1][c - 1] = ''; delete this.h.fx[r + ',' + c]; }); return this; }
-  setNumberFormat(f) { this.cada((r, c) => { this.h.formatos[r + ',' + c] = f; }); return this; }
+  // Tabla con columnas tipadas (como LISTA_ESPERA_QX): h.tipada = true hace
+  // fallar setNumberFormat como Google; h.rechaza(col, valor) rechaza valores.
+  setNumberFormat(f) {
+    if (this.h.tipada) throw new Error('No puedes establecer el formato de los números de las celdas en una columna escrita.');
+    this.cada((r, c) => { this.h.formatos[r + ',' + c] = f; }); return this;
+  }
   setHorizontalAlignment() { return this; }
   setFontWeight() { return this; } setBackground() { return this; } setFontColor() { return this; }
   setWrap() { return this; } setVerticalAlignment() { return this; }

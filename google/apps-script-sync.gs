@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-exportar';
+var VERSION = '2026-09-29-exportar-2';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -1128,13 +1128,29 @@ function exportar_(body) {
     });
     // Columna por columna, y solo las que la app llena: una columna con
     // fórmulas no se pisa.
+    //
+    // LISTA_ESPERA_QX es una TABLA con columnas tipadas: Google no deja
+    // cambiarles el formato ("No puedes establecer el formato de los números
+    // de las celdas en una columna escrita") y puede rechazar un valor que no
+    // cuadre con el tipo. Por eso: formato de texto solo donde la
+    // sincronización ya lo pone (fechas y celular) y sin insistir si la
+    // columna no lo admite; y si el bloque falla, celda por celda, como hace
+    // upsert(), anotando las que la hoja no acepte en vez de tirar todo.
+    var rechazadas = [];
     if (valores.length) {
       for (var key in colMap) {
         if (!(key in valores[0])) continue;
         var col = colMap[key];
         var celdas = hoja.getRange(filaCab + 1, col, valores.length, 1);
-        if (esColumnaFecha(key) || key === 'celular' || key === 'dni' || key.indexOf('codigo') === 0) celdas.setNumberFormat('@');
-        celdas.setValues(valores.map(function (v) { return [v[key] == null ? '' : v[key]]; }));
+        if (esColumnaFecha(key) || key === 'celular') { try { celdas.setNumberFormat('@'); } catch (e) {} }
+        var columna = valores.map(function (v) { return [v[key] == null ? '' : v[key]]; });
+        try { celdas.setValues(columna); SpreadsheetApp.flush(); }
+        catch (errCol) {
+          for (var i = 0; i < columna.length; i++) {
+            try { hoja.getRange(filaCab + 1 + i, col).setValue(columna[i][0]); SpreadsheetApp.flush(); }
+            catch (errCelda) { rechazadas.push(key + ' (fila ' + (filaCab + 1 + i) + ') = "' + columna[i][0] + '"'); }
+          }
+        }
       }
     }
     SpreadsheetApp.flush();
@@ -1150,13 +1166,13 @@ function exportar_(body) {
       var blob = copia.getBlob();
       var b64 = Utilities.base64Encode(blob.getBytes());
       copia.setTrashed(true);
-      return { ok: true, salida: 'archivo', nombre: titulo + '.xlsx', base64: b64, pacientes: lista.length, sinFecha: sinFecha };
+      return { ok: true, salida: 'archivo', nombre: titulo + '.xlsx', base64: b64, pacientes: lista.length, sinFecha: sinFecha, rechazadas: rechazadas };
     }
 
     try { copia.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) {}
     try { copia.addEditor(correo); }
     catch (e) { throw new Error('no se pudo compartir con "' + correo + '": ¿es una cuenta de Google (Gmail)?'); }
-    return { ok: true, salida: 'link', url: ss.getUrl(), nombre: titulo, pacientes: lista.length, sinFecha: sinFecha };
+    return { ok: true, salida: 'link', url: ss.getUrl(), nombre: titulo, pacientes: lista.length, sinFecha: sinFecha, rechazadas: rechazadas };
   } catch (err) {
     // Una copia con datos de pacientes no se deja a medias.
     try { copia.setTrashed(true); } catch (e) {}
