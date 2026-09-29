@@ -103,6 +103,31 @@ ver('en el recorrido se ve "(NA)"', na.etiqueta === ' (NA)', na.etiqueta);
 ver('gineco sin EKG sigue sin fase 2', na.fase2Gin === false);
 ver('si después se marca Sí, deja de contar como NA', na.siMarcoHecho === false);
 
+console.log('\nVISTA DE LA LISTA Qx');
+const vista = await page.evaluate(() => {
+  const r = {};
+  isAdmin = false; QX_SERVICIO_VISTA = null;
+  worker = { id: 'x', name: 'X', servicio: 'cirugia_general', area: 'Interno de Medicina' };
+  r.cgComun = qxServicioVista();
+  qxServicioVistaPintar(); r.selectorComun = document.getElementById('qxServicioVistaWrap').style.display;
+  worker = { id: 'r', name: 'Admin', servicio: 'ginecologia', area: 'Interno de Medicina', is_admin: true };
+  try { localStorage.removeItem('qx_servicio_vista'); } catch (e) {}
+  QX_SERVICIO_VISTA = null;
+  r.adminInicio = qxServicioVista();
+  qxServicioVistaPintar();
+  r.selectorAdmin = document.getElementById('qxServicioVistaWrap').style.display;
+  r.opciones = [...document.querySelectorAll('#qxServicioVista option')].map(o => o.value).join('|');
+  QX_SERVICIO_VISTA = 'cirugia_general';
+  r.adminCG = qxServicioVista();
+  QX_SERVICIO_VISTA = null;
+  return r;
+});
+ver('un usuario común ve siempre su servicio', vista.cgComun === 'cirugia_general', vista.cgComun);
+ver('un usuario común no ve el selector', vista.selectorComun === 'none');
+ver('el admin empieza en su propio servicio', vista.adminInicio === 'ginecologia', vista.adminInicio);
+ver('el admin ve el selector con los dos servicios', vista.selectorAdmin !== 'none' && vista.opciones === 'ginecologia|cirugia_general', vista.opciones);
+ver('el admin puede pasar a Cirugía General', vista.adminCG === 'cirugia_general');
+
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {
   SERVICIOS_ACTIVOS = ['ginecologia']; populateServicioSelects();
@@ -118,7 +143,7 @@ ver('con un solo servicio activo no se muestra el selector', reg.uno === 'none',
 ver('con dos servicios activos sí se muestra', reg.dos !== 'none', reg.dos);
 ver('los roles cambian según el servicio', reg.areas === 'Interno de Medicina|Cirujano General', reg.areas);
 const activos = await page.evaluate(async () => { await cargarServiciosActivos(); return SERVICIOS_ACTIVOS.join('|'); });
-ver('la base dice que hoy solo gineco acepta cuentas', activos === 'ginecologia', activos);
+ver('la base dice que aceptan cuentas gineco y Cirugía General (encendida el 29/09)', activos === 'ginecologia|cirugia_general', activos);
 
 ver('\nsin errores de página', errores.length === 0, errores.join(' | '));
 await browser.close();

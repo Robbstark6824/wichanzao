@@ -1233,6 +1233,9 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <button class="qx-btn" style="padding:7px 12px;font-size:12px" onclick="qxNuevo()">+ Nuevo</button>
         </div>
         <div class="module-body">
+          <div id="qxServicioVistaWrap" style="display:none;margin:0 0 8px">
+            <select id="qxServicioVista" onchange="qxCambiarServicioVista(this.value)" aria-label="Servicio que se muestra" style="width:100%;padding:8px 10px;border-radius:10px;border:1.5px solid var(--bd);background:var(--s1);color:var(--t1);font:inherit;font-weight:700"></select>
+          </div>
           <div class="qx-viewtoggle">
             <button class="qx-vt active" id="qxVtLista" onclick="qxSetView('lista')">📋 Lista</button>
             <button class="qx-vt" id="qxVtCal" onclick="qxSetView('calendario')">📅 Calendario</button>
@@ -1578,7 +1581,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v270';
+var APP_VERSION = 'v271';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -7071,12 +7074,48 @@ var QX_AUTORES_OK = false;
 /* Carga completa desde la base. Con {silencioso:true} no borra la lista ni
    avisa si falla: se usa para reconciliar de fondo despues de un cambio, sin
    que la pantalla parpadee. */
+/* ===== Qué servicio muestra la lista Qx =====
+   Cada usuario ve el suyo (la base ya no le deja ver otro, sql/032). El admin
+   ve todos: sin esto su lista mezclaría los servicios y el próximo "ID
+   registro" de gineco saldría después del último de Cirugía General. Por eso
+   tiene un selector, y la lista, el calendario, los informes, el ID registro y
+   el servicio de un paciente nuevo salen del servicio elegido. */
+var QX_SERVICIO_VISTA = null;
+function qxServicioVista(){
+  var propio = (worker && worker.servicio && SERVICIOS[worker.servicio]) ? worker.servicio : 'ginecologia';
+  if (!(isAdmin || (worker && worker.is_admin))) return propio;
+  if (!QX_SERVICIO_VISTA){
+    try { QX_SERVICIO_VISTA = localStorage.getItem('qx_servicio_vista'); } catch(e){}
+    if (!SERVICIOS[QX_SERVICIO_VISTA]) QX_SERVICIO_VISTA = propio;
+  }
+  return QX_SERVICIO_VISTA;
+}
+function qxServicioVistaPintar(){
+  var wrap = document.getElementById('qxServicioVistaWrap'), sel = document.getElementById('qxServicioVista');
+  if (!wrap || !sel) return;
+  var admin = !!(isAdmin || (worker && worker.is_admin));
+  wrap.style.display = admin ? '' : 'none';
+  if (!admin) return;
+  var actual = qxServicioVista();
+  sel.innerHTML = SERVICIOS_KEYS.map(function(k){
+    return '<option value="'+k+'"'+(k===actual?' selected':'')+'>👑 Lista de '+SERVICIOS[k].label+'</option>';
+  }).join('');
+}
+function qxCambiarServicioVista(k){
+  if (!SERVICIOS[k]) return;
+  QX_SERVICIO_VISTA = k;
+  try { localStorage.setItem('qx_servicio_vista', k); } catch(e){}
+  QX_ACTUAL = null;
+  qxLoad();
+}
+
 async function qxLoad(opciones){
   var silencioso = !!(opciones && opciones.silencioso);
   var list = document.getElementById('qxList');
   if (!silencioso && list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
   qxRecetasCargar(!silencioso);   // de fondo: no retrasa la lista
-  var res = await sb.from('pacientes').select('*').order('created_at',{ascending:false}).limit(500);
+  qxServicioVistaPintar();
+  var res = await sb.from('pacientes').select('*').eq('servicio', qxServicioVista()).order('created_at',{ascending:false}).limit(500);
   if (res.error){
     registrarFalla('cargar pacientes', res.error);
     if (!silencioso) toast('No se pudo cargar la lista: ' + mensajeDeError(res.error), 'error');
@@ -8562,7 +8601,8 @@ function qxOrigenElegir(i){
 async function qxIdRegistroLibre(deseado){
   var n = parseInt(deseado, 10);
   if (!isNaN(n) && n > 0){
-    var r = await sb.from('pacientes').select('id').eq('id_registro', n).limit(1);
+    // La numeración es de cada servicio (cada uno tiene su hoja).
+    var r = await sb.from('pacientes').select('id').eq('servicio', qxServicioVista()).eq('id_registro', n).limit(1);
     if (!r.error && (!r.data || !r.data.length)) return n;   // sigue libre
   }
   return await qxProximoIdRegistro();
@@ -8571,7 +8611,7 @@ async function qxIdRegistroLibre(deseado){
 async function qxProximoIdRegistro(){
   var max = 0;
   try {
-    var res = await sb.from('pacientes').select('id_registro').order('id_registro',{ascending:false}).limit(500);
+    var res = await sb.from('pacientes').select('id_registro').eq('servicio', qxServicioVista()).order('id_registro',{ascending:false}).limit(500);
     if (!res.error && res.data){
       for (var i=0;i<res.data.length;i++){
         var n = parseInt(res.data[i] && res.data[i].id_registro, 10);
@@ -8587,7 +8627,7 @@ async function qxFormulario(p){
   var prev = document.querySelector('.qx-overlay'); if (prev) prev.remove();
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
-  QX_WIZ_SERVICIO = SERVICIOS[(p && p.servicio) || (worker && worker.servicio)] || SERVICIOS.ginecologia;
+  QX_WIZ_SERVICIO = SERVICIOS[(p && p.servicio) || qxServicioVista()] || SERVICIOS.ginecologia;
   QX_WIZ_DATOS = {};
   var campos = ['laboratorio_na','ekg_na','riesgo_qx_na','dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','tipo_receta','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop','fur','eco_fecha','eco_semanas','eco_dias'];
   if (p){
@@ -8907,11 +8947,12 @@ async function qxWizGuardar(){
     payload.estado = 'en_tramite';
     payload.created_by = await qxUsuarioId();   // quién la registró
     payload.origen = 'app';                     // y por qué vía
+    payload.servicio = qxServicioVista();       // el de la lista donde se registra
     payload.id_registro = await qxIdRegistroLibre(payload.id_registro);
     res = await sb.from('pacientes').insert(payload).select();
   }
   if (res.error){
-    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
+    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI en este servicio','error');
     else toast('No se pudo guardar: '+mensajeDeError(res.error),'error');
     return;
   }
@@ -11030,7 +11071,7 @@ async function qxGuardarEdicion(){
     lugar_cirugia: lugar||null, observacion: obs||null
   }).eq('id', p.id);
   if (res.error){
-    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI','error');
+    if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI en este servicio','error');
     else toast('No se pudo guardar: '+mensajeDeError(res.error),'error');
     return;
   }
