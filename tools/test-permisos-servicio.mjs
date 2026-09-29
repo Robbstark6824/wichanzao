@@ -21,6 +21,8 @@ const q = async (sql, p) => (await c.query(sql, p)).rows;
 const admin = (await q(`SELECT id FROM workers WHERE is_admin LIMIT 1`))[0].id;
 const comun = (await q(`SELECT id FROM workers WHERE NOT is_admin AND servicio = 'ginecologia' LIMIT 1`))[0].id;
 const totalGineco = +(await q(`SELECT count(*) FROM pacientes WHERE servicio = 'ginecologia'`))[0].count;
+const totalCG = +(await q(`SELECT count(*) FROM pacientes WHERE servicio = 'cirugia_general'`))[0].count;
+const total = totalGineco + totalCG;
 const unaGineco = (await q(`SELECT id FROM pacientes WHERE servicio = 'ginecologia' LIMIT 1`))[0].id;
 
 let fallas = 0;
@@ -49,11 +51,13 @@ async function como(uid, preparar, fn) {
 }
 const cuenta = r => r.error ? 'error: ' + r.error : +r.rows[0].count;
 
-console.log('Pacientes de ginecología en la base: ' + totalGineco + '\n');
+console.log('Pacientes en la base: ' + totalGineco + ' de ginecología, ' + totalCG + ' de Cirugía General\n');
 
 console.log('Usuario de GINECOLOGÍA (no admin)');
 await como(comun, null, async db => {
-  ver('ve a todas las pacientes de gineco', cuenta(await db(`SELECT count(*) FROM pacientes`)) === totalGineco);
+  ver('ve a todas las pacientes de gineco', cuenta(await db(`SELECT count(*) FROM pacientes WHERE servicio = 'ginecologia'`)) === totalGineco);
+  const otros = cuenta(await db(`SELECT count(*) FROM pacientes WHERE servicio <> 'ginecologia'`));
+  ver('NO ve pacientes de Cirugía General', otros === 0, otros);
   const u = await db(`UPDATE pacientes SET nombre = nombre WHERE id = $1`, [unaGineco]);
   ver('puede editar una paciente de gineco', !u.error && u.rowCount === 1, u.error || u.rowCount);
   const i = await db(`INSERT INTO pacientes (dni, nombre) VALUES ('00000001', 'PRUEBA NO GUARDAR') RETURNING servicio`);
@@ -66,8 +70,10 @@ await como(comun, null, async db => {
 
 console.log('\nUsuario de CIRUGÍA GENERAL');
 await como(comun, `UPDATE workers SET servicio = 'cirugia_general' WHERE id = $1`, async db => {
-  const n = cuenta(await db(`SELECT count(*) FROM pacientes`));
+  const n = cuenta(await db(`SELECT count(*) FROM pacientes WHERE servicio = 'ginecologia'`));
   ver('NO ve a ninguna paciente de gineco', n === 0, n);
+  const suyos = cuenta(await db(`SELECT count(*) FROM pacientes`));
+  ver('ve a las de su servicio', suyos === totalCG, suyos + ' de ' + totalCG);
   const u = await db(`UPDATE pacientes SET nombre = nombre WHERE id = $1`, [unaGineco]);
   ver('NO puede editar una paciente de gineco', !!u.error || u.rowCount === 0, u.error || u.rowCount + ' filas');
   const d = await db(`DELETE FROM pacientes WHERE id = $1`, [unaGineco]);
@@ -84,7 +90,7 @@ await como(comun, `UPDATE workers SET servicio = 'cirugia_general' WHERE id = $1
 
 console.log('\nJEFE DE INFORMACIÓN');
 await como(comun, `UPDATE workers SET rol = 'jefe_info' WHERE id = $1`, async db => {
-  ver('ve a todas las pacientes', cuenta(await db(`SELECT count(*) FROM pacientes`)) === totalGineco);
+  ver('ve a todas las pacientes (los dos servicios)', cuenta(await db(`SELECT count(*) FROM pacientes`)) === total, total);
   const u = await db(`UPDATE pacientes SET nombre = nombre WHERE id = $1`, [unaGineco]);
   ver('NO puede editar', !!u.error || u.rowCount === 0, u.error || u.rowCount + ' filas');
   const i = await db(`INSERT INTO pacientes (dni, nombre) VALUES ('00000004', 'PRUEBA NO GUARDAR')`);
@@ -117,7 +123,7 @@ await como(admin, null, async db => {
 
 console.log('\nADMIN');
 await como(admin, null, async db => {
-  ver('ve a todas las pacientes', cuenta(await db(`SELECT count(*) FROM pacientes`)) === totalGineco);
+  ver('ve a todas las pacientes (los dos servicios)', cuenta(await db(`SELECT count(*) FROM pacientes`)) === total, total);
   const u = await db(`UPDATE pacientes SET nombre = nombre WHERE id = $1`, [unaGineco]);
   ver('puede editar', !u.error && u.rowCount === 1, u.error || u.rowCount);
 });
