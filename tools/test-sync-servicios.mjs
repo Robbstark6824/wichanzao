@@ -93,7 +93,12 @@ function escenarioGineco(gs) {
 const V = escenarioGineco(GS_VIEJO), N = escenarioGineco(GS_NUEVO);
 ver('las 3 hojas quedan idénticas celda por celda', foto(V.e) === foto(N.e));
 ver('mismas respuestas a la app (' + V.resp.length + ' escrituras + 1 borrado)', igual(V.resp, N.resp));
-ver('el reconciliador informa lo mismo', igual(V.rec, N.rec), JSON.stringify({ altas: N.rec.altas.length, rellenos: N.rec.rellenos.length, empujadas: N.rec.empujadas, errores: N.rec.errores }));
+// El informe cambió a propósito (sql/…, 29/09): las discrepancias falsas de
+// "5231" vs "00005231" ya no se cuentan y hay una lista de posibles
+// duplicados. Todo lo demás, igual; y solo pueden DESAPARECER discrepancias.
+const sinInforme = r => { const c = JSON.parse(JSON.stringify(r)); delete c.discrepancias; delete c.duplicados; return c; };
+ver('el reconciliador informa lo mismo (altas, rellenos, empujadas, errores)', igual(sinInforme(V.rec), sinInforme(N.rec)), JSON.stringify({ altas: N.rec.altas.length, rellenos: N.rec.rellenos.length, empujadas: N.rec.empujadas, errores: N.rec.errores }));
+ver('discrepancias: solo desaparecen las falsas, no aparecen nuevas', (N.rec.discrepancias || []).every(d => (V.rec.discrepancias || []).indexOf(d) >= 0), (V.rec.discrepancias || []).length + ' → ' + (N.rec.discrepancias || []).length);
 const quitarServ = ops => ops.map(o => o[0] === 'alta' ? ['alta', Object.fromEntries(Object.entries(o[1]).filter(([k]) => k !== 'servicio'))] : o);
 ver('mismas altas y rellenos en la base (salvo servicio explícito)', igual(quitarServ(V.ops), quitarServ(N.ops)), N.ops.length + ' operaciones');
 ver('las altas nuevas entran como ginecología', N.ops.filter(o => o[0] === 'alta').every(o => o[1].servicio === 'ginecologia'));
@@ -135,7 +140,28 @@ console.log('\n2) CIRUGÍA GENERAL');
   ver('borrar sin servicio (app vieja) = ginecología, como antes', y.ok === true && 'oficial' in y);
 }
 {
-  console.log('\n   Reconciliador con Cirugía General APAGADA');
+  console.log('\n   Posible duplicado en la hoja (el caso Zavaleta: DNI con un dígito cambiado)');
+{
+  const G0 = cargar(GS_NUEVO, { hojas: {}, db: [], activos: [] });
+  const e = estadoInicial(G0, { activos: ['ginecologia'] });
+  const G = cargar(GS_NUEVO, e);
+  const hA = e.hojas['1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU|HOSPITAL LAREDO'];
+  const cab = hA.f.findIndex(r => r.some(v => String(v).trim() === 'ID registro')) + 1;
+  const col = n => hA.f[cab - 1].findIndex(v => String(v).trim() === n) + 1;
+  const real = e.db[0];
+  const typo = String(real.dni).slice(0, -1) + ((+String(real.dni).slice(-1) + 1) % 10);
+  let fila = hA.getLastRow() + 1;
+  hA.poner(fila, col('DNI'), typo); hA.poner(fila, col('Apellidos y nombres completos'), real.nombre); hA.poner(fila, col('ID registro'), 901);
+  fila++;
+  hA.poner(fila, col('DNI'), '77777777'); hA.poner(fila, col('Apellidos y nombres completos'), 'PERSONA REALMENTE NUEVA'); hA.poner(fila, col('ID registro'), 902);
+  const rec = G.reconciliar_(false);
+  const altas = G.ops.filter(o => o[0] === 'alta').map(o => o[1].dni);
+  ver('el DNI mal tipeado NO se importa como paciente nueva', altas.indexOf(typo) < 0, altas.join(','));
+  ver('queda como posible duplicado, con el motivo', rec.duplicados.length === 1 && /un dígito/.test(rec.duplicados[0]) && /mismo nombre/.test(rec.duplicados[0]), rec.duplicados[0]);
+  ver('una persona realmente nueva sí se importa', altas.indexOf('77777777') >= 0);
+}
+
+console.log('\n   Reconciliador con Cirugía General APAGADA');
   const G0 = cargar(GS_NUEVO, { hojas: {}, db: [], activos: [] });
   const e = estadoInicial(G0, { activos: ['ginecologia'] });
   const G = cargar(GS_NUEVO, e);

@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-exportar-4';
+var VERSION = '2026-09-29-duplicados';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -906,6 +906,7 @@ function doPost(e) {
         altas: res.altas.length,
         rellenos: res.rellenos.length,
         discrepancias: res.discrepancias,
+        duplicados: res.duplicados,
         empujadas: res.empujadas,
         errores: res.errores
       });
@@ -1658,6 +1659,48 @@ function serviciosActivos_() {
   return ['ginecologia'];
 }
 
+/** "5231" y "00005231", "2" y "02": el mismo número. Sheets se come los ceros
+ *  de la izquierda, así que la hoja y la app nunca coincidían en el texto y la
+ *  lista de discrepancias se llenaba de avisos falsos que tapaban los reales.
+ *  Solo afecta a qué se REPORTA; no se escribe nada distinto. */
+function mismoNumero_(a, b) {
+  var x = String(a == null ? '' : a).trim(), y = String(b == null ? '' : b).trim();
+  return /^\d+$/.test(x) && /^\d+$/.test(y) && Number(x) === Number(y);
+}
+
+/** Nombre para comparar: sin tildes ni signos y con las palabras ordenadas
+ *  ("Zavaleta Aguilar, Patricia" = "PATRICIA ZAVALETA AGUILAR"). */
+function nombreComparable_(s) {
+  return norm(s).replace(/[^a-zñ ]/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
+}
+
+/** ¿Dos DNI de igual largo que difieren en un solo dígito? (un error de tipeo) */
+function dniParecido_(a, b) {
+  a = String(a || '').trim(); b = String(b || '').trim();
+  if (!a || !b || a === b || a.length !== b.length) return false;
+  var d = 0;
+  for (var i = 0; i < a.length; i++) if (a[i] !== b[i] && ++d > 1) return false;
+  return d === 1;
+}
+
+/** Una fila NUEVA de la hoja (su DNI no está en la app) que se parece a alguien
+ *  que ya está: mismo nombre, misma historia clínica o DNI a un dígito. Así
+ *  entró una paciente dos veces (DNI mal tipeado en la hoja). No se importa: se
+ *  informa como posible duplicado para que una persona decida. Si de verdad es
+ *  otra persona, se la registra en la app (el registro también avisa y deja
+ *  seguir) y desde ahí la hoja ya la encuentra por su DNI. */
+function posibleDuplicado_(campos, porDni) {
+  var nom = nombreComparable_(campos.nombre), hcl = String(campos.hcl || '').trim();
+  for (var k in porDni) {
+    var p = porDni[k], motivo = [];
+    if (nom && nombreComparable_(p.nombre) === nom) motivo.push('mismo nombre');
+    if (hcl && String(p.hcl || '').trim() === hcl) motivo.push('misma HC');
+    if (dniParecido_(p.dni, campos.dni)) motivo.push('DNI a un dígito');
+    if (motivo.length) return { paciente: p, motivo: motivo.join(' + ') };
+  }
+  return null;
+}
+
 /** Campos que la hoja llenaría y en la app están vacíos, y los que chocan. */
 function compararConApp_(app, campos) {
   var patch = {}, choques = [];
@@ -1672,7 +1715,7 @@ function compararConApp_(app, campos) {
     if (k === 'diagnostico' && esGestante) continue;
     var actual = app[k];
     if (actual === null || actual === undefined || actual === '' || actual === false) { patch[k] = nuevo; continue; }
-    if (String(actual) !== String(nuevo)) choques.push(k + ': app «' + actual + '» != hoja «' + nuevo + '»');
+    if (String(actual) !== String(nuevo) && !mismoNumero_(actual, nuevo)) choques.push(k + ': app «' + actual + '» != hoja «' + nuevo + '»');
   }
   return { patch: patch, choques: choques };
 }
@@ -1681,7 +1724,7 @@ function compararConApp_(app, campos) {
 function reconciliar_(simular) {
   var props = PropertiesService.getScriptProperties();
   var t0 = new Date();
-  var r = { altas: [], rellenos: [], discrepancias: [], empujadas: 0, errores: [], simulado: !!simular };
+  var r = { altas: [], rellenos: [], discrepancias: [], duplicados: [], empujadas: 0, errores: [], simulado: !!simular };
 
   var pacientes = sbFetch_('get', 'pacientes?select=*');
 
@@ -1712,6 +1755,12 @@ function reconciliar_(simular) {
         var app = porDni[f.dni];
 
         if (!app) {
+          var dup = posibleDuplicado_(f.campos, porDni);
+          if (dup) {
+            r.duplicados.push((f.campos.nombre || f.dni) + ' (DNI ' + f.dni + ', ' + h.etiqueta + ' fila ' + f.fila + ') se parece a '
+              + (dup.paciente.nombre || '') + ' (DNI ' + dup.paciente.dni + ') — ' + dup.motivo + '. No se importó.');
+            return;
+          }
           var fila = {};
           for (var k in f.campos) if (f.campos[k] !== null && f.campos[k] !== undefined) fila[k] = f.campos[k];
           if (cfg.importarTalCual) {
@@ -1797,6 +1846,8 @@ function informe_(r) {
   L.push('Huecos rellenados en la app: ' + r.rellenos.length);
   r.rellenos.forEach(function (x) { L.push('   ~ ' + x); });
   L.push('Fichas empujadas a las dos hojas: ' + r.empujadas);
+  L.push('Posibles duplicados (NO se importaron, decide una persona): ' + r.duplicados.length);
+  r.duplicados.forEach(function (x) { L.push('   ? ' + x); });
   L.push('Discrepancias (NO se tocó nada, decide una persona): ' + r.discrepancias.length);
   r.discrepancias.forEach(function (x) { L.push('   ! ' + x); });
   if (r.errores.length) {

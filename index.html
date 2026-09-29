@@ -1666,7 +1666,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v277';
+var APP_VERSION = 'v278';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -7184,7 +7184,23 @@ function qxGestacionHtml(p){
 }
 function qxFaseTsHtml(ts){ return ts ? '<div style="font-size:10px;color:var(--t3);margin-top:4px">⏱ Completada '+qxFmtTs(ts)+'</div>' : ''; }
 function qxResumenPendientes(p){ var it=qxChecklistItems(p); var faltan=[]; for(var i=0;i<it.length;i++){ if(!it[i].h && !it[i].ok) faltan.push(it[i].label); } return faltan.length===0?'Ninguno':faltan.join(', '); }
-async function qxMarcarFases(p){ var patch={}; var now=new Date().toISOString(); if(qxFase2Completa(p)&&!p.fecha_fase2)patch.fecha_fase2=now; if(qxFase3Completa(p)&&!p.fecha_fase3)patch.fecha_fase3=now; if(qxFase4Completa(p)&&!p.fecha_fase4)patch.fecha_fase4=now; if(Object.keys(patch).length===0)return; var res=await sb.from('pacientes').update(patch).eq('id',p.id); if(!res.error){ for(var k in patch)p[k]=patch[k]; } }
+/* Guarda cambios en la ficha de un paciente y COMPRUEBA que se guardaron.
+   Si la base rechaza un UPDATE por permisos (RLS), no devuelve error: devuelve
+   0 filas, y la app creía que había guardado. Acá eso se convierte en un
+   error con un mensaje claro, que los que llaman ya muestran. Nunca lanza. */
+async function qxUpdPaciente(id, patch){
+  try {
+    var r = await sb.from('pacientes').update(patch).eq('id', id).select('id');
+    if (r.error) return r;
+    if (!r.data || !r.data.length)
+      return { data: null, error: { message: 'No se guardó: no tenés permiso sobre esta ficha o ya no existe. Actualizá la lista.' } };
+    return r;
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+async function qxMarcarFases(p){ var patch={}; var now=new Date().toISOString(); if(qxFase2Completa(p)&&!p.fecha_fase2)patch.fecha_fase2=now; if(qxFase3Completa(p)&&!p.fecha_fase3)patch.fecha_fase3=now; if(qxFase4Completa(p)&&!p.fecha_fase4)patch.fecha_fase4=now; if(Object.keys(patch).length===0)return; var res=await qxUpdPaciente(p.id, patch); if(!res.error){ for(var k in patch)p[k]=patch[k]; } }
 
 /* UUID de quien está usando la app. Es lo que se firma en created_by, para que
    nunca vuelva a haber una paciente que apareció y nadie sabe de dónde. */
@@ -7577,6 +7593,12 @@ async function qxSyncFromSheet(btn){
     if (out.altas)    partes.push(out.altas + (out.altas===1 ? ' paciente nueva del Excel' : ' pacientes nuevas del Excel'));
     if (out.rellenos) partes.push(out.rellenos + (out.rellenos===1 ? ' ficha completada' : ' fichas completadas'));
     toast(partes.length ? 'Sincronizado: ' + partes.join(' · ') : 'Todo al día: nada que traer', 'success');
+    // Filas nuevas del Excel que se parecen a alguien ya registrado (DNI a un
+    // dígito, mismo nombre o misma HC): no se importaron, decide una persona.
+    if (out.duplicados && out.duplicados.length){
+      toast('⚠ Posible paciente repetida en el Excel (no se importó): ' + out.duplicados.join(' | ')
+        + ' — Corregí el DNI en la hoja o, si es otra persona, registrala en la app.', 'error');
+    }
     // Las discrepancias no se tocan a propósito: las decide una persona.
     if (out.discrepancias && out.discrepancias.length){
       toast('Revisar, la hoja y la app no coinciden: ' + out.discrepancias.join(' | '), 'error');
@@ -7956,7 +7978,7 @@ async function qxSellarRiesgos(p){
   else if (!ambos && p.fecha_riesgos) nuevo = null;
   else return;
   try {
-    var r = await sb.from('pacientes').update({ fecha_riesgos: nuevo }).eq('id', p.id);
+    var r = await qxUpdPaciente(p.id, { fecha_riesgos: nuevo });
     if (!r.error) p.fecha_riesgos = nuevo;
   } catch(e){}
 }
@@ -8926,6 +8948,7 @@ async function qxFormulario(p){
   var prev = document.querySelector('.qx-overlay'); if (prev) prev.remove();
   QX_WIZ_PASO = 1;
   QX_WIZ_EDIT_ID = p ? p.id : null;
+  QX_WIZ_DNI_REVISADO = null;
   QX_WIZ_SERVICIO = SERVICIOS[(p && p.servicio) || qxServicioVista()] || SERVICIOS.ginecologia;
   QX_WIZ_DATOS = {};
   var campos = ['laboratorio_na','ekg_na','riesgo_qx_na','dni','nombre','hcl','telefono','id_registro','edad','sexo','diagnostico','cie10','tipo_seguro','procedimiento','tipo_anestesia','nivel_cirugia','tipo_receta','fecha_captacion','establecimiento_destino','codigo_destino','red_destino','especialidad','establecimiento_origen','codigo_origen','provincia_origen','distrito_origen','interno_medicina','doctor','cie10_secundario','diagnostico_secundario','cie10_tercero','diagnostico_tercero','codigo_procedimiento','orden_intervencion','fecha_primera_evaluacion','aplica_imagenes','fecha_imagenes','fecha_evaluacion_preoperatoria','fecha_cita_cardiologia','fecha_cita_anestesiologia','laboratorio_completo','ekg','riesgo_qx','riesgo_anestesiologico','fecha_fase2','fecha_examen1','fecha_examen2','fecha_cirugia','turno','motivo_espera','detalle_motivo_espera','tipo_examen3','fecha_examen3','resultado_preop','fur','eco_fecha','eco_semanas','eco_dias'];
@@ -9176,9 +9199,60 @@ function qxWizGuardarPaso(){
   }
 }
 
+/* ===== DNI: formato y posibles duplicados =====
+   Así entró una paciente dos veces: el mismo nombre, historia y celular, con
+   un dígito del DNI cambiado. Se revisa contra la lista del servicio (ya está
+   cargada, no cuesta red) al dejar el paso 1 y al guardar, en un paciente
+   nuevo o si se le cambia el DNI. Una vez que la persona confirma, no se
+   vuelve a preguntar por el mismo DNI. */
+var QX_WIZ_DNI_REVISADO = null;
+
+function qxNormNombre(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zñ ]/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
+}
+function qxDniParecido(a, b){
+  a = String(a || ''); b = String(b || '');
+  if (!a || !b || a === b || a.length !== b.length) return false;
+  var d = 0;
+  for (var i = 0; i < a.length; i++) if (a[i] !== b[i] && ++d > 1) return false;
+  return d === 1;
+}
+
+function qxWizValidarDni(){
+  var d = QX_WIZ_DATOS;
+  d.dni = String(d.dni || '').replace(/[\s.\-]/g, '');
+  var previo = (QX_WIZ_EDIT_ID && QX_ACTUAL) ? String(QX_ACTUAL.dni || '') : null;
+  if (previo !== null && previo === d.dni) return true;          // edición sin cambiar el DNI
+  if (QX_WIZ_DNI_REVISADO === d.dni + '|' + qxNormNombre(d.nombre)) return true;
+  if (!/^\d{8}$/.test(d.dni) && !confirm('El DNI «' + d.dni + '» no tiene 8 números.\n\nSi es carné de extranjería u otro documento, tocá Aceptar para seguir.\nSi es un error, tocá Cancelar y corregilo.')) return false;
+
+  var otros = (QX_PACIENTES || []).filter(function(p){ return p.id !== QX_WIZ_EDIT_ID; });
+  var igual = otros.filter(function(p){ return String(p.dni) === d.dni; })[0];
+  if (igual){ toast('Ya está registrado ' + (igual.nombre || '') + ' con el DNI ' + d.dni + ' en este servicio.', 'error'); return false; }
+
+  var nom = qxNormNombre(d.nombre), hcl = String(d.hcl || '').trim();
+  var parecido = otros.filter(function(p){
+    return (nom && qxNormNombre(p.nombre) === nom)
+      || (hcl && String(p.hcl || '').trim() === hcl)
+      || qxDniParecido(p.dni, d.dni);
+  })[0];
+  if (parecido){
+    var porque = [];
+    if (nom && qxNormNombre(parecido.nombre) === nom) porque.push('el mismo nombre');
+    if (hcl && String(parecido.hcl || '').trim() === hcl) porque.push('la misma historia clínica');
+    if (qxDniParecido(parecido.dni, d.dni)) porque.push('un DNI que difiere en un solo dígito');
+    if (!confirm('⚠ ¿Ya está registrada?\n\n' + (parecido.nombre || '') + ' · DNI ' + (parecido.dni || '—') + (parecido.hcl ? ' · HC ' + parecido.hcl : '')
+      + '\ntiene ' + porque.join(' y ') + '.\n\nSi es OTRA persona, tocá Aceptar para seguir.\nSi es la misma, tocá Cancelar y buscala en la lista.')) return false;
+  }
+  QX_WIZ_DNI_REVISADO = d.dni + '|' + nom;
+  return true;
+}
+
 function qxWizSiguiente(){
   qxWizGuardarPaso();
   if (QX_WIZ_PASO===1 && (!QX_WIZ_DATOS.dni || !QX_WIZ_DATOS.nombre)){ toast('DNI y nombre son obligatorios','error'); return; }
+  if (QX_WIZ_PASO===1 && !qxWizValidarDni()) return;
   QX_WIZ_PASO++;
   qxWizRender();
 }
@@ -9193,6 +9267,7 @@ async function qxWizGuardar(){
   qxWizGuardarPaso();
   var d = QX_WIZ_DATOS;
   if (!d.dni || !d.nombre){ toast('DNI y nombre son obligatorios','error'); QX_WIZ_PASO=1; qxWizRender(); return; }
+  if (!qxWizValidarDni()){ QX_WIZ_PASO=1; qxWizRender(); return; }
   var payload = {
     dni: d.dni, nombre: d.nombre, hcl: d.hcl||null, telefono: qxNormalizarTel(d.telefono||'')||null,
     id_registro: d.id_registro||null,
@@ -9241,7 +9316,7 @@ async function qxWizGuardar(){
   }
   var res;
   if (QX_WIZ_EDIT_ID){
-    res = await sb.from('pacientes').update(payload).eq('id', QX_WIZ_EDIT_ID);
+    res = await qxUpdPaciente(QX_WIZ_EDIT_ID, payload);
   } else {
     payload.estado = 'en_tramite';
     payload.created_by = await qxUsuarioId();   // quién la registró
@@ -9499,7 +9574,7 @@ async function qxRecetaFaltantesBorrarOK(){
   var p = QX_ACTUAL; if (!p) return;
   try { await sb.storage.from(SB_BUCKET).remove([qxRecetaObjeto(p, '-2')]); } catch (e){}
   try {
-    await sb.from('pacientes').update({ receta_faltantes: null, receta_faltantes_at: null }).eq('id', p.id);
+    await qxUpdPaciente(p.id, { receta_faltantes: null, receta_faltantes_at: null });
     p.receta_faltantes = null; p.receta_faltantes_at = null;
     if (QX_ACTUAL && QX_ACTUAL.id === p.id){ QX_ACTUAL.receta_faltantes = null; QX_ACTUAL.receta_faltantes_at = null; }
   } catch (e){ toast('No se pudo borrar: ' + mensajeDeError(e), 'error'); return; }
@@ -10258,7 +10333,7 @@ async function qxRecetaGenerarDesde(edit){
 
   var ahora = new Date().toISOString();
   try {
-    await sb.from('pacientes').update({ receta_generada_at: ahora }).eq('id', p.id);
+    await qxUpdPaciente(p.id, { receta_generada_at: ahora });
     p.receta_generada_at = ahora;
     if (QX_ACTUAL && QX_ACTUAL.id === p.id) QX_ACTUAL.receta_generada_at = ahora;
   } catch (e){}
@@ -10302,7 +10377,7 @@ async function qxRecetaGenerarFaltantes(){
 
   var ahora = new Date().toISOString();
   try {
-    await sb.from('pacientes').update({ receta_faltantes: items, receta_faltantes_at: ahora }).eq('id', p.id);
+    await qxUpdPaciente(p.id, { receta_faltantes: items, receta_faltantes_at: ahora });
     p.receta_faltantes = items; p.receta_faltantes_at = ahora;
     if (QX_ACTUAL && QX_ACTUAL.id === p.id){ QX_ACTUAL.receta_faltantes = items; QX_ACTUAL.receta_faltantes_at = ahora; }
   } catch (e){}
@@ -10918,7 +10993,7 @@ async function qxToggle(campo){
   if (campo==='riesgo_anestesiologico' && val && !qxHecho(p,'riesgo_qx')){ toast('Requiere riesgo quirúrgico marcado','error'); return; }
   if ((campo==='hcl_hospitalizacion'||campo==='consentimientos'||campo==='solicitud_sala_dejada'||campo==='recetas_entregadas') && val && !qxFase3Completa(p)){ toast('Requiere Fase 3 completa','error'); return; }
   var patch = {}; patch[campo] = val;
-  var res = await sb.from('pacientes').update(patch).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, patch);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p[campo] = val;
   await qxMarcarFases(p);
@@ -10937,7 +11012,7 @@ async function qxSetCampo(campo,valor,requiereFase2){
   if (requiereFase2 && !qxFase2Completa(p)){ toast('Requiere Fase 2 completa','error'); return; }
   var v = valor === '' ? null : valor;
   var patch = {}; patch[campo] = v;
-  var res = await sb.from('pacientes').update(patch).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, patch);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p[campo] = v;
   await qxMarcarFases(p);
@@ -10957,7 +11032,7 @@ async function qxProgramar(){
   // motivo guardado, ese motivo ya no aplica y no debe seguir viajando a las
   // hojas junto a un "Programado" que lo contradice.
   var patchProg = {fecha_cirugia:fecha, turno:turno, fecha_fase5:new Date().toISOString(), motivo_espera:null, detalle_motivo_espera:null};
-  var res = await sb.from('pacientes').update(patchProg).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, patchProg);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var kProg in patchProg) p[kProg] = patchProg[kProg];
   if (qxFase4Completa(p)){
@@ -11059,7 +11134,7 @@ async function qxHospitalizar(){
   if (p.estado!=='programada'){ toast('Requiere estado "Programada"','error'); return; }
   var cama = valorDe('qxCama').trim();
   if (!cama){ toast('Indica la cama','error'); return; }
-  var res = await sb.from('pacientes').update({cama_hospitalizacion:cama, fecha_hospitalizacion:new Date().toISOString()}).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, {cama_hospitalizacion:cama, fecha_hospitalizacion:new Date().toISOString()});
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   p.cama_hospitalizacion = cama;
   // Si el paso a "hospitalizada" no prospera, la cama ya está en la base: se
@@ -11111,7 +11186,7 @@ async function qxConfirmarOp(){
     tipo_cierre: 'Cirugía realizada', motivo_cierre: motivo,
     lugar_cirugia: lugar||null, observacion: obs||null
   };
-  var res = await sb.from('pacientes').update(patch).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, patch);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var k in patch) p[k] = patch[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
@@ -11168,7 +11243,7 @@ async function qxConfirmarSusp(){
   if (!fechaSusp){ toast('Indica la fecha de la suspensión','error'); return; }
   var p = QX_ACTUAL;
   var patchS = {motivo_suspension:motivo, detalle_suspension:detalle||null, fecha_suspension:fechaSusp, referencia_hospital:null};
-  var res = await sb.from('pacientes').update(patchS).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, patchS);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var k in patchS) p[k] = patchS[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
@@ -11191,7 +11266,7 @@ async function qxConfirmarRef(){
     tipo_cierre: 'Salida de lista sin cirugía', motivo_cierre: motivoCierre,
     fecha_cierre: fecha
   };
-  var res = await sb.from('pacientes').update(patchR).eq('id',p.id);
+  var res = await qxUpdPaciente(p.id, patchR);
   if (res.error){ toast('No se pudo guardar: '+mensajeDeError(res.error),'error'); return; }
   for (var k in patchR) p[k] = patchR[k];
   var ov = document.querySelector('.qx-overlay'); if (ov) ov.remove();
@@ -11371,7 +11446,7 @@ async function qxGuardarEdicion(){
   var orden = valorDe('qxEOrden').trim();
   var lugar = valorDe('qxELugar').trim();
   var obs = valorDe('qxEObs').trim();
-  var res = await sb.from('pacientes').update({
+  var res = await qxUpdPaciente(p.id, {
     dni:dni, nombre:nombre, hcl:hcl||null, telefono:tel||null,
     edad: isNaN(edad) ? null : edad, sexo: sexo||null, diagnostico: dx||null,
     cie10: cie10||null, procedimiento: proc||null, tipo_seguro: seguro||null,
@@ -11382,7 +11457,7 @@ async function qxGuardarEdicion(){
     aplica_imagenes: img||null, fecha_imagenes: fimg||null,
     fecha_evaluacion_preoperatoria: fevalpre||null, orden_intervencion: orden||null,
     lugar_cirugia: lugar||null, observacion: obs||null
-  }).eq('id', p.id);
+  });
   if (res.error){
     if (res.error.message && res.error.message.indexOf('duplicate')!==-1) toast('Ya existe un paciente con ese DNI en este servicio','error');
     else toast('No se pudo guardar: '+mensajeDeError(res.error),'error');

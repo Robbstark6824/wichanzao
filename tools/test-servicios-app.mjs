@@ -201,6 +201,54 @@ ver('una receta nueva de Cirugía General no choca con las de gineco (cg_…)', 
 ver('al volver a gineco, vuelven sus recetas', rx.ginecoDespues === rx.ginecoAntes, rx.ginecoDespues);
 ver('en gineco las claves nuevas siguen igual que antes', rx.claveGineco.indexOf('cg_') !== 0, rx.claveGineco);
 
+console.log('\nDNI Y POSIBLES DUPLICADOS');
+const dni = await page.evaluate(async () => {
+  const r = {}, preguntas = [];
+  const c0 = window.confirm, t0 = window.toast;
+  let respuesta = false;
+  window.confirm = m => { preguntas.push(m); return respuesta; };
+  let aviso = ''; window.toast = m => { aviso = m; };
+  QX_PACIENTES = [{ id: 'a', dni: '48019378', nombre: 'Zavaleta Aguilar Patricia', hcl: '6541' }];
+  QX_WIZ_EDIT_ID = null; QX_ACTUAL = null;
+  const probar = (d, resp) => { QX_WIZ_DNI_REVISADO = null; preguntas.length = 0; aviso = ''; respuesta = resp; QX_WIZ_DATOS = Object.assign({}, d); return qxWizValidarDni(); };
+  r.parecido = qxDniParecido('48019378', '48019398');
+  r.noParecido = qxDniParecido('48019378', '12345678') || qxDniParecido('4801937', '48019378');
+  r.nombreOrden = qxNormNombre('Patricia ZAVALETA  aguilar') === qxNormNombre('Zavaleta Aguilar, Patricia');
+  r.zavaletaCancela = probar({ dni: '48019398', nombre: 'Zavaleta Aguilar Patricia' }, false) === false && /un solo dígito/.test(preguntas[0] || '') && /mismo nombre/.test(preguntas[0] || '');
+  r.zavaletaOtraPersona = probar({ dni: '48019398', nombre: 'Zavaleta Aguilar Patricia' }, true) === true;
+  preguntas.length = 0; r.noRepregunta = qxWizValidarDni() === true && preguntas.length === 0;
+  r.mismoDni = probar({ dni: '48019378', nombre: 'Otra Persona' }, true) === false && /Ya está registrad/.test(aviso);
+  r.dniCorto = probar({ dni: '4801937', nombre: 'Nueva Persona' }, false) === false && /8 números/.test(preguntas[0] || '');
+  r.limpia = (probar({ dni: '71 234.567-8', nombre: 'Nueva Persona' }, true), QX_WIZ_DATOS.dni === '712345678');
+  r.normal = probar({ dni: '71234567', nombre: 'Nueva Persona' }, false) === true && preguntas.length === 0;
+  QX_WIZ_EDIT_ID = 'a'; QX_ACTUAL = QX_PACIENTES[0];
+  r.edicionSinCambio = probar({ dni: '48019378', nombre: 'Zavaleta Aguilar Patricia', hcl: '6541' }, false) === true && preguntas.length === 0;
+  QX_WIZ_EDIT_ID = null; QX_ACTUAL = null;
+
+  // Guardado que la base rechaza en silencio (0 filas)
+  const sb0 = sb;
+  sb = { from: () => ({ update: () => ({ eq: () => ({ select: async () => ({ data: [], error: null }) }) }) }) };
+  const g = await qxUpdPaciente('x', { nombre: 'y' });
+  r.silencioso = !!(g.error && /No se guardó/.test(g.error.message));
+  sb = { from: () => ({ update: () => ({ eq: () => ({ select: async () => ({ data: [{ id: 'x' }], error: null }) }) }) }) };
+  r.normalOk = !(await qxUpdPaciente('x', { nombre: 'y' })).error;
+  sb = sb0;
+  window.confirm = c0; window.toast = t0;
+  return r;
+});
+ver('48019378 y 48019398 se reconocen como DNI parecidos', dni.parecido && !dni.noParecido);
+ver('el nombre se compara sin importar orden, tildes ni comas', dni.nombreOrden);
+ver('caso Zavaleta: avisa (mismo nombre + un dígito) y deja revisar', dni.zavaletaCancela);
+ver('si es otra persona, deja seguir', dni.zavaletaOtraPersona);
+ver('confirmado una vez, no vuelve a preguntar', dni.noRepregunta);
+ver('el mismo DNI ya registrado: no deja', dni.mismoDni);
+ver('DNI que no tiene 8 números: pregunta', dni.dniCorto);
+ver('quita espacios, puntos y guiones del DNI', dni.limpia);
+ver('un DNI normal y sin parecidos pasa sin preguntas', dni.normal);
+ver('editar sin cambiar el DNI no pregunta nada', dni.edicionSinCambio);
+ver('guardado rechazado en silencio por la base: ahora da error claro', dni.silencioso);
+ver('guardado normal: sin error', dni.normalOk);
+
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {
   SERVICIOS_ACTIVOS = ['ginecologia']; populateServicioSelects();
