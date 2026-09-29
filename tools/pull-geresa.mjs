@@ -336,7 +336,7 @@ console.log('');
 if (DRY) { console.log('(MODO --dry: no se escribió nada.)\n'); process.exit(0); }
 
 // ---------- ejecutar ----------
-const res = await fetch(`${URL_BASE}/rest/v1/pacientes?on_conflict=dni`, {
+const res = await fetch(`${URL_BASE}/rest/v1/pacientes?on_conflict=dni,servicio`, {
   method: 'POST',
   headers: { ...headers, Prefer: 'resolution=merge-duplicates,return=representation' },
   body: JSON.stringify(payload),

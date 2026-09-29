@@ -230,14 +230,14 @@ if (DRY) {
 const headers = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
 // 1) borrar pacientes actuales
-const existRes = await fetch(`${URL_BASE}/rest/v1/pacientes?select=dni`, { headers });
+const existRes = await fetch(`${URL_BASE}/rest/v1/pacientes?select=dni&servicio=eq.ginecologia`, { headers });
 const exist = existRes.ok ? await existRes.json() : [];
-const delRes = await fetch(`${URL_BASE}/rest/v1/pacientes?dni=not.is.null`, { method: 'DELETE', headers });
+const delRes = await fetch(`${URL_BASE}/rest/v1/pacientes?dni=not.is.null&servicio=eq.ginecologia`, { method: 'DELETE', headers });
 console.log(`\nBorrados: ${exist.length} pacientes existentes (status ${delRes.status}).`);
 
 // 2) insertar los de la hoja (upsert por DNI)
 const body = pacientes.map(({ _esFake, ...rest }) => rest);
-const insRes = await fetch(`${URL_BASE}/rest/v1/pacientes?on_conflict=dni`, {
+const insRes = await fetch(`${URL_BASE}/rest/v1/pacientes?on_conflict=dni,servicio`, {
   method: 'POST',
   headers: { ...headers, Prefer: 'resolution=merge-duplicates,return=representation' },
   body: JSON.stringify(body),

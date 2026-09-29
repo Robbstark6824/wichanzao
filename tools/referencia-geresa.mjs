@@ -80,6 +80,23 @@ if (GUARDAR) {
 if (!fs.existsSync(ARCHIVO)) throw new Error('No hay referencia. Primero: node tools/referencia-geresa.mjs --guardar');
 const ref = JSON.parse(fs.readFileSync(ARCHIVO, 'utf8'));
 const G = cargarGs(ref.hoy);
+
+// --base-actual: en vez de las filas guardadas, usa las de la base de ahora
+// (tal como las manda hoy la app, con las columnas nuevas que tengan). Solo se
+// comparan las que nadie editó desde la referencia (mismo updated_at).
+if (args.includes('--base-actual')) {
+  const KEY = fs.readFileSync('.env', 'utf8').match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1];
+  const resp = await fetch('https://xqphjvppfgwabfruyjae.supabase.co/rest/v1/pacientes?select=*', {
+    headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
+  });
+  if (!resp.ok) throw new Error('La base respondió ' + resp.status);
+  const actuales = {}; (await resp.json()).forEach(p => { actuales[p.id] = p; });
+  const antes = ref.entradas.length;
+  ref.entradas = ref.entradas
+    .filter(p => actuales[p.id] && actuales[p.id].updated_at === p.updated_at)
+    .map(p => actuales[p.id]);
+  console.log('Filas actuales de la base: ' + ref.entradas.length + ' sin editar desde la referencia (de ' + antes + ').');
+}
 const ahora = calcular(G, ref.entradas);
 
 const difs = [];
