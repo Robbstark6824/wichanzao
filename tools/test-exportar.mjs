@@ -120,6 +120,28 @@ console.log('\nCOPIA FIEL DEL ARCHIVO GERESA (link)');
   ver('no va a la papelera', !e.copias[0].papelera);
 }
 
+console.log('\nPRESENTACIÓN (alineación y códigos de 8 dígitos)');
+{
+  const { e, G, cab } = estadoNuevo();
+  // Pacientes con los códigos tal como llegan de las hojas: "0", "5231", "5209".
+  e.db.push(Object.assign({}, DB[0], { id: 'cg-a', dni: '70000001', nombre: 'CG CODIGO CERO', servicio: 'cirugia_general', fecha_cirugia: '2026-06-01', codigo_destino: '0', establecimiento_origen: 'HOSPITAL DISTRITAL DE EL PORVENIR SANTA ISABEL - TRUJILLO - EL PORVENIR', codigo_origen: '5209' }));
+  e.db.push(Object.assign({}, DB[0], { id: 'gi-b', dni: '70000002', nombre: 'GINE CODIGO CORTO', servicio: 'ginecologia', fecha_cirugia: '2026-06-02', codigo_destino: '5231' }));
+  const antes = JSON.stringify(e.db.filter(p => p.id === 'cg-a' || p.id === 'gi-b'));
+  const r = G.post(Object.assign({}, base, { jwt: 'jwt-jefa' }));
+  const L = e.hojas[e.copias[0].id + '|LISTA_ESPERA_QX'];
+  const fila = nombre => L.f.find(x => x.includes(nombre)) || [];
+  const col = k => cab.indexOf(k);
+  ver('exporta', r.ok === true, r.error);
+  ver('"0" en código destino → 00005231', fila('CG CODIGO CERO')[col('codigo unico destino')] === '00005231', fila('CG CODIGO CERO')[col('codigo unico destino')]);
+  ver('"5209" en código origen → 00005209', fila('CG CODIGO CERO')[col('codigo unico origen')] === '00005209', fila('CG CODIGO CERO')[col('codigo unico origen')]);
+  ver('"5231" → 00005231', fila('GINE CODIGO CORTO')[col('codigo unico destino')] === '00005231', fila('GINE CODIGO CORTO')[col('codigo unico destino')]);
+  ver('en la app no cambió nada', JSON.stringify(e.db.filter(p => p.id === 'cg-a' || p.id === 'gi-b')) === antes);
+  const cDni = col('dni') + 1, cNom = col('apellidos y nombres completos') + 1, cId = 1;
+  ver('ID y DNI centrados', L.alin['4,' + cId] === 'center' && L.alin['4,' + cDni] === 'center');
+  ver('nombres a la izquierda', L.alin['4,' + cNom] === 'left', L.alin['4,' + cNom]);
+  ver('el encabezado no se toca', !L.alin['3,' + cDni]);
+}
+
 console.log('\nTABLA CON COLUMNAS TIPADAS (como el LISTA_ESPERA_QX real)');
 {
   const { e, G, cab } = estadoNuevo();

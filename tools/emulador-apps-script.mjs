@@ -18,7 +18,7 @@ export class Hoja {
   constructor(filas, maxRows) {
     this.sid = SIG_ID++;
     this.f = filas.map(r => r.slice());
-    this.dv = {}; this.formatos = {}; this.fx = {};
+    this.dv = {}; this.formatos = {}; this.fx = {}; this.alin = {};
     this.maxRows = Math.max(maxRows || 0, this.f.length);
   }
   getLastRow() { for (let i = this.f.length - 1; i >= 0; i--) if (this.f[i].some(v => v !== '' && v != null)) return i + 1; return 0; }
@@ -54,7 +54,7 @@ export class Rango {
     if (this.h.tipada) throw new Error('No puedes establecer el formato de los números de las celdas en una columna escrita.');
     this.cada((r, c) => { this.h.formatos[r + ',' + c] = f; }); return this;
   }
-  setHorizontalAlignment() { return this; }
+  setHorizontalAlignment(a) { this.cada((r, c) => { this.h.alin[r + ',' + c] = a; }); return this; }
   setFontWeight() { return this; } setBackground() { return this; } setFontColor() { return this; }
   setWrap() { return this; } setVerticalAlignment() { return this; }
   setDataValidation(regla) { for (let i = 0; i < this.nr; i++) { const k = (this.r + i) + ',' + this.c; if (regla) this.h.dv[k] = regla; else delete this.h.dv[k]; } return this; }

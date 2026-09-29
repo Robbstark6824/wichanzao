@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-exportar-3';
+var VERSION = '2026-09-29-exportar-4';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -1124,6 +1124,7 @@ function exportar_(body) {
     var valores = lista.map(function (p, i) {
       var v = buildValuesNew(p);
       v['id registro'] = i + 1;
+      normalizarCodigos_(v);
       return v;
     });
     // Columna por columna, y solo las que la app llena: una columna con
@@ -1154,6 +1155,7 @@ function exportar_(body) {
       }
     }
     SpreadsheetApp.flush();
+    alinearDatos_(hoja, filaCab, valores.length, colMap);
 
     soloListaEspera_(ss, hoja, filaCab);
 
@@ -1179,6 +1181,39 @@ function exportar_(body) {
     // Una copia con datos de pacientes no se deja a medias.
     try { copia.setTrashed(true); } catch (e) {}
     throw err;
+  }
+}
+
+/** Solo en la EXPORTACIÓN: los códigos RENIPRESS van con sus 8 dígitos
+ *  (00005231), como los pide la GERESA. En las hojas conviven "5231",
+ *  "00005231" y hasta un "0" (la hoja de Cirugía General lo tenía en
+ *  "Código único destino"): el "0" no es un código y se toma el de Laredo.
+ *  Lo que se guarda en la app y lo que va a las hojas de cada servicio no
+ *  cambia. */
+function normalizarCodigos_(v) {
+  ['codigo unico destino', 'codigo unico origen'].forEach(function (k) {
+    var c = String(v[k] == null ? '' : v[k]).trim();
+    if (!/^\d+$/.test(c)) return;
+    if (+c === 0) { v[k] = k === 'codigo unico destino' ? CONSTANTES.codigoDestino : ''; return; }
+    v[k] = ('00000000' + String(+c)).slice(-8);
+  });
+}
+
+/** Alineación pareja en las filas exportadas. Sin esto cada celda quedaba
+ *  como la traía el archivo original: los DNI que Google toma por número a la
+ *  derecha y los que toma por texto a la izquierda. Texto a la izquierda;
+ *  columnas cortas (ID, DNI, códigos, edad, género, fechas, celular…)
+ *  centradas. */
+function alinearDatos_(hoja, filaCab, n, colMap) {
+  if (!n) return;
+  var nCol = hoja.getLastColumn();
+  try { hoja.getRange(filaCab + 1, 1, n, nCol).setHorizontalAlignment('left').setVerticalAlignment('middle'); } catch (e) {}
+  var cortas = ['id registro', 'dni', 'edad', 'genero', 'celular', 'n° historia clinica', 'codigo unico destino',
+    'codigo unico origen', 'cie-10 principal', 'cie-10 secundario', 'cie-10 tercero', 'codigo procedimiento',
+    'nivel de cirugia', 'n° orden de intervencion', '¿aplica diagnostico por imagenes?', 'tipo de seguro'];
+  for (var key in colMap) {
+    if (cortas.indexOf(key) < 0 && !esColumnaFecha(key)) continue;
+    try { hoja.getRange(filaCab + 1, colMap[key], n, 1).setHorizontalAlignment('center'); } catch (e) {}
   }
 }
 
