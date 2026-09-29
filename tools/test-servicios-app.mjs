@@ -169,6 +169,38 @@ ver('"Mes pasado" pone el mes anterior completo', jefe.mesPasado === iso(mp) + '
 ver('con "archivo" no pide correo', jefe.correoOculto);
 ver('fecha de registro = captación, si no 1.ª evaluación (igual que el Apps Script)', jefe.fechaReg === '2026-03-01|2026-04-02|', jefe.fechaReg);
 
+console.log('\nRECETAS SEGÚN LA LISTA QUE SE MIRA (admin de gineco mirando Cirugía General)');
+const rx = await page.evaluate(async () => {
+  const r = {};
+  isAdmin = true;
+  worker = { id: 'r', name: 'Admin', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'medico', is_admin: true };
+  QX_SERVICIO_VISTA = null; try { localStorage.removeItem('qx_servicio_vista'); } catch (e) {}
+  QX_RECETAS_SERVICIO = null;
+  qxRecetasSegunServicio();
+  r.ginecoAntes = QX_RECETA_TIPOS.length;
+  QX_SERVICIO_VISTA = 'cirugia_general';
+  qxRecetasSegunServicio();
+  r.cgTipos = QX_RECETA_TIPOS.length;
+  r.cgFilas = qxRxFilas().length;
+  let el = document.getElementById('qxRecetasVista');
+  if (!el) { el = document.createElement('div'); el.id = 'qxRecetasVista'; document.body.appendChild(el); }
+  qxRecetasVistaRender();
+  r.cgMensaje = el.textContent;
+  r.clave = qxRxClaveNueva('Legrado');
+  QX_SERVICIO_VISTA = 'ginecologia';
+  qxRecetasSegunServicio();
+  r.ginecoDespues = QX_RECETA_TIPOS.length;
+  r.claveGineco = qxRxClaveNueva('Algo nuevo');
+  isAdmin = false; QX_SERVICIO_VISTA = null;
+  return r;
+});
+ver('en la lista de gineco: sus recetas', rx.ginecoAntes > 0, rx.ginecoAntes);
+ver('en la lista de Cirugía General: NINGUNA receta de gineco', rx.cgTipos === 0 && rx.cgFilas === 0, rx.cgTipos + '/' + rx.cgFilas);
+ver('dice que todavía no hay recetas de Cirugía General', /Todavía no hay recetas de Cirugía General/.test(rx.cgMensaje), rx.cgMensaje.slice(0, 80));
+ver('una receta nueva de Cirugía General no choca con las de gineco (cg_…)', rx.clave === 'cg_legrado', rx.clave);
+ver('al volver a gineco, vuelven sus recetas', rx.ginecoDespues === rx.ginecoAntes, rx.ginecoDespues);
+ver('en gineco las claves nuevas siguen igual que antes', rx.claveGineco.indexOf('cg_') !== 0, rx.claveGineco);
+
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {
   SERVICIOS_ACTIVOS = ['ginecologia']; populateServicioSelects();

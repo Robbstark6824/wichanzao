@@ -1666,7 +1666,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v276';
+var APP_VERSION = 'v277';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -6892,10 +6892,13 @@ var QX_RECETAS_SERVICIO = null;     // servicio al que corresponden las recetas 
    base, gineco vuelve a las embebidas y los demás se quedan sin recetas (mejor
    ninguna que las de otro servicio). */
 function qxRecetasSegunServicio(){
-  var serv = (worker && worker.servicio) || 'ginecologia';
+  // El servicio de la lista que se está mirando: para un usuario común es el
+  // suyo; el admin/jefe puede estar mirando Cirugía General siendo de gineco,
+  // y ahí no deben aparecer las recetas de gineco.
+  var serv = qxServicioVista();
   if (QX_RECETAS_SERVICIO === serv) return;
   if (QX_RECETAS_SERVICIO !== null || serv !== 'ginecologia') {
-    var obst = servicioActual().obstetricia;
+    var obst = !!(SERVICIOS[serv] || {}).obstetricia;
     QX_RECETA_TIPOS = obst ? QX_RECETAS_EMBEBIDAS.tipos : [];
     QX_RECETAS = obst ? QX_RECETAS_EMBEBIDAS.recs : {};
     QX_RECETA_ARCHIVADAS = {};
@@ -6910,14 +6913,22 @@ function qxRecetasSegunServicio(){
    —sin red, o la tabla aún no se creó— se queda con lo que ya tenía, sin avisar. */
 async function qxRecetasCargar(forzar){
   if (!sb) return;
+  qxRecetasSegunServicio();
   if (!forzar && Date.now() - QX_RECETAS_LEIDAS_AT < 5 * 60 * 1000) return;
   QX_RECETAS_LEIDAS_AT = Date.now();
+  var serv = qxServicioVista();
   try {
     var r = await sb.from('recetas_plantillas')
-      .select('clave,titulo,nombre_largo,insumos,anestesia,es_parto,activa,orden,version,updated_at,updated_by');
-    if (r.error || !r.data || !qxRecetasAplicar(r.data)) return;
+      .select('clave,titulo,nombre_largo,insumos,anestesia,es_parto,activa,orden,version,updated_at,updated_by')
+      .eq('servicio', serv);
+    if (r.error || !r.data) return;
+    if (serv !== qxServicioVista()) return;   // cambiaron de lista mientras se leía
+    if (!r.data.length && !(SERVICIOS[serv] || {}).obstetricia) {
+      // Un servicio sin recetas todavía: vacío, no las de otro servicio.
+      QX_RECETA_TIPOS = []; QX_RECETAS = {}; QX_RECETA_ARCHIVADAS = {}; QX_RECETAS_FILAS = [];
+    } else if (!qxRecetasAplicar(r.data)) return;
     QX_RECETAS_ORIGEN = 'base';
-    QX_RECETAS_SERVICIO = (worker && worker.servicio) || 'ginecologia';
+    QX_RECETAS_SERVICIO = serv;
     try { localStorage.setItem(QX_RECETAS_LS, JSON.stringify({ at: Date.now(), servicio: QX_RECETAS_SERVICIO, filas: r.data })); } catch (e) {}
     if (QX_VIEW === 'recetas') qxRecetasVistaRender();
   } catch (e) {}
@@ -7391,7 +7402,9 @@ function qxCambiarServicioVista(k){
   QX_SERVICIO_VISTA = k;
   try { localStorage.setItem('qx_servicio_vista', k); } catch(e){}
   QX_ACTUAL = null;
-  qxLoad();
+  qxRecetasSegunServicio();
+  if (QX_VIEW === 'recetas') qxRecetasVistaRender();
+  qxLoad();   // también relee las recetas de ese servicio
 }
 
 async function qxLoad(opciones){
@@ -9658,7 +9671,12 @@ function qxRecetasVistaRender(){
     if (p.tipo_receta && !qxEstadoTerminal(p.estado)) usos[p.tipo_receta] = (usos[p.tipo_receta] || 0) + 1;
   });
   var h = '';
-  if (QX_RECETAS_ORIGEN !== 'base'){
+  var servVista = SERVICIOS[qxServicioVista()] || SERVICIOS.ginecologia;
+  if (!todas.length){
+    h += '<div class="qx-rx-aviso">Todavía no hay recetas de <b>' + qxEsc(servVista.label) + '</b>.'
+      + (qxRxPuedeEditar() ? ' Creá la primera con «＋ Nueva receta».' : '') + '</div>';
+  }
+  if (QX_RECETAS_ORIGEN !== 'base' && todas.length){
     h += '<div class="qx-rx-aviso">' + (QX_RECETAS_ORIGEN === 'copia'
       ? 'Sin conexión con la base: se muestra la última copia guardada en este equipo.'
       : 'Todavía no se pudo leer la base: se muestran las recetas que trae la app.')
@@ -9801,7 +9819,8 @@ function qxRxEditorRender(enfocar){
     // Lista del bebé: en las 8 originales no se pregunta (solo CST y CST + AQV
     // la llevan). En las creadas en la app decide quien la crea; una copia de
     // una cesárea viene marcada.
-    + (QX_RX_ORIGINALES.indexOf(e.clave) < 0
+    + (!(SERVICIOS[qxServicioVista()] || {}).obstetricia ? ''
+      : QX_RX_ORIGINALES.indexOf(e.clave) < 0
         ? '<label class="qx-rx-check"><input type="checkbox"' + (e.es_parto ? ' checked' : '') + ' onchange="QX_RX_ED.es_parto=this.checked">'
           + '<span><b>Lista del bebé</b> — marcar solo si es cesárea o parto: la lista de útiles que se manda por WhatsApp suma documentos y lo del recién nacido. La receta (PDF) no cambia.</span></label>'
         : (e.es_parto ? '<div class="qx-rx-parto">👶 Cesárea: la lista de útiles por WhatsApp suma documentos y lo del bebé.</div>' : ''))
@@ -9967,7 +9986,12 @@ function qxRxSlug(titulo){
 }
 /* Clave interna (única, no cambia nunca) a partir del nombre. */
 function qxRxClaveNueva(titulo){
-  var base = qxRxSlug(titulo);
+  // La clave es única en toda la base y cada servicio solo ve sus recetas: un
+  // "Legrado" de Cirugía General chocaría con el de gineco sin saberlo. Fuera
+  // de gineco lleva prefijo (cg_…); no se ve, el nombre es el que se escribe.
+  var vista = qxServicioVista();
+  var pref = vista === 'ginecologia' ? '' : vista.split('_').map(function(w){ return w.charAt(0); }).join('') + '_';
+  var base = pref + qxRxSlug(titulo);
   var usadas = {};
   qxRxFilas().forEach(function(f){ usadas[f.clave] = 1; });
   var k = base, n = 2;
@@ -9981,7 +10005,7 @@ async function qxRxCrear(fila){
   qxRxFilas().forEach(function(f){ if ((f.orden || 0) + 10 > orden) orden = (f.orden || 0) + 10; });
   var r;
   for (var intento = 0; intento < 2; intento++){
-    var nueva = Object.assign({ clave: qxRxClaveNueva(fila.titulo), orden: orden, activa: true }, fila);
+    var nueva = Object.assign({ clave: qxRxClaveNueva(fila.titulo), orden: orden, activa: true, servicio: qxServicioVista() }, fila);
     try {
       r = await sb.from('recetas_plantillas').insert(nueva).select('clave,version');
     } catch (err) { r = { error: err }; }
