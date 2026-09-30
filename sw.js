@@ -1,4 +1,4 @@
-var CACHE_NAME = 'sghl-v278';
+var CACHE_NAME = 'sghl-v279';
 var PRECACHE = [
   './manifest.json',
   './manifest-pc.json',
@@ -47,21 +47,31 @@ self.addEventListener('fetch', function(e) {
   // sw.js nunca desde caché: la app lo lee para saber si hay una versión nueva.
   if (url.pathname.endsWith('/sw.js')) return;
 
-  // HTML files & navigation: ALWAYS network first, cache fallback for offline only
+  // HTML: primero la red, pero sin quedarse esperándola. Antes solo se usaba
+  // la copia guardada si NO había red; con la red lenta del hospital la app
+  // tardaba varios segundos en blanco aunque ya estuviera en el teléfono.
+  // Ahora, si la red no respondió en 3 s y hay copia, se abre la copia; la
+  // descarga sigue y deja guardada la versión nueva para la próxima vez (y el
+  // aviso de "nueva versión" de la app la ofrece). Con buena red, igual que antes.
   if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/')) {
-    e.respondWith(
-      fetch(e.request).then(function(response) {
-        if (response && response.status === 200) {
-          var clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(e.request, clone);
-          });
-        }
-        return response;
-      }).catch(function() {
-        return caches.match(e.request);
-      })
-    );
+    var red = fetch(e.request).then(function(response) {
+      if (response && response.status === 200) {
+        var clone = response.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+      }
+      return response;
+    });
+    e.respondWith(new Promise(function(resolve) {
+      var listo = false;
+      function dar(r) { if (!listo && r) { listo = true; clearTimeout(tope); resolve(r); } }
+      var tope = setTimeout(function() { caches.match(e.request).then(dar); }, 3000);
+      red.then(dar).catch(function() {
+        caches.match(e.request).then(function(c) {
+          if (!listo) { listo = true; clearTimeout(tope); resolve(c || Response.error()); }
+        });
+      });
+    }));
+    e.waitUntil(red.catch(function() {}));   // que la descarga termine y se guarde
     return;
   }
 

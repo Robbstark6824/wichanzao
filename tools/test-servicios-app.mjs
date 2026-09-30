@@ -249,6 +249,56 @@ ver('editar sin cambiar el DNI no pregunta nada', dni.edicionSinCambio);
 ver('guardado rechazado en silencio por la base: ahora da error claro', dni.silencioso);
 ver('guardado normal: sin error', dni.normalOk);
 
+console.log('\nBORRADOR DEL REGISTRO Y INDICADOR DE SINCRONIZACIÓN');
+const bor = await page.evaluate(async () => {
+  const r = {}, c0 = window.confirm; let resp = true, pregunto = '';
+  window.confirm = m => { pregunto = m; return resp; };
+  const espera = ms => new Promise(x => setTimeout(x, ms));
+  isAdmin = false; QX_SERVICIO_VISTA = null;
+  worker = { id: 'interna-1', name: 'Interna', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'medico' };
+  localStorage.removeItem('qx_borrador_registro');
+  await qxFormulario(null);
+  const dni = document.getElementById('qxW_dni'), nom = document.getElementById('qxW_nombre');
+  dni.value = '71112223'; nom.value = 'Paciente A Medias'; nom.dispatchEvent(new Event('input', { bubbles: true }));
+  await espera(1000);
+  const b = JSON.parse(localStorage.getItem('qx_borrador_registro') || 'null');
+  r.guardado = !!b && b.datos.nombre === 'Paciente A Medias' && b.usuario === 'interna-1';
+  document.querySelector('.qx-overlay').remove();                     // se "cierra la app"
+  resp = true; pregunto = '';
+  await qxFormulario(null);
+  r.ofrece = /registro sin terminar/.test(pregunto) && /Paciente A Medias/.test(pregunto);
+  r.retoma = QX_WIZ_DATOS.nombre === 'Paciente A Medias' && QX_WIZ_DATOS.dni === '71112223';
+  document.querySelector('.qx-overlay').remove();
+  worker = { id: 'otra-persona', name: 'Otra', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'medico' };
+  pregunto = ''; await qxFormulario(null);
+  r.otroUsuarioNo = pregunto === '';
+  document.querySelector('.qx-overlay').remove();
+  worker = { id: 'interna-1', name: 'Interna', servicio: 'ginecologia', area: 'Interno de Medicina', rol: 'medico' };
+  resp = false; await qxFormulario(null);
+  r.descarta = !localStorage.getItem('qx_borrador_registro') && !QX_WIZ_DATOS.nombre;
+  document.querySelector('.qx-overlay').remove();
+  window.confirm = c0;
+
+  // indicador
+  let el = document.getElementById('qxSyncEstado');
+  const txt = () => el.textContent;
+  QX_SYNC.enviando = 1; qxSyncPintar(); r.enviando = txt();
+  QX_SYNC.enviando = 0; QX_SYNC.fallos = 1; qxSyncPintar(); r.fallo = txt();
+  QX_SYNC.fallos = 0; QX_SYNC.ultimaPasada = new Date(Date.now() - 4 * 60000).toISOString(); qxSyncPintar(); r.alDia = txt();
+  QX_SYNC.ultimaPasada = new Date(Date.now() - 2 * 3600000).toISOString(); qxSyncPintar(); r.caido = txt();
+  QX_SYNC.ultimaPasada = null; qxSyncPintar();
+  return r;
+});
+ver('borrador: se guarda mientras se escribe', bor.guardado);
+ver('borrador: al volver, ofrece continuarlo', bor.ofrece);
+ver('borrador: al aceptar, recupera lo escrito', bor.retoma);
+ver('borrador: a otro usuario del mismo equipo no se le ofrece', bor.otroUsuarioNo);
+ver('borrador: "empezar de cero" lo descarta', bor.descarta);
+ver('indicador: enviando', /Enviando al Excel/.test(bor.enviando), bor.enviando);
+ver('indicador: cambio sin confirmar', /1 cambio sin confirmar/.test(bor.fallo), bor.fallo);
+ver('indicador: Excel al día hace 4 min', /Excel al día · hace 4 min/.test(bor.alDia), bor.alDia);
+ver('indicador: avisa si la sincronización automática se cayó', /no corre hace 2 h/.test(bor.caido), bor.caido);
+
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {
   SERVICIOS_ACTIVOS = ['ginecologia']; populateServicioSelects();

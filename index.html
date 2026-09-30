@@ -30,7 +30,8 @@
 </script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>window.__cdnFallo = {};</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="window.__cdnFallo.jspdf=1"></script>
+<!-- jsPDF (~350 KB) ya no se carga antes de mostrar la app: se trae en segundo
+     plano al rato de abrirla (asegurarJsPdf) y cada PDF lo espera antes de usarlo. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__cdnFallo.supabase=1"></script>
 <style>
 :root{
@@ -1239,7 +1240,8 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
           <div class="mh-breadcrumb">
             <a onclick="showModule('dashboard')">Inicio</a> / Programación Quirúrgica
           </div>
-          <button class="qx-btn" style="margin-left:auto;padding:7px 12px;font-size:12px" onclick="qxSyncFromSheet(this)" title="Traer cambios manuales de la hoja GERESA">↻ Sincronizar</button>
+          <span id="qxSyncEstado" role="status" onclick="qxSyncFromSheet(document.getElementById('qxBtnSync'))" style="display:none;margin-left:auto;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45vw"></span>
+          <button class="qx-btn" id="qxBtnSync" style="margin-left:8px;padding:7px 12px;font-size:12px" onclick="qxSyncFromSheet(this)" title="Traer cambios manuales de la hoja GERESA">↻ Sincronizar</button>
           <button class="qx-btn" style="padding:7px 12px;font-size:12px" onclick="qxNuevo()">+ Nuevo</button>
         </div>
         <div class="module-body">
@@ -1666,7 +1668,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v278';
+var APP_VERSION = 'v279';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -1747,21 +1749,29 @@ var CDN_REPUESTO = {
   supabase: 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js',
   jspdf:    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
 };
+var CDN_JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
 function haySupabase() { return !!(window.supabase && window.supabase.createClient); }
 function hayJsPdf()    { return !!(window.jspdf && window.jspdf.jsPDF); }
 
-/* jsPDF solo hace falta al exportar o imprimir, asi que se reintenta recien en
-   ese momento: no vale la pena demorar la apertura de la app por el. */
+/* jsPDF solo hace falta al exportar o imprimir. Ya no se carga al abrir (eran
+   ~350 KB antes de mostrar nada): se trae en segundo plano al rato de arrancar
+   (precargarJsPdf) y cada PDF lo espera aquí. El service worker lo guarda, así
+   que después sirve sin conexión. Primero cdnjs; si falla, jsDelivr. */
 var _jspdfIntento = null;
 function asegurarJsPdf() {
   if (hayJsPdf()) return Promise.resolve(true);
   if (!_jspdfIntento) {
-    _jspdfIntento = cargarScriptExterno(CDN_REPUESTO.jspdf)
+    _jspdfIntento = cargarScriptExterno(CDN_JSPDF)
+      .catch(function() { return cargarScriptExterno(CDN_REPUESTO.jspdf); })
       .then(function() { return hayJsPdf(); })
       .catch(function() { _jspdfIntento = null; return false; });
   }
   return _jspdfIntento;
+}
+function precargarJsPdf() {
+  if (hayJsPdf() || navigator.onLine === false) return;
+  setTimeout(function(){ asegurarJsPdf(); }, 4000);
 }
 
 /* Devuelve el constructor de jsPDF, o lanza un error que se entiende leido.
@@ -2109,6 +2119,7 @@ function iniciarApp() {
   }
   populateServicioSelects();
   cargarServiciosActivos();
+  precargarJsPdf();
   migrateOldProfile();
   loadWorker();
 
@@ -7429,6 +7440,7 @@ async function qxLoad(opciones){
   if (!silencioso && list) list.innerHTML = '<div class="qx-empty"><div class="ic">⏳</div>Cargando…</div>';
   qxRecetasCargar(!silencioso);   // de fondo: no retrasa la lista
   qxServicioVistaPintar();
+  qxSyncEstadoLeer(false);   // de fondo
   var res = await sb.from('pacientes').select('*').eq('servicio', qxServicioVista()).order('created_at',{ascending:false}).limit(500);
   if (res.error){
     registrarFalla('cargar pacientes', res.error);
@@ -7498,7 +7510,7 @@ function qxOrigenTexto(p){
 /* Antes esto fallaba en silencio: si Google rechazaba la escritura, la app
    igual decía "guardado" y las hojas quedaban desactualizadas sin que nadie se
    enterara. Pasó durante días. Ahora avisa. */
-async function qxSyncSheets(id){
+async function _qxSyncSheets(id){
   if (!QX_SHEET_URL || !id) return;
   var r;
   try {
@@ -7516,13 +7528,13 @@ async function qxSyncSheets(id){
     texto = await resp.text();
   } catch(e) {
     // Sin red, o el navegador no dejó leer la respuesta. La app sigue andando
-    // y el dato ya está en la base: no se afirma nada que no se pueda probar.
-    return;
+    // y el dato ya está en la base: la pasada automática lo lleva al Excel.
+    return false;
   }
 
   var out = null;
   try { out = JSON.parse(texto); } catch(e) {}
-  if (!out) return;   // respuesta ilegible: mejor callar que dar un falso error
+  if (!out) return false;   // respuesta ilegible: sin toast, pero cuenta como no confirmado
 
   if (out.ok === false) {
     var motivo = (out.error)
@@ -7530,14 +7542,82 @@ async function qxSyncSheets(id){
       || (out.oficial && out.oficial.error)
       || 'la hoja rechazó la escritura';
     toast('Guardado en la app, pero NO en las hojas: ' + motivo, 'error');
-    return;
+    return false;
   }
   // Celdas sueltas que alguna hoja rechazó por su validación de datos.
   var rech = []
     .concat((out.antiguo && out.antiguo.rechazadas) || [])
     .concat((out.oficial && out.oficial.rechazadas) || []);
   if (rech.length) toast('La hoja no aceptó: ' + rech.join(' · '), 'error');
+  return true;
 }
+
+/* ===== Indicador "¿el Excel está al día?" =====
+   Antes solo había noticias si algo fallaba. Ahora, junto a ↻ Sincronizar:
+     ⏳ Enviando al Excel…                  (un cambio de este equipo en camino)
+     ⚠ 1 cambio sin confirmar en el Excel  (no llegó; la pasada automática de
+                                           cada 15 min lo lleva igual)
+     ✓ Excel al día · hace 4 min          (última pasada automática)
+     ⚠ La sincronización automática no corre hace 2 h   (el disparador se cayó)
+   Tocarlo sincroniza ahora. */
+var QX_SYNC = { enviando: 0, fallos: 0, ultimaPasada: null, leidaAt: 0 };
+
+async function qxSyncSheets(id){
+  QX_SYNC.enviando++; qxSyncPintar();
+  var r;
+  try { r = await _qxSyncSheets(id); }
+  finally {
+    QX_SYNC.enviando--;
+    if (r === true && QX_SYNC.fallos) QX_SYNC.fallos--;
+    if (r === false) QX_SYNC.fallos++;
+    qxSyncPintar();
+  }
+  return r;
+}
+
+function qxHaceTexto(ms){
+  var m = Math.round(ms / 60000);
+  if (m < 1) return 'hace un momento';
+  if (m < 60) return 'hace ' + m + ' min';
+  var h = Math.round(m / 60);
+  return h < 48 ? 'hace ' + h + ' h' : 'hace ' + Math.round(h / 24) + ' días';
+}
+
+function qxSyncPintar(){
+  var el = document.getElementById('qxSyncEstado'); if (!el) return;
+  var txt, color = 'var(--t3)';
+  if (QX_SYNC.enviando) { txt = '⏳ Enviando al Excel…'; }
+  else if (QX_SYNC.fallos) {
+    txt = '⚠ ' + QX_SYNC.fallos + (QX_SYNC.fallos === 1 ? ' cambio' : ' cambios') + ' sin confirmar en el Excel';
+    color = 'var(--yodo)';
+    el.title = 'No llegó la confirmación. El dato ya está guardado en la app y la sincronización automática (cada 15 min) lo lleva al Excel. Tocá para sincronizar ahora.';
+  } else if (QX_SYNC.ultimaPasada) {
+    var hace = Date.now() - new Date(QX_SYNC.ultimaPasada).getTime();
+    if (hace > 45 * 60000) { txt = '⚠ La sincronización automática no corre ' + qxHaceTexto(hace); color = 'var(--alarma)'; }
+    else { txt = '✓ Excel al día · ' + qxHaceTexto(hace); color = 'var(--tl)'; }
+    el.title = 'Última pasada de la sincronización automática con las hojas GERESA. Tocá para sincronizar ahora.';
+  } else { txt = ''; }
+  el.textContent = txt;
+  el.style.color = color;
+  el.style.display = txt ? '' : 'none';
+}
+
+// Pregunta al Apps Script cuándo fue su última pasada (sin datos de pacientes).
+async function qxSyncEstadoLeer(forzar){
+  if (!QX_SHEET_URL) return;
+  if (!forzar && Date.now() - QX_SYNC.leidaAt < 4 * 60000) { qxSyncPintar(); return; }
+  QX_SYNC.leidaAt = Date.now();
+  try {
+    var resp = await fetchConTiempo(QX_SHEET_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'estado' })
+    }, 15000);
+    var out = JSON.parse(await resp.text());
+    if (out && out.ok && out.ultimaSync) QX_SYNC.ultimaPasada = out.ultimaSync;
+  } catch(e) {}
+  qxSyncPintar();
+}
+setInterval(function(){ if (currentModule === 'programacion' && document.visibilityState === 'visible') qxSyncEstadoLeer(false); }, 60000);
 
 /* ===== Sincronizar ahora (a petición) =====
    Antes la app se descargaba el CSV de la hoja desde el móvil y hacía aquí la
@@ -7593,6 +7673,9 @@ async function qxSyncFromSheet(btn){
     if (out.altas)    partes.push(out.altas + (out.altas===1 ? ' paciente nueva del Excel' : ' pacientes nuevas del Excel'));
     if (out.rellenos) partes.push(out.rellenos + (out.rellenos===1 ? ' ficha completada' : ' fichas completadas'));
     toast(partes.length ? 'Sincronizado: ' + partes.join(' · ') : 'Todo al día: nada que traer', 'success');
+    // Esa pasada también llevó al Excel lo que hubiera quedado sin confirmar.
+    QX_SYNC.fallos = 0;
+    qxSyncEstadoLeer(true);
     // Filas nuevas del Excel que se parecen a alguien ya registrado (DNI a un
     // dígito, mismo nombre o misma HC): no se importaron, decide una persona.
     if (out.duplicados && out.duplicados.length){
@@ -8979,6 +9062,7 @@ async function qxFormulario(p){
     QX_WIZ_DATOS.red_destino = 'TRUJILLO';
     QX_WIZ_DATOS.especialidad = QX_WIZ_SERVICIO.especialidad;
     QX_WIZ_DATOS.id_registro = await qxProximoIdRegistro();
+    qxBorradorOfrecer();
   }
   var ov = document.createElement('div');
   ov.className = 'qx-overlay';
@@ -9176,6 +9260,51 @@ function qxWizRender(){
   else html += qxWizPaso6Html();
   html += qxWizNav();
   body.innerHTML = html;
+  qxBorradorGuardar();
+  if (!body._borrador){
+    body._borrador = true;
+    var t = null;
+    var guardar = function(){ clearTimeout(t); t = setTimeout(function(){ qxWizGuardarPaso(); qxBorradorGuardar(); }, 700); };
+    body.addEventListener('input', guardar);
+    body.addEventListener('change', guardar);
+  }
+}
+
+/* ===== Borrador del registro de un paciente nuevo =====
+   Si el celular se bloquea, se acaba la batería o se cierra la app a mitad de
+   los 6 pasos, lo escrito no se pierde: se guarda en este equipo mientras se
+   escribe y, al volver a "Registrar paciente", se ofrece continuar. Solo para
+   pacientes NUEVOS (al editar, los datos ya están en la base). Es del usuario
+   y del servicio en que se empezó, vale 3 días y se borra al guardar. */
+var QX_BORRADOR_LS = 'qx_borrador_registro';
+
+function qxBorradorGuardar(){
+  if (QX_WIZ_EDIT_ID || !worker) return;
+  var d = QX_WIZ_DATOS || {};
+  if (!String(d.dni || '').trim() && !String(d.nombre || '').trim()) return;   // nada que valga la pena
+  try {
+    localStorage.setItem(QX_BORRADOR_LS, JSON.stringify({
+      at: Date.now(), usuario: worker.id, servicio: qxServicioVista(), paso: QX_WIZ_PASO, datos: d
+    }));
+  } catch(e){}
+}
+function qxBorradorBorrar(){ try { localStorage.removeItem(QX_BORRADOR_LS); } catch(e){} }
+
+function qxBorradorOfrecer(){
+  var b = null;
+  try { b = JSON.parse(localStorage.getItem(QX_BORRADOR_LS) || 'null'); } catch(e){}
+  if (!b || !b.datos) return;
+  if (!worker || b.usuario !== worker.id || b.servicio !== qxServicioVista() || Date.now() - b.at > 3 * 86400000) return;
+  var quien = [b.datos.nombre, b.datos.dni ? 'DNI ' + b.datos.dni : ''].filter(Boolean).join(' · ') || 'sin nombre';
+  if (confirm('Hay un registro sin terminar:\n\n' + quien + '\n(paso ' + (b.paso || 1) + ' de 6, ' + qxHaceTexto(Date.now() - b.at) + ')\n\n'
+      + 'Aceptar = continuar donde quedó\nCancelar = empezar de cero (el borrador se descarta)')){
+    var id = QX_WIZ_DATOS.id_registro;          // el número se vuelve a calcular: pudo usarse mientras tanto
+    QX_WIZ_DATOS = Object.assign({}, QX_WIZ_DATOS, b.datos, { id_registro: id });
+    QX_WIZ_PASO = Math.min(Math.max(parseInt(b.paso, 10) || 1, 1), 6);
+    toast('Retomando el registro de ' + (b.datos.nombre || 'la paciente'), 'info');
+  } else {
+    qxBorradorBorrar();
+  }
 }
 
 function qxWizGuardarPaso(){
@@ -9350,6 +9479,7 @@ async function qxWizGuardar(){
   // Al final, no antes: así la fila que sube a las hojas ya incluye las fechas de
   // fase y el estado que este guardado pudo cambiar.
   if (id) qxSyncSheets(id);
+  if (!QX_WIZ_EDIT_ID) qxBorradorBorrar();
   toast(QX_WIZ_EDIT_ID ? 'Datos actualizados ✓' : 'Paciente registrada ✓', 'success');
   qxLoad();
 }

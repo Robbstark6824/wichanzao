@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-clasp';
+var VERSION = '2026-09-29-estado';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -910,6 +910,12 @@ function doPost(e) {
         empujadas: res.empujadas,
         errores: res.errores
       });
+    }
+
+    // Estado de la sincronización automática, para el indicador de la app
+    // ("✓ Excel al día · hace 4 min"). Sin datos de pacientes.
+    if (body.accion === 'estado') {
+      return json({ ok: true, ultimaSync: PropertiesService.getScriptProperties().getProperty('ULTIMA_SYNC') || null });
     }
 
     // Exportación del jefe de información (ver EXPORTACIÓN más abajo). Exige
