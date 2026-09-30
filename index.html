@@ -1668,7 +1668,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v280';
+var APP_VERSION = 'v281';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -7303,13 +7303,29 @@ async function expVistaPrevia(){
   if (sinFecha) h += '<br>' + sinFecha + ' no tienen fecha de ' + (por === 'cirugia' ? 'cirugía' : 'registro') + (incluirSin ? ' (incluidos).' : ' (no incluidos; marcá la casilla de arriba si querés sumarlos).');
   if (incompletos.length) {
     h += '<div style="margin-top:8px;font-weight:800;color:var(--yodo)">⚠ ' + incompletos.length + ' con campos obligatorios de la GERESA vacíos:</div>';
-    incompletos.slice(0, 12).forEach(function(x){
+    // Resumen por campo, y la lista completa plegada (con 30 pacientes, doce
+    // renglones no dejaban ver quiénes faltaban).
+    var porCampo = {};
+    incompletos.forEach(function(x){ x.f.forEach(function(c){ porCampo[c.label] = (porCampo[c.label] || 0) + 1; }); });
+    h += '<div class="falta">' + Object.keys(porCampo).sort(function(a, b){ return porCampo[b] - porCampo[a]; })
+      .map(function(k){ return '<b>' + porCampo[k] + '</b> sin ' + qxEsc(k); }).join(' · ') + '</div>';
+    h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--tl)">Ver quiénes son (' + incompletos.length + ')</summary>';
+    incompletos.forEach(function(x){
       h += '<div class="falta"><b>' + qxEsc(x.p.nombre || x.p.dni) + '</b> (' + SERVICIOS[x.p.servicio].corto + '): ' + x.f.map(function(c){ return qxEsc(c.label); }).join(', ') + '</div>';
     });
-    if (incompletos.length > 12) h += '<div class="falta">… y ' + (incompletos.length - 12) + ' más.</div>';
+    h += '</details>';
     h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">Se pueden exportar igual; salen con esas celdas vacías.</div>';
   } else if (lista.length) {
     h += '<div style="margin-top:6px;color:var(--tl);font-weight:700">✓ Todos con los campos obligatorios completos.</div>';
+  }
+  // CIE-10 con formato dudoso (sin punto, en minúscula o que no parece un código):
+  // el Excel de la GERESA se llena con lo que se escribió. Solo se avisa.
+  var cieDudoso = lista.filter(function(p){ return p.cie10 && !/^[A-Z]\d{2}(\.[0-9A-Z]{1,2})?$/.test(String(p.cie10).trim()); });
+  if (cieDudoso.length) {
+    h += '<div style="margin-top:10px;font-weight:800;color:var(--yodo)">⚠ ' + cieDudoso.length + ' con el CIE-10 mal escrito (falta el punto, minúscula u otro formato):</div>'
+      + '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--tl)">Ver códigos</summary>'
+      + cieDudoso.map(function(p){ return '<div class="falta"><b>' + qxEsc(p.nombre || p.dni) + '</b> (' + SERVICIOS[p.servicio].corto + '): «' + qxEsc(p.cie10) + '»</div>'; }).join('')
+      + '</details>';
   }
   el.innerHTML = h;
 }
