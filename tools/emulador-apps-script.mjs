@@ -101,10 +101,11 @@ export function cargar(gsTexto, estado) {
         Utilities = ENTORNO.Utilities, Session = { getScriptTimeZone: function(){ return 'America/Lima'; } },
         ScriptApp = {}, DriveApp = ENTORNO.DriveApp;
     ${gsTexto}
-    hoyStr_ = function(){ return '2026-09-29'; };
+    hoyStr_ = function(){ return ENTORNO.HOY(); };
     return { doPost: doPost, reconciliar_: reconciliar_, buildValuesNew: buildValuesNew, buildValuesOld: buildValuesOld,
              desplegables_: typeof desplegables_ === 'function' ? desplegables_ : null,
              SS_ID: SS_ID, SS_ID_2: SS_ID_2, SS_ID_CG: typeof SS_ID_CG === 'undefined' ? null : SS_ID_CG, TOKEN: TOKEN };`)({
+    HOY: () => estado.hoy || '2026-09-29',     // la fecha de "hoy" del script (estado.hoy la cambia)
     SpreadsheetApp: {
       openById: libroDe,
       flush() {},
@@ -132,6 +133,13 @@ export function cargar(gsTexto, estado) {
         } else if (o.method === 'get' && p.startsWith('pacientes?select=*&servicio=in.(')) {
           const lista = decodeURIComponent(p).split('in.(')[1].split(')')[0].split(',');
           res = estado.db.filter(x => lista.indexOf(x.servicio || 'ginecologia') >= 0);
+        } else if (o.method === 'get' && p.startsWith('pacientes?select=*&id=eq.')) {
+          const id = decodeURIComponent(p.split('id=eq.')[1]);
+          res = estado.db.filter(x => x.id === id);
+        } else if (o.method === 'get' && p.startsWith('pacientes?select=id&dni=eq.')) {
+          const dni = decodeURIComponent(p.split('dni=eq.')[1].split('&')[0]);
+          const serv = decodeURIComponent((p.split('servicio=eq.')[1] || 'ginecologia').split('&')[0]);
+          res = estado.db.filter(x => String(x.dni) === dni && (x.servicio || 'ginecologia') === serv).map(x => ({ id: x.id }));
         } else if (o.method === 'get' && p.startsWith('pacientes?select=*')) res = estado.db;
         else if (o.method === 'get' && p.startsWith('servicios?')) res = estado.activos.map(c => ({ clave: c }));
         else if (o.method === 'get' && p.startsWith('workers?')) { const id = decodeURIComponent(p.split('id=eq.')[1]); res = (estado.workers || []).filter(w => w.id === id); }

@@ -3,6 +3,7 @@
 //
 //   python -m http.server 8777      (desde la raiz del proyecto)
 //   node tools/test-servicios-app.mjs
+import fs from 'fs';
 const puppeteer = (await import('puppeteer')).default;
 const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
 const page = await browser.newPage();
@@ -298,6 +299,28 @@ ver('indicador: enviando', /Enviando al Excel/.test(bor.enviando), bor.enviando)
 ver('indicador: cambio sin confirmar', /1 cambio sin confirmar/.test(bor.fallo), bor.fallo);
 ver('indicador: Excel al día hace 4 min', /Excel al día · hace 4 min/.test(bor.alDia), bor.alDia);
 ver('indicador: avisa si la sincronización automática se cayó', /no corre hace 2 h/.test(bor.caido), bor.caido);
+
+console.log('\nSESIÓN HACIA EL APPS SCRIPT');
+const jw = await page.evaluate(async () => {
+  const sb0 = sb, f0 = window.fetchConTiempo, capt = [];
+  sb = { auth: { getSession: async () => ({ data: { session: { access_token: 'TOKEN-DE-PRUEBA' } } }) },
+         from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { id: 'p1', dni: '111' }, error: null }) }) }) }) };
+  window.fetchConTiempo = async (u, o) => { capt.push(JSON.parse(o.body)); return { text: async () => '{"ok":true}' }; };
+  const tok = await qxJwt();
+  await _qxSyncSheets('p1');
+  sb = { auth: { getSession: async () => ({ data: { session: null } }) } };
+  const sinSesion = await qxJwt();
+  window.fetchConTiempo = f0; sb = sb0;
+  return { tok, sinSesion, envio: capt[0] };
+});
+ver('qxJwt devuelve el token de la sesión', jw.tok === 'TOKEN-DE-PRUEBA');
+ver('sin sesión devuelve null (y no lanza)', jw.sinSesion === null);
+ver('escribir un paciente manda la sesión y el paciente', jw.envio && jw.envio.jwt === 'TOKEN-DE-PRUEBA' && jw.envio.paciente && jw.envio.paciente.id === 'p1');
+const fuente = fs.readFileSync('index.html', 'utf8');
+for (const accion of ['sincronizar', 'borrar']) {
+  const linea = fuente.split('\n').find(l => l.includes("accion: '" + accion + "'") && l.includes('QX_SHEET_TOKEN'));
+  ver('«' + accion + '» manda la sesión', !!linea && linea.includes('jwt: await qxJwt()'));
+}
 
 console.log('\nREGISTRO');
 const reg = await page.evaluate(() => {

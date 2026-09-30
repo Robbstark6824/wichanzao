@@ -37,7 +37,7 @@ console.log('Código a publicar: VERSION ' + VERSION);
 
 // 1. Pruebas: si una falla, no se sube nada.
 if (!sinPruebas) {
-  for (const t of ['tools/referencia-geresa.mjs', 'tools/test-sync-servicios.mjs', 'tools/test-exportar.mjs']) {
+  for (const t of ['tools/referencia-geresa.mjs', 'tools/test-sync-servicios.mjs', 'tools/test-exportar.mjs', 'tools/test-sesion-apps-script.mjs']) {
     process.stdout.write('  prueba ' + t + ' … ');
     try { salida('node ' + t); console.log('OK'); }
     catch (e) { console.log('FALLA'); console.log(String(e.stdout || '').split('\n').filter(l => /FALLA|✗|Error/.test(l)).slice(0, 10).join('\n')); process.exit(1); }

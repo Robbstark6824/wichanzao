@@ -28,7 +28,10 @@ const GS_VIEJO = iv >= 0 ? fs.readFileSync(args[iv + 1], 'utf8')
   : execSync('git show antes-multiservicio:google/apps-script-sync.gs', { encoding: 'utf8', maxBuffer: 1 << 26 });
 const GS_NUEVO = fs.readFileSync('google/apps-script-sync.gs', 'utf8');
 
-const ultimoRespaldo = fs.readdirSync(RESP).filter(d => /^\d{4}-\d{2}-\d{2}_\d{4}$/.test(d)).sort().pop();
+// Los pacientes y las hojas de prueba (2026-09-29_1509/hojas) tienen que ser del
+// MISMO momento: las hojas de ese respaldo todavía traen una fila duplicada que
+// después se eliminó de la base. Esa carpeta lleva _conservar.txt (no se poda).
+const ultimoRespaldo = '2026-09-29_1509';
 // Solo los de ginecología: el diferencial compara con el Apps Script de antes
 // de que hubiera servicios, y el escenario "encender Cirugía General" parte
 // de una base sin sus pacientes (desde el 29/09 los respaldos ya los traen).

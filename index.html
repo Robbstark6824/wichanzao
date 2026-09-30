@@ -1668,7 +1668,7 @@ body.dark .today-section .ts-count{background:linear-gradient(135deg,var(--tl),v
    La versión de verdad es la del service worker: CACHE_NAME de sw.js
    ('sghl-v264' -> 'v264'), que se sube en cada publicación. Este valor es solo
    el respaldo mientras no se pudo leer (navegador sin service worker). */
-var APP_VERSION = 'v279';
+var APP_VERSION = 'v280';
 
 function appVersionNum(v){ var m = /v(\d+)/.exec(v || ''); return m ? parseInt(m[1], 10) : 0; }
 /* La que tiene este equipo: el caché del service worker activo. */
@@ -7199,6 +7199,14 @@ function qxResumenPendientes(p){ var it=qxChecklistItems(p); var faltan=[]; for(
    Si la base rechaza un UPDATE por permisos (RLS), no devuelve error: devuelve
    0 filas, y la app creía que había guardado. Acá eso se convierte en un
    error con un mensaje claro, que los que llaman ya muestran. Nunca lanza. */
+/* La sesión de quien usa la app. El Apps Script la exige para escribir, borrar y
+   sincronizar (el TOKEN solo está en el código público): comprueba quién es y
+   de qué servicio, y lee el paciente de la base. */
+async function qxJwt(){
+  try { var ses = (await sb.auth.getSession()).data.session; return (ses && ses.access_token) || null; }
+  catch(e){ return null; }
+}
+
 async function qxUpdPaciente(id, patch){
   try {
     var r = await sb.from('pacientes').update(patch).eq('id', id).select('id');
@@ -7523,7 +7531,7 @@ async function _qxSyncSheets(id){
     var resp = await fetchConTiempo(QX_SHEET_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ token: QX_SHEET_TOKEN, paciente: r.data })
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, jwt: await qxJwt(), paciente: r.data })
     }, 30000);
     texto = await resp.text();
   } catch(e) {
@@ -7648,7 +7656,7 @@ async function qxSyncFromSheet(btn){
     var resp = await fetchConTiempo(QX_SHEET_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'sincronizar' })
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, jwt: await qxJwt(), accion: 'sincronizar' })
     }, 45000);
     var texto = await resp.text();
     var out;
@@ -11669,7 +11677,7 @@ async function qxEliminar(btn){
     fetch(QX_SHEET_URL, {
       method: 'POST', keepalive: true,
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ token: QX_SHEET_TOKEN, accion: 'borrar', dni: dni, servicio: servicio })
+      body: JSON.stringify({ token: QX_SHEET_TOKEN, jwt: await qxJwt(), accion: 'borrar', dni: dni, servicio: servicio })
     }).catch(function(e){ registrarFalla('borrar en hoja GERESA', e); });
   }
 }

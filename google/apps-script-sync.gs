@@ -125,7 +125,7 @@ function especialidadDe_(p) {
    inválido (que no toca las hojas), así que un ping basta para saber qué
    versión está viva y si el "Nueva versión" del despliegue realmente tomó.
    Subir esta fecha cada vez que se cambie este archivo. */
-var VERSION = '2026-09-29-estado';
+var VERSION = '2026-09-29-sesion';
 
 /* Debe ser IGUAL al token que pongas en la app (index.html → QX_SHEET_TOKEN). */
 var TOKEN = 'WZ-GERESA-2026-Kx7mQ2p9';
@@ -899,6 +899,8 @@ function doPost(e) {
     // nombres, DNI y teléfonos dentro. Ahora la lectura ocurre aquí, con la
     // cuenta autorizada, y la app solo pide el resultado.
     if (body.accion === 'sincronizar') {
+      try { exigirSesion_(body, 'sincronizar'); }
+      catch (err) { return json({ ok: false, error: err.message || String(err) }); }
       var res = sincronizarTodo();
       if (!res) return json({ ok: false, error: 'otra sincronización estaba en marcha; inténtalo en un minuto' });
       return json({
@@ -913,9 +915,15 @@ function doPost(e) {
     }
 
     // Estado de la sincronización automática, para el indicador de la app
-    // ("✓ Excel al día · hace 4 min"). Sin datos de pacientes.
+    // ("✓ Excel al día · hace 4 min"). Sin datos de pacientes. También dice
+    // cuántas llamadas sin sesión han llegado (la transición de arriba).
     if (body.accion === 'estado') {
-      return json({ ok: true, ultimaSync: PropertiesService.getScriptProperties().getProperty('ULTIMA_SYNC') || null });
+      var pr = PropertiesService.getScriptProperties();
+      return json({
+        ok: true, ultimaSync: pr.getProperty('ULTIMA_SYNC') || null,
+        sesionDesde: EXIGIR_SESION_DESDE, sinSesion: parseInt(pr.getProperty('LEGACY_N') || '0', 10),
+        sinSesionUltima: pr.getProperty('LEGACY_ULTIMA') || null
+      });
     }
 
     // Exportación del jefe de información (ver EXPORTACIÓN más abajo). Exige
@@ -929,6 +937,16 @@ function doPost(e) {
     // hojas de SU servicio. Una app sin actualizar no manda servicio: gineco.
     if (body.accion === 'borrar') {
       if (!body.dni) return json({ ok: false, error: 'falta dni' });
+      try {
+        var quien = exigirSesion_(body, 'borrar');
+        if (quien) {
+          if (!puedeEditarServicio_(quien, body.servicio)) throw new Error('no tienes permiso para borrar en ese servicio');
+          // La app borra primero de la base: si el paciente sigue allí, no es un borrado.
+          var sigue = sbFetch_('get', 'pacientes?select=id&dni=eq.' + encodeURIComponent(body.dni)
+            + '&servicio=eq.' + encodeURIComponent(body.servicio || 'ginecologia') + '&limit=1');
+          if (sigue && sigue.length) throw new Error('ese paciente sigue en la base: bórralo primero desde la app');
+        }
+      } catch (err) { return json({ ok: false, error: err.message || String(err) }); }
       return json(enHojasDe_({ servicio: body.servicio }, function (h) {
         return borrarDeHoja(h.ssId, h.name, body.dni);
       }));
@@ -936,6 +954,18 @@ function doPost(e) {
 
     var p = body.paciente || {};
     if (!p.dni) return json({ ok: false, error: 'falta dni' });
+    try {
+      var quien2 = exigirSesion_(body, 'escribir');
+      if (quien2) {
+        // Con sesión, el paciente sale de la BASE, no del teléfono: nadie puede
+        // escribir en las hojas datos que no estén en la app.
+        if (!p.id) throw new Error('falta el paciente');
+        var filas = sbFetch_('get', 'pacientes?select=*&id=eq.' + encodeURIComponent(p.id));
+        if (!filas || !filas.length) throw new Error('ese paciente no existe en la base');
+        p = filas[0];
+        if (!puedeEditarServicio_(quien2, servicioDe_(p))) throw new Error('no tienes permiso sobre pacientes de ese servicio');
+      }
+    } catch (err) { return json({ ok: false, error: err.message || String(err) }); }
     return json(escribirPaciente_(p));
   } catch (err) {
     return json({ ok: false, error: String(err) });
@@ -1051,8 +1081,9 @@ function carpetaExportes_() {
   return it.hasNext() ? it.next() : DriveApp.createFolder(CARPETA_EXPORTES);
 }
 
-/** Quién pide la exportación, a partir de su sesión de la app. */
-function usuarioDeSesion_(jwt) {
+/** Quién es, a partir de su sesión de la app: comprueba la sesión con Supabase
+ *  y que la cuenta exista y esté aprobada. Lanza un error que se entiende. */
+function trabajadorDeSesion_(jwt) {
   if (!jwt) throw new Error('falta la sesión: vuelve a iniciar sesión en la app');
   var k = sbKey_();
   var r = UrlFetchApp.fetch(SB_URL + '/auth/v1/user', {
@@ -1060,12 +1091,66 @@ function usuarioDeSesion_(jwt) {
   });
   if (r.getResponseCode() !== 200) throw new Error('la sesión venció: vuelve a iniciar sesión en la app');
   var u = JSON.parse(r.getContentText());
-  var w = sbFetch_('get', 'workers?select=name,rol,is_admin,aprobado&id=eq.' + encodeURIComponent(u.id));
+  var w = sbFetch_('get', 'workers?select=name,rol,is_admin,aprobado,servicio&id=eq.' + encodeURIComponent(u.id));
   if (!w || !w.length) throw new Error('tu cuenta no tiene perfil en la app');
   w = w[0];
   if (!w.is_admin && !w.aprobado) throw new Error('tu cuenta todavía no está aprobada');
+  return w;
+}
+
+/** Quién pide la exportación: jefe de información o admin. */
+function usuarioDeSesion_(jwt) {
+  var w = trabajadorDeSesion_(jwt);
   if (!w.is_admin && w.rol !== 'jefe_info') throw new Error('solo el jefe de información puede exportar');
   return w;
+}
+
+/* ============================================================
+ * SESIÓN EN TODAS LAS ACCIONES (desde 2026-09-29)
+ * ============================================================
+ * El TOKEN de arriba está en el código de la app, que es público: con solo el
+ * TOKEN cualquiera podía escribir pacientes falsas o borrar filas de las
+ * hojas. Ahora escribir, borrar y sincronizar exigen la sesión de un usuario
+ * aprobado, y además:
+ *   · escribir: el paciente se lee de la BASE (no de lo que mande el teléfono)
+ *     y solo lo puede escribir quien es de ese servicio (o un admin); el jefe
+ *     de información no escribe;
+ *   · borrar: solo si el paciente YA no está en la base (la app lo borra allí
+ *     primero), y solo de las hojas de un servicio en el que puede editar.
+ * Lo que se escribe en las hojas es exactamente lo mismo que antes.
+ *
+ * TRANSICIÓN: una app abierta desde antes del cambio no manda sesión. Hasta
+ * EXIGIR_SESION_DESDE se acepta como antes y se cuenta (estado.legacy); si un
+ * borrado de esa app se rechazara, la fila seguiría en la hoja y la
+ * sincronización volvería a traer a la paciente borrada. Desde esa fecha, sin
+ * sesión no se hace nada. Para adelantar o retrasar: cambiar la fecha y
+ * publicar. */
+var EXIGIR_SESION_DESDE = '2026-10-06';
+
+function sesionObligatoria_() { return hoyStr_() >= EXIGIR_SESION_DESDE; }
+
+/** Anota que llegó una llamada sin sesión (solo antes de la fecha límite). */
+function anotarLegacy_(accion) {
+  var pr = PropertiesService.getScriptProperties();
+  var n = parseInt(pr.getProperty('LEGACY_N') || '0', 10) + 1;
+  pr.setProperty('LEGACY_N', String(n));
+  pr.setProperty('LEGACY_ULTIMA', new Date().toISOString() + ' ' + accion);
+}
+
+/** Puede editar pacientes del servicio: admin, o de ese servicio y no jefe. */
+function puedeEditarServicio_(w, servicio) {
+  return !!w.is_admin || (w.rol !== 'jefe_info' && (w.servicio || 'ginecologia') === (servicio || 'ginecologia'));
+}
+
+/** Decide si una llamada puede seguir. Devuelve el trabajador, o null si es una
+ *  llamada sin sesión aceptada por la transición. Lanza si no debe seguir. */
+function exigirSesion_(body, accion) {
+  if (!body.jwt) {
+    if (sesionObligatoria_()) throw new Error('falta la sesión: actualiza la app y vuelve a iniciar sesión');
+    anotarLegacy_(accion);
+    return null;
+  }
+  return trabajadorDeSesion_(body.jwt);
 }
 
 /** Fecha con la que se filtra "por registro": la de captación/referencia y,
