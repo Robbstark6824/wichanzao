@@ -21,14 +21,15 @@ const admin = createClient(SB_URL, SR_KEY, { auth: { persistSession: false, auto
 const folderId = '__diag__' + Math.floor(Math.random() * 100000);
 
 (async () => {
+  const CLAVE_PRUEBA = require('crypto').randomBytes(12).toString('hex'); // distinta en cada ejecución
   const email = folderId + '.medicina@wichanzao.local';
   console.log('1) signUp con:', email);
 
-  const signUp = await anon.auth.signUp({ email, password: 'diagnostico123' });
+  const signUp = await anon.auth.signUp({ email, password: CLAVE_PRUEBA });
   if (signUp.error) {
     console.log('   signUp ERROR:', signUp.error.message);
     // Si ya existe por un run anterior, intentamos login
-    const login = await anon.auth.signInWithPassword({ email, password: 'diagnostico123' });
+    const login = await anon.auth.signInWithPassword({ email, password: CLAVE_PRUEBA });
     if (login.error) {
       console.log('   login ERROR:', login.error.message);
       process.exit(0);
