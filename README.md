@@ -59,10 +59,14 @@ y no sube nada si alguna falla.
 ## Lo que NO está en este repositorio (importante para quien lo reciba)
 
 - **Las políticas RLS y funciones como `is_admin()` se crearon desde el panel de
-  Supabase**, no desde los archivos de `sql/`. Para reconstruir la base entera
-  hace falta además el volcado de esquema. `tools/respaldo-bd.mjs` genera
-  `esquema.json` (columnas, políticas, permisos, funciones y disparadores):
-  úsese como fuente de verdad y, mejor aún, conviértase en migraciones.
+  Supabase**, no desde los archivos numerados de `sql/`. Por eso existe
+  **`sql/esquema/esquema-actual.sql`**: la estructura real de la base (tablas,
+  restricciones, índices, RLS, políticas, permisos por columna, funciones,
+  disparadores y el bucket de Storage), **sin ningún dato**. Es la fuente de verdad
+  para auditar y para reconstruir la base en un proyecto nuevo y vacío. Se
+  regenera con `node tools/exportar-esquema.mjs` (solo lectura). No incluye los
+  ajustes de Auth del panel (confirmación de correo, largo mínimo de contraseña,
+  proveedor Google, redirecciones): hay que configurarlos a mano.
 - **Los secretos** (`.env`, claves del Apps Script, contraseña del agente de
   impresión). Ver `SEGURIDAD.md`, apartado "Rotar claves".
 - **Los datos.** El repo no contiene pacientes. Los respaldos sí, y se guardan

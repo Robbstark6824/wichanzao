@@ -56,17 +56,47 @@ token de la app y del script. Requiere publicar el Apps Script y la app a la vez
 Devuelve cuántos pacientes hay en la hoja (`total`). No expone nombres ni DNI.
 Mejora posible: que devuelva solo `{ok:true}`.
 
-### 4. Lectura anónima de cinco columnas de `workers` — A DECIDIR
+### 4. Lectura anónima de cinco columnas de `workers` — INTENCIONAL, revisable
 Sin sesión, la clave pública puede leer `id`, `folder_id`, `name`, `servicio` y
-`area` de la tabla `workers` (nombres del personal). Parece intencional (pantalla
-de registro o de selección), pero conviene confirmarlo y, si no hace falta,
-retirar el permiso.
+`area` de `workers` (nombres del personal). Es deliberado: lo necesitan el inicio
+de sesión y el registro (`sql/004-rls-workers.sql`); `is_admin`, el correo y el
+rol quedan fuera de los permisos. Si la Red no quiere exponer ni los nombres,
+habría que cambiar el flujo de entrada para que no los lea antes de autenticarse.
 
 ### 5. Tablas legibles sin sesión
 `servicios` (catálogo) e `impresiones` (hoy sin filas). La primera es un
 catálogo sin datos personales; revisar `impresiones` si algún día contiene filas.
 
-### 6. Historial de git
+### 6. El bucket de Storage `documentos` es público — A DECIDIR (hallazgo del esquema)
+`sql/esquema/esquema-actual.sql` declara el bucket con `public = true`. Quien
+conozca la dirección exacta de un archivo puede descargarlo **sin iniciar sesión**.
+Hoy lo mitigan dos cosas: el listado del bucket está cerrado (sin sesión devuelve
+`[]`) y los archivos de pacientes (recetas en PDF, carpetas de hospitalización) se
+nombran con UUID, imposibles de adivinar. Pero es seguridad por oscuridad: si una
+dirección se filtra (un chat, un historial del navegador, un registro), el archivo
+queda abierto para siempre. En el mismo bucket están las recetas y también los
+instaladores de `herramientas/`, que sí deben ser descargables. Mejora
+recomendada: bucket **privado** con URL firmadas y de corta duración, y los
+instaladores en un bucket aparte. Cambia cómo la app muestra y descarga archivos,
+así que requiere pruebas.
+
+### 7. Funciones que un usuario sin sesión puede ejecutar — REVISADO en parte
+El esquema marca, función por función, cuáles puede ejecutar `anon`. Las
+`SECURITY DEFINER` corren con los permisos de su dueño, por eso importa que
+validen quién llama:
+- `admin_delete_worker`: **verificado**. Comprueba `is_admin()` antes de hacer
+  nada; sin sesión falla con "No autorizado". Aun así, `anon` no necesita poder
+  ejecutarla (`REVOKE EXECUTE … FROM anon`).
+- `check_service_code(servicio, codigo)`: **riesgo**. Devuelve si un código de
+  servicio es correcto y cualquiera puede llamarla sin límite de intentos: sirve
+  para adivinar los códigos de registro por fuerza bruta. Lo mitiga que una cuenta
+  nueva necesita aprobación de un administrador. Mejora: limitar intentos o mover
+  la comprobación a un servidor.
+- `es_jefe_info`, `estoy_aprobado`, `is_admin`, `mi_servicio`, `puede_editar_servicio`,
+  `puede_ver_servicio`: leen `auth.uid()`, que sin sesión es nulo, y devuelven
+  "no". No se revisó el cuerpo de las demás con el mismo detalle.
+
+### 8. Historial de git
 Los commits anteriores a la limpieza contienen nombres y DNI de pacientes
 reales y contraseñas ya inválidas. No difundir el repositorio original.
 
