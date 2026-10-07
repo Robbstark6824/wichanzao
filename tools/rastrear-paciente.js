@@ -1,9 +1,14 @@
 // ¿De dónde salió una paciente? Cruza la base, la hoja y los inicios de sesión.
 const { Client } = require('pg');
+const fs = require('fs');
+
+// La contraseña sale de .env (SUPABASE_DB_PASSWORD); nunca se escribe en el código.
+const env = Object.fromEntries(fs.readFileSync('.env', 'utf8').split(/\r?\n/)
+  .filter(l => /^[A-Z_]+=/.test(l)).map(l => [l.split('=')[0], l.slice(l.indexOf('=') + 1).trim()]));
 
 const c = new Client({
   host: 'aws-0-us-west-2.pooler.supabase.com', port: 5432, database: 'postgres',
-  user: 'postgres.xqphjvppfgwabfruyjae', password: 'Nomejodas682425@',
+  user: 'postgres.xqphjvppfgwabfruyjae', password: env.SUPABASE_DB_PASSWORD,
   ssl: { rejectUnauthorized: false }
 });
 const CSV = 'https://docs.google.com/spreadsheets/d/1nEBcVRH1o3_9luexxiV_ur-CupmRX_H6qeNn4BElxzU/export?format=csv';

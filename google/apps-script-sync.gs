@@ -1436,15 +1436,15 @@ function listarDesplegables() {
  *
  * Antes escribía en las DOS hojas de producción, y eso no se queda ahí: en
  * cuanto alguien pulsa "Sincronizar", la app importa esa fila como paciente
- * real. Pasó de verdad — "CALDERON OTINIANO, ELIZABETH" entró así el 26/08/2026
+ * real. Pasó de verdad — una paciente de prueba entró así el 26/08/2026
  * con fechas de cirugía inventadas, y nadie en el servicio sabía quién era.
  *
  * Si alguna vez hace falta escribir de verdad para probar, hágase con un DNI
  * que no exista y bórrese después desde la app (que limpia las dos hojas). */
 function test() {
   var p = {
-    dni: '70515665', nombre: 'CALDERON OTINIANO, ELIZABETH', edad: 30, sexo: 'Femenino',
-    telefono: '968202346', hcl: '12345', diagnostico: 'Endometrioma', cie10: 'N80',
+    dni: '00000000', nombre: 'PRUEBA EJEMPLO, ANA', edad: 30, sexo: 'Femenino',
+    telefono: '900000000', hcl: '12345', diagnostico: 'Endometrioma', cie10: 'N80',
     procedimiento: 'Quistectomía', tipo_seguro: 'SIS', tipo_anestesia: 'RAQUIDEA',
     nivel_cirugia: 'Mayor', doctor: 'DR. SHIMIZU', fecha_captacion: '2026-08-20',
     establecimiento_destino: 'HOSPITAL DISTRITAL LAREDO', codigo_destino: '00005231',
@@ -1762,7 +1762,7 @@ function mismoNumero_(a, b) {
 }
 
 /** Nombre para comparar: sin tildes ni signos y con las palabras ordenadas
- *  ("Zavaleta Aguilar, Patricia" = "PATRICIA ZAVALETA AGUILAR"). */
+ *  ("Rojas Prueba, Ana" = "ANA ROJAS PRUEBA"). */
 function nombreComparable_(s) {
   return norm(s).replace(/[^a-zñ ]/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
 }

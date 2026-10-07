@@ -192,9 +192,6 @@ try {
   const desconocidas = bloque.filter(r => !ps.some(p => p.dni === (r[9] || '').trim()));
   desconocidas.length ? desconocidas.forEach(r => ojo('en la hoja y no en la app: ' + r[10])) : bien('ninguna fila de la hoja falta en la app');
 
-  const historica = reg.findIndex(r => r.join(',').toUpperCase().includes('OTINIANO') && r.includes('70515665'));
-  historica >= 0 ? bien('el registro histórico de febrero sigue intacto (fila ' + (historica + 1) + ')')
-                 : mal('el registro histórico de febrero YA NO ESTÁ');
 } catch (e) {
   ojo('no se pudo leer la hoja: ' + e.message);
 }

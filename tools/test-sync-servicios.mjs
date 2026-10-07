@@ -143,7 +143,7 @@ console.log('\n2) CIRUGÍA GENERAL');
   ver('borrar sin servicio (app vieja) = ginecología, como antes', y.ok === true && 'oficial' in y);
 }
 {
-  console.log('\n   Posible duplicado en la hoja (el caso Zavaleta: DNI con un dígito cambiado)');
+  console.log('\n   Posible duplicado en la hoja (DNI con un dígito cambiado)');
 {
   const G0 = cargar(GS_NUEVO, { hojas: {}, db: [], activos: [] });
   const e = estadoInicial(G0, { activos: ['ginecologia'] });

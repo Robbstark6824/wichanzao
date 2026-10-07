@@ -3,7 +3,7 @@
 -- Proyecto: Servicio de Ginecología - Hospital de Laredo
 -- Ejecutar en: Supabase Dashboard → SQL Editor
 -- ============================================================
--- El 26/08/2026 apareció en la lista "CALDERON OTINIANO, ELIZABETH" con fecha
+-- El 26/08/2026 apareció en la lista una paciente que nadie conocía con fecha
 -- de cirugía y todo, y nadie en el servicio sabía quién era. Rastrearla costó
 -- cruzar la base, la hoja de Google y los inicios de sesión, porque la ficha no
 -- guardaba NADA sobre su procedencia: created_by estaba vacío en las 13 filas y
