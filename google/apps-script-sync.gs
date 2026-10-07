@@ -1542,8 +1542,10 @@ function guardarClaveSupabase() {
 /** Dice si la clave está guardada, sin enseñarla entera. */
 function comprobarClave() {
   var k = PropertiesService.getScriptProperties().getProperty('SUPABASE_KEY');
-  if (!k) return 'NO hay clave guardada todavía.';
-  return 'Clave guardada: ' + k.length + ' caracteres, de "' + k.slice(0, 6) + '..." a "...' + k.slice(-4) + '".';
+  var msg = !k ? 'NO hay clave guardada todavía.'
+    : 'Clave guardada: ' + k.length + ' caracteres, de "' + k.slice(0, 6) + '..." a "...' + k.slice(-4) + '".';
+  Logger.log(msg);
+  return msg;
 }
 
 function sbFetch_(metodo, path, cuerpo, prefer) {
