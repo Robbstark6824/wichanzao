@@ -87,11 +87,11 @@ validen quién llama:
 - `admin_delete_worker`: **verificado**. Comprueba `is_admin()` antes de hacer
   nada; sin sesión falla con "No autorizado". Aun así, `anon` no necesita poder
   ejecutarla (`REVOKE EXECUTE … FROM anon`).
-- `check_service_code(servicio, codigo)`: **riesgo**. Devuelve si un código de
-  servicio es correcto y cualquiera puede llamarla sin límite de intentos: sirve
-  para adivinar los códigos de registro por fuerza bruta. Lo mitiga que una cuenta
-  nueva necesita aprobación de un administrador. Mejora: limitar intentos o mover
-  la comprobación a un servidor.
+- `check_service_code(servicio, codigo)`: **CERRADO el 2026-10-15** (`sql/039`). Antes
+  cualquiera sin sesión podía llamarla sin límite de intentos. Ahora `anon` no tiene
+  permiso de ejecución (verificado: responde 401 "permission denied"), solo la
+  ejecutan usuarios con sesión (el panel de PC), y se bloquea tras 5 fallos en
+  15 minutos por usuario.
 - `es_jefe_info`, `estoy_aprobado`, `is_admin`, `mi_servicio`, `puede_editar_servicio`,
   `puede_ver_servicio`: leen `auth.uid()`, que sin sesión es nulo, y devuelven
   "no". No se revisó el cuerpo de las demás con el mismo detalle.
