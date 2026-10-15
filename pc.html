@@ -1553,14 +1553,11 @@ async function submitServiceCode() {
   errEl.style.display = 'none';
 
   try {
-    var resp = await fetch(SB_URL + '/rest/v1/rpc/check_service_code', {
-      method: 'POST',
-      headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_servicio: key, p_code: code })
-    });
-    var result = await resp.json();
+    // Con la sesión del panel (sb): la función ya no acepta llamadas anónimas
+    var rpc = await sb.rpc('check_service_code', { p_servicio: key, p_code: code });
+    if (rpc.error) throw rpc.error;
 
-    if (result === true) {
+    if (rpc.data === true) {
       unlockService(key);
       document.getElementById('svcLockModal').style.display = 'none';
       setServicioFilter(key);
